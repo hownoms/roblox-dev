@@ -15,6 +15,7 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
@@ -139,7 +140,38 @@ function EconomyService.Init()
 	SettingsService.RegisterAction("SellNow", onSellNow)
 end
 
+-- Touched is unreliable when the pad sits at or under the smooth-terrain surface, so also sell
+-- to anyone standing over a zone (checked a few times per second).
+local POLL_INTERVAL = 0.25
+local function isOverZone(zone: BasePart, position: Vector3): boolean
+	local rel = zone.CFrame:PointToObjectSpace(position)
+	return math.abs(rel.X) <= zone.Size.X / 2 + 1
+		and math.abs(rel.Z) <= zone.Size.Z / 2 + 1
+		and rel.Y > -3
+		and rel.Y < 8
+end
+
+local function pollZones()
+	for _, player in Players:GetPlayers() do
+		local root = Net.GetRoot(player)
+		if root then
+			for zone in connectedZones do
+				if isOverZone(zone, root.Position) then
+					onZoneTouched(zone, root)
+					break
+				end
+			end
+		end
+	end
+end
+
 function EconomyService.Start()
+	task.spawn(function()
+		while true do
+			task.wait(POLL_INTERVAL)
+			pollZones()
+		end
+	end)
 	for _, instance in CollectionService:GetTagged("SellZone") do
 		connectZone(instance)
 	end

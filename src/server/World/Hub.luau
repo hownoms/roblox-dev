@@ -141,7 +141,7 @@ local function buildSell(parent: Instance)
 	end
 
 	-- Touch pad in front of the counter
-	local pad = lp(m, base, "SellZone", Vector3.new(16, 1, 8), Vector3.new(0, 0.5, -6.5), C.Success, Enum.Material.Neon)
+	local pad = lp(m, base, "SellZone", Vector3.new(16, 1, 8), Vector3.new(0, 2.2, -6.5), C.Success, Enum.Material.Neon)
 	pad.Transparency = 0.3
 	pad.CanCollide = false
 	pad.CanQuery = false
