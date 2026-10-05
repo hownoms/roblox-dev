@@ -16,6 +16,7 @@
 		"Event"    a timed server event started (High Tide / Golden Hour)
 ]]
 
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -75,6 +76,9 @@ function Net.On(name: string, handler: (Player, ...any) -> ...any, options: Hand
 			return
 		end
 		if requireData and not DataService.IsLoaded(player) then
+			if RunService:IsStudio() then
+				print(string.format("[Net] %s from %s ignored: data not loaded yet", name, player.Name))
+			end
 			return
 		end
 		local ok, err = pcall(handler, player, ...)

@@ -24,6 +24,7 @@
 		DigService.TryDig(player, position, isAuto): Types.DigResult?
 ]]
 
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -44,7 +45,6 @@ local SettingsService = require(script.Parent.SettingsService)
 
 local REACH_SLACK = 2 -- studs of latency slack on top of Config.REACH
 local SURFACE_SLACK = 4 -- how far above the plot surface a dig point may be
-local WALL_MARGIN = 0.5 -- keep this much terrain between the sphere and the plot wall
 local BOTTOM_FLOOR = 2 -- studs of indestructible floor kept at the bottom of the plot
 local EDGE_SLACK = 1 -- dig points may be this far outside the footprint (surface rounding)
 local FTUE_TREASURE_DIG = 8
@@ -74,6 +74,54 @@ local function baseResult(position: Vector3): Types.DigResult
 		NewLayer = false,
 		TreasureId = nil,
 	}
+end
+
+local VOXEL = 4 -- terrain resolution; carving whole voxels makes every dig visible
+
+-- Prints why a dig was silently ignored. Studio only, at most once per reason per 5 seconds.
+local debugThrottle: { [string]: number } = {}
+local function studioDebug(player: Player, reason: string, detail: string)
+	if not RunService:IsStudio() then
+		return
+	end
+	local key = player.Name .. reason
+	local now = os.clock()
+	if (debugThrottle[key] or 0) + 5 > now then
+		return
+	end
+	debugThrottle[key] = now
+	print(string.format("[DigService] %s dig ignored: %s", player.Name, detail))
+end
+
+-- Removes a voxel-aligned cube of terrain at the dig point. Shovel radius sets the cube size
+-- (radius 2 = one 4-stud voxel, radius 6 = 3x3x3 voxels). The cube is clamped to voxels fully
+-- inside the plot column so plot walls and the floor never break.
+local function carve(plot: Types.PlotInfo, position: Vector3, radius: number, root: BasePart?)
+	local cells = math.max(1, math.floor(radius * 2 / VOXEL + 0.5))
+	-- Nudge the point into the surface that was clicked (away from the digger, or down for auto-dig).
+	local push = Vector3.new(0, -1, 0)
+	if root then
+		local away = position - root.Position
+		if away.Magnitude > 0.01 then
+			push = away.Unit
+		end
+	end
+	local target = position + push * 1.5
+	local origin = plot.Origin.Position
+	local half = plot.Size / 2
+	local function axisStart(value: number, minEdge: number, maxEdge: number): number
+		local lo = math.ceil(minEdge / VOXEL)
+		local hi = math.floor(maxEdge / VOXEL) - cells
+		local start = math.floor(value / VOXEL) - math.floor((cells - 1) / 2)
+		return if hi < lo then lo else math.clamp(start, lo, hi)
+	end
+	local sx = axisStart(target.X, origin.X - half.X, origin.X + half.X)
+	local sz = axisStart(target.Z, origin.Z - half.Z, origin.Z + half.Z)
+	local floorY = origin.Y - plot.Size.Y + BOTTOM_FLOOR
+	local sy = math.max(math.floor(target.Y / VOXEL) - math.floor((cells - 1) / 2), math.ceil(floorY / VOXEL))
+	local size = Vector3.new(cells, cells, cells) * VOXEL
+	local min = Vector3.new(sx, sy, sz) * VOXEL
+	terrain:FillBlock(CFrame.new(min + size / 2), size, Enum.Material.Air)
 end
 
 local function hasSolidTerrainNear(position: Vector3): boolean
@@ -188,6 +236,7 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	local now = os.clock()
 	local last = lastDig[player]
 	if last and now - last < cooldown then
+		studioDebug(player, "Cooldown", string.format("cooldown %.2fs not elapsed", cooldown))
 		return fail(player, result, "Cooldown", isAuto)
 	end
 
@@ -206,18 +255,7 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 		return fail(player, result, "Bottom", isAuto)
 	end
 
-	-- Clamp the sphere inside the column so walls/floor of the plot never break.
 	local radius = shovel.Radius
-	local maxX = math.max(halfX - radius - WALL_MARGIN, 0)
-	local maxZ = math.max(halfZ - radius - WALL_MARGIN, 0)
-	local minY = -(totalDepth - BOTTOM_FLOOR - radius)
-	local center = plot.Origin:PointToWorldSpace(
-		Vector3.new(
-			math.clamp(localPos.X, -maxX, maxX),
-			math.clamp(localPos.Y, minY, SURFACE_SLACK),
-			math.clamp(localPos.Z, -maxZ, maxZ)
-		)
-	)
 	local depth = math.clamp(-localPos.Y, 0, totalDepth)
 	local layerIndex = Config.GetLayerIndexAtDepth(depth)
 	local layer = Config.Layers[layerIndex]
@@ -233,6 +271,7 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	end
 
 	if not hasSolidTerrainNear(position) then
+		studioDebug(player, "NoTerrain", "no solid terrain at " .. tostring(position))
 		return nil
 	end
 
@@ -250,7 +289,7 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	-- Success ------------------------------------------------------------------------------------
 	lastDig[player] = now
 	sessionDigs[player] = (sessionDigs[player] or 0) + 1
-	terrain:FillBall(center, radius, Enum.Material.Air)
+	carve(plot, position, radius, if isAuto then nil else Net.GetRoot(player))
 
 	local gained = math.min(layer.SandValue * Stats.GetSandMultiplier(ctx), capacity - data.Sand)
 	DataService.Mutate(player, { "Sand", "TotalSandDug" }, function(d)
