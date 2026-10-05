@@ -128,3 +128,20 @@ back to in-memory and warns). OrderedDataStores `Leaderboard_Coins`, `Leaderboar
 Use `AnalyticsService:LogOnboardingFunnelStepEvent` for the first-session funnel
 (joined, first dig, first sell, first shovel, first egg, first rebirth) and
 `LogEconomyEvent` for coin sources/sinks.
+
+## Amendments after design phase (binding)
+- Title: **Dig to the Core! Beach Simulator**. See `docs/GDD.md`.
+- `Config.SURFACE_Y = 1024`; plot bottom is at Y=24. Never generate terrain below Y=0.
+- Terrain material colours are global per material, so **each layer owns a unique terrain
+  material** (see `Config.Layers`). Map scenery may only use Sand (Dry Sand colour), Water, Grass,
+  LeafyGrass, Snow, Concrete, Asphalt, Cobblestone. Apply `Workspace.Terrain:SetMaterialColor`
+  from `Config.Layers[i].Color` at build time (World owns this).
+- `src/shared/Remotes.luau` and `src/shared/Util/Format.luau` exist (coordinator-written; server
+  scripting may extend Util but must not rename Remotes API). Remotes adds:
+  events `PromptPurchase(kind: "GamePass"|"Product", key: string)` (client asks server to prompt
+  — or client may call MarketplaceService directly), `EventChanged(activeEventIds: {string})`
+  (server → client); functions `GetPlot(): PlotInfo?`, `GetOwnedPasses(): {[key]: boolean}`.
+  Server must call `Remotes.CreateAll()` before anything else.
+- Monetization ids and `GROUP_ID` of 0 mean "not configured": hide/disable those buttons, never
+  prompt a purchase for id 0.
+- Use `Config` helpers (see `src/shared/Config/init.luau`) instead of re-deriving formulas.
