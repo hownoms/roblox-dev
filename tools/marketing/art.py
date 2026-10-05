@@ -384,8 +384,10 @@ def pet_dragon(c: Canvas, body=(255, 150, 30), belly=(255, 230, 120), wing=(255,
     c.line([(60, 150), (25, 168), (12, 140)], body, 22, STROKE, 5)
     c.poly([(12, 120), (0, 145), (24, 142)], wing, STROKE, 4)
     # wings
-    c.poly([(70, 95), (15, 30), (40, 60), (20, 70), (55, 110)], wing, STROKE, 5)
-    c.poly([(130, 95), (190, 28), (165, 60), (188, 72), (148, 112)], wing, STROKE, 5)
+    c.poly([(72, 100), (6, 22), (26, 70), (0, 84), (30, 104), (8, 124), (60, 122)], wing, STROKE, 5)
+    c.poly([(128, 100), (194, 22), (174, 70), (200, 84), (170, 104), (192, 124), (140, 122)], wing, STROKE, 5)
+    c.line([(72, 100), (16, 36)], darken(wing, .25), 4)
+    c.line([(128, 100), (184, 36)], darken(wing, .25), 4)
     # body
     c.ellipse((50, 90, 150, 185), body, STROKE, 5)
     c.ellipse((72, 112, 128, 180), belly)
@@ -648,13 +650,22 @@ def tr_snowflake(c: Canvas, col=(220, 245, 255)):
 
 
 def tr_rebirth(c: Canvas, col=(120, 255, 200)):
-    box = c.B((25, 25, 175, 175))
-    c.d.arc(box, 30, 300, fill=rgba(STROKE), width=c.W(40))
-    c.d.arc(box, 30, 300, fill=rgba(col), width=c.W(26))
-    a = math.radians(300)
-    x, y = 100 + 75 * math.cos(a), 100 + 75 * math.sin(a)
-    c.poly([(x - 30, y - 18), (x + 30, y - 12), (x + 4, y + 36)], col, STROKE, 6)
-    c.poly([(x - 30, y - 18), (x + 30, y - 12), (x + 4, y + 36)], col, None)
+    """Two chasing circular arrows (the rebirth symbol)."""
+    cx, cy, r = 100, 100, 66
+    box = c.B((cx - r, cy - r, cx + r, cy + r))
+    for a0 in (200, 20):
+        a1 = a0 + 120
+        c.d.arc(box, a0, a1, fill=rgba(col), width=c.W(30))
+        t = math.radians(a1)
+        hx, hy = cx + r * math.cos(t), cy + r * math.sin(t)
+        tx, ty = -math.sin(t), math.cos(t)
+        nx, ny = math.cos(t), math.sin(t)
+        c.poly([(hx + nx * 32, hy + ny * 32), (hx + tx * 44, hy + ty * 44), (hx - nx * 32, hy - ny * 32)], col,
+               None)
+    c.d.arc(c.B((cx - r + 6, cy - r + 6, cx + r - 6, cy + r - 6)), 210, 300, fill=rgba(lighten(col, .55)),
+            width=c.W(6))
+    c.d.arc(c.B((cx - r + 6, cy - r + 6, cx + r - 6, cy + r - 6)), 30, 120, fill=rgba(lighten(col, .55)),
+            width=c.W(6))
 
 
 def tr_core(c: Canvas):

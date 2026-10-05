@@ -1,0 +1,13 @@
+Fonts used by tools/marketing (downloaded from Google Fonts, fonts.gstatic.com):
+
+- LuckiestGuy-Regular.ttf  "Luckiest Guy" by Astigmatic - Apache License 2.0
+  https://fonts.google.com/specimen/Luckiest+Guy  (titles)
+- LilitaOne-Regular.ttf    "Lilita One" by Juan Montoreano - SIL Open Font License 1.1
+  https://fonts.google.com/specimen/Lilita+One
+- FredokaOne-Regular.ttf   "Fredoka One" by Milena Brandao - SIL Open Font License 1.1
+  https://fonts.google.com/specimen/Fredoka+One  (matches the in-game FredokaOne UI font)
+
+All three may be used commercially and embedded in rendered images. If a file is missing
+the generator falls back to DejaVu Sans Bold (looks worse - re-download with:
+  curl -sS "https://fonts.googleapis.com/css?family=Luckiest+Guy|Lilita+One|Fredoka+One"
+and fetch the .ttf URLs it lists).

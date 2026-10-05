@@ -285,10 +285,10 @@ function Build.face(parent: Instance, cf: CFrame, s: number, opts: FaceOpts?)
 	local spacing = (o.spacing or 0.28) * s
 	local eyeD = (o.eye or 0.3) * s
 	local eyeColor = o.eyeColor or Build.EYE
-	local radius = o.radius
+	local radius: number = o.radius or 0 -- 0 = flat
 	local function sink(dx: number, dy: number): number
 		local r = radius
-		if r == nil then
+		if r <= 0 then
 			return 0
 		end
 		local d2 = dx * dx + dy * dy
@@ -317,7 +317,7 @@ function Build.face(parent: Instance, cf: CFrame, s: number, opts: FaceOpts?)
 				Vector3.new(0.22, 0.12, 0.08) * s,
 				cf
 					* CFrame.new(cx, cy, sink(cx, cy) - 0.005 * s)
-					* CFrame.Angles(0, -math.asin(math.clamp(if radius then cx / radius else 0, -0.9, 0.9)), 0),
+					* CFrame.Angles(0, -math.asin(math.clamp(if radius > 0 then cx / radius else 0, -0.9, 0.9)), 0),
 				Build.CHEEK
 			)
 		end

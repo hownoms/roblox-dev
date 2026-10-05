@@ -216,10 +216,12 @@ def thumb_pets(seed=2) -> Image.Image:
     c.glow(960, 610, 470, (255, 240, 150), 255, 1.3)
     A.sunburst(c, 960, 610, 16, 520, (255, 250, 200), 80, 0.3)
     confetti(c, rng, 46, (0, 260, W, 780))
-    put(c, A.pet_dragon, 960, 540, 380)
-    egg = lambda cc: A.tr_egg_bottom(cc, (255, 220, 70), (255, 255, 235))
+    c.ellipse((760, 640, 1160, 740), (200, 140, 30), STROKE, 7)       # inside of the shell
+    c.ellipse((780, 655, 1140, 735), (150, 95, 20))
+    put(c, A.pet_dragon, 960, 530, 380)
+    egg = lambda cc: A.tr_egg_bottom(cc, (255, 220, 70), (255, 160, 50))
     put(c, egg, 960, 760, 440)
-    put(c, lambda cc: A.tr_egg_top(cc, (255, 220, 70), (255, 255, 235)), 1250, 330, 230, rot=-35)
+    put(c, lambda cc: A.tr_egg_top(cc, (255, 220, 70), (255, 160, 50)), 1250, 330, 230, rot=-35)
     for _ in range(26):
         A.sparkle(c, 960 + rng.uniform(-330, 330), 600 + rng.uniform(-260, 220), rng.uniform(10, 26), (255, 255, 230))
     # pet parade on the island
@@ -390,14 +392,12 @@ def icon(seed=5, text="DIG!") -> Image.Image:
 
 # ============================================================ social
 def discord_banner() -> Image.Image:
-    img = thumb_hero(seed=11).resize((960, 540), Image.LANCZOS)
-    c = Canvas(960, 540, s=1)
-    c.img = img.convert("RGBA")
+    """960x540 Discord server banner: the hero scene plus a community call-out."""
+    c = Canvas(960, 540, s=2)
+    c.img = thumb_hero(seed=11).convert("RGBA")  # 1920x1080 == 960x540 at s=2
     c.refresh()
-    c.paste(pill_label("CODES & UPDATES!", 22, bg=(90, 120, 255), rot=-4).resize(
-        (int(pill_label("CODES & UPDATES!", 22).width * 0.5), int(pill_label("CODES & UPDATES!", 22).height * 0.5))),
-        180, 500)
-    return c.img
+    c.paste(pill_label("CODES & UPDATES!", 30, bg=(90, 110, 255), rot=-5), 175, 495)
+    return c.final()
 
 
 def x_header(seed=12) -> Image.Image:
@@ -426,7 +426,7 @@ def x_header(seed=12) -> Image.Image:
     A.sand_spray(c, CX + 20, SURF - 10, rng, n=20, dirx=1, height=120, reach=200, size=(4, 10))
     put(c, lambda cc: character(cc, pose="dig"), CX - 130, SURF - 75, 170)
     put(c, A.pet_crab, CX + 230, SURF - 25, 70)
-    put_title(c, "DIG TO THE CORE!", 560, 110, 96, rot=-3)
+    put_title(c, "DIG TO THE CORE!", 500, 105, 96, rot=-3)
     vignette(c, 50)
     return c.final()
 
@@ -459,14 +459,13 @@ def badge(emblem, ring, bg, ribbon) -> Image.Image:
     inner.putalpha(m)
     c.over(inner)
     A.sunburst(c, 256, 230, 12, 196, (255, 255, 255), 30)
-    c.d.chord(c.B((60, 40, 452, 300)), 180, 360, fill=(255, 255, 255, 0))
     c.ellipse((110, 60, 300, 130), (255, 255, 255, 70))
     c.glow(256, 230, 180, (255, 255, 230), 150, 1.4)
     c.paste(sprite(emblem, 250, outline=11), 256, 222)
-    lab = pill_label(ribbon, 44, bg=darken(ring, .05) if sum(ring) < 600 else (255, 90, 80))
+    lab = pill_label(ribbon, 54, bg=darken(ring, .05) if sum(ring) < 600 else (255, 90, 80))
     if lab.width > 420 * 2:
         lab = lab.resize((420 * 2, int(lab.height * 420 * 2 / lab.width)), Image.LANCZOS)
-    c.paste(lab, 256, 400)
+    c.paste(lab, 256, 402)
     mask = Image.new("L", c.img.size, 0)
     ImageDraw.Draw(mask).ellipse([4, 4, c.img.width - 4, c.img.height - 4], fill=255)
     c.img.putalpha(ImageChops.multiply(c.img.getchannel("A"), mask))

@@ -2,8 +2,9 @@
 --[[
 	LayerController — tracks how deep the local character is (studs below the plot surface),
 	fires DepthChanged / LayerEntered, shows the layer-enter banner and tints the world toward
-	the layer's AmbientColor while underground (client-created ColorCorrectionEffect +
-	Lighting.Ambient/OutdoorAmbient tweens, restored at the surface). Also swaps music.
+	the layer's AmbientColor while underground via our OWN client-side ColorCorrectionEffect
+	"DepthTint" in Lighting. The server owns WorldAtmosphere/WorldColorCorrection/WorldBloom
+	(Golden Hour / High Tide) and Lighting properties, so we never touch those. Swaps music.
 ]]
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,8 +29,6 @@ local BANNER_COOLDOWN = 12 -- don't re-announce the same layer within this many 
 local FULL_TINT_DEPTH = 14 -- studs underground at which the tint reaches full strength
 
 local colorCorrection: ColorCorrectionEffect? = nil
-local originalAmbient = Lighting.Ambient
-local originalOutdoor = Lighting.OutdoorAmbient
 local lastTintKey = ""
 local lastAnnounced: { [number]: number } = {}
 local newLayerShown: { [number]: boolean } = {}
@@ -45,7 +44,7 @@ local function getColorCorrection(): ColorCorrectionEffect
 		return colorCorrection
 	end
 	local cc = Instance.new("ColorCorrectionEffect")
-	cc.Name = "DigLayerTint"
+	cc.Name = "DepthTint"
 	cc.Parent = Lighting
 	colorCorrection = cc
 	return cc
@@ -57,24 +56,16 @@ local function applyTint(depth: number, layerIndex: number)
 	if key == lastTintKey then
 		return
 	end
-	if lastTintKey == "" then
-		originalAmbient = Lighting.Ambient
-		originalOutdoor = Lighting.OutdoorAmbient
-	end
 	lastTintKey = key
 	local layer = Config.Layers[layerIndex]
 	local info = TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 	local cc = getColorCorrection()
-	local tint = Color3.new(1, 1, 1):Lerp(layer.AmbientColor, 0.45 * strength)
+	local tint = Color3.new(1, 1, 1):Lerp(layer.AmbientColor, 0.55 * strength)
 	TweenService:Create(cc, info, {
 		TintColor = tint,
 		Saturation = 0.08 * strength,
 		Contrast = 0.06 * strength,
-		Brightness = -0.03 * strength,
-	}):Play()
-	TweenService:Create(Lighting, info, {
-		Ambient = originalAmbient:Lerp(layer.AmbientColor, 0.55 * strength),
-		OutdoorAmbient = originalOutdoor:Lerp(layer.AmbientColor, 0.45 * strength),
+		Brightness = -0.05 * strength,
 	}):Play()
 	SoundController.SetMusic(if depth > 20 then "MusicDeep" else "MusicBeach")
 end
