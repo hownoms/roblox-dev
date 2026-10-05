@@ -123,8 +123,8 @@ function MonetizationService.OwnsPass(player: Player, key: string): boolean
 end
 
 function MonetizationService.GetOwnedPasses(player: Player): { [string]: boolean }
-	local map = owned[player] or {}
-	local result = {}
+	local map: { [string]: boolean } = owned[player] or {}
+	local result: { [string]: boolean } = {}
 	for _, key in PASS_KEYS do
 		result[key] = map[key] == true
 	end
@@ -222,6 +222,8 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 		warn("[MonetizationService] receipt for unknown product id " .. tostring(productId))
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
+	local productKey = key :: string
+	local grant = (product :: Types.ProductDef).Grant
 
 	local player = Players:GetPlayerByUserId(userId)
 	if not player then
@@ -243,7 +245,7 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 	elseif lookupOk then
 		local granted = false
 		if grantHandler then
-			local ok, result = pcall(grantHandler, player, product.Grant, "Product:" .. key)
+			local ok, result = pcall(grantHandler :: GrantHandler, player, grant, "Product:" .. productKey)
 			granted = ok and result == true
 			if not ok then
 				warn("[MonetizationService] grant failed: " .. tostring(result))
@@ -254,7 +256,7 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 		if granted then
 			grantedThisServer[purchaseId] = true
 			DataService.SaveAsync(player)
-			if record(purchaseId, info, key) then
+			if record(purchaseId, info, productKey) then
 				decision = Enum.ProductPurchaseDecision.PurchaseGranted
 			end
 			-- If recording failed we answer NotProcessedYet; grantedThisServer prevents a second
@@ -287,15 +289,16 @@ function MonetizationService.Init()
 			if not key then
 				return
 			end
+			local passKey = key :: string
 			local map = owned[player]
 			if not map then
 				map = {}
 				owned[player] = map
 			end
-			map[key] = true
+			map[passKey] = true
 			publish(player)
-			Net.Notify(player, "Success", "Thanks! " .. Config.Monetization.GamePasses[key].Name .. " unlocked!")
-			MonetizationService.PassesChanged:Fire(player, key)
+			Net.Notify(player, "Success", "Thanks! " .. Config.Monetization.GamePasses[passKey].Name .. " unlocked!")
+			MonetizationService.PassesChanged:Fire(player, passKey)
 		end
 	)
 

@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Stats = require(Shared.Util.Stats)
+local Types = require(Shared.Types)
 
 local DataService = require(script.Parent.DataService)
 local EventService = require(script.Parent.EventService)
@@ -32,9 +33,10 @@ function MultiplierService.GetContext(player: Player): Stats.Context?
 	if not data then
 		return nil
 	end
+	local loaded = data :: Types.PlayerData
 	local friends = player:GetAttribute("FriendsInServer")
 	return {
-		Data = data,
+		Data = loaded,
 		Passes = MonetizationService.GetOwnedPasses(player),
 		IsPremium = MonetizationService.IsPremium(player),
 		InGroup = player:GetAttribute("InGroup") == true,
@@ -53,10 +55,11 @@ local function setIfChanged(player: Player, name: string, value: number)
 end
 
 function MultiplierService.Refresh(player: Player)
-	local ctx = MultiplierService.GetContext(player)
-	if not ctx or player.Parent == nil then
+	local maybeCtx = MultiplierService.GetContext(player)
+	if not maybeCtx or player.Parent == nil then
 		return
 	end
+	local ctx = maybeCtx :: Stats.Context
 	setIfChanged(player, "SandMultiplier", Stats.GetSandMultiplier(ctx))
 	setIfChanged(player, "Capacity", Stats.GetCapacity(ctx))
 	setIfChanged(player, "Luck", Stats.GetLuck(ctx))

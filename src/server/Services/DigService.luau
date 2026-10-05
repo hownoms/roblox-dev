@@ -85,6 +85,7 @@ local function hasSolidTerrainNear(position: Vector3): boolean
 	if not ok then
 		return true -- don't block digging on an engine hiccup
 	end
+	assert(ok) -- refine for the type checker (guarded above)
 	local size: Vector3 = materials.Size
 	for x = 1, size.X do
 		for y = 1, size.Y do
@@ -173,11 +174,14 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	if not data or not ctx then
 		return nil
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(ctx) -- refine for the type checker (guarded above)
 	local result = baseResult(position)
 	local plot = PlotService.GetPlot(player)
 	if not plot or PlotService.IsResetting(player) then
 		return fail(player, result, "NoPlot", isAuto)
 	end
+	assert(plot) -- refine for the type checker (guarded above)
 
 	local shovel = Stats.GetShovel(data)
 	local cooldown = Stats.GetCooldown(ctx) * (if isAuto then 1 else Config.COOLDOWN_LENIENCY)
@@ -288,11 +292,14 @@ local function autoDigStep(player: Player)
 	if not root then
 		return
 	end
+	assert(root) -- refine for the type checker (guarded above)
 	local data = DataService.Get(player)
 	local ctx = MultiplierService.GetContext(player)
 	if not data or not ctx then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(ctx) -- refine for the type checker (guarded above)
 	if os.clock() - (lastDig[player] or 0) < Stats.GetCooldown(ctx) then
 		return
 	end
@@ -335,7 +342,10 @@ function DigService.Start()
 			task.wait(AUTO_TICK)
 			for _, player in DataService.GetLoadedPlayers() do
 				if autoDigEnabled(player) then
-					local ok, err = pcall(autoDigStep, player)
+					local ok, err = pcall(function(): any
+						autoDigStep(player)
+						return nil
+					end)
 					if not ok then
 						warn("[DigService] auto dig error: " .. tostring(err))
 					end

@@ -45,6 +45,8 @@ function EconomyService.Sell(player: Player, source: string): number
 	if not data or not ctx then
 		return 0
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(ctx) -- refine for the type checker (guarded above)
 	local hasTreasure = false
 	for _, count in data.Treasures do
 		if count > 0 then
@@ -83,6 +85,7 @@ local function onZoneTouched(zone: BasePart, hit: BasePart)
 	if not player then
 		return
 	end
+	assert(player) -- refine for the type checker (guarded above)
 	local now = os.clock()
 	local last = lastZoneSell[player]
 	if last and now - last < ZONE_DEBOUNCE then
@@ -92,6 +95,7 @@ local function onZoneTouched(zone: BasePart, hit: BasePart)
 	if not root then
 		return
 	end
+	assert(root) -- refine for the type checker (guarded above)
 	-- Reject touches reported far from the zone (exploit: firetouchinterest from anywhere).
 	local maxDistance = zone.Size.Magnitude / 2 + ZONE_DISTANCE_SLACK
 	if (root.Position - zone.Position).Magnitude > maxDistance then

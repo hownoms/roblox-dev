@@ -78,6 +78,7 @@ function PetService.GrantPet(player: Player, petId: string, autoEquip: boolean?)
 	if not data or not Config.GetPet(petId) then
 		return nil
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local uid = HttpService:GenerateGUID(false)
 	local equip = autoEquip ~= false and countEquipped(data) < PetService.GetSlots(player)
 	data.Pets[uid] = { Id = petId, Equipped = equip }
@@ -112,6 +113,7 @@ function PetService.HatchFree(player: Player, eggId: string, count: number): { s
 	if not egg or not DataService.Get(player) then
 		return {}
 	end
+	assert(egg) -- refine for the type checker (guarded above)
 	return hatch(player, egg, math.clamp(math.floor(count), 1, 10))
 end
 
@@ -130,6 +132,8 @@ local function onHatchEgg(player: Player, eggId: any, count: any)
 	if not data or not egg then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(egg) -- refine for the type checker (guarded above)
 	if count > 1 and not MonetizationService.OwnsPass(player, "TripleHatch") then
 		Net.Notify(player, "Error", "Get Triple Hatch to open 3 at once!")
 		return
@@ -185,6 +189,7 @@ local function findPet(player: Player, uid: any): (Types.PlayerData?, Types.PetI
 	if not data then
 		return nil, nil
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	return data, data.Pets[uid]
 end
 
@@ -193,6 +198,8 @@ local function onEquip(player: Player, uid: any)
 	if not data or not pet or pet.Equipped then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(pet) -- refine for the type checker (guarded above)
 	if countEquipped(data) >= PetService.GetSlots(player) then
 		Net.Notify(player, "Error", "All pet slots are full! Unequip a pet first.")
 		return
@@ -206,6 +213,8 @@ local function onUnequip(player: Player, uid: any)
 	if not data or not pet or not pet.Equipped then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(pet) -- refine for the type checker (guarded above)
 	pet.Equipped = false
 	DataService.MarkDirty(player, "Pets")
 end
@@ -215,6 +224,8 @@ local function onDelete(player: Player, uid: any)
 	if not data or not pet then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(pet) -- refine for the type checker (guarded above)
 	data.Pets[uid :: string] = nil
 	DataService.MarkDirty(player, "Pets")
 end
@@ -225,6 +236,7 @@ local function trimEquipped(player: Player)
 	if not data then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local slots = PetService.GetSlots(player)
 	local equipped = {}
 	for uid, pet in data.Pets do
@@ -249,7 +261,36 @@ function PetService.Init()
 	Net.On("DeletePet", onDelete, { Rate = 10, Window = 1 })
 end
 
+-- Mirror equipped pet ids onto a Player attribute so every client can render followers
+-- (PetFollowController reads "EquippedPets" as comma-separated PetDef ids).
+local function publishEquipped(player: Player)
+	local data = DataService.Get(player)
+	if not data then
+		return
+	end
+	assert(data) -- refine for the type checker (guarded above)
+	local ids = {}
+	for _, pet in data.Pets do
+		if pet.Equipped then
+			table.insert(ids, pet.Id)
+		end
+	end
+	table.sort(ids)
+	player:SetAttribute("EquippedPets", table.concat(ids, ","))
+end
+
 function PetService.Start()
+	DataService.PlayerLoaded:Connect(function(player: Player)
+		publishEquipped(player)
+	end)
+	DataService.Changed:Connect(function(player: Player, keys: { string })
+		if table.find(keys, "Pets") then
+			publishEquipped(player)
+		end
+	end)
+	for _, player in DataService.GetLoadedPlayers() do
+		publishEquipped(player)
+	end
 	-- Pass ownership arrives asynchronously after load; trim only once it settled.
 	MonetizationService.PassesChanged:Connect(function(player: Player)
 		trimEquipped(player)

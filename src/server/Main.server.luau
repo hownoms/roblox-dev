@@ -18,7 +18,10 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 Remotes.CreateAll()
 
 local World = require(script.Parent.World)
-local okWorld, worldErr = pcall(World.Build)
+local okWorld, worldErr = pcall(function(): any
+	World.Build()
+	return nil
+end)
 if not okWorld then
 	warn("[Main] World.Build failed: " .. tostring(worldErr))
 end
@@ -63,7 +66,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },
 }
 
-local function run(name: string, phase: string, fn: (...any) -> (), ...: any)
+local function run(name: string, phase: string, fn: (...any) -> ...any, ...: any)
 	local ok, err = pcall(fn, ...)
 	if not ok then
 		warn(string.format("[Main] %s.%s failed: %s", name, phase, tostring(err)))

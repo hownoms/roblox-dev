@@ -62,6 +62,7 @@ function RewardsService.Grant(player: Player, reward: Types.Reward, source: stri
 	if not data then
 		return false
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local parts: { string } = {}
 
 	local coins = math.floor(Config.ResolveCoins(reward, data.MaxDepth) * (coinMultiplier or 1))
@@ -127,6 +128,7 @@ local function onClaimDaily(player: Player)
 	if not data then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local now = os.time()
 	if not dailyReady(data, now) then
 		Net.Notify(
@@ -154,16 +156,17 @@ end
 -- Quests ----------------------------------------------------------------------------------------
 
 local function questState(data: Types.PlayerData, def: Types.QuestDef, day: number): Types.QuestProgress
-	local state = data.Quests[def.Id]
-	if def.Reset == "Daily" then
-		if not state or state.Day ~= day then
-			state = { Progress = 0, Claimed = false, Day = day }
-			data.Quests[def.Id] = state
-		end
-	elseif not state then
-		state = { Progress = 0, Claimed = false }
-		data.Quests[def.Id] = state
+	local existing = data.Quests[def.Id]
+	local fresh = existing == nil or (def.Reset == "Daily" and existing.Day ~= day)
+	if existing and not fresh then
+		return existing
 	end
+	local state: Types.QuestProgress = {
+		Progress = 0,
+		Claimed = false,
+		Day = if def.Reset == "Daily" then day else nil,
+	}
+	data.Quests[def.Id] = state
 	return state
 end
 
@@ -178,6 +181,7 @@ function RewardsService.AddQuestProgress(player: Player, kind: Types.QuestKind, 
 	if not data then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local day = today()
 	local changed = false
 	for _, def in Config.Quests do
@@ -218,6 +222,8 @@ local function onClaimQuest(player: Player, questId: any)
 	if not data or not def then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(def) -- refine for the type checker (guarded above)
 	local state = questState(data, def, today())
 	if state.Claimed then
 		Net.Notify(player, "Error", "Already claimed!")
@@ -242,11 +248,13 @@ local function onRedeemCode(player: Player, code: any)
 	if not data then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local def = Config.GetCode(code)
 	if not def or not def.Enabled or (def.Expires ~= nil and os.time() > def.Expires) then
 		Net.Notify(player, "Error", "That code doesn't work.")
 		return
 	end
+	assert(def) -- refine for the type checker (guarded above)
 	local key = string.upper(def.Code)
 	if data.RedeemedCodes[key] then
 		Net.Notify(player, "Error", "You already used that code!")
@@ -277,6 +285,7 @@ local function recountFriends(player: Player)
 	if not cache or player.Parent == nil then
 		return
 	end
+	assert(cache) -- refine for the type checker (guarded above)
 	local count = 0
 	for _, other in Players:GetPlayers() do
 		if other ~= player and cache[other.UserId] then

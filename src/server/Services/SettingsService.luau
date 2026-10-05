@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local TableUtil = require(Shared.Util.TableUtil)
+local Types = require(Shared.Types)
 
 local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
@@ -82,10 +83,11 @@ local function onSetSetting(player: Player, key: any, value: any)
 		return
 	end
 
-	local data = DataService.Get(player)
-	if not data then
+	local maybeData = DataService.Get(player)
+	if not maybeData then
 		return
 	end
+	local data = maybeData :: Types.PlayerData
 
 	local ok, stored
 	local validator = validators[key]

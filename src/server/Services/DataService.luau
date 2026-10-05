@@ -81,7 +81,7 @@ local activeSaves = 0
 local shuttingDown = false
 
 -- Migrations: MIGRATIONS[v] upgrades a save from version v to v + 1.
-local MIGRATIONS: { [number]: (data: { [string]: any }) -> () } = {
+local MIGRATIONS: { [number]: (data: { [string]: any }) -> ...any } = {
 	-- [1] = function(data) data.NewField = data.OldField; data.OldField = nil end,
 }
 
@@ -175,10 +175,11 @@ local function updateLeaderstats(session: Session)
 	if not stats then
 		return
 	end
+	local values = stats :: { Coins: StringValue, Depth: IntValue, Rebirths: IntValue }
 	local data = session.Data
-	stats.Coins.Value = Format.Abbreviate(data.Coins)
-	stats.Depth.Value = Config.DepthToMeters(data.MaxDepth)
-	stats.Rebirths.Value = data.Rebirths
+	values.Coins.Value = Format.Abbreviate(data.Coins)
+	values.Depth.Value = Config.DepthToMeters(data.MaxDepth)
+	values.Rebirths.Value = data.Rebirths
 end
 
 -- Replication -----------------------------------------------------------------------------------
@@ -360,11 +361,12 @@ local function onPlayerAdded(player: Player)
 		end
 		return
 	end
+	local loaded = data :: PlayerData
 
 	local session: Session = {
 		Player = player,
 		Key = keyFor(player.UserId),
-		Data = data,
+		Data = loaded,
 		Dirty = {},
 		FlushScheduled = false,
 		Released = false,
@@ -382,8 +384,8 @@ local function onPlayerAdded(player: Player)
 	sessions[player] = session
 	createLeaderstats(session)
 	updateLeaderstats(session)
-	dataChanged:FireClient(player, data)
-	DataService.PlayerLoaded:Fire(player, data)
+	dataChanged:FireClient(player, loaded)
+	DataService.PlayerLoaded:Fire(player, loaded)
 end
 
 -- Public API ------------------------------------------------------------------------------------

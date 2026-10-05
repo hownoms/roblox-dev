@@ -34,6 +34,7 @@ function RebirthService.DoRebirth(player: Player, free: boolean): boolean
 	if not data or busy[player] then
 		return false
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local previous = data.Rebirths
 	local cost = Config.RebirthCost(previous)
 	if not free and data.Coins < cost then

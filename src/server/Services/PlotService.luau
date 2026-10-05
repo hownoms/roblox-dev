@@ -56,7 +56,10 @@ local currentDepth: { [Player]: number } = {}
 
 local function publishOwner(state: PlotState)
 	Workspace:SetAttribute("PlotOwner_" .. tostring(state.Info.Id), if state.Owner then state.Owner.UserId else 0)
-	local ok, err = pcall(World.SetPlotOwner, state.Info.Id, state.Owner)
+	local ok, err = pcall(function(): any
+		World.SetPlotOwner(state.Info.Id, state.Owner)
+		return nil
+	end)
 	if not ok then
 		warn("[PlotService] World.SetPlotOwner failed: " .. tostring(err))
 	end
@@ -64,7 +67,10 @@ end
 
 local function resetWorldPlot(state: PlotState)
 	state.Resetting = true
-	local ok, err = pcall(World.ResetPlot, state.Info.Id)
+	local ok, err = pcall(function(): any
+		World.ResetPlot(state.Info.Id)
+		return nil
+	end)
 	if not ok then
 		warn("[PlotService] World.ResetPlot failed: " .. tostring(err))
 	end
@@ -111,10 +117,11 @@ end
 -- Depth -----------------------------------------------------------------------------------------
 
 local function updateMaxDepth(player: Player, depth: number): (boolean, boolean)
-	local data = DataService.Get(player)
-	if not data then
+	local maybeData = DataService.Get(player)
+	if not maybeData then
 		return false, false
 	end
+	local data = maybeData :: Types.PlayerData
 	local newDepth = math.floor(math.clamp(depth, 0, Config.TOTAL_DEPTH))
 	if newDepth <= data.MaxDepth then
 		return false, false
@@ -127,10 +134,11 @@ local function updateMaxDepth(player: Player, depth: number): (boolean, boolean)
 end
 
 local function measureDepth(player: Player, state: PlotState): number?
-	local root = Net.GetRoot(player)
-	if not root then
+	local maybeRoot = Net.GetRoot(player)
+	if not maybeRoot then
 		return nil
 	end
+	local root = maybeRoot :: BasePart
 	local character = root.Parent
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local hip = if humanoid then humanoid.HipHeight else 2

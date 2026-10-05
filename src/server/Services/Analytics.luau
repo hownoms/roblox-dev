@@ -10,6 +10,9 @@
 
 local AnalyticsService = game:GetService("AnalyticsService")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Types = require(ReplicatedStorage.Shared.Types)
+
 local DataService = require(script.Parent.DataService)
 
 local Analytics = {}
@@ -32,7 +35,7 @@ local STEP_NAMES: { [number]: string } = {
 	[6] = "FirstRebirth",
 }
 
-local function safeCall(fn: () -> ())
+local function safeCall(fn: () -> ...any)
 	task.spawn(function()
 		for attempt = 1, 2 do
 			local ok, err = pcall(fn)
@@ -50,10 +53,11 @@ end
 
 function Analytics.Funnel(player: Player, step: number)
 	local name = STEP_NAMES[step]
-	local data = DataService.Get(player)
-	if not name or not data then
+	local maybeData = DataService.Get(player)
+	if not name or not maybeData then
 		return
 	end
+	local data = maybeData :: Types.PlayerData
 	local flag = "FTUE_" .. name
 	if data.Settings[flag] then
 		return

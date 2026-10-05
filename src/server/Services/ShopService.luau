@@ -59,11 +59,13 @@ local function buildTool(shovelId: string): Tool?
 	if not def then
 		return nil
 	end
+	assert(def) -- refine for the type checker (guarded above)
 	local ok, model = pcall(Models.Shovel, shovelId)
 	if not ok or typeof(model) ~= "Instance" or not (model :: Instance):IsA("Model") then
 		warn("[ShopService] Models.Shovel failed for " .. shovelId .. ": " .. tostring(model))
 		return nil
 	end
+	assert(ok) -- refine for the type checker (guarded above)
 	local shovelModel = model :: Model
 
 	local tool = Instance.new("Tool")
@@ -101,7 +103,8 @@ local function buildTool(shovelId: string): Tool?
 	handlePart.CanCollide = false
 	handlePart.Massless = true
 
-	local grip = shovelModel:GetAttribute("Grip")
+	-- Models.Shovel stores the grip on the Handle as "GripOffset"; "Grip" on the model also works.
+	local grip = handlePart:GetAttribute("GripOffset") or shovelModel:GetAttribute("Grip")
 	if typeof(grip) == "CFrame" then
 		tool.Grip = grip
 	end
@@ -118,6 +121,7 @@ local function removeShovelTools(container: Instance?)
 	if not container then
 		return
 	end
+	assert(container) -- refine for the type checker (guarded above)
 	for _, child in container:GetChildren() do
 		if child:IsA("Tool") and child:GetAttribute("ShovelId") ~= nil then
 			child:Destroy()
@@ -130,6 +134,7 @@ function ShopService.GiveShovelTool(player: Player)
 	if not data or player.Parent == nil then
 		return
 	end
+	assert(data) -- refine for the type checker (guarded above)
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	local character = player.Character
 	local wasEquipped = false
@@ -150,6 +155,8 @@ function ShopService.GiveShovelTool(player: Player)
 		end
 		return
 	end
+	assert(tool) -- refine for the type checker (guarded above)
+	assert(backpack) -- refine for the type checker (guarded above)
 	tool.Parent = backpack
 
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -167,6 +174,8 @@ function ShopService.Equip(player: Player, kind: ItemKind, id: string): boolean
 	if not data or not def then
 		return false
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(def) -- refine for the type checker (guarded above)
 	local owned = (data :: any)[ownedKey(kind)] :: { [string]: boolean }
 	if not owned[id] then
 		Net.Notify(player, "Error", "You don't own that yet!")
@@ -190,6 +199,8 @@ function ShopService.Buy(player: Player, kind: ItemKind, id: string): boolean
 	if not data or not def then
 		return false
 	end
+	assert(data) -- refine for the type checker (guarded above)
+	assert(def) -- refine for the type checker (guarded above)
 	local key = ownedKey(kind)
 	local owned = (data :: any)[key] :: { [string]: boolean }
 	if owned[id] then

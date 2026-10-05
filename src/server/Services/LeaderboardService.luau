@@ -122,6 +122,8 @@ local function writePlayer(board: Board, player: Player)
 	if not store or not data then
 		return
 	end
+	assert(store) -- refine for the type checker (guarded above)
+	assert(data) -- refine for the type checker (guarded above)
 	local value = clampValue(board.ValueOf(data))
 	if board.LastWritten[player.UserId] == value or value <= 0 then
 		return
@@ -157,6 +159,7 @@ local function fetch(board: Board): { Entry }
 	if not store then
 		return localEntries(board)
 	end
+	assert(store) -- refine for the type checker (guarded above)
 	local ok, page = retry(2, function()
 		local pages = store:GetSortedAsync(false, math.clamp(Config.LEADERBOARD_SIZE, 1, 100))
 		return pages:GetCurrentPage()
@@ -164,6 +167,7 @@ local function fetch(board: Board): { Entry }
 	if not ok or type(page) ~= "table" then
 		return localEntries(board)
 	end
+	assert(ok) -- refine for the type checker (guarded above)
 	local entries = {}
 	for _, item in page :: { any } do
 		local userId = tonumber(item.key)
@@ -385,7 +389,10 @@ function LeaderboardService.Start()
 	task.spawn(function()
 		task.wait(5) -- let the first players load
 		while true do
-			local ok, err = pcall(refresh)
+			local ok, err = pcall(function(): any
+				refresh()
+				return nil
+			end)
 			if not ok then
 				warn("[LeaderboardService] refresh failed: " .. tostring(err))
 			end

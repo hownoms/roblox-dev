@@ -65,7 +65,7 @@ end
 
 -- Handlers --------------------------------------------------------------------------------------
 
-function Net.On(name: string, handler: (Player, ...any) -> (), options: HandlerOptions?)
+function Net.On(name: string, handler: (Player, ...any) -> ...any, options: HandlerOptions?)
 	local opts: HandlerOptions = options or {}
 	local limiter = RateLimiter.new(opts.Rate or 10, opts.Window or 1)
 	table.insert(limiters, limiter)
@@ -151,25 +151,25 @@ end
 
 function Net.GetRoot(player: Player): BasePart?
 	local character = player.Character
-	if not character then
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if not character or not humanoid or humanoid.Health <= 0 then
 		return nil
 	end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then
-		return nil
-	end
-	local root = character:FindFirstChild("HumanoidRootPart")
+	local root = (character :: Model):FindFirstChild("HumanoidRootPart")
 	return if root and root:IsA("BasePart") then root else nil
 end
 
 function Net.GetPlayerFromPart(part: BasePart): Player?
-	local model = part:FindFirstAncestorOfClass("Model")
-	while model do
-		local player = Players:GetPlayerFromCharacter(model)
-		if player then
-			return player
+	local current: Instance? = part:FindFirstAncestorOfClass("Model")
+	while current do
+		local model = current :: Instance
+		if model:IsA("Model") then
+			local player = Players:GetPlayerFromCharacter(model)
+			if player then
+				return player
+			end
 		end
-		model = model:FindFirstAncestorOfClass("Model")
+		current = model:FindFirstAncestorOfClass("Model")
 	end
 	return nil
 end
