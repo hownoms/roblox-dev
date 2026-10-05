@@ -31,34 +31,43 @@ Never edit files owned by another area. If you need something from another area,
 the interface described here.
 
 ## Core mechanic (fixed)
-- Each server has **12 dig plots** along the beach (`Config.Plots`). On join a player is assigned a
-  free plot; on leave the plot is refilled ("the tide washes it away") and freed.
-- Each plot is a rectangular column of **smooth Terrain** going from the beach surface down
+- **v2: no plots.** Every server (max 16 players) shares **one dig zone**: a long strip of sand
+  on the water side of the beach (`World.GetDigZone()`, docs/MAP.md). BeachService (was
+  PlotService) spawns everyone on the boardwalk and runs the **tide**: dug 8x8 columns refill
+  bottom-up once nobody was near for `Config.TIDE_REFILL_SECONDS`; High Tide lifts players out
+  of holes and smooths everything.
+- The dig zone is a column of **smooth Terrain** going from the beach surface down
   through **layers** (`Config.Layers`), each layer a depth band with its own terrain Material,
   hardness, sand value, and loot table. Deepest layers are mythical (e.g. Lava, Crystal Caverns,
   Ancient Ruins, the Core).
 - Digging: client clicks/taps terrain (or holds) → `Remotes.Dig:FireServer(position: Vector3)`.
-  Server validates: inside player's own plot, within reach of character, cooldown per shovel
-  speed, backpack not full, shovel power >= layer hardness. Then `Terrain:FillBall(pos, radius,
-  Enum.Material.Air)` with radius from the shovel, awards sand (layer value × shovel multiplier ×
+  Every dig (shovel, AutoDig, diggers) goes through `DigService.DigAt(player, pos, opts)`
+  (docs/V2.md). Server validates: inside the dig zone, within reach (or digger range), cooldown
+  per shovel speed (x Sunburnt multiplier), backpack not full, power >= layer hardness, re-resolves
+  the point by server raycast and carves a voxel-aligned cube (edge = shovel Radius x 2, clamped
+  to the zone), awards sand (layer value × shovel multiplier ×
   pass/boost/pet/rebirth multipliers) into the backpack, rolls the layer loot table for treasure.
 - Selling: touching the Sell stand (map tags a part with CollectionService tag `SellZone`) or the
   `SellAnywhere` game pass → backpack sand converts to Coins.
 - Upgrades: shovels (power, speed, radius, multiplier) and backpacks (capacity) bought with Coins.
 - Pets from eggs (Coins / Robux), equip up to N, give sand multiplier.
 - Rebirth: reset coins/shovel/backpack for a permanent multiplier + rebirth tokens.
-- Getting out of a deep hole: `Remotes.ReturnToSurface` (UI button) teleports to plot surface.
-- Holes deeper than the plot bottom are impossible; the bottom layer is "The Core" (goal).
+- Getting out of a deep hole: `Remotes.ReturnToSurface` (UI button) teleports to
+  `World.GetSurfacePoint(near)` (the boardwalk).
+- Holes deeper than the world bottom (Y 24) are impossible; the bottom layer is "The Core" (goal).
 
 ## Map interface (World agent)
 `src/server/World/init.luau` returns a module with:
 ```lua
 World.Build(): () -- builds the whole map once at server start (idempotent)
-World.GetPlots(): { PlotInfo }  -- after Build
--- PlotInfo = { Id: number, Origin: CFrame (center of the surface, Y = surface height),
---              Size: Vector3 (X,Z footprint and total depth Y), SpawnCFrame: CFrame }
-World.ResetPlot(id: number): () -- refill the plot column with layered terrain
+World.GetDigZone(): { CFrame: CFrame, Size: Vector3 }  -- v2, see docs/V2.md
+World.IsInDigZone(position: Vector3): boolean
+World.GetSurfacePoint(near: Vector3): CFrame            -- boardwalk pivot (spawn / return)
+World.GetSpawnCFrame(index: number?): CFrame
+World.FillLayered(min: Vector3, max: Vector3): ()       -- refill a box with layer materials
 ```
+(v1 `GetPlots` / `ResetPlot` / `PlotInfo` are gone.) v2 tags: `WaterFountain` ("Drink"),
+`Garage` ("Garage"), `BeachShop` ("Shop").
 Tags (CollectionService) the map must place: `SellZone` (touch part at sell stand), `ShovelShop`,
 `BackpackShop`, `EggShop` (ProximityPrompt-bearing parts; client opens UI), `RebirthStatue`,
 `LeaderboardCoins`, `LeaderboardDepth` (SurfaceGui-ready Parts, server fills them), `SpawnLocation`.
@@ -93,7 +102,7 @@ RemoteEvents (client → server unless noted):
 - server → client: `DataChanged(data: PlayerData)` (full snapshot on join, then partial
   `{[key]=value}` deltas), `Notify(kind: string, text: string)`,
   `DigResult(result: DigResult)`, `TreasureFound(treasureId: string, rarity: string)`,
-  `EggHatched(results: {string})`, `PlotAssigned(plot: PlotInfo)`
+  `EggHatched(results: {string})` (v2: `PlotAssigned` removed)
 RemoteFunctions: `GetData(): PlayerData`
 Shared module API:
 ```lua
@@ -131,7 +140,7 @@ Use `AnalyticsService:LogOnboardingFunnelStepEvent` for the first-session funnel
 
 ## Amendments after design phase (binding)
 - Title: **Dig to the Core! Beach Simulator**. See `docs/GDD.md`.
-- `Config.SURFACE_Y = 1024`; plot bottom is at Y=24. Never generate terrain below Y=0.
+- `Config.SURFACE_Y = 1024`; the world bottom is at Y=24. Never generate terrain below Y=0.
 - Terrain material colours are global per material, so **each layer owns a unique terrain
   material** (see `Config.Layers`). Map scenery may only use Sand (Dry Sand colour), Water, Grass,
   LeafyGrass, Snow, Concrete, Asphalt, Cobblestone. Apply `Workspace.Terrain:SetMaterialColor`
@@ -140,7 +149,7 @@ Use `AnalyticsService:LogOnboardingFunnelStepEvent` for the first-session funnel
   scripting may extend Util but must not rename Remotes API). Remotes adds:
   events `PromptPurchase(kind: "GamePass"|"Product", key: string)` (client asks server to prompt
   — or client may call MarketplaceService directly), `EventChanged(activeEventIds: {string})`
-  (server → client); functions `GetPlot(): PlotInfo?`, `GetOwnedPasses(): {[key]: boolean}`.
+  (server → client); functions `GetOwnedPasses(): {[key]: boolean}` (v2: `GetPlot` removed).
   Server must call `Remotes.CreateAll()` before anything else.
 - Monetization ids and `GROUP_ID` of 0 mean "not configured": hide/disable those buttons, never
   prompt a purchase for id 0.

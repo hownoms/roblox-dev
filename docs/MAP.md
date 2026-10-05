@@ -1,109 +1,100 @@
-# Map — Dig to the Core! Beach Simulator
+# Map — Dig to the Core! Beach Simulator (v2: open beach)
 
 Built procedurally at server start by `src/server/World` (deterministic, seed `20261005`).
 All coordinates live in `src/server/World/Layout.luau`; this page mirrors them.
 
-Axes: **+X = east, -X = west, +Z = inland (boardwalk/dunes), -Z = ocean.**
-Surface `Y = 1024` (`Config.SURFACE_Y`), plot bottom `Y = 24`, nothing below `Y = 0`.
-Water surface `Y = 1020`. Instances live under `Workspace.Map` (`Plots`, `Hub`, `Boardwalk`,
-`Decor`, `Effects`, `Boundaries`, `CoreFloor`).
+Axes: **+X = east, -X = west, +Z = inland (boardwalk / hub / dunes), -Z = ocean.**
+Surface `Y = 1024` (`Config.SURFACE_Y`), bottom of the world `Y = 24`, nothing below `Y = 0`.
+Water surface `Y = 1020`. Instances live under `Workspace.Map` (`Hub`, `Boardwalk`, `Decor`,
+`Effects`, `CoreFloor`; boundaries in `Boardwalk/Boundaries`).
+
+No plots: everyone digs in **one shared dig zone** along the shoreline. Max 16 players
+(`Config.MAX_PLAYERS`; set it in Game Settings > Places, scripts can't).
 
 ## Top-down layout
 
 ```
    Z
- +130  ~~~~~~~~~~~~~~~~~~~~~ grass dunes (scenery, outside boundary) ~~~~~~~~~~~~~~~~~~~~~
- +100  ===================================== north boundary ==============================
-  +76                   [ DIG TO THE CORE! title sign ]   / giant shovel
-  +72   palm    palm    palm    palm    palm     palm    palm    palm    palm    palm
-  +62  |stall=====stall=====stall======== BOARDWALK deck =======stall=====stall=====stall|
-  +46  |lamp====lamp====lamp====lamp===========================lamp====lamp====lamp=====|
-  +42  +-----+  +-----+  +-----+      SHOVEL   LB$  LBm   BACKPACK      +-----+  +-----+  +-----+
-  +28  | P9  |  | P5  |  | P1  |       hut     (14x18)      hut         | P2  |  | P6  |  | P10 |
-  +14  +-sign+  +-sign+  +-sign+  flag          spawn          flag     +sign-+  +sign-+  +sign-+
-    0  ==================== central cobblestone path ===( hub plaza r=30 )=====================
-  -14  +-sign+  +-sign+  +-sign+  flag     spawn     spawn     flag     +sign-+  +sign-+  +sign-+
-  -28  | P11 |  | P7  |  | P3  |   EGG ARC     SELL stand    REBIRTH     | P4  |  | P8  |  | P12 |
-  -42  +-----+  +-----+  +-----+   (9 eggs)   [SellZone pad]  shrine     +-----+  +-----+  +-----+
-  -47   umbrellas/towels  crabs  lifeguard  palm |pier| palm  sandcastle  lifeguard  umbrellas
-  -64   ............ flat sand ends, beach slopes into the sea ...........|    |..................
-  -78  ~~~~~~~~~~~~~~~~~~~~~~~~~ shoreline (rocks) ~~~~~~~~~~~~~~~~~~~~~~~~|    |~~~~~~~~~~~~~~~~~~
- -170  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ END PLATFORM ]~~~~~~~~~~~~~
- -194  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  gazebo/benches ~~~~~~~~~~~~~
- -200  ===================================== south boundary ==============================
-        x: -154..-126 -116..-88 -78..-50   -50 ........ 0 ........ +50   50..78  88..116  126..154
+ +170  ~~~~~~~~~~~~~~~~~~~~~~~ grass dunes (scenery) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ +130  ================================ north boundary =============================================
+ +118                         [ DIG TO THE CORE! title sign ]  / giant shovel
+ +108   palm   palm   palm   palm   palm          palm   palm   palm   palm   palm
+  +92            EGG ARC (9)        LB$  LBdepth
+  +72                                                     REBIRTH shrine
+  +54                          ( hub plaza r=30, FOUNTAIN at centre )
+  +44   GARAGE                                                          BEACH SHOP (+76,+40)
+  +34          SHOVEL hut (-36)                       BACKPACK hut (+36)
+  +28                               SELL stand (faces the sand), pad at z ~+21.5
+  +12  |rail=================== BOARDWALK deck (spawns at z +4) ==== no rail |x|<96 =====rail|
+   -4  |lamp====lamp====lamp====[DIG ANYWHERE!]====spawn spawn spawn====lamp====lamp==========|
+   -8  +============================== DIG ZONE (inland edge) ===================================+
+       |                       768 x 56 studs of diggable sand, x -384..+384                      |
+  -64  +============================== DIG ZONE (sea edge) ======================================+
+  -68  wet sand: umbrellas, towels, lifeguard towers, sandcastles, crabs   |pier|  ...
+  -80  ....... flat sand ends, beach slopes into the sea ................|    |...................
+  -95  ~~~~~~~~~~~~~~~~~~~~~ shoreline (rocks) ~~~~~~~~~~~~~~~~~~~~~~~~~~~|    |~~~~~~~~~~~~~~~~~~~
+ -200  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ END PLATFORM / gazebo ]~~~~~
+ -232  ================================ south boundary =============================================
+        x: -400 ................................... 0 ...................................... +400
 ```
 
-Invisible boundary walls: `x = ±180`, `z = +100`, `z = -200` (Y 994..1114).
+Invisible boundary walls: `x = ±400`, `z = +130`, `z = -232`. Walk from the hub plaza centre
+(z +50) to the sand (z -8) is ~58 studs (~3.5 s at WalkSpeed 16).
 
-## Plots (`Config.PLOT_FOOTPRINT` 28, spacing 10, depth 1000)
+## Dig zone
 
-Ids are ordered **nearest to the hub first**, so "first free plot" assignment keeps players close.
-`Origin` = centre of the plot surface (Y 1024). `SpawnCFrame` = on the central path 4 studs in
-front of the plot edge (Y 1027), looking into the plot.
+| | Value |
+|---|---|
+| Footprint | x -384..384, z -64..-8 (768 x 56 studs) |
+| `World.GetDigZone()` | `CFrame = CFrame.new(0, 1024, -36)`, `Size = (768, 1000, 56)` |
+| Workspace attributes | `DigZoneCFrame` (CFrame), `DigZoneSize` (Vector3), for clients |
+| Underground | one layered block x -392..392, z -72..0, Y 24..1024 (zone + 8-stud solid walls); layers 1-2 filled at build, deeper bands in the background (~100 frames, `WorldReady`) |
+| Bottom | glowing-gold-ish `CoreFloor` part at Y 20..24 under the whole block |
+| Zone corners | striped flags at x ±386 on both zone edges; "DIG ANYWHERE!" signs on the deck at x ±40, ±200 |
 
-| Id | Centre (X, Z) | X range | Z range | Spawn (X, Z) |
-|---|---|---|---|---|
-| 1 | (-64, 28) | -78..-50 | 14..42 | (-64, 10) |
-| 2 | (64, 28) | 50..78 | 14..42 | (64, 10) |
-| 3 | (-64, -28) | -78..-50 | -42..-14 | (-64, -10) |
-| 4 | (64, -28) | 50..78 | -42..-14 | (64, -10) |
-| 5 | (-102, 28) | -116..-88 | 14..42 | (-102, 10) |
-| 6 | (102, 28) | 88..116 | 14..42 | (102, 10) |
-| 7 | (-102, -28) | -116..-88 | -42..-14 | (-102, -10) |
-| 8 | (102, -28) | 88..116 | -42..-14 | (102, -10) |
-| 9 | (-140, 28) | -154..-126 | 14..42 | (-140, 10) |
-| 10 | (140, 28) | 126..154 | 14..42 | (140, 10) |
-| 11 | (-140, -28) | -154..-126 | -42..-14 | (-140, -10) |
-| 12 | (140, -28) | 126..154 | -42..-14 | (140, -10) |
-
-Each plot (`Workspace.Map.Plots.Plot_N`, attributes `PlotId`, `OwnerUserId`) has a colourful
-frame just outside the footprint, corner posts, a rope ladder hanging 12 studs into the hole at
-the outer front corner, and a `PlotSign` (attributes `OwnerName`, `PlotId`; SurfaceGui
-"Plot N" + owner line) on the path side.
-
-Underground: one layered terrain block per row (`x` -162..162, `|z|` 6..50, Y 24..1024), layer
-bands from `Config.Layers` snapped to the 4-stud voxel grid. The walls between plots are the
-same layers (the server restricts digging to plot columns). A glowing gold `CoreFloor` part at
-Y 20..24 under both rows stops anyone falling out of the bottom.
+The server clamps every carve to the zone, so the walls (and the hub / seabed beyond them) never
+break. The tide refills dug 8x8 columns (see BeachService).
 
 ## Hub stations
 
 | Station | Position (X, Y, Z) | Tag / prompt |
 |---|---|---|
-| Spawns (3x `SpawnLocation`, 8x8, Neutral, face -Z) | (0,1024,4), (-9,1024,-3), (9,1024,-3) | `SpawnLocation` |
-| Sell stand (faces spawn) | (0, 1024, -32) | pad `SellZone` (16x1x8 neon, CanTouch) at ≈(0,1024.5,-25.5) |
-| Shovel hut | (-32, 1024, 29) | counter `ShovelShop` + prompt "Shop" |
-| Backpack hut | (32, 1024, 29) | counter `BackpackShop` + prompt "Shop" |
-| Leaderboard coins (14x18, front → spawn) | (-12, 1037, 38) | `LeaderboardCoins` |
-| Leaderboard depth (14x18, front → spawn) | (12, 1037, 38) | `LeaderboardDepth` |
-| Egg arc (9 pedestals, r = 19, 110°) | centre (-30, 1024, -48); eggs from (-45.6,-37) to (-14.4,-37) via (-30,-29) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" (prompt also has `EggId`) |
-| Rebirth shrine | (31, 1024, -29) | pedestal `RebirthStatue` + prompt "Rebirth" |
-| Title sign "DIG TO THE CORE!" | (0, 1045, 76) faces south | — |
-| Pier | x -6..6, z -42..-170, deck top Y 1025; end platform 28x24 at z -170..-194 | — |
+| Spawns (3x `SpawnLocation`, 8x8, on the deck, face -Z) | (0,1025,4), (-14,1025,4), (14,1025,4) | `SpawnLocation` |
+| Sell stand (faces the sand) | (0, 1024, 28) | pad `SellZone` (16x1x8, CanTouch) at ≈(0,1026.2,21.5) |
+| Water fountain (plaza centre) | (0, 1024, 54) | basin `WaterFountain` + prompt "Drink" |
+| Shovel hut | (-36, 1024, 34) | counter `ShovelShop` + prompt "Shop" |
+| Backpack hut | (36, 1024, 34) | counter `BackpackShop` + prompt "Shop" |
+| Garage (24x20 building, toy digger inside) | (-78, 1024, 44) | workbench `Garage` + prompt "Garage" |
+| Beach Shop stall | (76, 1024, 40) | counter `BeachShop` + prompt "Shop" |
+| Leaderboard coins / depth | (-14, 1037, 92) / (14, 1037, 92) | `LeaderboardCoins` / `LeaderboardDepth` |
+| Egg arc (9 pedestals, r = 19, 110°, bulging towards the plaza) | centre (-50, 1024, 92) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" |
+| Rebirth shrine | (44, 1024, 72) | pedestal `RebirthStatue` + prompt "Rebirth" |
+| Title sign | (0, 1045, 118) faces south | — |
+| Pier | x -6..6, z -68..-200, deck top Y 1025; end platform 28x24 at z -200..-224 | — |
+
+Hub structures face the boardwalk spawns (`Layout.HUB_LOOK_TARGET = (0, 1024, 4)`).
+`World.GetSurfacePoint(near)` = a pivot on the boardwalk deck (z +4, Y 1028.5) at `near.X`
+(clamped to ±390), looking at the sand — used for spawns, ReturnToSurface and tide lifts.
 
 ## Events (visual)
 
-`Workspace` attribute `ActiveEvents` (comma-separated ids, set by EventService) is watched; or
-call `World.ApplyEvent({ ... })`.
-- **HighTide**: `Map.Effects.TideSheet` rises from Y 1018.5 to 1023.4 and fades in over the
-  lower beach/shallows (z -45..-240), waves grow, water deepens in colour.
-- **GoldenHour**: `ClockTime` 14 → 17.8, warm tint, orange haze, stronger bloom.
+`Workspace` attribute `ActiveEvents` (comma-separated ids, set by EventService) is watched.
+- **HighTide**: `Map.Effects.TideSheet` rises over the dig zone and beach (z -8 .. -272), waves
+  grow. BeachService lifts anyone in a hole to the boardwalk and refills every dug column.
+- **GoldenHour**: warm late-afternoon light (Lighting.luau, Polish).
 
 ## Thumbnail cameras
 
 Set `workspace.CurrentCamera.CFrame` (Studio command bar, camera type Scriptable).
 
-1. **Hub overview** (sunny, whole hub + pier + rows of plots):
-   `CFrame.lookAt(Vector3.new(60, 1095, -150), Vector3.new(0, 1030, -5))`
-   Wider alternative showing all 12 plots: `CFrame.lookAt(Vector3.new(0, 1180, -230), Vector3.new(0, 1020, 10))`
-2. **Deep-hole shot** — dig Plot 1 down ~150–250 studs first (or run
-   `workspace.Terrain:FillBlock(CFrame.new(-64, 924, 28), Vector3.new(24, 200, 24), Enum.Material.Air)`
-   in Studio), then look down the shaft from its front edge so the layer bands show on the walls:
-   `CFrame.lookAt(Vector3.new(-60, 1034, 13), Vector3.new(-66, 900, 36))`
-   Inside-the-shaft variant: `CFrame.lookAt(Vector3.new(-60, 1000, 17), Vector3.new(-68, 840, 38))`
-3. **Pier sunset** — `workspace:SetAttribute("ActiveEvents", "GoldenHour")`, wait ~8 s for the
-   tween, then from the pier end looking back at the warm-lit beach and hub:
-   `CFrame.lookAt(Vector3.new(-10, 1029, -196), Vector3.new(0, 1036, -60))`
-   Out-to-sea variant (gazebo silhouette against the sky):
-   `CFrame.lookAt(Vector3.new(4, 1028, -150), Vector3.new(-6, 1034, -260))`
+1. **Beach overview** (sunny hub, boardwalk, the long dig strip and pier):
+   `CFrame.lookAt(Vector3.new(90, 1110, -190), Vector3.new(0, 1024, 10))`
+   Wider coastline: `CFrame.lookAt(Vector3.new(0, 1220, -330), Vector3.new(0, 1020, 0))`
+2. **Deep-hole shot** — carve a shaft first (Studio: `/dig 250` while standing on the sand at x≈0,
+   or run `workspace.Terrain:FillBlock(CFrame.new(0, 924, -36), Vector3.new(24, 200, 24), Enum.Material.Air)`),
+   then look down it from the boardwalk side so the layer bands show on the walls:
+   `CFrame.lookAt(Vector3.new(4, 1036, -18), Vector3.new(-2, 900, -40))`
+   Inside-the-shaft variant: `CFrame.lookAt(Vector3.new(4, 1000, -26), Vector3.new(-4, 840, -44))`
+3. **Pier sunset** — `workspace:SetAttribute("ActiveEvents", "GoldenHour")`, wait ~8 s, then
+   from the pier end looking back at the warm-lit beach and hub:
+   `CFrame.lookAt(Vector3.new(-10, 1029, -226), Vector3.new(0, 1036, -20))`
