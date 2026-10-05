@@ -1,5 +1,8 @@
 # Game Design Document — Dig to the Core! Beach Simulator
 
+> **v2 update:** plots were replaced by one shared beach, and heat/shade/snacks and digger companions were added. See `docs/V2.md`, `docs/design/Survival.md` and `docs/design/Diggers.md`; where they differ, those docs win.
+
+
 Owner: Game design. The binding technical contract is `docs/ARCHITECTURE.md`; all numbers here
 live in `src/shared/Config/*` (Config is the source of truth if the two ever disagree).
 
@@ -179,7 +182,7 @@ Tuning knobs, in order of preference: `Rebirths.BaseCost / CostGrowth`, shovel/b
 ---
 
 ## 6. Social features
-- 12 plots side by side on one beach: you *see* other holes get deeper — healthy envy.
+- One shared beach: you *see* other players' holes get deeper — healthy envy (v2, see docs/V2.md).
 - Server-wide toasts for Legendary/Mythic ("Mia found a RAINBOW DIAMOND!").
 - Friend bonus, pets follow players (show off), leaderboards in the plaza, VIP lounge visible
   from the boardwalk.
@@ -268,7 +271,7 @@ Watch the funnel in Creator Hub Analytics: any step with > 15% drop-off is the n
 **Experience settings (Creator Hub -> Configure):**
 - Name: *Dig to the Core! Beach Simulator*; Genre: **Simulation**; subgenre Incremental Simulator.
 - Description: first 2 lines = hook + current code; then features bullets; then update log.
-- Server size: **max 12 players** (= plots). Server fill: "Roblox optimised" (leave 1–2 slots for friends).
+- Server size: **max 16 players** (one shared dig beach, v2). Server fill: "Roblox optimised" (leave 1–2 slots for friends).
 - Devices: Phone, Tablet, Computer, Console (gamepad: R2 = dig, X = surface). VR off.
 - **Maturity & Compliance Questionnaire:** answer honestly — no violence/blood, no romance, no
   gambling *for real money*. Note: random-item purchases with Robux (Golden Egg) must be
@@ -285,7 +288,7 @@ Watch the funnel in Creator Hub Analytics: any step with > 15% drop-off is the n
   "DIG!" text, sky-blue/sand palette, readable at 64 px. Make 3 variants and A/B them
   (Creator Hub Thumbnail/Icon experiments) — keep the one with best CTR.
 - Thumbnails 1920x1080 (up to 10): (1) cross-section of the hole showing all layers to the Core,
-  (2) pets parade, (3) pirate chest reveal, (4) lava/crystal layers, (5) leaderboard/"12 players".
+  (2) pets parade, (3) pirate chest reveal, (4) lava/crystal layers, (5) leaderboard/"16 players".
   Bright, few words, no fake UI or misleading content.
 - 30 s video thumbnail of dig -> sell -> new layer reveal.
 
@@ -307,6 +310,6 @@ Watch the funnel in Creator Hub Analytics: any step with > 15% drop-off is the n
 - Exploits: spam Dig remote, dig outside own plot, dig beyond reach, buy with insufficient coins,
   negative/NaN args, redeem code twice, purchase receipt replay (idempotent).
 - Economy: run a 1-hour playtest with a fresh account and record times vs. the table in §4.
-- Performance: 12 players digging at 0.12 s cooldown on a mid-range phone (target 30+ FPS,
+- Performance: 16 players digging at 0.12 s cooldown on a mid-range phone (target 30+ FPS,
   server heartbeat 60).
 - Soft-launch privately to a friend group, then public.

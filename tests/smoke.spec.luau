@@ -958,7 +958,13 @@ step("survival", function()
 	local ServerSignals = Mock.Require(byPath["ServerScriptService/Server/Services/ServerSignals"])
 	local before = SurvivalService.GetHeat(sp)
 	for _ = 1, 30 do
-		ServerSignals.Dug:Fire(sp, 1, 1)
+		ServerSignals.Dug:Fire(sp, 1, 1, "Digger") -- diggers never heat their owner
+	end
+	Mock.Advance(1)
+	check(SurvivalService.GetHeat(sp) - before < Heat.SunRisePerSecond * 2, "digger digs add no heat")
+	before = SurvivalService.GetHeat(sp)
+	for _ = 1, 30 do
+		ServerSignals.Dug:Fire(sp, 1, 1, "Shovel")
 	end
 	Mock.Advance(1)
 	local gained = SurvivalService.GetHeat(sp) - before

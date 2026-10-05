@@ -10,7 +10,7 @@
 
 	Resets: Coins, Sand, Shovel/OwnedShovels (back to toy shovel), Backpack/OwnedBackpacks (back to
 	bucket), unsold Treasures. MaxDepth is kept as a record (your hole is refilled anyway when you
-	rebirth: the server should call World.ResetPlot and teleport you to the surface).
+	rebirth: the server teleports you to the surface; the tide refills old holes).
 ]]
 
 local Types = require(script.Parent.Parent.Types)

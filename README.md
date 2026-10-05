@@ -1,6 +1,6 @@
 # Dig to the Core! Beach Simulator
 
-A Roblox digging simulator. Every player gets a plot on the beach and digs down through 15
+A Roblox digging simulator. Players dig anywhere along a shared beach, down through 15
 layers, from Dry Sand to Pirate Cove, Fossil Bed, Crystal Caverns, Magma and The Core. Sand gets
 sold for coins, coins buy better shovels and backpacks, eggs hatch pets, and rebirths give a
 permanent multiplier.
@@ -21,7 +21,7 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 1. Install [Rojo](https://rojo.space/docs/v7/getting-started/installation/): the CLI
    (`aftman add rojo-rbx/rojo` or from GitHub releases) and the **Rojo Studio plugin**.
 2. Open Roblox Studio and create a new **Baseplate** place. Delete the `Baseplate` part and the
-   default `SpawnLocation`, because the map builds its own.
+   default `SpawnLocation`, because the map builds its own. Save it outside the repo and reuse it.
 3. In this folder run `rojo serve`, then click **Connect** in the Rojo plugin.
 4. Press **Play**. The server builds the beach in a few seconds. The deep layers keep filling in
    the background, and `workspace` gets the attribute `WorldReady = true` once they're done.
@@ -38,7 +38,7 @@ every game pass for free. It only works in Studio.
 
 ## 2. Before you publish (needs your account)
 
-1. **Publish** the place (File → Publish to Roblox). Set **Max Players = 12** to match the 12 dig plots.
+1. **Publish** the place (File → Publish to Roblox). Set **Max Players = 16** (one shared dig beach).
 2. **Game passes.** Create these in Creator Hub (Monetization → Passes), then paste each id into
    `src/shared/Config/Monetization.luau`:
 
@@ -67,6 +67,7 @@ every game pass for free. It only works in Studio.
    | SkipRebirth | Skip Rebirth | 199 |
    | GoldenEgg | Golden Egg | 79 |
    | GoldenEgg3 | 3 Golden Eggs | 199 |
+   | CoolerPack | Cooler Pack (snacks) | 29 |
 
    An id left at `0` means "not configured". The store hides or disables that item and never
    prompts a purchase for it, so you can launch with only some of them set up.

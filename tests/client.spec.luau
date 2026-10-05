@@ -523,6 +523,178 @@ do
 	Mock.Advance(0.5)
 end
 
+-- Survival: heat HUD, quick-slots, Beach Shop panel, shade placement, prompts (Survival agent) --------
+section("survival")
+do
+	local SurvivalController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/SurvivalController"])
+	local PlacementController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/PlacementController"])
+	local DigController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/DigController"])
+	local e0 = #Mock.Errors
+	local function findText(root, pattern)
+		for _, d in root:GetDescendants() do
+			if d:IsA("TextLabel") and string.find(d.Text, pattern, 1, true) then
+				return d
+			end
+		end
+		return nil
+	end
+
+	-- Beach Shop panel
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	check(Panel.Get("BeachShop") ~= nil, "panel registered: BeachShop")
+	for _, tab in { "Shade", "Snacks" } do
+		Panel.Open("BeachShop", { Tab = tab })
+		Mock.Advance(0.6)
+		check(Panel.Current() == "BeachShop", "BeachShop opens on tab " .. tab)
+	end
+	local window = Panel.Get("BeachShop").Window
+	for tab, list in { Shade = Config.Shades, Snacks = Config.Consumables } do
+		local scroller = window:FindFirstChild(tab, true)
+		local cards, viewports = 0, 0
+		if check(scroller ~= nil, "BeachShop has a " .. tab .. " list") then
+			for _, child in scroller:GetChildren() do
+				if child:IsA("Frame") then
+					cards += 1
+					local vp = child:FindFirstChildWhichIsA("ViewportFrame", true)
+					if vp and vp:FindFirstChildWhichIsA("Model") then
+						viewports += 1
+					end
+				end
+			end
+		end
+		check(cards == #list, tab .. ": one card per item (" .. cards .. ")")
+		check(viewports == #list, tab .. ": every card has a model preview (" .. viewports .. ")")
+	end
+	local s0 = #Mock.Remote.ToServer
+	Mock.FireClientEvent("DataChanged", { Coins = 1e9, Rebirths = 0, OwnedShades = {}, Consumables = {} })
+	Mock.Advance(0.3)
+	for _, d in window:GetDescendants() do
+		if d:IsA("GuiButton") then
+			Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+			Mock.Advance(0.05)
+		end
+	end
+	Mock.Advance(0.5)
+	check(#sent("BuyShade", s0) >= 1, "Shade cards send BuyShade")
+	check(#sent("BuyConsumable", s0) >= 2, "Snack cards send BuyConsumable")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- HUD: heat meter, zone, sunburnt toast, warm tint
+	local survivalGui = playerGui:FindFirstChild("Dig_Survival")
+	check(survivalGui ~= nil and survivalGui:FindFirstChild("SurvivalHUD", true) ~= nil, "SurvivalHUD gui built")
+	player:SetAttribute("HeatZone", "Sun")
+	player:SetAttribute("Heat", 80)
+	Mock.Advance(0.5)
+	local fill = survivalGui:FindFirstChild("Fill", true)
+	check(fill ~= nil and math.abs(fill.Size.Y.Scale - 0.8) < 0.05, "thermometer fill follows Heat")
+	check(findText(playerGui, "Getting hot") ~= nil, "'getting hot' hint at WarningAt")
+	player:SetAttribute("Heat", 100)
+	player:SetAttribute("Sunburnt", true)
+	Mock.Advance(0.5)
+	check(findText(playerGui, "Sunburnt! Find shade or drink water") ~= nil, "Sunburnt toast shown")
+	check(findText(survivalGui, "BURNT") ~= nil, "zone chip shows BURNT")
+	local tint = Mock.Service("Lighting"):FindFirstChild("HeatTint")
+	check(tint ~= nil and tint:IsA("ColorCorrectionEffect") and tint.TintColor ~= Mock.Env.Color3.new(1, 1, 1), "HeatTint warms the screen")
+	player:SetAttribute("Sunburnt", false)
+	player:SetAttribute("Heat", 10)
+	player:SetAttribute("HeatZone", "Shade")
+	Mock.Advance(0.5)
+	check(tint.TintColor == Mock.Env.Color3.new(1, 1, 1), "HeatTint clears when cool")
+
+	-- quick-slots: best owned snacks, cheapest first; keys 1/2/3
+	Mock.FireClientEvent("DataChanged", {
+		Consumables = { lemonade = 2, popsicle = 1, giant_watermelon = 1, coconut_water = 4 },
+	})
+	Mock.Advance(0.5)
+	local slots = SurvivalController.GetQuickSlots()
+	check(
+		#slots == 3 and slots[1] == "coconut_water" and slots[3] == "giant_watermelon",
+		"quick-slots = 3 best snacks, cheapest first (" .. table.concat(slots, ",") .. ")"
+	)
+	local s1 = #Mock.Remote.ToServer
+	Mock.Env.task.spawn(Mock.Actions.SurvivalSlot1.Fn, "SurvivalSlot1", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.One))
+	Mock.Advance(0.3)
+	local used = sent("UseConsumable", s1)
+	check(#used == 1 and used[1][1] == "coconut_water", "key 1 uses quick-slot 1")
+
+	-- shade placement: ghost on the sand, rotate, place
+	local zc = zone.CFrame.Position
+	local standAt = Vector3.new(zc.X + 10, Config.SURFACE_Y + 3, zc.Z)
+	character = player.Character
+	character:PivotTo(CFrame.new(standAt))
+	local camera = Mock.Service("Workspace").CurrentCamera
+	local target = Vector3.new(zc.X + 10, Config.SURFACE_Y, zc.Z - 8)
+	camera.CFrame = CFrame.lookAt(target + Vector3.new(0, 14, 16), target)
+	Mock.MouseLocation = Mock.Env.Vector2.new(640, 360)
+	PlacementController.Begin()
+	Mock.Advance(0.2)
+	check(not PlacementController.Active, "no shade owned -> placement does not start")
+	Mock.FireClientEvent("DataChanged", { OwnedShades = { [Config.Shades[1].Id] = true } })
+	Mock.Advance(0.3)
+	-- the Buy clicks above were pending: the purchase confirmation jumps straight into placing
+	check(PlacementController.Active and Panel.Current() == nil, "buying a shade starts placing it")
+	PlacementController.Cancel()
+	Mock.Advance(0.2)
+	local s2 = #Mock.Remote.ToServer
+	Mock.Env.task.spawn(Mock.Actions.SurvivalPlaceShade.Fn, "SurvivalPlaceShade", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.F))
+	Mock.Advance(0.3)
+	check(PlacementController.Active and PlacementController.ShadeId == Config.Shades[1].Id, "F starts placing the best shade")
+	check(DigController.Enabled == false, "digging paused while placing")
+	local bar = survivalGui:FindFirstChild("PlacementBar", true)
+	check(bar ~= nil and bar.Visible, "placement bar (Turn / Place / Cancel) visible")
+	PlacementController.Update()
+	check(PlacementController.Valid, "ghost on the sand is valid (" .. tostring(PlacementController.Reason) .. ")")
+	local ghostPos = PlacementController.Position
+	check(ghostPos ~= nil and math.abs(ghostPos.Y - Config.SURFACE_Y) < 3, "ghost sits on the visible surface")
+	PlacementController.Rotate()
+	check(PlacementController.Yaw > 0, "R rotates the ghost")
+	local click = Mock.Input(Enum.UserInputType.MouseButton1)
+	Mock.FireEvent(Mock.Service("UserInputService"), "InputBegan", click, false)
+	Mock.Advance(0.3)
+	local placedArgs = sent("PlaceShade", s2)
+	check(#placedArgs == 1 and placedArgs[1][1] == Config.Shades[1].Id and Mock.typeof(placedArgs[1][2]) == "Vector3", "click sends PlaceShade(id, position, yaw)")
+	check(#sent("Dig", s2) == 0, "placing a shade does not dig")
+	check(not PlacementController.Active and DigController.Enabled == false, "digging stays paused while the click is held")
+	Mock.FireEvent(Mock.Service("UserInputService"), "InputEnded", click, false)
+	Mock.Advance(0.3)
+	check(#sent("Dig", s2) == 0 and DigController.Enabled == true, "digging resumes after release, no stray dig")
+	-- invalid spot (sky) and cancel
+	PlacementController.Begin(Config.Shades[1].Id)
+	camera.CFrame = CFrame.lookAt(target + Vector3.new(0, 14, 16), target + Vector3.new(0, 40, 0))
+	PlacementController.Update()
+	local s3 = #Mock.Remote.ToServer
+	check(not PlacementController.Confirm(), "pointing at the sky can't place")
+	check(#sent("PlaceShade", s3) == 0, "invalid placement sends nothing")
+	Mock.Env.task.spawn(Mock.Actions.SurvivalPlaceCancel.Fn, "SurvivalPlaceCancel", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.B))
+	Mock.Advance(0.3)
+	check(not PlacementController.Active and Mock.Actions.SurvivalPlaceCancel == nil, "B cancels placement")
+
+	-- world prompts: fountain drinks, stall opens the shop
+	for tag, expect in { WaterFountain = "DrinkFountain", BeachShop = "BeachShop" } do
+		local part = Mock.Tagged(tag)[1]
+		local prompt = part and part:FindFirstChildWhichIsA("ProximityPrompt", true)
+		if check(prompt ~= nil, tag .. " has a ProximityPrompt") then
+			Panel.CloseAll()
+			Mock.Advance(0.3)
+			local s4 = #Mock.Remote.ToServer
+			Mock.FireEvent(prompt, "Triggered", player)
+			Mock.Advance(0.5)
+			if expect == "DrinkFountain" then
+				check(#sent("DrinkFountain", s4) == 1, "fountain prompt sends DrinkFountain")
+			else
+				check(Panel.Current() == "BeachShop", "BeachShop prompt opens the Beach Shop")
+			end
+		end
+	end
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+	check(#Mock.Errors == e0, "survival client flow without errors")
+end
+
 -- Report ------------------------------------------------------------------------------------------
 section("report")
 check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")

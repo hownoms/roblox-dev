@@ -58,6 +58,8 @@ local ghost: Model? = nil
 local disc: Part? = nil
 local pointer: Vector2? = nil -- screen (GUI inset excluded) position of the last tap
 local digWasEnabled = true
+local pointerDown = false -- mouse / touch held since it was pressed during placement
+local restorePending = false
 local initialized = false
 
 local rayParams = RaycastParams.new()
@@ -252,7 +254,10 @@ function PlacementController.Begin(shadeId: string?)
 	pointer = nil
 	buildGhost(id :: string)
 	if not wasActive then
-		digWasEnabled = DigController.Enabled
+		if not restorePending then
+			digWasEnabled = DigController.Enabled
+		end
+		restorePending = false
 		DigController.Enabled = false
 		bindInputs()
 	end
@@ -271,7 +276,13 @@ function PlacementController.Cancel()
 	pointer = nil
 	destroyGhost()
 	unbindInputs()
-	DigController.Enabled = digWasEnabled
+	-- The click that placed the shade is still held: DigController would keep hold-digging, so
+	-- only resume digging once it is released.
+	if pointerDown then
+		restorePending = true
+	else
+		DigController.Enabled = digWasEnabled
+	end
 	PlacementController.Changed:Fire(false)
 end
 
@@ -325,10 +336,28 @@ function PlacementController.Init()
 		if processed or not PlacementController.Active then
 			return
 		end
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			pointerDown = true
+		end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			PlacementController.Confirm()
 		elseif input.UserInputType == Enum.UserInputType.Touch then
 			PlacementController.SetPointer(Vector2.new(input.Position.X, input.Position.Y))
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			pointerDown = false
+			if restorePending then
+				restorePending = false
+				DigController.Enabled = digWasEnabled
+			end
 		end
 	end)
 	-- Respawn / leaving: never leave a ghost or a paused DigController behind.
