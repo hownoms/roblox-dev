@@ -1,14 +1,21 @@
 --!strict
 --[[
-	HUD — always-on screen UI (design px, see Root):
+	HUD — always-on screen UI (design px, see Root; a landscape phone is ~1070-1330 x 500
+	design px, a 1080p PC ~1420 x 760):
 	  top-left      Coins / Rebirth tokens / rebirth multiplier pills (count-up + pop)
-	  left          3x3 menu: Shop, Eggs, Pets, Index, Quests, Daily, Rebirth, Store, Settings
-	                (red "!" badges when something is claimable / affordable)
+	                x 18..268, y 10..154
+	  left          4x3 menu (11 buttons): Shop, Beach, Garage, Eggs / Pets, Index, Quests,
+	                Daily / Rebirth, Store, Settings (red "!" badges when claimable)
+	                x 14..328, y 162..414. Hidden while a panel is open on small screens.
 	  top-centre    active boosts + events chips with live timers (or "High Tide in 4:21")
-	  right         depth meter: current depth, layer name/colour, progress to the next layer,
-	                personal max depth
+	                centred, y 8..48 (toasts sit below at y 104+, banners at 30% height)
+	  top-right     compact depth meter: depth, layer, record, progress bar, next layer
+	                x right-196..right-14, y 10..172
 	  bottom-centre backpack bar (red + pulsing "SELL!" when full), Surface, Sell (pass),
-	                Auto Dig (pass) buttons
+	                Auto Dig (pass) buttons: 420 wide centred, bottom 180 px
+	FREE for other HUDs (SurvivalHUD): the RIGHT-CENTRE edge, x right-230..right-8,
+	y 180..(bottom - 150). Phones put the jump button in the bottom-right corner.
+	Every button is >= 74 x 75 design px face (>= 44 real px at the minimum UI scale 0.6).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -77,7 +84,7 @@ local function buildStats(canvas: Frame)
 	stack.Name = "Stats"
 	stack.BackgroundTransparency = 1
 	stack.Position = UDim2.fromOffset(18, 10)
-	stack.Size = UDim2.fromOffset(250, 150)
+	stack.Size = UDim2.fromOffset(250, 144)
 	stack.Parent = canvas
 	Style.List(stack, Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Left)
 
@@ -87,7 +94,7 @@ local function buildStats(canvas: Frame)
 		Color = C.Coins,
 		TextColor = C.Gold,
 		Size = UDim2.fromOffset(240, 48),
-		MaxTextSize = 30,
+		MaxTextSize = 32,
 		LayoutOrder = 1,
 		Parent = stack,
 	})
@@ -97,8 +104,8 @@ local function buildStats(canvas: Frame)
 		Icon = Icons.Tokens,
 		Color = C.Tokens,
 		TextColor = C.Tokens,
-		Size = UDim2.fromOffset(170, 38),
-		MaxTextSize = 24,
+		Size = UDim2.fromOffset(190, 40),
+		MaxTextSize = 26,
 		LayoutOrder = 2,
 		Parent = stack,
 	})
@@ -106,7 +113,7 @@ local function buildStats(canvas: Frame)
 		Name = "Multiplier",
 		Icon = Icons.Rebirth,
 		Color = C.Purple,
-		Size = UDim2.fromOffset(170, 38),
+		Size = UDim2.fromOffset(240, 40),
 		MaxTextSize = 24,
 		LayoutOrder = 3,
 		Parent = stack,
@@ -138,9 +145,11 @@ end
 
 local MENU = {
 	{ Name = "Shop", Icon = Icons.Shop, Color = C.Palm, Panel = "Shop" },
+	{ Name = "Beach", Icon = Icons.Beach, Color = C.Ocean, Panel = "BeachShop" }, -- Survival's panel
+	{ Name = "Garage", Icon = Icons.Garage, Color = C.SandDark, Panel = "Garage" }, -- Diggers' panel
 	{ Name = "Eggs", Icon = Icons.Eggs, Color = C.Sand, Panel = "Eggs" },
 	{ Name = "Pets", Icon = Icons.Pets, Color = C.Coral, Panel = "Pets" },
-	{ Name = "Index", Icon = Icons.Index, Color = C.Ocean, Panel = "Index" },
+	{ Name = "Index", Icon = Icons.Index, Color = C.OceanDark, Panel = "Index" },
 	{ Name = "Quests", Icon = Icons.Quests, Color = C.Sunset, Panel = "Quests" },
 	{ Name = "Daily", Icon = Icons.Daily, Color = C.Gold, Panel = "Daily" },
 	{ Name = "Rebirth", Icon = Icons.Rebirth, Color = C.Purple, Panel = "Rebirth" },
@@ -148,17 +157,23 @@ local MENU = {
 	{ Name = "Settings", Icon = Icons.Settings, Color = C.Disabled, Panel = "Settings" },
 }
 
+local MENU_COLUMNS = 4
+local MENU_CELL = Vector2.new(74, 80) -- face 74 x 75 design px -> >= 44 real px on phones
+local MENU_GAP = 6
+
 local function buildMenu(canvas: Frame)
+	local rows = math.ceil(#MENU / MENU_COLUMNS)
 	local grid = Instance.new("Frame")
 	grid.Name = "Menu"
 	grid.BackgroundTransparency = 1
-	grid.Position = UDim2.new(0, 14, 0.5, 30)
-	grid.AnchorPoint = Vector2.new(0, 0.5)
-	grid.Size = UDim2.fromOffset(3 * 82, 3 * 86)
+	grid.Position = UDim2.fromOffset(14, 162) -- directly under the stat pills
+	grid.Size =
+		UDim2.fromOffset(MENU_COLUMNS * (MENU_CELL.X + MENU_GAP) - MENU_GAP, rows * (MENU_CELL.Y + MENU_GAP) - MENU_GAP)
 	grid.Parent = canvas
 	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(76, 80)
-	layout.CellPadding = UDim2.fromOffset(6, 6)
+	layout.CellSize = UDim2.fromOffset(MENU_CELL.X, MENU_CELL.Y)
+	layout.CellPadding = UDim2.fromOffset(MENU_GAP, MENU_GAP)
+	layout.FillDirectionMaxCells = MENU_COLUMNS
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = grid
 
@@ -170,7 +185,7 @@ local function buildMenu(canvas: Frame)
 			Vertical = true,
 			Color = item.Color,
 			LayoutOrder = i,
-			MaxTextSize = 16,
+			MaxTextSize = 19,
 			Parent = grid,
 			OnClick = function()
 				Panel.Toggle(item.Panel)
@@ -316,12 +331,13 @@ local function buildTimers(canvas: Frame)
 end
 
 local function buildDepthMeter(canvas: Frame)
+	-- Compact (ends at y ~172) so the right-centre edge stays free for SurvivalHUD.
 	local holder = Instance.new("Frame")
 	holder.Name = "Depth"
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 0)
 	holder.Position = UDim2.new(1, -14, 0, 10)
-	holder.Size = UDim2.fromOffset(170, 300)
+	holder.Size = UDim2.fromOffset(182, 162)
 	holder.Parent = canvas
 
 	local card = Instance.new("Frame")
@@ -356,17 +372,16 @@ local function buildDepthMeter(canvas: Frame)
 		Size = UDim2.new(1, -12, 0, 20),
 		Position = UDim2.fromOffset(6, 66),
 		Font = Style.Fonts.Body,
-		MaxTextSize = 16,
+		MaxTextSize = 17,
 		TextColor = C.Sand,
 		Parent = card,
 	})
 
 	local bar = ProgressBar.new({
 		Name = "LayerProgress",
-		Vertical = true,
-		Size = UDim2.fromOffset(34, 180),
-		Position = UDim2.new(1, -18, 0, 102),
-		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.new(1, -8, 0, 16),
+		Position = UDim2.new(0.5, 0, 0, 100),
+		AnchorPoint = Vector2.new(0.5, 0),
 		Color = Config.Layers[1].Color,
 		Parent = holder,
 	})
@@ -374,10 +389,11 @@ local function buildDepthMeter(canvas: Frame)
 	local nextLabel = Style.Label({
 		Name = "Next",
 		Text = "",
-		Size = UDim2.fromOffset(110, 80),
-		Position = UDim2.new(1, -60, 0, 108),
+		Size = UDim2.new(1, -4, 0, 40),
+		Position = UDim2.new(1, -2, 0, 122),
 		AnchorPoint = Vector2.new(1, 0),
-		MaxTextSize = 16,
+		MaxTextSize = 17,
+		MinTextSize = 10,
 		Font = Style.Fonts.Body,
 		Wrapped = true,
 		XAlign = Enum.TextXAlignment.Right,
@@ -401,9 +417,9 @@ local function buildDepthMeter(canvas: Frame)
 				local canDig = State.GetShovel().Power >= nextLayer.Hardness
 				nextLabel.Text = "Next: "
 					.. nextLayer.Name
-					.. "\n@ "
+					.. " @ "
 					.. Format.Depth(nextLayer.DepthStart)
-					.. (if canDig then "" else "\n🔒 💪" .. nextLayer.Hardness)
+					.. (if canDig then "" else "\n🔒 needs 💪" .. nextLayer.Hardness)
 			else
 				nextLabel.Text = "The CORE! 🌟"
 			end
@@ -430,7 +446,7 @@ local function buildBottom(canvas: Frame)
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(0.5, 1)
 	holder.Position = UDim2.new(0.5, 0, 1, -10)
-	holder.Size = UDim2.fromOffset(420, 150)
+	holder.Size = UDim2.fromOffset(420, 180)
 	holder.Parent = canvas
 
 	local bar = ProgressBar.new({
@@ -464,7 +480,7 @@ local function buildBottom(canvas: Frame)
 	row.BackgroundTransparency = 1
 	row.AnchorPoint = Vector2.new(0.5, 1)
 	row.Position = UDim2.new(0.5, 0, 1, -92)
-	row.Size = UDim2.fromOffset(400, 68)
+	row.Size = UDim2.fromOffset(400, 80)
 	row.Parent = holder
 	Style.List(row, Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom)
 
@@ -474,8 +490,8 @@ local function buildBottom(canvas: Frame)
 		Text = "Surface",
 		Vertical = true,
 		Color = C.Ocean,
-		Size = UDim2.fromOffset(76, 68),
-		MaxTextSize = 15,
+		Size = UDim2.fromOffset(80, 80),
+		MaxTextSize = 18,
 		LayoutOrder = 1,
 		Parent = row,
 		OnClick = function()
@@ -490,8 +506,8 @@ local function buildBottom(canvas: Frame)
 		Text = "Sell",
 		Vertical = true,
 		Color = C.Success,
-		Size = UDim2.fromOffset(76, 68),
-		MaxTextSize = 15,
+		Size = UDim2.fromOffset(80, 80),
+		MaxTextSize = 18,
 		LayoutOrder = 2,
 		Parent = row,
 		OnClick = function()
@@ -510,8 +526,8 @@ local function buildBottom(canvas: Frame)
 		Text = "Auto",
 		Vertical = true,
 		Color = C.Disabled,
-		Size = UDim2.fromOffset(76, 68),
-		MaxTextSize = 15,
+		Size = UDim2.fromOffset(80, 80),
+		MaxTextSize = 18,
 		LayoutOrder = 3,
 		Parent = row,
 		OnClick = function()

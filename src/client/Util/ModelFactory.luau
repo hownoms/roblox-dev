@@ -93,4 +93,11 @@ function ModelFactory.Treasure(id: string): Model
 	end)
 end
 
+function ModelFactory.Backpack(id: string): Model
+	return build(Models.Backpack, id, function()
+		local def = Config.GetBackpack(id)
+		return placeholder(id, if def then def.Look.Color else Color3.new(0.3, 0.6, 1), Vector3.new(1.6, 1.8, 1))
+	end)
+end
+
 return ModelFactory

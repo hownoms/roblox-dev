@@ -5,9 +5,9 @@
 	Progress = number of completed steps, persisted with SetSetting("Tutorial", n) and read
 	back from data.Settings.Tutorial (veterans without the key skip it). Each step shows a
 	big hint bar above the backpack bar, a guide Beam + bouncing marker to its Target
-	("Plot" = our plot, otherwise the nearest part with that CollectionService tag), and
-	completes on its Complete event:
-	  PlotAssigned  standing in/at our plot        Dig        first successful dig
+	("Sand" = the nearest point of the shared dig zone, otherwise the nearest part with that
+	CollectionService tag), and completes on its Complete event:
+	  AtSand        standing on the dig-zone sand   Dig        first successful dig
 	  BackpackFull  sand >= capacity               Sell       sand emptied after filling
 	  BuyShovel     own a 2nd shovel               HatchEgg   hatched / own a pet
 	The checks are state-based (polled), so the tutorial resumes correctly after rejoining.
@@ -128,29 +128,27 @@ local function currentStep(): Types.TutorialStep?
 	return STEPS[completed + 1]
 end
 
-local function plotTarget(): Vector3?
-	local plot = State.Plot
-	if plot then
-		return plot.Origin.Position + Vector3.new(0, 1, 0)
+-- Nearest sand a few studs inside the dig zone (straight ahead from the boardwalk).
+local function sandTarget(): Vector3?
+	local root = Character.GetRoot()
+	if not root then
+		return nil
 	end
-	return nil
+	local point = State.NearestSand((root :: BasePart).Position, 8)
+	return if point then point + Vector3.new(0, 1, 0) else nil
 end
 
-local function nearPlot(): boolean
-	local plot = State.Plot
+local function onSand(): boolean
 	local root = Character.GetRoot()
-	if plot and root then
-		local localPos = plot.Origin:PointToObjectSpace(root.Position)
-		return math.abs(localPos.X) <= plot.Size.X / 2 + 5 and math.abs(localPos.Z) <= plot.Size.Z / 2 + 5
-	end
-	return false
+	local cf = State.GetDigZone()
+	return root ~= nil and cf ~= nil and State.InDigZone(root.Position, 0)
 end
 
 local function isSatisfied(step: Types.TutorialStep): boolean
 	local data = State.Data
 	local event = step.Complete
-	if event == "PlotAssigned" then
-		return nearPlot()
+	if event == "AtSand" then
+		return onSand()
 	elseif event == "Dig" then
 		return dugFlag or data.TotalSandDug > 0
 	elseif event == "BackpackFull" then
@@ -171,8 +169,8 @@ local function updateGuide(step: Types.TutorialStep)
 		GuideController.Clear(GUIDE_KEY)
 		return
 	end
-	if target == "Plot" then
-		local position = plotTarget()
+	if target == "Sand" then
+		local position = sandTarget()
 		if position then
 			GuideController.Set(GUIDE_KEY, position, 10, if step.Complete == "Dig" then "👆" else "⬇️")
 		end

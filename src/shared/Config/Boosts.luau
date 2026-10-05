@@ -44,6 +44,23 @@ local Boosts: { Types.BoostDef } = {
 		Description = "Dig 50% faster!",
 		Color = rgb(60, 190, 255),
 	},
+	-- v2 survival: short snack boosts (Config.Consumables). Weaker than the Robux boosts on purpose.
+	{
+		Id = "SugarRush",
+		Name = "Sugar Rush",
+		Kind = "Speed",
+		Multiplier = 1.25,
+		Description = "Brain freeze! Dig 25% faster for a little while.",
+		Color = rgb(255, 120, 200),
+	},
+	{
+		Id = "MelonPower",
+		Name = "Melon Power",
+		Kind = "Sand",
+		Multiplier = 1.5,
+		Description = "Juicy! +50% sand for a little while.",
+		Color = rgb(90, 220, 110),
+	},
 }
 
 return Boosts

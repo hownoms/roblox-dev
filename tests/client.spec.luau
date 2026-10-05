@@ -193,6 +193,87 @@ Panel.CloseAll()
 Mock.Advance(1)
 check(#Mock.Prompts == 0, "no MarketplaceService prompt for unconfigured ids (" .. #Mock.Prompts .. ")")
 
+-- HUD layout, menu, toasts, viewport framing (Polish) ---------------------------------------------
+section("hud polish")
+do
+	local HUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HUD"])
+	local menuNames = { "Shop", "Beach", "Garage", "Eggs", "Pets", "Index", "Quests", "Daily", "Rebirth", "Store", "Settings" }
+	local menuPanels = { Beach = "BeachShop", Garage = "Garage" }
+	for _, name in menuNames do
+		check(HUD.Buttons[name] ~= nil, "HUD menu button " .. name)
+	end
+	for buttonName, panelName in menuPanels do
+		local button = HUD.Buttons[buttonName]
+		if button then
+			Panel.CloseAll()
+			Mock.Advance(0.3)
+			local e0 = #Mock.Errors
+			Mock.FireEvent(button.Face, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+			Mock.Advance(0.5)
+			check(#Mock.Errors == e0, "HUD " .. buttonName .. " click has no errors")
+			if Panel.Get(panelName) then
+				check(Panel.Current() == panelName, "HUD " .. buttonName .. " opens panel " .. panelName)
+			end
+		end
+	end
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- Layout: menu sits below the stat pills, depth meter stays out of the right-centre band.
+	local hudCanvas = playerGui:FindFirstChild("Dig_HUD"):FindFirstChild("Canvas")
+	local stats = hudCanvas:FindFirstChild("Stats")
+	local menu = hudCanvas:FindFirstChild("Menu")
+	local depth = hudCanvas:FindFirstChild("Depth")
+	check(
+		menu.Position.Y.Offset >= stats.Position.Y.Offset + stats.Size.Y.Offset,
+		"menu does not overlap the stat pills"
+	)
+	check(depth.Position.Y.Offset + depth.Size.Y.Offset <= 180, "depth meter leaves the right-centre edge free")
+	local grid = menu:FindFirstChildWhichIsA("UIGridLayout")
+	check(grid ~= nil and grid.CellSize.X.Offset >= 74, "menu cells >= 74 design px (44 px on phones)")
+
+	-- Toasts: the same notice twice (server + client wording) shows once.
+	local Toasts = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Toasts"])
+	Mock.Advance(6)
+	local toastRoot = playerGui:FindFirstChild("Dig_Toasts"):FindFirstChild("Canvas"):FindFirstChild("Toasts")
+	local function countToasts()
+		local n = 0
+		for _, child in toastRoot:GetChildren() do
+			if child.Name == "Toast" then
+				n += 1
+			end
+		end
+		return n
+	end
+	local before = countToasts()
+	Toasts.Show("Backpack full! Go sell!", "Error")
+	Toasts.Show("Backpack full! Go SELL your sand 💰", "Warning")
+	Toasts.Show("Backpack full! Go sell!", "Error")
+	Mock.Advance(0.5)
+	check(countToasts() == before + 1, "duplicate backpack-full notices dedupe to one toast")
+	Mock.Advance(6)
+
+	-- Viewport: a 1 x 6 x 1 stick fills ~75% of a square frame's height.
+	local Viewport = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/Viewport"])
+	local model = Mock.Env.Instance.new("Model")
+	local part = Mock.Env.Instance.new("Part")
+	part.Size = Vector3.new(1, 6, 1)
+	part.CFrame = CFrame.new(10, 3, 0)
+	part.Parent = model
+	local hidden = Mock.Env.Instance.new("Part") -- invisible root must not count
+	hidden.Size = Vector3.new(40, 40, 40)
+	hidden.Transparency = 1
+	hidden.Parent = model
+	model.PrimaryPart = part
+	local camera = Mock.Env.Instance.new("Camera")
+	Viewport.Fit(camera, model, { Fill = 0.75, Yaw = 0, Pitch = 0 })
+	local top = camera.CFrame:PointToObjectSpace(Vector3.new(0, 3, -0.5))
+	local tanHalf = math.tan(math.rad(camera.FieldOfView / 2))
+	local fill = (top.Y / -top.Z) / tanHalf
+	check(math.abs(fill - 0.75) < 0.05, "Viewport.Fit frames the visible model at ~75% (" .. fill .. ")")
+	check(camera.CFrame.Position.Z < 0, "Viewport camera looks at the model's front (-Z)")
+end
+
 -- World prompts -----------------------------------------------------------------------------------
 section("prompts")
 for _, t in { "ShovelShop", "BackpackShop", "EggShop", "RebirthStatue" } do
@@ -314,6 +395,117 @@ for name, action in Mock.Actions do
 end
 Panel.CloseAll()
 Mock.Advance(30)
+
+-- Diggers: Garage panel, followers, dig animation, Garage station (Diggers agent) -----------------
+section("diggers")
+do
+	local DiggerController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/DiggerController"])
+	local first, second = Config.Diggers[1], Config.Diggers[2]
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	check(Panel.Get("Garage") ~= nil, "panel registered: Garage")
+	local e0 = #Mock.Errors
+	Panel.Open("Garage")
+	Mock.Advance(0.6)
+	check(#Mock.Errors == e0 and Panel.Current() == "Garage", "Garage panel opens")
+	local window = Panel.Get("Garage").Window
+	local scroller = window:FindFirstChild("Diggers", true)
+	local cardCount, viewports = 0, 0
+	if check(scroller ~= nil, "Garage has a digger list") then
+		for _, child in scroller:GetChildren() do
+			if Config.GetDigger(child.Name) then
+				cardCount += 1
+				local vp = child:FindFirstChildWhichIsA("ViewportFrame", true)
+				if vp and vp:FindFirstChildWhichIsA("Model") and vp.CurrentCamera then
+					viewports += 1
+				end
+			end
+		end
+	end
+	check(cardCount == #Config.Diggers, "one Garage card per digger (" .. cardCount .. ")")
+	check(viewports == #Config.Diggers, "every card has a framed ViewportFrame preview (" .. viewports .. ")")
+
+	-- owned diggers: equip / upgrade / buy buttons fire the remotes
+	Mock.FireClientEvent("DataChanged", {
+		Coins = 1e9,
+		Diggers = { [first.Id] = { Level = 2, Equipped = true }, [second.Id] = { Level = 1, Equipped = false } },
+	})
+	Mock.Advance(0.5)
+	local s0 = #Mock.Remote.ToServer
+	for _, d in window:GetDescendants() do
+		if d:IsA("GuiButton") then
+			Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+			Mock.Advance(0.05)
+		end
+	end
+	Mock.Advance(0.5)
+	check(#sent("UpgradeDigger", s0) >= 2, "Garage upgrade buttons send UpgradeDigger")
+	check(#sent("UnequipDigger", s0) >= 1, "Garage unequip button sends UnequipDigger")
+	check(#sent("BuyDigger", s0) >= 1, "Garage buy buttons send BuyDigger")
+	check(#Mock.Errors == e0, "Garage buttons click without errors")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- followers from the EquippedDiggers attribute
+	player:SetAttribute("EquippedDiggers", first.Id .. ":2," .. second.Id)
+	Mock.Advance(1)
+	local visuals = DiggerController.GetVisuals(player)
+	check(#visuals == 2, "two digger followers rendered (" .. #visuals .. ")")
+	local root = player.Character.HumanoidRootPart
+	if visuals[1] then
+		check(visuals[1].Level == 2 and visuals[2].Level == 1, "levels parsed from the attribute")
+		local model = visuals[1].Model
+		check(model.Parent ~= nil and model.Parent.Name == "ClientDiggers", "digger model parented in ClientDiggers")
+		local offset = model:GetPivot().Position - root.Position
+		check(Vector3.new(offset.X, 0, offset.Z).Magnitude < 16, "digger follows its owner")
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and (part.CanCollide or part.CanQuery) then
+				check(false, "digger parts never collide / block raycasts: " .. part.Name)
+				break
+			end
+		end
+		-- dig animation: drives to the dig point
+		local target = root.Position + Vector3.new(4, -3, 0)
+		Mock.FireClientEvent("DiggerDug", player, first.Id, target, 12)
+		Mock.Advance(0.6)
+		local p = model:GetPivot().Position
+		check(
+			(Vector3.new(p.X, target.Y, p.Z) - target).Magnitude < 6,
+			"digger drives to its dig point"
+		)
+		Mock.Advance(1.5)
+		check(#Mock.Errors == e0, "DiggerDug animation runs without errors")
+	end
+	Mock.FireClientEvent("DiggerDug", player, "unknown", root.Position, 1)
+	Mock.FireClientEvent("DiggerDug", "junk")
+	Mock.Advance(0.5)
+	player:SetAttribute("EquippedDiggers", "")
+	Mock.Advance(0.5)
+	check(#DiggerController.GetVisuals(player) == 0, "followers removed when unequipped")
+
+	-- Garage station prompt (World places a "Garage"-tagged part; make one if it isn't there yet)
+	local station = Mock.Tagged("Garage")[1]
+	if not station then
+		station = Mock.Env.Instance.new("Part")
+		station.Name = "GarageStation"
+		local prompt = Mock.Env.Instance.new("ProximityPrompt")
+		prompt.Parent = station
+		station.Parent = Mock.Service("Workspace")
+		Mock.Service("CollectionService"):AddTag(station, "Garage")
+		Mock.Advance(0.2)
+	end
+	local prompt = station:FindFirstChildWhichIsA("ProximityPrompt", true)
+	if check(prompt ~= nil, "Garage station has a ProximityPrompt") then
+		Panel.CloseAll()
+		Mock.Advance(0.3)
+		Mock.FireEvent(prompt, "Triggered", player)
+		Mock.Advance(0.5)
+		check(Panel.Current() == "Garage", "Garage prompt opens the Garage panel")
+	end
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+end
 
 -- Report ------------------------------------------------------------------------------------------
 section("report")

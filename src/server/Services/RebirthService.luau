@@ -5,7 +5,7 @@
 	Rebirth(): costs Config.RebirthCost(Rebirths) coins. Resets every key in
 	Config.Rebirths.Resets to its Config.NewPlayerData() default, Rebirths += 1,
 	RebirthTokens += Config.RebirthTokens(previous rebirths). The player is sent to the surface,
-	the plot is refilled and the starter shovel tool is given back.
+	and the starter shovel tool is given back. (No plot to reset any more: the tide refills holes.)
 
 	Public API:
 		RebirthService.DoRebirth(player, free): boolean   (free = Skip Rebirth product)
@@ -21,7 +21,7 @@ local TableUtil = require(Shared.Util.TableUtil)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
-local PlotService = require(script.Parent.PlotService)
+local BeachService = require(script.Parent.BeachService)
 local ServerSignals = require(script.Parent.ServerSignals)
 local ShopService = require(script.Parent.ShopService)
 
@@ -68,7 +68,7 @@ function RebirthService.DoRebirth(player: Player, free: boolean): boolean
 	)
 	Analytics.Funnel(player, Analytics.Steps.FirstRebirth)
 
-	PlotService.ResetPlayerPlot(player)
+	BeachService.TeleportToSurface(player)
 	ShopService.GiveShovelTool(player)
 	Net.Notify(
 		player,

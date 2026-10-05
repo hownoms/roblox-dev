@@ -4,7 +4,7 @@
 
 	Boot order:
 	  1. Remotes.CreateAll()  (every remote exists before clients look for them)
-	  2. World.Build()        (map, plots, tagged parts)
+	  2. World.Build()        (map, dig zone, tagged parts)
 	  3. Service Init() in dependency order (connect remotes, read config), then Start() (loops)
 	  4. Player lifecycle: OnPlayerAdded in service order, OnPlayerRemoving in reverse order (so
 	     DataService saves last, after every other service is done with the player's data).
@@ -39,7 +39,7 @@ local MonetizationService = require(Services.MonetizationService)
 local EventService = require(Services.EventService)
 local MultiplierService = require(Services.MultiplierService)
 local SettingsService = require(Services.SettingsService)
-local PlotService = require(Services.PlotService)
+local BeachService = require(Services.BeachService)
 local ShopService = require(Services.ShopService)
 local PetService = require(Services.PetService)
 local EconomyService = require(Services.EconomyService)
@@ -67,7 +67,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "EventService", Module = EventService :: any },
 	{ Name = "MultiplierService", Module = MultiplierService :: any },
 	{ Name = "SettingsService", Module = SettingsService :: any },
-	{ Name = "PlotService", Module = PlotService :: any },
+	{ Name = "BeachService", Module = BeachService :: any },
 	{ Name = "ShopService", Module = ShopService :: any },
 	{ Name = "PetService", Module = PetService :: any },
 	{ Name = "EconomyService", Module = EconomyService :: any },
@@ -97,7 +97,12 @@ end
 
 -- Developer products are granted through RewardsService (coins, boosts, eggs, skip rebirth).
 MonetizationService.SetGrantHandler(function(player: Player, reward, source: string): boolean
-	return RewardsService.Grant(player, reward, source)
+	local granted = RewardsService.Grant(player, reward, source)
+	-- v2 survival: consumables (Cooler Pack) are granted by SurvivalService.
+	if granted and reward.Consumables then
+		SurvivalService.GrantConsumables(player, reward.Consumables, source)
+	end
+	return granted
 end)
 
 for _, entry in ordered do

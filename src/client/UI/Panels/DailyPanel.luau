@@ -116,12 +116,11 @@ local function build()
 			elseif def.Reward.Boost then "⚡"
 			elseif def.Reward.RebirthTokens then Icons.Tokens
 			else Icons.Coins
-		Style.Label({
+		Style.Icon({
 			Text = icon,
 			Size = UDim2.new(1, -16, 0, 60),
-			Position = UDim2.fromOffset(8, 36),
-			Stroke = false,
-			MaxTextSize = 54,
+			Position = UDim2.new(0.5, 0, 0, 36),
+			AnchorPoint = Vector2.new(0.5, 0),
 			ZIndex = 8,
 			Parent = card.Face,
 		})

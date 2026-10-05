@@ -54,7 +54,7 @@ local Monetization: Types.MonetizationConfig = {
 			Id = 0,
 			Name = "Auto Dig",
 			Price = 199,
-			Description = "Toggle auto-dig: your character keeps digging straight down by itself.",
+			Description = "+1 Digger slot & auto-swing: your character keeps digging by itself.",
 			Color = rgb(60, 170, 255),
 		},
 		Lucky = {
@@ -153,6 +153,14 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 199,
 			Description = "Hatch 3 Golden Eggs at once (save 38 Robux).",
 			Grant = { Egg = "golden_egg", EggCount = 3 },
+		},
+		-- v2 survival (Survival agent). Granted by SurvivalService via the Main grant handler.
+		CoolerPack = {
+			Id = 0,
+			Name = "Cooler Pack",
+			Price = 29,
+			Description = "10 Coconut Waters, 5 Shaved Ice and 3 Watermelon Slices. Stay cool!",
+			Grant = { Consumables = { coconut_water = 10, shaved_ice = 5, watermelon_slice = 3 } },
 		},
 	},
 

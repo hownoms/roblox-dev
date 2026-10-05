@@ -105,20 +105,21 @@ local function makeCard(kind: Kind, id: string, order: number, parent: Instance)
 	Style.Corner(preview, Style.Theme.CornerSmall)
 	Style.Gradient(preview, { C.Sky, C.Ocean }, 90)
 	if shovel then
-		local vp = Viewport.new({ Size = UDim2.fromScale(1, 1), ZIndex = 4, Pitch = 10, Parent = preview })
-		vp:SetModel(ModelFactory.Shovel(id))
-	elseif backpack then
-		Style.Label({
-			Text = Icons.BackpackShapes[backpack.Look.Shape] or Icons.Backpack,
-			Size = UDim2.fromScale(0.8, 0.8),
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			MaxTextSize = 64,
-			Stroke = false,
+		-- Tilted diagonally so the long tool fills the wide preview instead of a thin stripe.
+		local vp = Viewport.new({
+			Size = UDim2.fromScale(1, 1),
 			ZIndex = 4,
+			Pitch = 10,
+			Yaw = 15,
+			Rotation = CFrame.Angles(0, 0, math.rad(-50)),
 			Parent = preview,
 		})
-		preview.BackgroundColor3 = backpack.Look.Color
+		vp:SetModel(ModelFactory.Shovel(id))
+	elseif backpack then
+		-- 3D model like the shovels (the old emoji looked tiny). Packs are worn on the back and
+		-- extend towards +Z, so the camera looks at them from behind-right (Yaw 205).
+		local vp = Viewport.new({ Size = UDim2.fromScale(1, 1), ZIndex = 4, Pitch = 18, Yaw = 205, Parent = preview })
+		vp:SetModel(ModelFactory.Backpack(id))
 	end
 
 	local tag = Style.Label({

@@ -3,6 +3,9 @@
 	Decor — Models.Prop scenery: palms, umbrellas + towels, lifeguard towers, sandcastles, crabs,
 	surfboards, beach balls, rocks, shells, boardwalk stalls and chests. Deterministic (seeded
 	Random passed in by World). Small props are non-colliding & shadowless (Util.Prop).
+
+	Nothing is placed inside the dig zone (props would float over holes): beach props stand on
+	the wet sand between the dig zone and the shoreline, the rest around the hub and dunes.
 ]]
 
 local Layout = require(script.Parent.Layout)
@@ -12,8 +15,7 @@ local S = Layout.SURFACE_Y
 
 local Decor = {}
 
--- Random beach point on the flat sand strip between the south plot row and the shoreline,
--- avoiding the pier corridor.
+-- Random point on the wet sand strip seaward of the dig zone, avoiding the pier corridor.
 local function beachPoint(rng: Random, zMin: number, zMax: number): Vector3
 	local x
 	repeat
@@ -27,107 +29,109 @@ function Decor.Build(parent: Instance, rng: Random)
 	local prop = function(name: string, pos: Vector3, yaw: number, scale: number?)
 		Util.Prop(name, parent, pos, yaw, scale)
 	end
-	local beachZ0, beachZ1 = Layout.BEACH_FLAT_END_Z + 2, -Layout.ROW_FAR - 5 -- -62 .. -47
-	local hub = Layout.HUB_LOOK_TARGET
+	local wetZ0, wetZ1 = Layout.BEACH_FLAT_END_Z + 2, Layout.DIG_Z_SEA - 4 -- -78 .. -68
+	local hub = Layout.HUB_CENTER
+	local B = Layout.BOUND_HALF_X
 
-	-- Palms: along the dunes behind the boardwalk, framing the title sign, at the beach ends
-	local px = -Layout.BOUND_HALF_X + 10
-	while px < Layout.BOUND_HALF_X do
+	-- Palms: a row behind the hub (dunes edge), along the boardwalk's inland edge away from the
+	-- hub, framing the title sign and at the beach ends.
+	local px = -B + 10
+	while px < B do
 		if math.abs(px) > 30 then
 			prop(
 				"PalmTree",
-				Vector3.new(px + rng:NextNumber(-4, 4), S, 72 + rng:NextNumber(-3, 5)),
+				Vector3.new(px + rng:NextNumber(-4, 4), S, 108 + rng:NextNumber(-3, 5)),
 				rng:NextNumber(0, 360)
 			)
 		end
-		px += 30
+		if math.abs(px) > 110 then
+			prop(
+				"PalmTree",
+				Vector3.new(px + rng:NextNumber(-5, 5), S, Layout.BOARDWALK_Z1 + 8 + rng:NextNumber(0, 6)),
+				rng:NextNumber(0, 360)
+			)
+		end
+		px += 34
 	end
 	for _, p in
 		{
-			Vector3.new(-26, S, 74),
-			Vector3.new(26, S, 74),
-			Vector3.new(-170, S, -50),
-			Vector3.new(170, S, -52),
-			Vector3.new(-170, S, 6),
-			Vector3.new(170, S, -4),
-			Vector3.new(-14, S, -46),
-			Vector3.new(14, S, -46),
+			Vector3.new(-28, S, 112),
+			Vector3.new(28, S, 112),
+			Vector3.new(-B + 8, S, -74),
+			Vector3.new(B - 8, S, -76),
+			Vector3.new(-16, S, -72),
+			Vector3.new(16, S, -72),
+			Vector3.new(-32, S, 62),
+			Vector3.new(32, S, 60),
 		}
 	do
 		prop("PalmTree", p, rng:NextNumber(0, 360))
 	end
 	-- Scenic palms outside the boundary (dunes / far beach)
-	for _ = 1, 14 do
+	for _ = 1, 16 do
 		local side = if rng:NextNumber() < 0.5 then -1 else 1
-		local x = side * rng:NextNumber(Layout.BOUND_HALF_X + 10, Layout.TERRAIN_HALF_X - 30)
-		prop("PalmTree", Vector3.new(x, S, rng:NextNumber(-55, 70)), rng:NextNumber(0, 360), rng:NextNumber(0.9, 1.3))
+		local x = side * rng:NextNumber(B + 10, Layout.TERRAIN_HALF_X - 30)
+		prop("PalmTree", Vector3.new(x, S, rng:NextNumber(10, 100)), rng:NextNumber(0, 360), rng:NextNumber(0.9, 1.3))
 	end
 
-	-- Umbrella + towel pairs on the beach strip, facing the sea
-	for i, x in { -30, -62, -96, -128, -158, 34, 66, 98, 130, 160 } do
-		local z = if i % 2 == 0 then -52 else -58
-		local u = Vector3.new(x, S, z)
-		prop("Umbrella", u, rng:NextNumber(0, 360))
-		prop("BeachTowel", u + Vector3.new(3.5, 0, -2), rng:NextNumber(-15, 15))
+	-- Umbrella + towel pairs on the wet sand, facing the sea
+	local ux = -B + 30
+	local i = 0
+	while ux < B - 20 do
+		if math.abs(ux) > 30 then
+			i += 1
+			local u = Vector3.new(ux + rng:NextNumber(-6, 6), S, if i % 2 == 0 then -71 else -75)
+			prop("Umbrella", u, rng:NextNumber(0, 360))
+			prop("BeachTowel", u + Vector3.new(3.5, 0, -2), rng:NextNumber(-15, 15))
+		end
+		ux += 46
 	end
 
 	-- Lifeguard towers looking out to sea, surfboards leaning nearby
-	for _, p in { Vector3.new(-80, S, -66), Vector3.new(112, S, -66) } do
+	for _, x in { -260, -110, 120, 270 } do
+		local p = Vector3.new(x, S, -76)
 		prop("Lifeguard Tower", p, 0) -- -Z = looking out to sea
 		prop("Surfboard", p + Vector3.new(7, 0, 2), rng:NextNumber(0, 360))
 		prop("Surfboard", p + Vector3.new(9, 0, 3), rng:NextNumber(0, 360))
 	end
-	prop("Surfboard", Vector3.new(44, S, -50), 200)
 
-	-- Sandcastles
-	for _, p in
-		{ Vector3.new(44, S, -60), Vector3.new(-118, S, -54), Vector3.new(150, S, -60), Vector3.new(-44, S, -58) }
-	do
+	-- Sandcastles on the wet sand
+	for _, x in { -330, -190, -48, 52, 180, 320 } do
+		local p = Vector3.new(x, S, -70)
 		prop("Sandcastle", p, Util.YawTowards(p, hub))
 	end
 
-	-- Crabs, beach balls and shells scattered over the beach
-	for _ = 1, 9 do
-		local p = beachPoint(rng, beachZ0 - 8, beachZ1)
-		prop("Crab", p, rng:NextNumber(0, 360))
-	end
-	for _ = 1, 5 do
-		prop("BeachBall", beachPoint(rng, beachZ0, beachZ1), rng:NextNumber(0, 360))
-	end
+	-- Crabs, beach balls and shells scattered over the wet sand / shallows
 	for _ = 1, 16 do
-		prop("Shell", beachPoint(rng, beachZ0 - 10, beachZ1), rng:NextNumber(0, 360))
+		prop("Crab", beachPoint(rng, wetZ0 - 8, wetZ1), rng:NextNumber(0, 360))
 	end
-	-- Shells / crabs in the gaps between plots (path side), a little life near the dig spots
-	for ring = 1, Layout.PLOTS_PER_SIDE - 1 do
-		local gx = Layout.HUB_HALF_X + ring * Layout.PLOT_PITCH - Layout.PLOT_PITCH / 2 + 14
-		for _, sx in { -1, 1 } do
-			for _, sz in { -1, 1 } do
-				local name = if rng:NextNumber() < 0.5 then "Shell" else "Crab"
-				prop(name, Vector3.new(sx * gx, S, sz * rng:NextNumber(20, 38)), rng:NextNumber(0, 360))
-			end
-		end
+	for _ = 1, 8 do
+		prop("BeachBall", beachPoint(rng, wetZ0, wetZ1), rng:NextNumber(0, 360))
+	end
+	for _ = 1, 28 do
+		prop("Shell", beachPoint(rng, wetZ0 - 10, wetZ1), rng:NextNumber(0, 360))
 	end
 
 	-- Rocks along the shoreline (half in the water) and at the boundary corners
-	for _ = 1, 12 do
-		local p = beachPoint(rng, -82, -72)
+	for _ = 1, 22 do
+		local p = beachPoint(rng, -98, -88)
 		prop("Rock", p + Vector3.new(0, -1.5, 0), rng:NextNumber(0, 360), rng:NextNumber(0.8, 1.6))
 	end
 	for _, p in
 		{
-			Vector3.new(-176, S, 90),
-			Vector3.new(176, S, 90),
-			Vector3.new(-176, S, -60),
-			Vector3.new(176, S, -60),
+			Vector3.new(-B + 4, S, 120),
+			Vector3.new(B - 4, S, 120),
+			Vector3.new(-B + 4, S, -78),
+			Vector3.new(B - 4, S, -78),
 		}
 	do
 		prop("Rock", p, rng:NextNumber(0, 360), 1.8)
 	end
 
-	-- Boardwalk stalls (on the deck, facing the plots)
-	local deckZ = (Layout.BOARDWALK_Z0 + Layout.BOARDWALK_Z1) / 2 + 2
-	for _, x in { -64, -112, -156, 64, 112, 156 } do
-		prop("Boardwalk Stall", Vector3.new(x, S + 1, deckZ), 0)
+	-- Boardwalk stalls (on the deck, away from the hub, facing the sand)
+	local deckZ = (Layout.BOARDWALK_Z0 + Layout.BOARDWALK_Z1) / 2 + 3
+	for _, x in { -130, -250, -350, 130, 250, 350 } do
+		prop("Boardwalk Stall", Vector3.new(x, Layout.DECK_TOP, deckZ), 0)
 	end
 
 	-- Chests: next to the rebirth shrine and on the pier end platform

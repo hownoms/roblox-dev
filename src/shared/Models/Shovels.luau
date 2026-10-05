@@ -5,8 +5,33 @@
 
 	PrimaryPart = Part "Handle" (the grip cylinder). Every other part is welded to it with a
 	WeldConstraint, Massless, CanCollide false, and still Anchored (the server unanchors).
-	Handle attribute "GripOffset" (CFrame) is the value to assign to Tool.Grip: it holds the
-	shovel pointing forward and slightly up, blade flat, dig side facing the ground.
+	Handle attribute "GripOffset" (CFrame) is the value to assign to Tool.Grip: the shovel is held
+	like a real shovel, shaft running diagonally down and forward from the hand, blade near the
+	sand in front of the feet, the hand on the top grip (see the grip math below).
+
+	Grip math (verified against the engine's tool weld):
+	  When a Tool is equipped the engine makes Weld "RightGrip": Part0 = RightHand (R15) /
+	  Right Arm (R6), C0 = RightGripAttachment.CFrame (R15: CFrame.new(0, -0.15, 0) *
+	  Angles(-90deg, 0, 0); R6: CFrame.new(0, -1, 0) * the same rotation), Part1 = Handle,
+	  C1 = Tool.Grip. Weld rule: Hand * C0 == Handle * Grip, so
+	      Handle = (Hand * C0) * Grip:Inverse()          -- call Hand * C0 the grip frame G.
+	  The default "toolnone" hold animation raises the forearm to point straight forward, i.e.
+	  Hand = Rx(+90deg) relative to the character, so G = Rx(+90) * Rx(-90) = identity:
+	  in the hold pose G's axes are the CHARACTER's axes (X right, Y up, Z back, -Z forward),
+	  centred in the palm. (That is why the classic sword, Grip = (0, -1.5, 0), points straight
+	  up.) Therefore:
+	      Grip = (hand frame expressed in Handle space) = Handle:ToObjectSpace(T), where
+	      T = CFrame.new(handPointInToolSpace) * HoldRotation:Inverse()
+	  and HoldRotation is how the tool should be oriented relative to the character.
+	  HoldRotation = Ry(+INWARD) * Rx(-(90deg + DOWN)): Rx(-(90+DOWN)) turns the shaft (+Y) to
+	  (0, -sin DOWN, -cos DOWN) = down-and-forward, and the dig side (-Z) to down-and-back
+	  (the direction the blade moves on a downward stab). Ry(+INWARD) yaws the shaft a little
+	  towards the body centre so the blade sits in front of the feet, not beside the right leg.
+	  Hand ~3.3 studs above the ground and ~1.8 in front of the root; with DOWN = 55deg the blade
+	  tip (about 4.2 studs past the hand) ends ~0.3 studs above the sand, ~4 studs ahead.
+	Swing: DigController tweens Tool.Grip = base * R. Since Handle = G * R:Inverse() * base^-1,
+	R rotates the shovel about the HAND's axes: R = Rx(+a) stabs the blade down/back (deeper),
+	R = Rx(-a) lifts it up/forward.
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -15,8 +40,10 @@ local Build = require(script.Parent.Build)
 
 local Shovels = {}
 
-local GRIP_Y = 0.55 -- hand position along the grip
-local HOLD_TILT = math.rad(70) -- 90 = horizontal; 70 = pointing forward, tilted 20 deg up
+local GRIP_Y = 0.6 -- hand position along the grip (top of the tool; the knob pokes out above)
+local HOLD_DOWN = math.rad(55) -- shaft angle below horizontal
+local HOLD_INWARD = math.rad(10) -- yaw towards the body centre
+local HOLD_ROTATION = CFrame.Angles(0, HOLD_INWARD, 0) * CFrame.Angles(-(math.pi / 2 + HOLD_DOWN), 0, 0)
 local SHAFT_TOP = 3.0
 local HB = 3.25 -- head base (top of collar)
 
@@ -35,7 +62,8 @@ type HeadBuilder = (m: Model, c: Color3, mat: Enum.Material, look: Types.ShovelL
 
 local function accent(look: Types.ShovelLook): (Color3, Enum.Material)
 	if look.Glow then
-		return Build.lighten(look.HeadColor, 0.35), Enum.Material.Neon
+		-- Saturated accent (not lightened): pale Neon blooms to white. Build clamps it further.
+		return Build.lighten(look.HeadColor, 0.1), Enum.Material.Neon
 	end
 	return Build.darken(look.HeadColor, 0.25), look.Material
 end
@@ -165,10 +193,7 @@ local function build(id: string, look: Types.ShovelLook): Model
 	end
 
 	handle.CanTouch = true
-	handle:SetAttribute(
-		"GripOffset",
-		handle.CFrame:ToObjectSpace(CFrame.new(0, GRIP_Y, 0) * CFrame.Angles(HOLD_TILT, 0, 0))
-	)
+	handle:SetAttribute("GripOffset", handle.CFrame:ToObjectSpace(CFrame.new(0, GRIP_Y, 0) * HOLD_ROTATION:Inverse()))
 	m.PrimaryPart = handle
 	Build.massless(m, handle)
 	Build.weldAll(m, handle)

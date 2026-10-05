@@ -1,8 +1,12 @@
 --!strict
 --[[
 	Toasts — notification queue (top-centre, under the event banners). Server Notify(kind, text)
-	lands here; clients call Toasts.Show(text, kind). Max 3 on screen; duplicates within a
-	second are merged with a "x2" counter instead of stacking.
+	lands here; clients call Toasts.Show(text, kind). Max 3 on screen.
+	Dedupe: the same message (case/punctuation/emoji-insensitive, and also when one text is just
+	a longer version of the other, e.g. the server's "Backpack full! Go sell!" and the client's
+	"Backpack full! Go SELL your sand") arriving within DEDUPE_WINDOW seconds of the last one is
+	dropped (it only refreshes the visible toast's timer). Repeats after that window, while the
+	toast is still visible, are merged into an "x2" counter instead of stacking.
 	Kinds: Success, Error, Info, Warning, Reward, Announce (anything else -> Info).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +20,8 @@ local Toasts = {}
 
 local MAX_VISIBLE = 3
 local DEFAULT_DURATION = 3.2
+local DEDUPE_WINDOW = 2
+local MIN_PREFIX = 10 -- normalised chars needed before a prefix counts as "the same message"
 
 type KindStyle = { Color: Color3, Icon: string, Sound: string? }
 
@@ -28,15 +34,46 @@ local KINDS: { [string]: KindStyle } = {
 	reward = { Color = C.Gold, Icon = "🎁", Sound = "Purchase" },
 	announce = { Color = C.Purple, Icon = "📣", Sound = "RareTreasure" },
 	purchase = { Color = C.Robux, Icon = "💎", Sound = "Purchase" },
+	sell = { Color = C.Gold, Icon = "💰" }, -- the HUD already plays the sell sound + coin rain
+	event = { Color = C.Sunset, Icon = "🎉", Sound = "RareTreasure" },
 }
 
 type Entry = { Text: string, Kind: string, Duration: number }
-type Active = { Text: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
+type Active = { Text: string, Key: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
 
 local container: Frame? = nil
 local queue: { Entry } = {}
 local active: { Active } = {}
 local order = 0
+local recent: { [string]: number } = {} -- normalised text -> os.clock() it was last shown
+
+-- Lowercase letters and digits only: "Backpack full! Go SELL 💰" -> "backpackfullgosell".
+local function normalise(text: string): string
+	return (string.gsub(string.lower(text), "[^%w]", ""))
+end
+
+local function sameMessage(a: string, b: string): boolean
+	if a == b then
+		return true
+	end
+	local shorter, longer = a, b
+	if #shorter > #longer then
+		shorter, longer = b, a
+	end
+	return #shorter >= MIN_PREFIX and string.sub(longer, 1, #shorter) == shorter
+end
+
+-- Most recent time a message matching `key` was shown, if within the window.
+local function recentlyShown(key: string, now: number): boolean
+	for other, at in recent do
+		if now - at > DEDUPE_WINDOW then
+			recent[other] = nil
+		elseif sameMessage(key, other) then
+			return true
+		end
+	end
+	return false
+end
 
 local function getKind(kind: string): KindStyle
 	local key = string.lower(kind)
@@ -106,12 +143,9 @@ local function display(entry: Entry)
 	stripe.Parent = frame
 	Style.Corner(stripe, Style.Theme.CornerPill)
 	Style.Shine(stripe)
-	Style.Label({
+	Style.Icon({
 		Text = kind.Icon,
-		Size = UDim2.fromScale(0.7, 0.7),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Stroke = false,
+		Size = UDim2.fromScale(0.74, 0.74),
 		ZIndex = 3,
 		Parent = stripe,
 	})
@@ -133,6 +167,7 @@ local function display(entry: Entry)
 
 	local item: Active = {
 		Text = entry.Text,
+		Key = normalise(entry.Text),
 		Frame = frame,
 		Count = 1,
 		Label = label,
@@ -163,20 +198,32 @@ function Toasts.Show(text: string, kind: string?, duration: number?)
 	if text == "" then
 		return
 	end
+	local key = normalise(text)
+	local now = os.clock()
+	local isRecent = recentlyShown(key, now)
+	if key ~= "" then
+		recent[key] = now
+	end
 	-- merge duplicates that are still on screen
 	for _, item in active do
-		if item.Text == text then
+		if item.Text == text or sameMessage(item.Key, key) then
+			item.Expires = math.max(item.Expires, now + (duration or DEFAULT_DURATION))
+			if isRecent then
+				return -- the same notice twice in a row (e.g. server + client): show it once
+			end
 			item.Count += 1
-			item.Label.Text = text .. "  x" .. item.Count
-			item.Expires = os.clock() + (duration or DEFAULT_DURATION)
+			item.Label.Text = item.Text .. "  x" .. item.Count
 			Style.Pop(item.Frame, 0.06)
 			return
 		end
 	end
 	for _, entry in queue do
-		if entry.Text == text then
+		if entry.Text == text or sameMessage(normalise(entry.Text), key) then
 			return
 		end
+	end
+	if isRecent then
+		return -- already shown and dismissed a moment ago
 	end
 	if #queue > 6 then
 		table.remove(queue, 1)

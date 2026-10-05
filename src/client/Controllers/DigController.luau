@@ -3,13 +3,13 @@
 	DigController — click / tap / hold (or gamepad R2) on terrain to dig.
 
 	- Raycasts from the camera through the pointer, filtered to Workspace.Terrain only.
-	- Local pre-checks (reach, own plot, cooldown, full backpack) avoid pointless remote spam;
-	  the server stays authoritative and answers with DigResult.
+	- Local pre-checks (reach, inside the dig zone, cooldown, full backpack) avoid pointless
+	  remote spam; the server stays authoritative and answers with DigResult.
 	- Instant predicted feedback: shovel swing (default Animate "Slash" toolanim + Tool.Grip
 	  tween), layer-coloured sand burst + chunks, dig sound, tiny camera shake.
 	- DigResult: "+12 Sand" float text, new-layer banner, contextual hints for failures
 	  ("Too hard! Get a better shovel" + guide beam to the ShovelShop, "Backpack full" + beam to
-	  the SellZone).
+	  the SellZone). The server sends no Notify for dig failures, so each hint shows once.
 	- PC/gamepad get a translucent dig cursor ball (green in reach, red out of reach).
 	- Auto Dig (pass + "AutoDig" setting) digs straight down under the character.
 ]]
@@ -37,7 +37,7 @@ local Character = require(script.Parent.Parent.Util.Character)
 local DigController = {}
 
 DigController.Dug = Signal.new() -- (DigResult) successful digs
-DigController.Feedback = Signal.new() -- (reason: string) "TooHard" | "BackpackFull" | "OutOfPlot" | "TooFar" | ...
+DigController.Feedback = Signal.new() -- (reason: string) "TooHard" | "BackpackFull" | "OutOfZone" | "TooFar" | ...
 DigController.Enabled = true -- UI can pause digging (e.g. while a modal is open)
 
 type HoldKind = "Mouse" | "Touch" | "Gamepad"
@@ -74,13 +74,13 @@ local function hint(key: string, text: string, kind: string, cooldown: number?)
 	end
 end
 
-local function insideOwnPlot(position: Vector3): boolean
-	local plot = State.Plot
-	if plot then
-		local localPos = plot.Origin:PointToObjectSpace(position)
-		return math.abs(localPos.X) <= plot.Size.X / 2 + 1.5 and math.abs(localPos.Z) <= plot.Size.Z / 2 + 1.5
-	end
-	return true -- unknown yet: let the server decide
+local function insideDigZone(position: Vector3): boolean
+	return State.InDigZone(position, 1.5)
+end
+
+-- Edge (studs) of the voxel cube the server carves for this shovel radius.
+local function digEdge(radius: number): number
+	return math.max(1, math.floor(radius / 2 + 0.5)) * 4
 end
 
 local function layerAt(position: Vector3): (Types.LayerDef, number)
@@ -182,10 +182,10 @@ function DigController.TryDigAt(position: Vector3): boolean
 		DigController.Feedback:Fire("TooFar")
 		return false
 	end
-	if not insideOwnPlot(position) then
+	if not insideDigZone(position) then
 		lastDig = now
-		hint("plot", "Dig in YOUR plot! Follow the arrow ⬇️", "Warning", 3)
-		DigController.Feedback:Fire("OutOfPlot")
+		hint("zone", "Dig on the sand by the water! 🏖️", "Warning", 3)
+		DigController.Feedback:Fire("OutOfZone")
 		return false
 	end
 	if State.Loaded and State.Data.Sand >= State.GetCapacity() then
@@ -203,7 +203,7 @@ function DigController.TryDigAt(position: Vector3): boolean
 	local layer = layerAt(position)
 	if State.GetShovel().Power < layer.Hardness then
 		SoundController.Play("DigBlocked", 0.9 + math.random() * 0.2)
-		EffectsController.FloatText(position, "Too hard! 💢", Config.Theme.Colors.Danger, 0.9)
+		EffectsController.FloatText(position, "Clank! 💢", Config.Theme.Colors.Danger, 0.9)
 		EffectsController.Shake(0.25, 0.15)
 		EffectsController.Burst(position, Color3.fromRGB(200, 200, 200), 4, 0.6)
 	else
@@ -263,17 +263,12 @@ local function onDigResult(result: Types.DigResult)
 	local reason = result.Reason
 	if reason == "TooHard" then
 		hint("hard", "Too hard! Get a better shovel 🛠️", "Warning", 4)
-		DigController.Feedback:Fire("TooHard")
 	elseif reason == "BackpackFull" then
 		hint("full", "Backpack full! Go SELL your sand 💰", "Warning", 4)
-		DigController.Feedback:Fire("BackpackFull")
-	elseif reason == "OutOfPlot" then
-		hint("plot", "Dig in YOUR plot! Follow the arrow ⬇️", "Warning", 3)
-		DigController.Feedback:Fire("OutOfPlot")
+	elseif reason == "OutOfZone" then
+		hint("zone", "Dig on the sand by the water! 🏖️", "Warning", 3)
 	elseif reason == "TooFar" then
 		hint("far", "Get closer to dig! 👣", "Info", 3)
-	elseif reason == "NoPlot" then
-		hint("noplot", "Finding you a dig spot...", "Info", 5)
 	elseif reason == "Bottom" then
 		hint("bottom", "You reached the bottom of the world! 🌟", "Success", 10)
 	end
@@ -346,11 +341,11 @@ local function updateCursor()
 	end
 	local hit = result :: RaycastResult
 	local part = getCursor()
-	local radius = State.GetShovel().Radius
-	part.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
+	local edge = digEdge(State.GetShovel().Radius)
+	part.Size = Vector3.new(edge, edge, edge)
 	part.Position = hit.Position
 	local inReach = ((root :: BasePart).Position - hit.Position).Magnitude <= Config.REACH
-		and insideOwnPlot(hit.Position)
+		and insideDigZone(hit.Position)
 	part.Color = if inReach then Color3.fromRGB(120, 255, 140) else Color3.fromRGB(255, 90, 90)
 	part.Transparency = if inReach then 0.78 else 0.88
 end

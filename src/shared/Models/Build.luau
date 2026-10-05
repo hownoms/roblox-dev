@@ -35,6 +35,21 @@ function Build.darken(c: Color3, t: number): Color3
 	return c:Lerp(BLACK, t)
 end
 
+-- Neon renders its colour as emitted light, so pale / near-white Neon blows out to a blinding
+-- white blob under Future lighting + bloom (playtest feedback). Every Neon part made through
+-- these helpers is clamped: brightness (HSV value) capped and pale colours re-saturated, so
+-- glows stay clearly coloured. White highlights (eye shines) become a soft light grey.
+local NEON_MAX_V = 0.78
+local NEON_MIN_S = 0.45
+
+function Build.neonSafe(c: Color3): Color3
+	local h, s, v = c:ToHSV()
+	if s > 0.08 then
+		s = math.max(s, NEON_MIN_S)
+	end
+	return Color3.fromHSV(h, s, math.min(v, NEON_MAX_V))
+end
+
 -- Deterministic small hash for per-id variation.
 function Build.hash(s: string): number
 	local h = 7
@@ -59,6 +74,9 @@ local function setup(p: BasePart, name: string, size: Vector3, cf: CFrame, color
 	p.Color = color
 	local mat = material or SMOOTH
 	p.Material = mat
+	if mat == Enum.Material.Neon then
+		p.Color = Build.neonSafe(color)
+	end
 	if mat == Enum.Material.Glass then
 		p.Transparency = 0.3
 	elseif mat == Enum.Material.Ice then
@@ -366,7 +384,8 @@ end
 function Build.glow(p: BasePart, color: Color3, brightness: number?, range: number?): PointLight
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Brightness = brightness or 1.5
+	-- Scaled down: model glows read as coloured auras, not white hot spots.
+	light.Brightness = (brightness or 1.5) * 0.6
 	light.Range = range or 8
 	light.Shadows = false
 	light.Parent = p
@@ -378,7 +397,7 @@ function Build.sparkle(p: BasePart, color: Color3, rate: number?): ParticleEmitt
 	local e = Instance.new("ParticleEmitter")
 	e.Name = "Sparkles"
 	e.Color = ColorSequence.new(color, WHITE)
-	e.LightEmission = 1
+	e.LightEmission = 0.45
 	e.LightInfluence = 0
 	e.Rate = rate or 5
 	e.Lifetime = NumberRange.new(0.8, 1.5)

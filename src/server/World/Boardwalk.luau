@@ -1,7 +1,8 @@
 --!strict
 --[[
-	Boardwalk — the wooden promenade north of the plots (with the big title sign and a giant
-	shovel), the photo-spot pier running south into the ocean, and the invisible boundary walls.
+	Boardwalk — the wooden promenade between the dig zone and the hub (players spawn on it), the
+	"dig anywhere" signs and zone-end flags, the big title sign with a giant shovel in the dunes,
+	the photo-spot pier running from the wet sand out to sea, and the invisible boundary walls.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,6 +21,8 @@ local WOOD_DARK = rgb(120, 82, 52)
 local WHITE = Color3.new(1, 1, 1)
 
 local Boardwalk = {}
+
+local HUB_GAP = 96 -- no inland railing within this |x| (the way up to the hub)
 
 local function lamp(parent: Instance, ground: Vector3)
 	Util.Part({
@@ -52,23 +55,28 @@ local function buildPromenade(parent: Instance)
 			Material = Enum.Material.WoodPlanks,
 			Parent = m,
 		})
-		-- Railing post on the inland edge
+		-- Railing post on the inland edge (open in front of the hub)
+		if math.abs(x) >= HUB_GAP then
+			Util.Part({
+				Name = "RailPost",
+				Size = Vector3.new(0.7, 3.4, 0.7),
+				CFrame = CFrame.new(x, S + 2.7, z1 - 0.4),
+				Color = WHITE,
+				Parent = m,
+			})
+		end
+		x = x1
+	end
+	for _, sx in { -1, 1 } do
+		local len = half - HUB_GAP
 		Util.Part({
-			Name = "RailPost",
-			Size = Vector3.new(0.7, 3.4, 0.7),
-			CFrame = CFrame.new(x, S + 2.7, z1 - 0.4),
+			Name = "Rail",
+			Size = Vector3.new(len, 0.5, 0.6),
+			CFrame = CFrame.new(sx * (HUB_GAP + len / 2), S + 4.2, z1 - 0.4),
 			Color = WHITE,
 			Parent = m,
 		})
-		x = x1
 	end
-	Util.Part({
-		Name = "Rail",
-		Size = Vector3.new(half * 2, 0.5, 0.6),
-		CFrame = CFrame.new(0, S + 4.2, z1 - 0.4),
-		Color = WHITE,
-		Parent = m,
-	})
 	Util.Part({
 		Name = "Trim",
 		Size = Vector3.new(half * 2, 1.2, 0.8),
@@ -77,7 +85,7 @@ local function buildPromenade(parent: Instance)
 		Decor = true,
 		Parent = m,
 	})
-	-- Lamps every 32 studs along the plot-side edge, skipping the hub leaderboards
+	-- Lamps every 32 studs along the sand-side edge, skipping the spawns
 	local lx = -half + 8
 	while lx < half do
 		if math.abs(lx) > 24 then
@@ -364,8 +372,59 @@ local function buildBoundaries(parent: Instance)
 	end
 end
 
+-- "Dig anywhere" signs on the deck and flags marking both ends of the dig zone.
+local function buildDigMarkers(parent: Instance)
+	local m = Util.Model("DigMarkers", parent)
+	local z = Layout.BOARDWALK_Z0 + 2
+	for _, x in { -40, 40, -200, 200 } do
+		local p = Vector3.new(x, Layout.DECK_TOP, z)
+		Util.Part({
+			Name = "SignPost",
+			Size = Vector3.new(0.8, 5, 0.8),
+			CFrame = CFrame.new(p + Vector3.new(0, 2.5, 0.6)),
+			Color = WOOD_DARK,
+			Material = Enum.Material.Wood,
+			Parent = m,
+		})
+		-- Faces inland so it reads while walking down from the hub.
+		Util.Sign(
+			m,
+			"DIG ANYWHERE!",
+			Vector3.new(9, 2.6, 0.4),
+			CFrame.lookAt(p + Vector3.new(0, 5.4, 0.6), p + Vector3.new(0, 5.4, 10)),
+			{
+				Name = "DigSign",
+				BoardColor = C.Gold,
+				SubText = "ON THE SAND",
+			}
+		)
+	end
+	-- Striped flags at the four corners of the dig zone
+	for _, sx in { -1, 1 } do
+		for _, zEdge in { Layout.DIG_Z_INLAND, Layout.DIG_Z_SEA } do
+			local p = Vector3.new(sx * (Layout.DIG_HALF_X + 2), S, zEdge)
+			Util.Part({
+				Name = "ZoneFlagPole",
+				Size = Vector3.new(0.5, 9, 0.5),
+				CFrame = CFrame.new(p + Vector3.new(0, 4.5, 0)),
+				Color = WHITE,
+				Parent = m,
+			})
+			Util.Wedge({
+				Name = "ZoneFlag",
+				Size = Vector3.new(0.2, 2.2, 3.4),
+				CFrame = CFrame.new(p + Vector3.new(0, 7.6, -sx * 1.7)),
+				Color = C.Coral,
+				Decor = true,
+				Parent = m,
+			})
+		end
+	end
+end
+
 function Boardwalk.Build(parent: Instance)
 	buildPromenade(parent)
+	buildDigMarkers(parent)
 	buildTitle(parent)
 	buildPier(parent)
 	buildBoundaries(parent)

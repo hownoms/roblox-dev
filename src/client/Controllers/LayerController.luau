@@ -1,6 +1,6 @@
 --!strict
 --[[
-	LayerController — tracks how deep the local character is (studs below the plot surface),
+	LayerController — tracks how deep the local character is (studs below the beach surface),
 	fires DepthChanged / LayerEntered, shows the layer-enter banner and tints the world toward
 	the layer's AmbientColor while underground via our OWN client-side ColorCorrectionEffect
 	"DepthTint" in Lighting. The server owns WorldAtmosphere/WorldColorCorrection/WorldBloom
@@ -90,14 +90,11 @@ local function update()
 	end
 	local feetY = (root :: BasePart).Position.Y - 3
 	local depth = math.max(0, State.SurfaceY() - feetY)
-	-- Like the server (PlotService), depth only counts inside the plot column: the beach slopes
-	-- down to the ocean, which must not read as "underground".
-	local plot = State.Plot
-	if plot then
-		local localPos = plot.Origin:PointToObjectSpace((root :: BasePart).Position)
-		if math.abs(localPos.X) > plot.Size.X / 2 + 2 or math.abs(localPos.Z) > plot.Size.Z / 2 + 2 then
-			depth = 0
-		end
+	-- Like the server (BeachService), depth only counts inside the dig zone: the beach slopes
+	-- down to the ocean, which must not read as "underground". Unknown zone -> 0 as well.
+	local cf = State.GetDigZone()
+	if not cf or not State.InDigZone((root :: BasePart).Position, 2) then
+		depth = 0
 	end
 	local index = Config.GetLayerIndexAtDepth(depth)
 	local changed = math.abs(depth - LayerController.Depth) > 0.05 or index ~= LayerController.LayerIndex

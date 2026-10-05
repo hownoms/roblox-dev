@@ -41,14 +41,12 @@ Remotes.Events = table.freeze({
 	"DigResult",
 	"TreasureFound",
 	"EggHatched",
-	"PlotAssigned",
 	"EventChanged",
 	"DiggerDug", -- server -> all clients: (player: Player, diggerId: string, position: Vector3)
 })
 
 Remotes.Functions = table.freeze({
 	"GetData",
-	"GetPlot",
 	"GetOwnedPasses",
 })
 

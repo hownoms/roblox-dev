@@ -2,7 +2,10 @@
 --[[
 	Shovels — ordered by price. Shovel N+1 always unlocks the next layer (Power == that layer's
 	Hardness), so depth == progress. The toy shovel (Power 2) digs Dry + Wet Sand.
-	Cooldown 0.5s -> 0.12s, Radius 2 -> 6 studs, SandMultiplier 1x -> 75x.
+	Cooldown 0.5s -> 0.12s, SandMultiplier 1x -> 75x.
+	Radius = half the edge of the voxel-aligned cube a dig removes (DigService rounds the edge
+	Radius * 2 to whole 4-stud voxels): 2-2.8 -> 4x4x4 (starters), 3.2-4.4 -> 8x8x8,
+	5-6.6 -> 12x12x12, 7.2-8 -> 16x16x16 (Core Breaker).
 	Late shovels need rebirths so rebirthing is the only way to reach the Core.
 	Balance sheet: docs/GDD.md "Economy sanity check".
 ]]
@@ -90,7 +93,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 2500,
 		Power = 25,
 		Cooldown = 0.37,
-		Radius = 3,
+		Radius = 3.2,
 		SandMultiplier = 4,
 		RebirthsRequired = 0,
 		Description = "Captain Sandbeard's own. Smashes through shipwreck planks.",
@@ -108,7 +111,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 9000,
 		Power = 45,
 		Cooldown = 0.34,
-		Radius = 3.2,
+		Radius = 3.5,
 		SandMultiplier = 6,
 		RebirthsRequired = 0,
 		Description = "Made from a raptor claw. Perfect for fossil hunting.",
@@ -126,7 +129,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 35000,
 		Power = 80,
 		Cooldown = 0.31,
-		Radius = 3.5,
+		Radius = 3.8,
 		SandMultiplier = 8,
 		RebirthsRequired = 0,
 		Description = "Miner-grade steel. Cracks Bedrock like a cookie.",
@@ -144,7 +147,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 140000,
 		Power = 140,
 		Cooldown = 0.28,
-		Radius = 3.8,
+		Radius = 4.4,
 		SandMultiplier = 11,
 		RebirthsRequired = 0,
 		Description = "Carved from a single giant amethyst. Opens the Crystal Caverns.",
@@ -162,7 +165,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 600000,
 		Power = 250,
 		Cooldown = 0.25,
-		Radius = 4,
+		Radius = 5,
 		SandMultiplier = 15,
 		RebirthsRequired = 0,
 		Description = "So cold it freezes the ice before it breaks it.",
@@ -180,7 +183,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 2500000,
 		Power = 450,
 		Cooldown = 0.22,
-		Radius = 4.3,
+		Radius = 5.5,
 		SandMultiplier = 20,
 		RebirthsRequired = 1,
 		Description = "The royal digging fork of Sandlantis. Requires 1 Rebirth.",
@@ -198,7 +201,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 12000000,
 		Power = 800,
 		Cooldown = 0.2,
-		Radius = 4.6,
+		Radius = 6,
 		SandMultiplier = 28,
 		RebirthsRequired = 2,
 		Description = "Forged in lava, cooled in a dragon's sneeze. Requires 2 Rebirths.",
@@ -216,7 +219,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 60000000,
 		Power = 1400,
 		Cooldown = 0.17,
-		Radius = 5,
+		Radius = 6.6,
 		SandMultiplier = 38,
 		RebirthsRequired = 4,
 		Description = "A spinning drill of black volcanic glass. Requires 4 Rebirths.",
@@ -234,7 +237,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 350000000,
 		Power = 2500,
 		Cooldown = 0.14,
-		Radius = 5.5,
+		Radius = 7.2,
 		SandMultiplier = 52,
 		RebirthsRequired = 6,
 		Description = "Alien tech that melts through anything. Requires 6 Rebirths.",
@@ -252,7 +255,7 @@ local Shovels: { Types.ShovelDef } = {
 		Price = 2500000000,
 		Power = 4500,
 		Cooldown = 0.12,
-		Radius = 6,
+		Radius = 8,
 		SandMultiplier = 75,
 		RebirthsRequired = 10,
 		Description = "The legendary shovel that can touch the Core. Requires 10 Rebirths.",

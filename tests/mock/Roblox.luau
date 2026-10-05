@@ -2440,7 +2440,11 @@ local function buildGame()
 		GetServerTimeNow = function()
 			return EPOCH + clock - 1000
 		end,
-		Raycast = function()
+		-- Server raycasts miss by default; tests opt in to terrain hits (e.g. digger point picking).
+		Raycast = function(_w, origin, direction, params)
+			if Mock.ServerTerrainRaycast and Mock.RaycastTerrain then
+				return Mock.RaycastTerrain(origin, direction, params)
+			end
 			return nil
 		end,
 		GetPartBoundsInBox = function()

@@ -3,7 +3,8 @@
 	State — client-side store (DataStore-like) of everything the UI renders:
 	- Data: merged Types.PlayerData (full snapshot from DataChanged/GetData, then {key=value} deltas)
 	- Passes: owned game passes by Config.Monetization key (GetOwnedPasses + purchase events)
-	- Plot: our PlotInfo (PlotAssigned / GetPlot)
+	- Dig zone: the shared diggable beach strip, from Workspace attributes "DigZoneCFrame" /
+	  "DigZoneSize" set by the server's World (State.GetDigZone / InDigZone / NearestSand)
 	- ActiveEvents: active event ids (EventChanged / Workspace attribute "ActiveEvents")
 
 	Every key has its own Changed signal: State.Changed("Coins"):Connect(fn(new, old)).
@@ -29,13 +30,12 @@ local State = {}
 State.Data = Config.NewPlayerData()
 State.Loaded = false
 State.Passes = {} :: { [string]: boolean }
-State.Plot = nil :: Types.PlotInfo?
 State.ActiveEvents = {} :: { string }
 
 State.LoadedSignal = Signal.new() -- fired once when the first real data arrives
 State.AnyChanged = Signal.new() -- (key, new, old)
 
-local SPECIAL_KEYS = { Passes = true, Plot = true, ActiveEvents = true }
+local SPECIAL_KEYS = { Passes = true, ActiveEvents = true }
 
 local signals: { [string]: Signal } = {}
 local gotSnapshot = false
@@ -254,8 +254,45 @@ function State.IsEventActive(eventId: string): boolean
 end
 
 function State.SurfaceY(): number
-	local plot = State.Plot
-	return if plot then plot.Origin.Position.Y else Config.SURFACE_Y
+	return Config.SURFACE_Y
+end
+
+-- The dig zone (CFrame at the centre of the flat surface, Size = X/Z footprint + depth), or nil
+-- until the server's map attributes have replicated.
+function State.GetDigZone(): (CFrame?, Vector3?)
+	local cf = Workspace:GetAttribute("DigZoneCFrame")
+	local size = Workspace:GetAttribute("DigZoneSize")
+	if typeof(cf) == "CFrame" and typeof(size) == "Vector3" then
+		return cf, size
+	end
+	return nil, nil
+end
+
+-- Is `position` (X/Z) inside the dig zone footprint (+ `margin` studs)? Unknown zone -> true
+-- (let the server decide).
+function State.InDigZone(position: Vector3, margin: number?): boolean
+	local cf, size = State.GetDigZone()
+	if not cf or not size then
+		return true
+	end
+	local rel = (cf :: CFrame):PointToObjectSpace(position)
+	local m = margin or 0
+	return math.abs(rel.X) <= (size :: Vector3).X / 2 + m and math.abs(rel.Z) <= (size :: Vector3).Z / 2 + m
+end
+
+-- Closest surface point of the dig zone to `from`, `inset` studs inside its edges.
+function State.NearestSand(from: Vector3, inset: number?): Vector3?
+	local cf, size = State.GetDigZone()
+	if not cf or not size then
+		return nil
+	end
+	local zone = cf :: CFrame
+	local half = (size :: Vector3) / 2
+	local i = inset or 0
+	local rel = zone:PointToObjectSpace(from)
+	local x = math.clamp(rel.X, -math.max(0, half.X - i), math.max(0, half.X - i))
+	local z = math.clamp(rel.Z, -math.max(0, half.Z - i), math.max(0, half.Z - i))
+	return zone:PointToWorldSpace(Vector3.new(x, 0, z))
 end
 
 -- Init ----------------------------------------------------------------------------------------
@@ -310,22 +347,6 @@ function State.Init()
 				break
 			end
 			task.wait(attempt)
-		end
-	end)
-
-	task.spawn(function()
-		Remotes.Get("PlotAssigned").OnClientEvent:Connect(function(plot: any)
-			if typeof(plot) == "table" then
-				set("Plot", plot)
-			end
-		end)
-		if not State.Plot then
-			local ok, result = pcall(function()
-				return Remotes.GetFunction("GetPlot"):InvokeServer()
-			end)
-			if ok and typeof(result) == "table" and not State.Plot then
-				set("Plot", result)
-			end
 		end
 	end)
 

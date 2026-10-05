@@ -92,45 +92,37 @@ function Button.new(props: ButtonProps): Button
 	local label: TextLabel
 	local text = props.Text or ""
 	if props.Icon and props.Vertical then
-		icon = Style.Label({
-			Name = "Icon",
+		-- Icon fills the top ~60% of the face, caption the bottom ~30% (playtest: icons and
+		-- captions looked tiny in big buttons).
+		icon = Style.Icon({
 			Text = props.Icon,
-			Size = UDim2.new(1, -8, if text ~= "" then 0.62 else 0.84, 0),
-			Position = UDim2.new(0.5, 0, 0, 4),
+			Size = UDim2.new(1, -10, if text ~= "" then 0.6 else 0.84, 0),
+			Position = UDim2.new(0.5, 0, if text ~= "" then 0.05 else 0.08, 0),
 			AnchorPoint = Vector2.new(0.5, 0),
-			MaxTextSize = 60,
-			Stroke = false,
 			ZIndex = face.ZIndex + 1,
 			Parent = face,
 		})
 		label = Style.Label({
 			Name = "Label",
 			Text = text,
-			Size = UDim2.new(1, -6, 0.3, 0),
+			Size = UDim2.new(1, -8, 0.3, 0),
 			Position = UDim2.new(0.5, 0, 1, -3),
 			AnchorPoint = Vector2.new(0.5, 1),
-			MaxTextSize = props.MaxTextSize or 18,
+			MaxTextSize = props.MaxTextSize or 20,
+			MinTextSize = 10,
 			TextColor = props.TextColor,
 			ZIndex = face.ZIndex + 1,
 			Parent = face,
 		})
 	elseif props.Icon then
-		icon = Style.Label({
-			Name = "Icon",
+		icon = Style.Icon({
 			Text = props.Icon,
-			Size = UDim2.new(0, 0, 0.78, 0),
+			Size = UDim2.fromScale(0.5, 0.8),
 			Position = UDim2.new(0, 8, 0.5, 0),
 			AnchorPoint = Vector2.new(0, 0.5),
-			MaxTextSize = 40,
-			Stroke = false,
 			ZIndex = face.ZIndex + 1,
 			Parent = face,
 		})
-		local ratio = Instance.new("UIAspectRatioConstraint")
-		ratio.AspectRatio = 1
-		ratio.DominantAxis = Enum.DominantAxis.Height
-		ratio.Parent = icon;
-		(icon :: TextLabel).Size = UDim2.new(0.78, 0, 0.78, 0)
 		label = Style.Label({
 			Name = "Label",
 			Text = text,

@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Root = require(script.Parent.Parent.Root)
 
 local Style = {}
 
@@ -110,6 +111,35 @@ function Style.List(
 	return list
 end
 
+-- Text size caps follow the UI scale --------------------------------------------------------
+-- UITextSizeConstraint limits are applied in screen pixels and are NOT multiplied by the
+-- canvas UIScale, so on a big PC screen (scale 1.35) a "MaxTextSize = 16" caption stayed 16 px
+-- inside a button that had grown 35% ("tiny text" playtest feedback). Every constraint made
+-- by Style.Label registers its design-pixel caps here and is rescaled whenever Root.Scale
+-- changes. Caps are never shrunk below their design value (TextScaled already shrinks text to
+-- fit smaller boxes on phones) and the minimum never drops below a readable 8 px.
+local MIN_READABLE = 8
+local constraints: { [UITextSizeConstraint]: { Max: number, Min: number } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function applyCaps(constraint: UITextSizeConstraint, caps: { Max: number, Min: number }, scale: number)
+	local up = math.max(scale, 1)
+	constraint.MaxTextSize = math.clamp(math.floor(caps.Max * up + 0.5), 1, 100)
+	constraint.MinTextSize = math.clamp(math.max(caps.Min, MIN_READABLE), 1, constraint.MaxTextSize)
+end
+
+-- Registers a UITextSizeConstraint (design-pixel caps) so it follows the UI scale.
+function Style.TrackTextSize(constraint: UITextSizeConstraint, maxDesign: number, minDesign: number?)
+	local caps = { Max = maxDesign, Min = minDesign or MIN_READABLE }
+	constraints[constraint] = caps
+	applyCaps(constraint, caps, Root.Scale)
+end
+
+Root.ScaleChanged:Connect(function(scale: number)
+	for constraint, caps in constraints do
+		applyCaps(constraint, caps, scale)
+	end
+end)
+
 export type LabelProps = {
 	Name: string?,
 	Text: string?,
@@ -151,8 +181,7 @@ function Style.Label(props: LabelProps): TextLabel
 	label.LayoutOrder = props.LayoutOrder or 0
 	label.ZIndex = props.ZIndex or 1
 	local constraint = Instance.new("UITextSizeConstraint")
-	constraint.MaxTextSize = props.MaxTextSize or 28
-	constraint.MinTextSize = props.MinTextSize or 6
+	Style.TrackTextSize(constraint, props.MaxTextSize or 28, props.MinTextSize)
 	constraint.Parent = label
 	if props.Stroke ~= false then
 		Style.Stroke(label, props.StrokeColor, props.StrokeThickness or 2, false)
@@ -161,6 +190,44 @@ function Style.Label(props: LabelProps): TextLabel
 		label.Parent = props.Parent
 	end
 	return label
+end
+
+export type IconProps = {
+	Name: string?,
+	Text: string,
+	Size: UDim2?, -- default: fills the parent
+	Position: UDim2?, -- default: centred
+	AnchorPoint: Vector2?,
+	ZIndex: number?,
+	LayoutOrder: number?,
+	Parent: Instance?,
+}
+
+-- Emoji icon that fills its box: square (aspect-ratio locked, fits inside the given size),
+-- centred, TextScaled with no small cap, no stroke. Use for every icon slot so icons read at
+-- the same visual weight on PC and phone.
+function Style.Icon(props: IconProps): TextLabel
+	local icon = Style.Label({
+		Name = props.Name or "Icon",
+		Text = props.Text,
+		Size = props.Size or UDim2.fromScale(1, 1),
+		Position = props.Position or UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+		MaxTextSize = 96,
+		MinTextSize = 12,
+		Stroke = false,
+		ZIndex = props.ZIndex,
+		LayoutOrder = props.LayoutOrder,
+	})
+	icon.TextYAlignment = Enum.TextYAlignment.Center
+	local ratio = Instance.new("UIAspectRatioConstraint")
+	ratio.AspectRatio = 1
+	ratio.AspectType = Enum.AspectType.FitWithinMaxSize
+	ratio.Parent = icon
+	if props.Parent then
+		icon.Parent = props.Parent
+	end
+	return icon
 end
 
 function Style.Tween(

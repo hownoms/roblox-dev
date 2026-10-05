@@ -1,27 +1,41 @@
 --!strict
 --[[
-	DigService — the Dig remote (docs/ARCHITECTURE.md "Core mechanic").
+	DigService — every terrain dig goes through DigService.DigAt (docs/V2.md).
 
-	Dig(position: Vector3) validation, in order (first failure -> DigResult{Success=false,Reason}):
-	  NoPlot       player has no plot (queue) / plot is being refilled
-	  Cooldown     less than shovel cooldown / speed x COOLDOWN_LENIENCY since the last dig
-	  OutOfPlot    point is not inside the player's own plot column
-	  Bottom       point is at the very bottom of the plot (The Core floor is indestructible)
-	  TooFar       point further than Config.REACH (+ small latency slack) from HumanoidRootPart
-	  TooHard      shovel Power < Hardness of the layer at that depth
+	DigAt(player, position, opts) — opts = Types.DigOptions { Power, Radius, SandMultiplier,
+	Source = "Shovel" | "Digger" | "Auto", Silent? }. Validation, in order (first failure ->
+	DigResult{Success=false,Reason}):
+	  Cooldown     Shovel/Auto only: shovel cooldown / speed (x COOLDOWN_LENIENCY for Shovel)
+	               x Config.Heat.SunburntCooldownMultiplier while the player is "Sunburnt"
+	  OutOfZone    point is not inside the dig zone (World.GetDigZone)
+	  Bottom       point is at the very bottom of the world (The Core floor is indestructible)
+	  TooFar       Shovel: further than Config.REACH (+ slack) from HumanoidRootPart;
+	               Digger: further than DIGGER_RANGE from the owner (Auto: never)
+	  TooHard      opts.Power < Hardness of the layer at that depth
 	  BackpackFull Sand >= effective capacity
 	Points with no solid terrain near them are ignored silently (no result).
-	The dig sphere center is clamped so the sphere never cuts plot walls or the floor.
-	Success: FillBall(center, shovel.Radius, Air), sand (Stats) into the backpack (capped at
-	capacity), MaxDepth / layer bookkeeping via PlotService, treasure roll (layer chance x luck,
-	capped; luck boosts non-Common weights), DigResult to the digger.
+	The dig point is re-resolved on the server (Shovel: re-raycast from the character; others:
+	3 studs below the given point) and a voxel-aligned cube is carved: edge = Radius * 2 rounded
+	to whole 4-stud voxels (min 1 voxel), centred horizontally on the target and going DOWN
+	from the target voxel; a dig at the surface also clears the voxel above the surface. The
+	cube is clamped to the dig zone so the zone walls and the floor never break.
+	Success: sand (Stats; opts.SandMultiplier replaces the shovel factor) into the backpack
+	(capped at capacity), tide/anti-cheat bookkeeping (BeachService.RecordCarve), MaxDepth via
+	BeachService.ReportDig, treasure roll (layer chance x luck, capped), ServerSignals.Dug
+	(player, depth, gained, source) and a DigResult to the player unless opts.Silent.
 	The 8th dig of a brand-new player's first session always finds a Common treasure (GDD §8).
 
+	Messages: the CLIENT shows every dig hint (too hard, backpack full, bottom...) from the
+	DigResult it receives, so the server sends no Notify for dig failures (no duplicates).
+	Failed Digger digs send nothing (the caller gets the result).
+
 	AutoDig pass: SetSetting("AutoDig", true|false). While on (and the pass is owned) the server
-	digs straight down below the character's feet at the shovel's normal cooldown.
+	digs straight down below the character's feet at the shovel's normal cooldown (Source "Auto").
 
 	Public API:
-		DigService.TryDig(player, position, isAuto): Types.DigResult?
+		DigService.DigAt(player, position, opts): Types.DigResult?
+		DigService.ShovelOptions(player, source?): Types.DigOptions?   -- equipped shovel stats
+		DigService.TryDig(player, position, isAuto)   -- v1 compatibility: DigAt with the shovel
 ]]
 
 local RunService = game:GetService("RunService")
@@ -39,16 +53,28 @@ local DataService = require(script.Parent.DataService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local MultiplierService = require(script.Parent.MultiplierService)
 local Net = require(script.Parent.Net)
-local PlotService = require(script.Parent.PlotService)
+local BeachService = require(script.Parent.BeachService)
 local ServerSignals = require(script.Parent.ServerSignals)
 local SettingsService = require(script.Parent.SettingsService)
+local World = require(script.Parent.Parent.World)
 
 local REACH_SLACK = 2 -- studs of latency slack on top of Config.REACH
-local SURFACE_SLACK = 4 -- how far above the plot surface a dig point may be
-local BOTTOM_FLOOR = 2 -- studs of indestructible floor kept at the bottom of the plot
+local DIGGER_RANGE = 16 -- Digger digs must be this close to the owner's character
+local DIGGER_SLACK = 2
+local SURFACE_SLACK = 4 -- how far above the surface a dig point may be
+local BOTTOM_FLOOR = 2 -- studs of indestructible floor kept at the bottom of the world
 local EDGE_SLACK = 1 -- dig points may be this far outside the footprint (surface rounding)
 local FTUE_TREASURE_DIG = 8
 local AUTO_TICK = 0.05
+local FAIL_RESULT_INTERVAL = 0.2 -- Shovel: min seconds between failure DigResults
+local AUTO_FAIL_INTERVAL = 1.5 -- Auto: min seconds between failure DigResults
+
+local S = Config.SURFACE_Y
+local ZONE = World.GetDigZone()
+local ZONE_CENTER = ZONE.CFrame.Position
+local ZONE_HALF_X = ZONE.Size.X / 2
+local ZONE_HALF_Z = ZONE.Size.Z / 2
+local TOTAL_DEPTH = ZONE.Size.Y
 
 local DigService = {}
 
@@ -93,27 +119,31 @@ local function studioDebug(player: Player, reason: string, detail: string)
 	print(string.format("[DigService] %s dig ignored: %s", player.Name, detail))
 end
 
--- Removes a voxel-aligned cube of terrain at the dig point. Shovel radius sets the cube size
--- (radius 2 = one 4-stud voxel, radius 6 = 3x3x3 voxels). The cube is clamped to voxels fully
--- inside the plot column so plot walls and the floor never break.
-local function carve(plot: Types.PlotInfo, target: Vector3, radius: number)
+-- Removes a voxel-aligned cube of terrain at the dig point and returns the carved box (min, max).
+-- Edge = radius * 2 rounded to whole voxels (radius 2 = one 4-stud voxel, radius 8 = 4x4x4
+-- voxels). Horizontally centred on the target, going down from the target voxel. Clamped to
+-- voxels fully inside the dig zone so its walls and the floor never break. A dig whose top
+-- reaches the surface also clears the voxel above it (the partially filled surface voxel).
+local function carve(target: Vector3, radius: number): (Vector3, Vector3)
 	local cells = math.max(1, math.floor(radius * 2 / VOXEL + 0.5))
-	local origin = plot.Origin.Position
-	local half = plot.Size / 2
 	local function axisStart(value: number, minEdge: number, maxEdge: number): number
 		local lo = math.ceil(minEdge / VOXEL)
 		local hi = math.floor(maxEdge / VOXEL) - cells
 		local start = math.floor(value / VOXEL) - math.floor((cells - 1) / 2)
 		return if hi < lo then lo else math.clamp(start, lo, hi)
 	end
-	local sx = axisStart(target.X, origin.X - half.X, origin.X + half.X)
-	local sz = axisStart(target.Z, origin.Z - half.Z, origin.Z + half.Z)
-	local floorY = origin.Y - plot.Size.Y + BOTTOM_FLOOR
-	local sy = math.max(math.floor(target.Y / VOXEL) - math.floor((cells - 1) / 2), math.ceil(floorY / VOXEL))
-	-- One extra voxel on top clears the partially filled surface voxel above the dig.
-	local size = Vector3.new(cells, cells + 1, cells) * VOXEL
+	local sx = axisStart(target.X, ZONE_CENTER.X - ZONE_HALF_X, ZONE_CENTER.X + ZONE_HALF_X)
+	local sz = axisStart(target.Z, ZONE_CENTER.Z - ZONE_HALF_Z, ZONE_CENTER.Z + ZONE_HALF_Z)
+	local floorY = S - TOTAL_DEPTH + BOTTOM_FLOOR
+	local topCell = math.min(math.floor(target.Y / VOXEL), S // VOXEL - 1)
+	local sy = math.max(topCell - (cells - 1), math.ceil(floorY / VOXEL))
+	local size = Vector3.new(cells, cells, cells) * VOXEL
 	local min = Vector3.new(sx, sy, sz) * VOXEL
-	terrain:FillBlock(CFrame.new(min + size / 2), size, Enum.Material.Air)
+	local max = min + size
+	local clearTop = if max.Y >= S then S + VOXEL else max.Y
+	local box = Vector3.new(size.X, clearTop - min.Y, size.Z)
+	terrain:FillBlock(CFrame.new(min + box / 2), box, Enum.Material.Air)
+	return min, Vector3.new(max.X, math.min(max.Y, S), max.Z)
 end
 
 -- The smooth-terrain surface a player clicks is not on voxel boundaries, so the raw hit point can
@@ -209,27 +239,49 @@ local function fail(
 	player: Player,
 	result: Types.DigResult,
 	reason: Types.DigFailReason,
-	isAuto: boolean
+	opts: Types.DigOptions
 ): Types.DigResult
 	result.Reason = reason
-	if reason == "TooHard" then
-		Net.NotifyThrottled(player, "Error", "Too hard! Need a better shovel!", "TooHard", 3)
-	elseif reason == "BackpackFull" then
-		Net.NotifyThrottled(player, "Error", "Backpack full! Go sell!", "BackpackFull", 3)
-	elseif reason == "Bottom" then
-		Net.NotifyThrottled(player, "Info", "You reached the bottom of the world!", "Bottom", 10)
+	-- No Notify here: the client turns the DigResult into one hint. Throttle failure replies so
+	-- spamming the remote can't flood the client back.
+	if opts.Silent or opts.Source == "Digger" or (opts.Source == "Auto" and reason == "Cooldown") then
+		return result
 	end
-	-- Throttle failure replies so spamming the remote can't flood the client back.
+	local interval = if opts.Source == "Auto" then AUTO_FAIL_INTERVAL else FAIL_RESULT_INTERVAL
 	local now = os.clock()
 	local last = lastFailResult[player]
-	if not isAuto and (last == nil or now - last >= 0.2) then
+	if last == nil or now - last >= interval then
 		lastFailResult[player] = now
 		Net.FireClient("DigResult", player, result)
 	end
 	return result
 end
 
-function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): Types.DigResult?
+local function cooldownFor(player: Player, ctx: Stats.Context, source: string): number
+	local cooldown = Stats.GetCooldown(ctx) * (if source == "Shovel" then Config.COOLDOWN_LENIENCY else 1)
+	if player:GetAttribute("Sunburnt") == true then
+		cooldown *= Config.Heat.SunburntCooldownMultiplier
+	end
+	return cooldown
+end
+
+-- Dig options from the player's equipped shovel.
+function DigService.ShovelOptions(player: Player, source: Types.DigSource?): Types.DigOptions?
+	local data = DataService.Get(player)
+	if not data then
+		return nil
+	end
+	assert(data) -- refine for the type checker (guarded above)
+	local shovel = Stats.GetShovel(data)
+	return {
+		Power = shovel.Power,
+		Radius = shovel.Radius,
+		SandMultiplier = shovel.SandMultiplier,
+		Source = source or "Shovel",
+	}
+end
+
+function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOptions): Types.DigResult?
 	local data = DataService.Get(player)
 	local ctx = MultiplierService.GetContext(player)
 	if not data or not ctx then
@@ -237,80 +289,92 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	end
 	assert(data) -- refine for the type checker (guarded above)
 	assert(ctx) -- refine for the type checker (guarded above)
+	local source = opts.Source
 	local result = baseResult(position)
-	local plot = PlotService.GetPlot(player)
-	if not plot or PlotService.IsResetting(player) then
-		return fail(player, result, "NoPlot", isAuto)
-	end
-	assert(plot) -- refine for the type checker (guarded above)
-
-	local shovel = Stats.GetShovel(data)
-	local cooldown = Stats.GetCooldown(ctx) * (if isAuto then 1 else Config.COOLDOWN_LENIENCY)
 	local now = os.clock()
-	local last = lastDig[player]
-	if last and now - last < cooldown then
-		studioDebug(player, "Cooldown", string.format("cooldown %.2fs not elapsed", cooldown))
-		return fail(player, result, "Cooldown", isAuto)
-	end
 
-	-- Plot bounds (plot-local space: origin = surface center, -Y = down).
-	local localPos = plot.Origin:PointToObjectSpace(position)
-	local halfX, halfZ, totalDepth = plot.Size.X / 2, plot.Size.Z / 2, plot.Size.Y
-	if
-		math.abs(localPos.X) > halfX + EDGE_SLACK
-		or math.abs(localPos.Z) > halfZ + EDGE_SLACK
-		or localPos.Y > SURFACE_SLACK
-		or localPos.Y < -totalDepth - EDGE_SLACK
-	then
-		return fail(player, result, "OutOfPlot", isAuto)
-	end
-	if -localPos.Y >= totalDepth - BOTTOM_FLOOR then
-		return fail(player, result, "Bottom", isAuto)
-	end
-
-	local radius = shovel.Radius
-	local depth = math.clamp(-localPos.Y, 0, totalDepth)
-	local layerIndex = Config.GetLayerIndexAtDepth(depth)
-	local layer = Config.Layers[layerIndex]
-	result.Radius = radius
-	result.Depth = depth
-	result.LayerIndex = layerIndex
-
-	if not isAuto then
-		local root = Net.GetRoot(player)
-		if not root or (root.Position - position).Magnitude > Config.REACH + REACH_SLACK then
-			return fail(player, result, "TooFar", isAuto)
+	if source ~= "Digger" then
+		local cooldown = cooldownFor(player, ctx, source)
+		local last = lastDig[player]
+		if last and now - last < cooldown then
+			studioDebug(player, "Cooldown", string.format("cooldown %.2fs not elapsed", cooldown))
+			return fail(player, result, "Cooldown", opts)
 		end
 	end
 
-	local target = resolveTarget(position, if isAuto then nil else Net.GetRoot(player))
+	-- Zone bounds (zone-local: origin = surface centre, -Y = down).
+	local rel = position - ZONE_CENTER
+	if
+		math.abs(rel.X) > ZONE_HALF_X + EDGE_SLACK
+		or math.abs(rel.Z) > ZONE_HALF_Z + EDGE_SLACK
+		or rel.Y > SURFACE_SLACK
+		or rel.Y < -TOTAL_DEPTH - EDGE_SLACK
+	then
+		return fail(player, result, "OutOfZone", opts)
+	end
+
+	local root = Net.GetRoot(player)
+	if source == "Shovel" then
+		if not root or (root.Position - position).Magnitude > Config.REACH + REACH_SLACK then
+			return fail(player, result, "TooFar", opts)
+		end
+	elseif source == "Digger" then
+		if not root or (root.Position - position).Magnitude > DIGGER_RANGE + DIGGER_SLACK then
+			return fail(player, result, "TooFar", opts)
+		end
+	end
+
+	local target = resolveTarget(position, if source == "Shovel" then root else nil)
+	local trel = target - ZONE_CENTER
+	if math.abs(trel.X) > ZONE_HALF_X + EDGE_SLACK or math.abs(trel.Z) > ZONE_HALF_Z + EDGE_SLACK then
+		return fail(player, result, "OutOfZone", opts)
+	end
+	local depth = math.clamp(S - target.Y, 0, TOTAL_DEPTH)
+	if depth >= TOTAL_DEPTH - BOTTOM_FLOOR then
+		return fail(player, result, "Bottom", opts)
+	end
+	local layerIndex = Config.GetLayerIndexAtDepth(depth)
+	local layer = Config.Layers[layerIndex]
+	result.Radius = opts.Radius
+	result.Depth = depth
+	result.LayerIndex = layerIndex
+
 	if not hasSolidTerrainNear(target) then
 		studioDebug(player, "NoTerrain", "no solid terrain at " .. tostring(target))
 		return nil
 	end
 
-	if shovel.Power < layer.Hardness then
-		return fail(player, result, "TooHard", isAuto)
+	if opts.Power < layer.Hardness then
+		return fail(player, result, "TooHard", opts)
 	end
 
 	local capacity = Stats.GetCapacity(ctx)
 	result.Capacity = capacity
 	result.Sand = data.Sand
 	if data.Sand >= capacity then
-		return fail(player, result, "BackpackFull", isAuto)
+		return fail(player, result, "BackpackFull", opts)
 	end
 
 	-- Success ------------------------------------------------------------------------------------
-	lastDig[player] = now
+	if source ~= "Digger" then
+		lastDig[player] = now
+	end
 	sessionDigs[player] = (sessionDigs[player] or 0) + 1
-	carve(plot, target, radius)
+	local carvedMin, carvedMax = carve(target, opts.Radius)
+	BeachService.RecordCarve(carvedMin, carvedMax)
 
-	local gained = math.min(layer.SandValue * Stats.GetSandMultiplier(ctx), capacity - data.Sand)
+	-- opts.SandMultiplier replaces the shovel's factor in the multiplier stack.
+	local shovelFactor = Stats.GetShovel(data).SandMultiplier
+	local sandMultiplier = Stats.GetSandMultiplier(ctx)
+	if shovelFactor > 0 then
+		sandMultiplier = sandMultiplier / shovelFactor * opts.SandMultiplier
+	end
+	local gained = math.min(layer.SandValue * sandMultiplier, capacity - data.Sand)
 	DataService.Mutate(player, { "Sand", "TotalSandDug" }, function(d)
 		d.Sand += gained
 		d.TotalSandDug += gained
 	end)
-	local newRecord, newLayer = PlotService.ReportDig(player, depth, depth + radius)
+	local newRecord, newLayer = BeachService.ReportDig(player, depth)
 
 	local treasure = rollTreasure(player, data, ctx, layerIndex)
 	if treasure then
@@ -323,15 +387,25 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	result.NewMaxDepth = newRecord
 	result.NewLayer = newLayer
 	result.TreasureId = if treasure then treasure.Id else nil
-	Net.FireClient("DigResult", player, result)
+	if not opts.Silent then
+		Net.FireClient("DigResult", player, result)
+	end
 
-	ServerSignals.Dug:Fire(player, depth, gained)
+	ServerSignals.Dug:Fire(player, depth, gained, source)
 	Analytics.Funnel(player, Analytics.Steps.FirstDig)
 	if data.Sand >= capacity then
 		ServerSignals.BackpackFull:Fire(player)
-		Net.NotifyThrottled(player, "Error", "Backpack full! Go sell!", "BackpackFull", 3)
 	end
 	return result
+end
+
+-- v1 compatibility: a dig with the equipped shovel (isAuto -> Source "Auto").
+function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): Types.DigResult?
+	local opts = DigService.ShovelOptions(player, if isAuto then "Auto" else "Shovel")
+	if not opts then
+		return nil
+	end
+	return DigService.DigAt(player, position, opts :: Types.DigOptions)
 end
 
 -- AutoDig ---------------------------------------------------------------------------------------
@@ -353,12 +427,11 @@ local function autoDigStep(player: Player)
 	end
 	assert(data) -- refine for the type checker (guarded above)
 	assert(ctx) -- refine for the type checker (guarded above)
-	if os.clock() - (lastDig[player] or 0) < Stats.GetCooldown(ctx) then
+	if os.clock() - (lastDig[player] or 0) < cooldownFor(player, ctx, "Auto") then
 		return
 	end
 	if data.Sand >= Stats.GetCapacity(ctx) then
-		Net.NotifyThrottled(player, "Error", "Backpack full! Go sell!", "BackpackFull", 10)
-		return
+		return -- the client shows the "Backpack full" hint
 	end
 	local humanoid = (root.Parent :: Instance):FindFirstChildOfClass("Humanoid")
 	local hip = if humanoid then humanoid.HipHeight else 2
@@ -374,7 +447,10 @@ function DigService.Init()
 		if not Net.IsVector3(position) then
 			return
 		end
-		DigService.TryDig(player, position :: Vector3, false)
+		local opts = DigService.ShovelOptions(player, "Shovel")
+		if opts then
+			DigService.DigAt(player, position :: Vector3, opts :: Types.DigOptions)
+		end
 	end, { Rate = 20, Window = 1 })
 
 	SettingsService.RegisterValidator("AutoDig", function(player: Player, value: any): (boolean, any)

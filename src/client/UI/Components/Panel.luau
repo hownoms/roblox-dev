@@ -126,6 +126,21 @@ function Panel.new(props: PanelProps): Panel
 	openScale.Name = "Open"
 	openScale.Parent = window
 
+	-- Shrink the whole window when the screen is smaller than the panel (short phones):
+	-- leave room for the close button (sticks out ~27px) and a small margin.
+	local function fit(): number
+		local design = Root.GetDesignSize()
+		if design.X <= 0 or design.Y <= 0 then
+			return 1
+		end
+		return math.min(1, (design.Y - 36) / (size.Y + 12), (design.X - 40) / (size.X + 30))
+	end
+	Root.ScaleChanged:Connect(function()
+		if window.Visible then
+			openScale.Scale = fit()
+		end
+	end)
+
 	local shadow = Instance.new("Frame")
 	shadow.Name = "Shadow"
 	shadow.Size = UDim2.new(1, 0, 1, -6)
@@ -200,7 +215,7 @@ function Panel.new(props: PanelProps): Panel
 	close.TextColor3 = Style.Colors.Text
 	close.AutoButtonColor = true
 	close.BackgroundColor3 = Style.Colors.Danger
-	close.Size = UDim2.fromOffset(54, 54)
+	close.Size = UDim2.fromOffset(60, 60)
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -14, 0, 10)
 	close.ZIndex = 8
@@ -208,7 +223,18 @@ function Panel.new(props: PanelProps): Panel
 	Style.Corner(close, Style.Theme.CornerPill)
 	Style.Stroke(close, Style.Colors.Stroke, 4)
 	Style.Shine(close)
-	Style.Padding(close, 10)
+	Style.Padding(close, 11)
+	-- Invisible, larger touch target (>= 44 real px on a phone at UI scale 0.6).
+	local closeHit = Instance.new("TextButton")
+	closeHit.Name = "HitArea"
+	closeHit.Text = ""
+	closeHit.BackgroundTransparency = 1
+	closeHit.Selectable = false
+	closeHit.Size = UDim2.fromOffset(80, 80)
+	closeHit.AnchorPoint = Vector2.new(0.5, 0.5)
+	closeHit.Position = UDim2.new(1, -14, 0, 10)
+	closeHit.ZIndex = 7
+	closeHit.Parent = window
 
 	local opened = Signal.new()
 	local closed = Signal.new()
@@ -232,8 +258,9 @@ function Panel.new(props: PanelProps): Panel
 			self.IsOpen = true
 			if not wasOpen then
 				window.Visible = true
-				openScale.Scale = 0.55
-				Style.Tween(openScale, 0.32, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+				local target = fit()
+				openScale.Scale = 0.55 * target
+				Style.Tween(openScale, 0.32, { Scale = target }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 				setDim(true)
 				SoundController.Play("Whoosh", 1.2, 0.6)
 				bindBack(self)
@@ -257,7 +284,8 @@ function Panel.new(props: PanelProps): Panel
 				ContextActionService:UnbindAction("DigClosePanel")
 				Panel.Changed:Fire(nil)
 			end
-			local tween = Style.Tween(openScale, 0.14, { Scale = 0.6 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			local tween =
+				Style.Tween(openScale, 0.14, { Scale = 0.6 * fit() }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 			tween.Completed:Once(function()
 				if not self.IsOpen then
 					window.Visible = false
@@ -275,6 +303,10 @@ function Panel.new(props: PanelProps): Panel
 	}
 
 	close.Activated:Connect(function()
+		SoundController.Play("Click")
+		panel:Close()
+	end)
+	closeHit.Activated:Connect(function()
 		SoundController.Play("Click")
 		panel:Close()
 	end)

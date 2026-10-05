@@ -5,10 +5,12 @@
 
 		/coins <n>     add coins
 		/max           own and equip the best shovel and backpack, plus lots of coins
-		/dig <depth>   carve a shaft in your plot down to <depth> studs and drop you at the bottom
+		/dig <depth>   carve a shaft at your position (inside the dig zone) down to <depth> studs
+		               and drop you at the bottom
 		/rebirths <n>  set your rebirth count
 		/wipe          reset your save to a brand-new player (replays the tutorial)
-		/surface       return to the top of your plot
+		/surface       return to the surface (boardwalk)
+		/tide          run the tide now: refill every dug column (like High Tide)
 ]]
 
 local RunService = game:GetService("RunService")
@@ -20,8 +22,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
-local PlotService = require(script.Parent.PlotService)
+local BeachService = require(script.Parent.BeachService)
 local ShopService = require(script.Parent.ShopService)
+local World = require(script.Parent.Parent.World)
 
 local DevCommands = {}
 
@@ -61,19 +64,33 @@ handlers["/max"] = function(player)
 end
 
 handlers["/dig"] = function(player, args)
-	local plot = PlotService.GetPlot(player)
 	local character = player.Character
-	if not plot or not character then
-		Net.Notify(player, "Error", "[Dev] No plot or character yet")
+	if not character then
+		Net.Notify(player, "Error", "[Dev] No character yet")
 		return
 	end
-	assert(plot and character) -- refine for the type checker (guarded above)
-	local depth = math.clamp(number(args[1]) or 100, 8, plot.Size.Y - 4)
-	local centre = plot.Origin.Position - Vector3.new(0, depth / 2, 0)
-	Workspace.Terrain:FillBlock(CFrame.new(centre), Vector3.new(SHAFT_WIDTH, depth + 8, SHAFT_WIDTH), Enum.Material.Air)
-	PlotService.ReportDig(player, depth, depth)
-	character:PivotTo(CFrame.new(plot.Origin.Position - Vector3.new(0, depth - 4, 0)))
+	assert(character) -- refine for the type checker (guarded above)
+	local zone = World.GetDigZone()
+	local depth = math.clamp(number(args[1]) or 100, 8, zone.Size.Y - 4)
+	-- Shaft at the player's XZ, snapped to the voxel grid and kept inside the dig zone.
+	local here = World.ClampToDigZone(character:GetPivot().Position, SHAFT_WIDTH / 2)
+	local x = math.floor(here.X / 4 + 0.5) * 4
+	local z = math.floor(here.Z / 4 + 0.5) * 4
+	local top = Config.SURFACE_Y
+	local bottom = math.floor((top - depth) / 4) * 4
+	local minV = Vector3.new(x - SHAFT_WIDTH / 2, bottom, z - SHAFT_WIDTH / 2)
+	local maxV = Vector3.new(x + SHAFT_WIDTH / 2, top, z + SHAFT_WIDTH / 2)
+	local size = maxV - minV + Vector3.new(0, 4, 0)
+	Workspace.Terrain:FillBlock(CFrame.new(minV + size / 2), size, Enum.Material.Air)
+	BeachService.RecordCarve(minV, maxV)
+	BeachService.ReportDig(player, depth)
+	character:PivotTo(CFrame.new(x, bottom + 4, z))
 	Net.Notify(player, "Success", "[Dev] Dropped to " .. Config.GetLayerAtDepth(depth).Name)
+end
+
+handlers["/tide"] = function(player)
+	BeachService.TideStep(true)
+	Net.Notify(player, "Success", "[Dev] Tide refilled every hole")
 end
 
 handlers["/rebirths"] = function(player, args)
@@ -93,12 +110,12 @@ handlers["/wipe"] = function(player)
 		end
 	end)
 	ShopService.GiveShovelTool(player)
-	PlotService.ResetPlayerPlot(player)
+	BeachService.TeleportToSurface(player)
 	Net.Notify(player, "Success", "[Dev] Save wiped. Rejoin to replay the tutorial.")
 end
 
 handlers["/surface"] = function(player)
-	PlotService.TeleportToSurface(player)
+	BeachService.TeleportToSurface(player)
 end
 
 function DevCommands.Start()
@@ -123,7 +140,7 @@ function DevCommands.Start()
 			task.spawn(handler, player, args) -- errors print to Output with a stack trace
 		end)
 	end
-	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface")
+	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface /tide")
 end
 
 return DevCommands

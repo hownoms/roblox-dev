@@ -1,12 +1,14 @@
 --!strict
 --[[
-	Terrain — material colours, the beach surface, the ocean, the layered underground strips and
-	plot refills. Layer bands come from Config.Layers (snapped to the 4-stud voxel grid).
+	Terrain — material colours, the beach surface, the ocean and the layered underground block
+	under the dig zone. Layer bands come from Config.Layers (snapped to the 4-stud voxel grid).
 
-	Underground: one layered block per plot row, X in [-STRIP_HALF_X, STRIP_HALF_X], Z between
-	STRIP_INNER_Z and STRIP_OUTER_Z (both signs), Y from BOTTOM_Y to SURFACE_Y. The walls between
-	plots are the same layers, so dug shafts always show the right layer; the server enforces
-	that only plot columns are diggable.
+	Underground: one layered block, X in [-STRIP_HALF_X, STRIP_HALF_X], Z in
+	[STRIP_Z_SEA, STRIP_Z_INLAND], Y from BOTTOM_Y to SURFACE_Y. It is the dig zone plus a WALL of
+	solid layers on every side; the server clamps all carving to the dig zone, so the walls (and
+	the hub / ocean beyond them) never break.
+
+	FillLayered(min, max) refills any box with the right layer materials (tide refills).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -64,7 +66,7 @@ function TerrainBuilder.ApplyColors()
 	-- (Terrain.Decoration is NotScriptable: setting it errors at runtime. Leave it to the place.)
 end
 
--- Beach, path, plaza, dunes and ocean. Synchronous (cheap: ~150k voxels).
+-- Beach, path, plaza, dunes and ocean. Synchronous (cheap).
 function TerrainBuilder.BuildSurface(rng: Random)
 	local hx = Layout.TERRAIN_HALF_X
 	local sand = Enum.Material.Sand
@@ -94,14 +96,15 @@ function TerrainBuilder.BuildSurface(rng: Random)
 		z -= 4
 	end
 
-	-- Central path (cobblestone) and round hub plaza (concrete), painted into the top voxels.
-	local stripX = Layout.STRIP_HALF_X
-	fillBox(Vector3.new(-stripX, S - 4, -8), Vector3.new(stripX, S, 8), Enum.Material.Cobblestone)
-	terrain:FillCylinder(CFrame.new(0, S - 2, 0), 4, 30, Enum.Material.Concrete)
+	-- Path from the boardwalk to the hub (cobblestone) and the round hub plaza (concrete),
+	-- painted into the top voxels.
+	local hub = Layout.HUB_CENTER
+	fillBox(Vector3.new(-8, S - 4, Layout.BOARDWALK_Z1), Vector3.new(8, S, hub.Z), Enum.Material.Cobblestone)
+	terrain:FillCylinder(CFrame.new(hub.X, S - 2, hub.Z), 4, Layout.HUB_RADIUS, Enum.Material.Concrete)
 
-	-- Grassy dunes behind the boardwalk
+	-- Grassy dunes behind the hub
 	fillBox(Vector3.new(-hx, S - 4, Layout.DUNES_Z0), Vector3.new(hx, S, Layout.TERRAIN_NORTH_Z), Enum.Material.Grass)
-	for _ = 1, 26 do
+	for _ = 1, 34 do
 		local x = rng:NextNumber(-hx + 20, hx - 20)
 		local dz = rng:NextNumber(Layout.DUNES_Z0 + 14, Layout.TERRAIN_NORTH_Z - 4)
 		local r = rng:NextNumber(10, 22)
@@ -112,73 +115,54 @@ function TerrainBuilder.BuildSurface(rng: Random)
 	for _ = 1, 10 do
 		local side = if rng:NextNumber() < 0.5 then -1 else 1
 		local x = side * rng:NextNumber(Layout.BOUND_HALF_X + 20, hx - 20)
-		local dz = rng:NextNumber(-50, 80)
+		local dz = rng:NextNumber(Layout.STRIP_Z_INLAND + 20, 100)
 		local r = rng:NextNumber(10, 18)
 		terrain:FillBall(Vector3.new(x, S - r * 0.6, dz), r, sand)
 	end
 end
 
--- Fill the layered bands inside an X/Z rectangle. Optionally yields between bands.
-local function fillColumn(
-	minX: number,
-	maxX: number,
-	minZ: number,
-	maxZ: number,
-	yieldEvery: number?,
-	bottomUp: boolean?
-)
-	local count = 0
-	local n = #TerrainBuilder.Bands
-	for k = 1, n do
-		local band = TerrainBuilder.Bands[if bottomUp then n - k + 1 else k]
-		fillBox(Vector3.new(minX, band.Bottom, minZ), Vector3.new(maxX, band.Top, maxZ), band.Material)
-		count += 1
-		if yieldEvery and count % yieldEvery == 0 then
+-- Fill the layered materials into the box [minV, maxV] (Y clamped to the layer range).
+-- Synchronous: callers chunk large boxes themselves.
+function TerrainBuilder.FillLayered(minV: Vector3, maxV: Vector3)
+	for _, band in TerrainBuilder.Bands do
+		local y0 = math.max(minV.Y, band.Bottom)
+		local y1 = math.min(maxV.Y, band.Top)
+		if y1 > y0 then
+			fillBox(Vector3.new(minV.X, y0, minV.Z), Vector3.new(maxV.X, y1, maxV.Z), band.Material)
+		end
+	end
+end
+
+local function stripBand(band: Band, x0: number, x1: number)
+	fillBox(
+		Vector3.new(x0, band.Bottom, Layout.STRIP_Z_SEA),
+		Vector3.new(x1, band.Top, Layout.STRIP_Z_INLAND),
+		band.Material
+	)
+end
+
+-- Top bands (layers 1-2) synchronously, so the surface is solid immediately.
+function TerrainBuilder.BuildStripTops()
+	local hx = Layout.STRIP_HALF_X
+	for i = 1, math.min(2, #TerrainBuilder.Bands) do
+		stripBand(TerrainBuilder.Bands[i], -hx, hx)
+	end
+end
+
+-- The remaining bands, chunked along X with a yield per chunk (call in a task).
+function TerrainBuilder.BuildStripsDeep()
+	local hx = Layout.STRIP_HALF_X
+	local chunk = 112
+	for i = 3, #TerrainBuilder.Bands do
+		local band = TerrainBuilder.Bands[i]
+		local x = -hx
+		while x < hx do
+			local x1 = math.min(x + chunk, hx)
+			stripBand(band, x, x1)
+			x = x1
 			task.wait()
 		end
 	end
-end
-
--- Top bands (layers 1-2) of both row strips synchronously, so the surface is solid immediately.
-function TerrainBuilder.BuildStripTops()
-	local hx = Layout.STRIP_HALF_X
-	local zi, zo = Layout.STRIP_INNER_Z, Layout.STRIP_OUTER_Z
-	for i = 1, math.min(2, #TerrainBuilder.Bands) do
-		local band = TerrainBuilder.Bands[i]
-		for _, sign in { 1, -1 } do
-			local z0 = math.min(sign * zi, sign * zo)
-			local z1 = math.max(sign * zi, sign * zo)
-			fillBox(Vector3.new(-hx, band.Bottom, z0), Vector3.new(hx, band.Top, z1), band.Material)
-		end
-	end
-end
-
--- All bands of both strips, chunked along X with a yield per chunk (call in a task).
-function TerrainBuilder.BuildStripsDeep()
-	local hx = Layout.STRIP_HALF_X
-	local zi, zo = Layout.STRIP_INNER_Z, Layout.STRIP_OUTER_Z
-	local chunk = 108
-	for i = 3, #TerrainBuilder.Bands do
-		local band = TerrainBuilder.Bands[i]
-		for _, sign in { 1, -1 } do
-			local z0 = math.min(sign * zi, sign * zo)
-			local z1 = math.max(sign * zi, sign * zo)
-			local x = -hx
-			while x < hx do
-				local x1 = math.min(x + chunk, hx)
-				fillBox(Vector3.new(x, band.Bottom, z0), Vector3.new(x1, band.Top, z1), band.Material)
-				x = x1
-			end
-		end
-		task.wait()
-	end
-end
-
--- Refill one plot column (footprint + `margin` studs each side), bottom-up, yielding every
--- `bandsPerFrame` bands so a reset never spikes the server.
-function TerrainBuilder.RefillColumn(center: Vector3, footprint: number, margin: number, bandsPerFrame: number?)
-	local h = footprint / 2 + margin
-	fillColumn(center.X - h, center.X + h, center.Z - h, center.Z + h, bandsPerFrame or 2, true)
 end
 
 return TerrainBuilder

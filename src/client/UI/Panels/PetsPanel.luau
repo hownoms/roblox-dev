@@ -171,13 +171,11 @@ local function refreshGrid()
 		if entry.Uid == selectedUid then
 			card:SetHighlight(C.Gold)
 		end
-		Style.Label({
+		Style.Icon({
 			Text = Icons.PetShape(entry.Def.Look.Shape),
-			Size = UDim2.new(1, -10, 0.56, 0),
+			Size = UDim2.new(1, -10, 0.6, 0),
 			Position = UDim2.new(0.5, 0, 0, 4),
 			AnchorPoint = Vector2.new(0.5, 0),
-			Stroke = false,
-			MaxTextSize = 44,
 			ZIndex = 8,
 			Parent = card.Face,
 		})

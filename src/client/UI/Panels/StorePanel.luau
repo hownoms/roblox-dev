@@ -123,12 +123,11 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 		ZIndex = 6,
 		Parent = page,
 	})
-	Style.Label({
+	Style.Icon({
 		Text = icon,
 		Size = UDim2.fromOffset(56, 56),
 		Position = UDim2.fromOffset(8, 8),
-		Stroke = false,
-		MaxTextSize = 48,
+		AnchorPoint = Vector2.zero,
 		ZIndex = 8,
 		Parent = card.Face,
 	})

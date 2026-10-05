@@ -4,10 +4,10 @@
 	ReplicatedStorage.Shared.Config (owner: Game design). Read-only at runtime: never mutate.
 
 	Fields:   Layers, Shovels, Backpacks, Pets, Eggs, Treasures, Rarities, Rebirths, Quests,
-	          DailyRewards, Codes, Monetization, Boosts, Events, Sounds, Theme, Plots
+	          DailyRewards, Codes, Monetization, Boosts, Events, Sounds, Theme
 	Helpers:  see function list below; all lookups are O(1) via maps built at require time.
 
-	Depth unit: studs below the plot surface (positive). 1 stud = 1 "meter" in the UI.
+	Depth unit: studs below the beach surface (positive). 1 stud = 1 "meter" in the UI.
 	Sand -> Coins at SELL_RATE. Sand per dig =
 	    layer.SandValue * shovel.SandMultiplier * RebirthMultiplier * PetMultiplier
 	    * (pass/premium/group/friend/boost/event multipliers, all multiplicative)
@@ -39,7 +39,6 @@ local Consumables = require(script.Consumables)
 local Diggers = require(script.Diggers)
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
-local PLOT_FOOTPRINT = 28
 
 local Config = {
 	-- Data ---------------------------------------------------------------------------------
@@ -66,16 +65,17 @@ local Config = {
 	Diggers = Diggers,
 
 	-- World --------------------------------------------------------------------------------
-	PLOT_COUNT = 12,
-	PLOT_FOOTPRINT = PLOT_FOOTPRINT, -- X and Z size of a plot in studs
-	PLOT_SIZE = Vector3.new(PLOT_FOOTPRINT, TOTAL_DEPTH, PLOT_FOOTPRINT), -- X,Z footprint; Y = total depth
-	PLOT_SPACING = 10, -- studs of beach between neighbouring plots
+	-- One shared dig zone along the shoreline (World.GetDigZone); no plots.
+	MAX_PLAYERS = 16, -- OWNER: set Game Settings > Places > Max Players to this
 	TOTAL_DEPTH = TOTAL_DEPTH, -- studs from surface to the bottom of The Core
 	-- Surface is high up so the bottom of the hole (SURFACE_Y - TOTAL_DEPTH = 24) stays well above
 	-- Workspace.FallenPartsDestroyHeight (-500). Terrain must not be generated below Y = 0.
 	SURFACE_Y = 1024,
 	STUDS_PER_METER = 1,
-	TIDE_REFILL_SECONDS = 3, -- refill animation length when a plot is freed
+	-- The tide refills a dug 8x8 column once no player was within TIDE_CLEAR_RADIUS studs
+	-- (horizontally) for this long. High Tide smooths every hole at once.
+	TIDE_REFILL_SECONDS = 240,
+	TIDE_CLEAR_RADIUS = 12,
 
 	-- Digging ------------------------------------------------------------------------------
 	REACH = 20, -- max studs from HumanoidRootPart to the dig point
@@ -90,6 +90,13 @@ local Config = {
 	MAX_EQUIPPED_PETS = 3, -- base equip slots (PlayerData.PetSlots default); ExtraPets pass adds 2
 	PET_INVENTORY_LIMIT = 200,
 	TRIPLE_HATCH_COUNT = 3,
+
+	-- Diggers (v2, Diggers agent; see docs/design/Diggers.md) ------------------------------
+	DIGGER_BASE_SLOTS = 1, -- equip slots everyone has
+	DIGGER_PASS_SLOTS = 1, -- extra slots from the AutoDig game pass
+	DIGGER_REBIRTH_SLOTS = { 2, 5 }, -- +1 slot at each of these rebirth counts
+	DIGGER_LEVEL_SPEED = 0.94, -- Interval x this per level above 1 (compounding)
+	DIGGER_LEVEL_SAND = 0.15, -- SandMultiplier +15% of base per level above 1
 
 	-- Social -------------------------------------------------------------------------------
 	GROUP_ID = 0, -- OWNER: paste the Roblox group id; members get GROUP_SAND_MULTIPLIER
@@ -112,21 +119,16 @@ local Config = {
 	SESSION_LOCK_SECONDS = 1800,
 
 	-- Onboarding (FTUE) --------------------------------------------------------------------
-	-- Complete events: "PlotAssigned", "Dig", "BackpackFull", "Sell", "BuyShovel", "HatchEgg".
+	-- Complete events: "AtSand", "Dig", "BackpackFull", "Sell", "BuyShovel", "HatchEgg".
+	-- Target "Sand" = the nearest point of the dig zone.
 	TUTORIAL_STEPS = {
-		{ Id = "go_plot", Text = "Follow the arrow to YOUR dig spot!", Target = "Plot", Complete = "PlotAssigned" },
-		{ Id = "first_dig", Text = "Tap the sand to DIG!", Target = "Plot", Complete = "Dig" },
+		{ Id = "go_sand", Text = "Follow the arrow to the sand!", Target = "Sand", Complete = "AtSand" },
+		{ Id = "first_dig", Text = "Tap the sand to DIG!", Target = "Sand", Complete = "Dig" },
 		{ Id = "fill_up", Text = "Keep digging until your bucket is full!", Complete = "BackpackFull" },
 		{ Id = "sell", Text = "Bucket full! Run to the SELL stand.", Target = "SellZone", Complete = "Sell" },
 		{ Id = "shop", Text = "Buy a better shovel to dig deeper!", Target = "ShovelShop", Complete = "BuyShovel" },
 		{ Id = "egg", Text = "Hatch a pet - pets give you more sand!", Target = "EggShop", Complete = "HatchEgg" },
 	} :: { Types.TutorialStep },
-
-	Plots = {
-		Count = 12,
-		Size = Vector3.new(PLOT_FOOTPRINT, TOTAL_DEPTH, PLOT_FOOTPRINT),
-		Spacing = 10,
-	},
 }
 
 -- Lookup maps --------------------------------------------------------------------------------
@@ -172,6 +174,9 @@ local eventById = indexById(Events, function(e: Types.EventDef)
 end)
 local codeByCode = indexById(Codes, function(c: Types.CodeDef)
 	return string.upper(c.Code)
+end)
+local diggerById, diggerIndex = indexById(Diggers, function(d: Types.DiggerDef)
+	return d.Id
 end)
 
 -- Helpers ------------------------------------------------------------------------------------
@@ -354,6 +359,70 @@ function Config.GetProductKeyById(id: number): string?
 		end
 	end
 	return nil
+end
+
+-- Diggers (v2) ---------------------------------------------------------------------------------
+
+function Config.GetDigger(id: string): Types.DiggerDef?
+	return diggerById[id]
+end
+
+function Config.GetDiggerIndex(id: string): number?
+	return diggerIndex[id]
+end
+
+-- Effective stats at `level` (clamped to 1..MaxLevel). Power and Radius do not change with level.
+function Config.GetDiggerStats(def: Types.DiggerDef, level: number): Types.DiggerStats
+	local l = math.clamp(math.floor(level), 1, def.MaxLevel)
+	return {
+		Power = def.Power,
+		Interval = def.Interval * Config.DIGGER_LEVEL_SPEED ^ (l - 1),
+		Radius = def.Radius,
+		SandMultiplier = def.SandMultiplier * (1 + Config.DIGGER_LEVEL_SAND * (l - 1)),
+	}
+end
+
+-- Coins to upgrade from `level` to level + 1, or nil at max level.
+function Config.GetDiggerUpgradeCost(def: Types.DiggerDef, level: number): number?
+	if level >= def.MaxLevel then
+		return nil
+	end
+	return def.UpgradeCosts[math.max(math.floor(level), 1)]
+end
+
+-- Digger equip slots: base + AutoDig pass + rebirth milestones.
+function Config.GetDiggerSlots(rebirths: number, hasAutoDigPass: boolean): number
+	local slots = Config.DIGGER_BASE_SLOTS
+	if hasAutoDigPass then
+		slots += Config.DIGGER_PASS_SLOTS
+	end
+	for _, needed in Config.DIGGER_REBIRTH_SLOTS do
+		if rebirths >= needed then
+			slots += 1
+		end
+	end
+	return slots
+end
+
+-- Survival (v2) ---------------------------------------------------------------------------------
+
+local shadeById, shadeIndex = indexById(Shades, function(d: Types.ShadeDef)
+	return d.Id
+end)
+local consumableById = indexById(Consumables, function(d: Types.ConsumableDef)
+	return d.Id
+end)
+
+function Config.GetShade(id: string): Types.ShadeDef?
+	return shadeById[id]
+end
+
+function Config.GetShadeIndex(id: string): number?
+	return shadeIndex[id]
+end
+
+function Config.GetConsumable(id: string): Types.ConsumableDef?
+	return consumableById[id]
 end
 
 -- Number of layers whose every treasure is in `index` (collection book completion).

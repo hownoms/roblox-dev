@@ -63,23 +63,21 @@ function IconLabel.new(props: IconLabelProps): IconLabel
 	Style.Stroke(badge, Style.Colors.Stroke, 3)
 	Style.Shine(badge)
 
-	local icon = Style.Label({
-		Name = "Icon",
+	local icon = Style.Icon({
 		Text = props.Icon,
-		Size = UDim2.fromScale(0.78, 0.78),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		MaxTextSize = 40,
-		Stroke = false,
+		Size = UDim2.fromScale(0.8, 0.8),
 		ZIndex = 3,
 		Parent = badge,
 	})
 
+	-- The round badge is (height + 8) wide starting at x = -6: start the number right after it.
+	local height = if frame.Size.Y.Offset > 0 then frame.Size.Y.Offset else 44
+	local textLeft = height + 8
 	local label = Style.Label({
 		Name = "Value",
 		Text = props.Text or "0",
-		Size = UDim2.new(1, -56, 0.76, 0),
-		Position = UDim2.new(0, 48, 0.5, 0),
+		Size = UDim2.new(1, -(textLeft + 10), 0.8, 0),
+		Position = UDim2.new(0, textLeft, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Font = Style.Fonts.Number,
 		TextColor = props.TextColor,

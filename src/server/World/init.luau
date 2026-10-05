@@ -1,39 +1,50 @@
 --!strict
 --[[
-	World — procedural beach map (owner: Map). Everything is built in code at server start,
+	World — procedural beach map (owner: Beach). Everything is built in code at server start,
 	deterministically (fixed Random seed). See docs/MAP.md for the layout and coordinates.
 
-	API (docs/ARCHITECTURE.md "Map interface"):
-	  World.Build()                          -- build once (idempotent)
-	  World.GetPlots(): { Types.PlotInfo }   -- after Build; ids 1..12, nearest-to-hub first
-	  World.ResetPlot(id)                    -- refill the plot column (yields ~5 frames)
+	API (docs/V2.md "Interfaces between agents"):
+	  World.Build()                              -- build once (idempotent)
+	  World.GetDigZone(): { CFrame, Size }       -- CFrame at the centre of the flat dig surface
+	                                             -- (Y = SURFACE_Y, axis-aligned); Size = X/Z
+	                                             -- footprint, Y = total depth
+	  World.IsInDigZone(position): boolean       -- inside the footprint, between the bottom of
+	                                             -- the world and a little above the surface
+	  World.GetSurfacePoint(near): CFrame        -- safe standing pivot on the boardwalk nearest
+	                                             -- to `near`, facing the sand (spawn / return)
 	Extras:
-	  World.SetPlotOwner(id, player?)        -- updates the plot sign (attribute OwnerName) and
-	                                         -- Plot_N.OwnerUserId; nil = free
-	  World.ApplyEvent(eventIds)             -- HighTide / GoldenHour visuals (also driven by the
-	                                         -- workspace attribute "ActiveEvents")
-	  World.IsReady(): boolean               -- true once the deep layers finished filling
-	                                         -- (workspace attribute "WorldReady" mirrors it)
+	  World.GetSpawnCFrame(index?): CFrame       -- one of the boardwalk spawn pivots
+	  World.ClampToDigZone(position, margin?)    -- nearest point inside the footprint
+	  World.FillLayered(min, max)                -- refill a box with the layer materials (sync)
+	  World.ApplyEvent(eventIds)                 -- HighTide / GoldenHour visuals (also driven by
+	                                             -- the workspace attribute "ActiveEvents")
+	  World.IsReady(): boolean                   -- true once the deep layers finished filling
+	                                             -- (workspace attribute "WorldReady" mirrors it)
+	Workspace attributes for clients: "DigZoneCFrame" (CFrame), "DigZoneSize" (Vector3).
 ]]
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
-local Types = require(ReplicatedStorage.Shared.Types)
 local Layout = require(script.Layout)
 local Util = require(script.Util)
 local TerrainBuilder = require(script.Terrain)
-local Plots = require(script.Plots)
 local Hub = require(script.Hub)
 local Boardwalk = require(script.Boardwalk)
 local Decor = require(script.Decor)
 local LightingBuilder = require(script.Lighting)
 
+export type DigZone = { CFrame: CFrame, Size: Vector3 }
+
 local World = {}
 
 local built = false
 local ready = false
+local spawnCounter = 0
+
+local ZONE_CFRAME = CFrame.new(Layout.DIG_CENTER)
+local ZONE_SIZE = Layout.DIG_SIZE
+local ABOVE_SURFACE = 16 -- IsInDigZone accepts points up to this far above the surface
+local STAND_HEIGHT = 3.5 -- HumanoidRootPart height above the floor it stands on
 
 local function step(name: string, fn: () -> ())
 	local err = Util.Try(fn)
@@ -50,37 +61,32 @@ function World.Build()
 	local started = os.clock()
 	local rng = Random.new(Layout.SEED)
 	Workspace:SetAttribute("WorldReady", false)
+	Workspace:SetAttribute("DigZoneCFrame", ZONE_CFRAME)
+	Workspace:SetAttribute("DigZoneSize", ZONE_SIZE)
 
 	local map = Util.Folder("Map", Workspace)
-	local plotsFolder = Util.Folder("Plots", map)
 	local hubFolder = Util.Folder("Hub", map)
 	local boardwalkFolder = Util.Folder("Boardwalk", map)
 	local decorFolder = Util.Folder("Decor", map)
 	local fxFolder = Util.Folder("Effects", map)
 
-	-- Terrain first so nothing spawns over the void: layered strip tops, then the surface paint.
+	-- Terrain first so nothing spawns over the void: surface slab, then the layered strip tops.
 	step("terrain colours", TerrainBuilder.ApplyColors)
-	step("strip tops", TerrainBuilder.BuildStripTops)
 	step("surface", function()
 		TerrainBuilder.BuildSurface(rng)
 	end)
-	-- Core floor under both plot rows: nothing can fall out of the bottom of a hole.
-	for _, sign in { 1, -1 } do
-		local zc = sign * (Layout.STRIP_INNER_Z + Layout.STRIP_OUTER_Z) / 2
-		Util.Part({
-			Name = "CoreFloor",
-			Size = Vector3.new(Layout.STRIP_HALF_X * 2, 4, Layout.STRIP_OUTER_Z - Layout.STRIP_INNER_Z),
-			CFrame = CFrame.new(0, Layout.BOTTOM_Y - 2, zc),
-			Color = Color3.fromRGB(255, 200, 60),
-			Material = Enum.Material.Neon,
-			CastShadow = false,
-			Parent = map,
-		})
-	end
+	step("strip tops", TerrainBuilder.BuildStripTops)
+	-- Core floor under the whole dig zone: nothing can fall out of the bottom of a hole.
+	Util.Part({
+		Name = "CoreFloor",
+		Size = Vector3.new(Layout.STRIP_HALF_X * 2, 4, Layout.STRIP_Z_INLAND - Layout.STRIP_Z_SEA),
+		CFrame = CFrame.new(0, Layout.BOTTOM_Y - 2, (Layout.STRIP_Z_INLAND + Layout.STRIP_Z_SEA) / 2),
+		Color = Color3.fromRGB(255, 200, 60),
+		Material = Enum.Material.Neon,
+		CastShadow = false,
+		Parent = map,
+	})
 
-	step("plots", function()
-		Plots.Build(plotsFolder)
-	end)
 	step("hub", function()
 		Hub.Build(hubFolder)
 	end)
@@ -94,7 +100,7 @@ function World.Build()
 		LightingBuilder.Build(fxFolder)
 	end)
 
-	-- Deep layers fill in the background (a few frames) so Build returns quickly.
+	-- Deep layers fill in the background (~100 frames) so Build returns quickly.
 	task.spawn(function()
 		local err = Util.Try(TerrainBuilder.BuildStripsDeep)
 		if err ~= nil then
@@ -106,37 +112,56 @@ function World.Build()
 	end)
 end
 
-function World.GetPlots(): { Types.PlotInfo }
-	return Plots.GetPlots()
+function World.GetDigZone(): DigZone
+	return { CFrame = ZONE_CFRAME, Size = ZONE_SIZE }
 end
 
--- Lift anyone standing inside the plot's hole back to its spawn so the refill can't bury them.
-local function evacuatePlot(id: number)
-	for _, plot in Plots.GetPlots() do
-		if plot.Id == id then
-			local half = plot.Size / 2 + Vector3.new(2, 0, 2)
-			for _, player in Players:GetPlayers() do
-				local character = player.Character
-				local root = character and character:FindFirstChild("HumanoidRootPart")
-				if character and root and root:IsA("BasePart") then
-					local rel = plot.Origin:PointToObjectSpace(root.Position)
-					if math.abs(rel.X) <= half.X and math.abs(rel.Z) <= half.Z and rel.Y < -2 then
-						character:PivotTo(plot.SpawnCFrame + Vector3.new(0, 3, 0))
-					end
-				end
-			end
-			return
-		end
+function World.IsInDigZone(position: Vector3): boolean
+	local rel = position - Layout.DIG_CENTER
+	return math.abs(rel.X) <= ZONE_SIZE.X / 2
+		and math.abs(rel.Z) <= ZONE_SIZE.Z / 2
+		and rel.Y <= ABOVE_SURFACE
+		and rel.Y >= -ZONE_SIZE.Y
+end
+
+-- Nearest point inside the footprint (shrunk by `margin` studs), same Y.
+function World.ClampToDigZone(position: Vector3, margin: number?): Vector3
+	local m = margin or 0
+	local c = Layout.DIG_CENTER
+	local hx = math.max(0, ZONE_SIZE.X / 2 - m)
+	local hz = math.max(0, ZONE_SIZE.Z / 2 - m)
+	return Vector3.new(
+		math.clamp(position.X, c.X - hx, c.X + hx),
+		position.Y,
+		math.clamp(position.Z, c.Z - hz, c.Z + hz)
+	)
+end
+
+-- A pivot standing on the boardwalk deck (never dug, never refilled) as close to `near` as
+-- possible, looking out over the sand.
+function World.GetSurfacePoint(near: Vector3): CFrame
+	local limit = Layout.BOUND_HALF_X - 10
+	local x = math.clamp(near.X, -limit, limit)
+	local z = (Layout.BOARDWALK_Z0 + Layout.BOARDWALK_Z1) / 2
+	local pos = Vector3.new(x, Layout.DECK_TOP + STAND_HEIGHT, z)
+	return CFrame.lookAt(pos, pos + Vector3.new(0, 0, -1))
+end
+
+-- Boardwalk spawn pivots (round-robin when no index is given).
+function World.GetSpawnCFrame(index: number?): CFrame
+	local i = index
+	if i == nil then
+		spawnCounter += 1
+		i = spawnCounter
 	end
+	local spawns = Layout.SPAWNS
+	local p = spawns[((i :: number) - 1) % #spawns + 1]
+	local pos = p + Vector3.new(0, 1 + STAND_HEIGHT, 0) -- SpawnLocation pad is 1 stud thick
+	return CFrame.lookAt(pos, pos + Vector3.new(0, 0, -1))
 end
 
-function World.ResetPlot(id: number)
-	evacuatePlot(id)
-	Plots.Reset(id)
-end
-
-function World.SetPlotOwner(id: number, player: Player?)
-	Plots.SetOwner(id, player)
+function World.FillLayered(minV: Vector3, maxV: Vector3)
+	TerrainBuilder.FillLayered(minV, maxV)
 end
 
 function World.ApplyEvent(eventIds: { string })

@@ -37,6 +37,7 @@ export type Reward = {
 	Egg: string?, -- EggDef.Id hatched for free
 	EggCount: number?, -- default 1
 	Rebirth: boolean?, -- grant one rebirth without paying its coin cost (Skip Rebirth product)
+	Consumables: { [string]: number }?, -- v2 survival: consumable id -> count (granted by SurvivalService)
 }
 
 -- World ------------------------------------------------------------------------------------
@@ -62,13 +63,6 @@ export type LayerDef = {
 	AmbientColor: Color3, -- suggested Lighting tint / fog colour while the camera is in this layer
 }
 
-export type PlotInfo = {
-	Id: number,
-	Origin: CFrame, -- centre of the plot surface, Y = surface height
-	Size: Vector3, -- X,Z footprint and total depth Y
-	SpawnCFrame: CFrame,
-}
-
 -- Equipment --------------------------------------------------------------------------------
 
 export type ShovelShape = "Scoop" | "Trowel" | "Spade" | "Pick" | "Claw" | "Trident" | "Drill"
@@ -87,7 +81,7 @@ export type ShovelDef = {
 	Price: number, -- coins
 	Power: number, -- compared against LayerDef.Hardness
 	Cooldown: number, -- seconds between digs
-	Radius: number, -- FillBall radius in studs
+	Radius: number, -- dig size: half the edge of the voxel cube a dig removes (see Shovels.luau)
 	SandMultiplier: number,
 	RebirthsRequired: number,
 	Description: string,
@@ -387,7 +381,7 @@ export type ThemeDef = {
 export type TutorialStep = {
 	Id: string,
 	Text: string, -- short, kid-friendly, big font
-	Target: string?, -- CollectionService tag the 3D arrow / beam points at ("Plot" = own plot)
+	Target: string?, -- CollectionService tag the 3D arrow / beam points at ("Sand" = nearest dig-zone sand)
 	Complete: string, -- event that completes the step (see Config.TUTORIAL_STEPS)
 }
 
@@ -407,6 +401,20 @@ export type HeatConfig = {
 	RecoverAt: number, -- Sunburnt clears when heat drops to this
 	SunburntCooldownMultiplier: number, -- dig cooldown multiplier while Sunburnt (e.g. 2)
 	NewPlayerGraceSeconds: number, -- no heat gain for brand-new players' first minutes
+	-- Survival agent additions
+	TickSeconds: number, -- server heat tick interval
+	DigRiseMaxPerSecond: number, -- cap on dig heat per second (fast shovels / diggers)
+	OffSandFallPerSecond: number, -- cooling anywhere off the hot sand (boardwalk, hub, sea)
+	WarningAt: number, -- "getting hot" hint threshold
+	EventSunMultipliers: { [string]: number }, -- Config.Events id -> multiplier on sun heat
+	FountainCooldownSeconds: number,
+	ConsumableMaxStack: number, -- max count of one consumable in PlayerData.Consumables
+	ConsumableBoostCapSeconds: number, -- consumable boosts stack time up to this many seconds
+	ShadeSlots: number, -- placed shades per player
+	ShadeSlotsVip: number, -- placed shades with the VIP pass
+	ShadePlaceRange: number, -- max horizontal studs from the player to the placement point
+	ShadeMinSpacing: number, -- min studs between two shade poles
+	ShadeHubClearance: number, -- min studs from hub stations (tagged parts)
 }
 
 export type ShadeDef = {
@@ -416,6 +424,8 @@ export type ShadeDef = {
 	RebirthsRequired: number?,
 	Radius: number, -- studs (horizontal) of shade
 	Cooling: number, -- multiplier on HeatConfig.ShadeFallPerSecond
+	Height: number, -- studs from the ground to the underside of the canopy (shade check + model)
+	Description: string,
 	Look: { [string]: any },
 }
 
@@ -427,6 +437,7 @@ export type ConsumableDef = {
 	Boost: string?, -- Config.Boosts id granted on use
 	BoostSeconds: number?,
 	Icon: string, -- emoji/text icon
+	Description: string,
 	Look: { [string]: any },
 }
 
@@ -444,6 +455,17 @@ export type DiggerDef = {
 	SandMultiplier: number,
 	MaxLevel: number,
 	Look: { [string]: any },
+	-- Diggers agent additions:
+	UpgradeCosts: { number }, -- [L] = coins to go from level L to L + 1 (length MaxLevel - 1)
+	Description: string,
+}
+
+-- Effective stats of a digger at a level (Config.GetDiggerStats).
+export type DiggerStats = {
+	Power: number,
+	Interval: number,
+	Radius: number,
+	SandMultiplier: number,
 }
 
 export type DiggerInstance = {
@@ -480,7 +502,19 @@ export type PlayerData = {
 	Version: number,
 }
 
-export type DigFailReason = "Cooldown" | "TooHard" | "BackpackFull" | "OutOfPlot" | "TooFar" | "NoPlot" | "Bottom"
+-- v2 (Beach): DigService.DigAt(player, position, opts). Shovel/Auto digs use the equipped
+-- shovel's stats; Digger digs pass their own.
+export type DigSource = "Shovel" | "Digger" | "Auto"
+
+export type DigOptions = {
+	Power: number, -- compared against LayerDef.Hardness
+	Radius: number, -- same scale as ShovelDef.Radius
+	SandMultiplier: number, -- replaces the shovel's SandMultiplier in Stats
+	Source: DigSource,
+	Silent: boolean?, -- true: no DigResult is sent to the player
+}
+
+export type DigFailReason = "Cooldown" | "TooHard" | "BackpackFull" | "OutOfZone" | "TooFar" | "Bottom"
 
 export type DigResult = {
 	Success: boolean,
