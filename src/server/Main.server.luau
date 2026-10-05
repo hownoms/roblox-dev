@@ -41,6 +41,7 @@ local RebirthService = require(Services.RebirthService)
 local RewardsService = require(Services.RewardsService)
 local LeaderboardService = require(Services.LeaderboardService)
 local BadgeAwardService = require(Services.BadgeAwardService)
+local DevCommands = require(Services.DevCommands)
 local Net = require(Services.Net)
 
 type Service = {
@@ -66,6 +67,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "RewardsService", Module = RewardsService :: any },
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },
 	{ Name = "BadgeAwardService", Module = BadgeAwardService :: any },
+	{ Name = "DevCommands", Module = DevCommands :: any },
 }
 
 local function run(name: string, phase: string, fn: (...any) -> ...any, ...: any)
