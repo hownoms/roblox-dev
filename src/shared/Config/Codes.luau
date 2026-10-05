@@ -29,6 +29,7 @@ local Codes: { Types.CodeDef } = {
 		Reward = { Boost = "LuckBoost", BoostSeconds = 900, Egg = "beach_egg", EggCount = 1 },
 		Enabled = true,
 		Expires = nil,
+		GroupOnly = true,
 		Note = "Group code: post it in the Roblox group and Discord.",
 	},
 	{

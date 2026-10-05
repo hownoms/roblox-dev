@@ -268,6 +268,7 @@ export type CodeDef = {
 	Reward: Reward,
 	Enabled: boolean,
 	Expires: number?, -- unix time; nil = never
+	GroupOnly: boolean?, -- requires membership of Config.GROUP_ID
 	Note: string,
 }
 

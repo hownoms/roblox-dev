@@ -255,6 +255,10 @@ local function onRedeemCode(player: Player, code: any)
 		return
 	end
 	assert(def) -- refine for the type checker (guarded above)
+	if def.GroupOnly and player:GetAttribute("InGroup") ~= true then
+		Net.Notify(player, "Error", "Join our Roblox group to use this code!")
+		return
+	end
 	local key = string.upper(def.Code)
 	if data.RedeemedCodes[key] then
 		Net.Notify(player, "Error", "You already used that code!")
