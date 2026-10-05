@@ -96,17 +96,8 @@ end
 -- Removes a voxel-aligned cube of terrain at the dig point. Shovel radius sets the cube size
 -- (radius 2 = one 4-stud voxel, radius 6 = 3x3x3 voxels). The cube is clamped to voxels fully
 -- inside the plot column so plot walls and the floor never break.
-local function carve(plot: Types.PlotInfo, position: Vector3, radius: number, root: BasePart?)
+local function carve(plot: Types.PlotInfo, target: Vector3, radius: number)
 	local cells = math.max(1, math.floor(radius * 2 / VOXEL + 0.5))
-	-- Nudge the point into the surface that was clicked (away from the digger, or down for auto-dig).
-	local push = Vector3.new(0, -1, 0)
-	if root then
-		local away = position - root.Position
-		if away.Magnitude > 0.01 then
-			push = away.Unit
-		end
-	end
-	local target = position + push * 1.5
 	local origin = plot.Origin.Position
 	local half = plot.Size / 2
 	local function axisStart(value: number, minEdge: number, maxEdge: number): number
@@ -122,6 +113,26 @@ local function carve(plot: Types.PlotInfo, position: Vector3, radius: number, ro
 	local size = Vector3.new(cells, cells, cells) * VOXEL
 	local min = Vector3.new(sx, sy, sz) * VOXEL
 	terrain:FillBlock(CFrame.new(min + size / 2), size, Enum.Material.Air)
+end
+
+-- The smooth-terrain surface a player clicks is not on voxel boundaries, so the raw hit point can
+-- sit in the empty voxel above the ground. Re-cast from the digger toward the click and step 2
+-- studs into the surface along its normal, which always lands inside the solid voxel.
+local terrainOnly = RaycastParams.new()
+terrainOnly.FilterType = Enum.RaycastFilterType.Include
+terrainOnly.FilterDescendantsInstances = { terrain }
+
+local function resolveTarget(position: Vector3, root: BasePart?): Vector3
+	if root then
+		local offset = position - root.Position
+		if offset.Magnitude > 0.01 then
+			local hit = Workspace:Raycast(root.Position, offset.Unit * (offset.Magnitude + 6), terrainOnly)
+			if hit then
+				return hit.Position - hit.Normal * 2
+			end
+		end
+	end
+	return position - Vector3.new(0, 2, 0)
 end
 
 local function hasSolidTerrainNear(position: Vector3): boolean
@@ -270,8 +281,9 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 		end
 	end
 
-	if not hasSolidTerrainNear(position) then
-		studioDebug(player, "NoTerrain", "no solid terrain at " .. tostring(position))
+	local target = resolveTarget(position, if isAuto then nil else Net.GetRoot(player))
+	if not hasSolidTerrainNear(target) then
+		studioDebug(player, "NoTerrain", "no solid terrain at " .. tostring(target))
 		return nil
 	end
 
@@ -289,7 +301,7 @@ function DigService.TryDig(player: Player, position: Vector3, isAuto: boolean): 
 	-- Success ------------------------------------------------------------------------------------
 	lastDig[player] = now
 	sessionDigs[player] = (sessionDigs[player] or 0) + 1
-	carve(plot, position, radius, if isAuto then nil else Net.GetRoot(player))
+	carve(plot, target, radius)
 
 	local gained = math.min(layer.SandValue * Stats.GetSandMultiplier(ctx), capacity - data.Sand)
 	DataService.Mutate(player, { "Sand", "TotalSandDug" }, function(d)
