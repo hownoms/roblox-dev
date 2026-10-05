@@ -175,9 +175,19 @@ function GuideController.Init()
 		local position = maybePosition :: Vector3
 		ensureVisuals()
 		setVisible(true)
-		if fromAttachment and fromAttachment.Parent ~= root then
-			fromAttachment.Parent = root
-			fromAttachment.Position = Vector3.new(0, -1.5, 0)
+		local current = fromAttachment
+		if current and current.Parent ~= root then
+			-- The old one was destroyed with the previous character (its Parent is locked):
+			-- give the beam a fresh attachment on the new root.
+			current:Destroy()
+			local a0 = Instance.new("Attachment")
+			a0.Name = "GuideFrom"
+			a0.Position = Vector3.new(0, -1.5, 0)
+			a0.Parent = root
+			fromAttachment = a0
+			if beam then
+				beam.Attachment0 = a0
+			end
 		end
 		if toAttachment then
 			toAttachment.WorldPosition = position

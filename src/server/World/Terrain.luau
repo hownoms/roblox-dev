@@ -61,7 +61,7 @@ function TerrainBuilder.ApplyColors()
 	terrain.WaterReflectance = 0.45
 	terrain.WaterWaveSize = 0.3
 	terrain.WaterWaveSpeed = 12
-	terrain.Decoration = false
+	-- (Terrain.Decoration is NotScriptable: setting it errors at runtime. Leave it to the place.)
 end
 
 -- Beach, path, plaza, dunes and ocean. Synchronous (cheap: ~150k voxels).

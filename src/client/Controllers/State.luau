@@ -11,6 +11,7 @@
 	so UI built before the data arrives fixes itself when it does (robust to late data).
 	Data starts as Config.NewPlayerData() so nothing ever indexes nil.
 ]]
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -351,6 +352,19 @@ function State.Init()
 
 	Workspace:GetAttributeChangedSignal("ActiveEvents"):Connect(parseEventAttribute)
 	parseEventAttribute()
+
+	-- The server checks pass ownership asynchronously after join (GetOwnedPasses may answer
+	-- before that finished) and mirrors it as Player attributes "Pass_<Key>": follow them.
+	local localPlayer = Players.LocalPlayer
+	localPlayer.AttributeChanged:Connect(function(name: string)
+		if string.sub(name, 1, 5) == "Pass_" then
+			local key = string.sub(name, 6)
+			local owned = localPlayer:GetAttribute(name) == true
+			if State.OwnsPass(key) ~= owned then
+				State.SetPassOwned(key, owned)
+			end
+		end
+	end)
 
 	State.RefreshPasses()
 end

@@ -16,6 +16,7 @@
 	                                         -- (workspace attribute "WorldReady" mirrors it)
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -109,7 +110,28 @@ function World.GetPlots(): { Types.PlotInfo }
 	return Plots.GetPlots()
 end
 
+-- Lift anyone standing inside the plot's hole back to its spawn so the refill can't bury them.
+local function evacuatePlot(id: number)
+	for _, plot in Plots.GetPlots() do
+		if plot.Id == id then
+			local half = plot.Size / 2 + Vector3.new(2, 0, 2)
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				if character and root and root:IsA("BasePart") then
+					local rel = plot.Origin:PointToObjectSpace(root.Position)
+					if math.abs(rel.X) <= half.X and math.abs(rel.Z) <= half.Z and rel.Y < -2 then
+						character:PivotTo(plot.SpawnCFrame + Vector3.new(0, 3, 0))
+					end
+				end
+			end
+			return
+		end
+	end
+end
+
 function World.ResetPlot(id: number)
+	evacuatePlot(id)
 	Plots.Reset(id)
 end
 

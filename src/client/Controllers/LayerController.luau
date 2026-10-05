@@ -90,6 +90,15 @@ local function update()
 	end
 	local feetY = (root :: BasePart).Position.Y - 3
 	local depth = math.max(0, State.SurfaceY() - feetY)
+	-- Like the server (PlotService), depth only counts inside the plot column: the beach slopes
+	-- down to the ocean, which must not read as "underground".
+	local plot = State.Plot
+	if plot then
+		local localPos = plot.Origin:PointToObjectSpace((root :: BasePart).Position)
+		if math.abs(localPos.X) > plot.Size.X / 2 + 2 or math.abs(localPos.Z) > plot.Size.Z / 2 + 2 then
+			depth = 0
+		end
+	end
 	local index = Config.GetLayerIndexAtDepth(depth)
 	local changed = math.abs(depth - LayerController.Depth) > 0.05 or index ~= LayerController.LayerIndex
 	local previous = LayerController.LayerIndex
