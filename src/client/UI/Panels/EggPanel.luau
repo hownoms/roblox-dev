@@ -41,7 +41,8 @@ local detail: {
 	Odds: ScrollingFrame,
 	Hatch1: Button.Button,
 	Hatch3: Button.Button,
-}? = nil
+}? =
+	nil
 local shownEgg: string? = nil
 
 local function currencyIcon(egg: Types.EggDef): string
@@ -126,14 +127,14 @@ local function updateButtons()
 		local ok1 = key1 ~= nil and PurchaseController.IsProductConfigured(key1 :: string)
 		local ok3 = key3 ~= nil and PurchaseController.IsProductConfigured(key3 :: string)
 		hatch1:SetEnabled(ok1 and not full)
-		hatch1:SetText(if ok1
-			then "Hatch 1  R$ " .. Config.Monetization.Products[key1 :: string].Price
-			else "Coming soon")
+		hatch1:SetText(
+			if ok1 then "Hatch 1  R$ " .. Config.Monetization.Products[key1 :: string].Price else "Coming soon"
+		)
 		hatch3:SetVisible(key3 ~= nil)
 		hatch3:SetEnabled(ok3 and not full)
-		hatch3:SetText(if ok3
-			then "Hatch 3  R$ " .. Config.Monetization.Products[key3 :: string].Price
-			else "Coming soon")
+		hatch3:SetText(
+			if ok3 then "Hatch 3  R$ " .. Config.Monetization.Products[key3 :: string].Price else "Coming soon"
+		)
 		return
 	end
 	local have = balance(egg)
@@ -179,10 +180,10 @@ local function showEgg(eggId: string)
 		tile.Card:SetHighlight(if id == eggId then C.Gold else nil)
 	end
 	if shownEgg ~= eggId then
-		shownEgg = eggId
-		;(dd.View :: Viewport.Viewport):SetModel(ModelFactory.Egg(eggId))
-		Style.Pop((dd.View :: Viewport.Viewport).Frame, 0.15)
-		;(dd.Name :: TextLabel).Text = egg.Name
+		shownEgg = eggId;
+		(dd.View :: Viewport.Viewport):SetModel(ModelFactory.Egg(eggId))
+		Style.Pop((dd.View :: Viewport.Viewport).Frame, 0.15);
+		(dd.Name :: TextLabel).Text = egg.Name
 		local odds: ScrollingFrame = dd.Odds
 		for _, child in odds:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -240,8 +241,8 @@ local function showEgg(eggId: string)
 			end
 		end
 	end
-	local unlocked = Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth)
-	;(dd.Price :: TextLabel).Text = if unlocked or egg.Currency == "Robux"
+	local unlocked = Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth);
+	(dd.Price :: TextLabel).Text = if unlocked or egg.Currency == "Robux"
 		then priceText(egg, 1) .. " each"
 		else Icons.Lock .. " Unlocks at " .. Config.Layers[egg.UnlockLayer].Name
 	updateButtons()
@@ -257,7 +258,8 @@ local function build()
 	local list = Panel.Scroller(body, UDim2.new(0, 250, 1, 0), UDim2.new())
 	Style.List(list, Enum.FillDirection.Vertical, 8)
 	for i, egg in Config.Eggs do
-		local card = Card.new({ Name = egg.Id, Size = UDim2.new(1, -14, 0, 64), LayoutOrder = i, ZIndex = 6, Parent = list })
+		local card =
+			Card.new({ Name = egg.Id, Size = UDim2.new(1, -14, 0, 64), LayoutOrder = i, ZIndex = 6, Parent = list })
 		local swatch = Instance.new("Frame")
 		swatch.Size = UDim2.fromOffset(42, 50)
 		swatch.Position = UDim2.new(0, 8, 0.5, 0)
@@ -424,14 +426,17 @@ local function refreshTiles()
 		if egg then
 			local unlocked = egg.Currency == "Robux" or Config.IsEggUnlocked(id, State.Data.MaxDepth)
 			tile.Lock.Visible = not unlocked
-			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price then C.Danger else C.SandDark
+			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price
+				then C.Danger
+				else C.SandDark
 		end
 	end
 	updateButtons()
 end
 
 function EggPanel.Init()
-	panel = Panel.new({ Name = "Eggs", Title = "Eggs", Icon = Icons.Eggs, Color = C.Sunset, Size = Vector2.new(800, 480) })
+	panel =
+		Panel.new({ Name = "Eggs", Title = "Eggs", Icon = Icons.Eggs, Color = C.Sunset, Size = Vector2.new(800, 480) })
 	panel.Opened:Connect(function(args: any)
 		build()
 		local target = if typeof(args) == "table" and typeof(args.EggId) == "string" then args.EggId else nil

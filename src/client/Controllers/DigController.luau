@@ -177,11 +177,13 @@ function DigController.TryDigAt(position: Vector3): boolean
 		return false
 	end
 	if (position - (root :: BasePart).Position).Magnitude > Config.REACH + 1 then
+		lastDig = now
 		hint("far", "Get closer to dig! 👣", "Info", 3)
 		DigController.Feedback:Fire("TooFar")
 		return false
 	end
 	if not insideOwnPlot(position) then
+		lastDig = now
 		hint("plot", "Dig in YOUR plot! Follow the arrow ⬇️", "Warning", 3)
 		DigController.Feedback:Fire("OutOfPlot")
 		return false
@@ -232,6 +234,9 @@ end
 local function onDigResult(result: Types.DigResult)
 	if typeof(result) ~= "table" then
 		return
+	end
+	if typeof(result.Capacity) == "number" and result.Capacity > 0 then
+		State.ServerCapacity = result.Capacity
 	end
 	if result.Success then
 		local layer = Config.Layers[result.LayerIndex] or layerAt(result.Position)

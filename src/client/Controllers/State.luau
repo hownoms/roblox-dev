@@ -184,7 +184,15 @@ function State.GetBackpack(): Types.BackpackDef
 	return Config.GetBackpack(State.Data.Backpack) or Config.Backpacks[1]
 end
 
+-- Last effective capacity reported by the server (DigResult.Capacity). Preferred over the
+-- local estimate because the server may apply bonuses the client doesn't know about.
+State.ServerCapacity = nil :: number?
+
 function State.GetCapacity(): number
+	local serverCapacity = State.ServerCapacity
+	if serverCapacity then
+		return serverCapacity
+	end
 	local mega = if State.OwnsPass("MegaBackpack")
 		then (Config.Monetization.GamePasses.MegaBackpack.CapacityMultiplier or 2)
 		else 1
@@ -333,6 +341,13 @@ function State.Init()
 			end
 		end)
 	end)
+
+	-- equipment / rebirth / pass changes invalidate the server-reported capacity
+	for _, key in { "Backpack", "Rebirths", "Passes" } do
+		State.Changed(key):Connect(function()
+			State.ServerCapacity = nil
+		end)
+	end
 
 	Workspace:GetAttributeChangedSignal("ActiveEvents"):Connect(parseEventAttribute)
 	parseEventAttribute()

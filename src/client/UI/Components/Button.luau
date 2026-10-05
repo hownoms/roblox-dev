@@ -129,8 +129,8 @@ function Button.new(props: ButtonProps): Button
 		local ratio = Instance.new("UIAspectRatioConstraint")
 		ratio.AspectRatio = 1
 		ratio.DominantAxis = Enum.DominantAxis.Height
-		ratio.Parent = icon
-		;(icon :: TextLabel).Size = UDim2.new(0.78, 0, 0.78, 0)
+		ratio.Parent = icon;
+		(icon :: TextLabel).Size = UDim2.new(0.78, 0, 0.78, 0)
 		label = Style.Label({
 			Name = "Label",
 			Text = text,

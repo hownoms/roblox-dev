@@ -100,18 +100,12 @@ local function firstSelectable(root: Instance): GuiObject?
 end
 
 local function bindBack(panel: Panel)
-	ContextActionService:BindActionAtPriority(
-		"DigClosePanel",
-		function(_, inputState)
-			if inputState == Enum.UserInputState.Begin then
-				panel:Close()
-			end
-			return Enum.ContextActionResult.Sink
-		end,
-		false,
-		Enum.ContextActionPriority.High.Value,
-		Enum.KeyCode.ButtonB
-	)
+	ContextActionService:BindActionAtPriority("DigClosePanel", function(_, inputState)
+		if inputState == Enum.UserInputState.Begin then
+			panel:Close()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.ButtonB)
 end
 
 function Panel.new(props: PanelProps): Panel
@@ -263,8 +257,7 @@ function Panel.new(props: PanelProps): Panel
 				ContextActionService:UnbindAction("DigClosePanel")
 				Panel.Changed:Fire(nil)
 			end
-			local tween =
-				Style.Tween(openScale, 0.14, { Scale = 0.6 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			local tween = Style.Tween(openScale, 0.14, { Scale = 0.6 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 			tween.Completed:Once(function()
 				if not self.IsOpen then
 					window.Visible = false

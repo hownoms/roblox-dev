@@ -162,7 +162,8 @@ local function update(dt: number)
 				pet.Model.Parent = getFolder()
 			end
 			local rootCFrame = (root :: BasePart).CFrame
-			local flat = CFrame.lookAt(rootCFrame.Position, rootCFrame.Position + rootCFrame.LookVector * Vector3.new(1, 0, 1))
+			local flat =
+				CFrame.lookAt(rootCFrame.Position, rootCFrame.Position + rootCFrame.LookVector * Vector3.new(1, 0, 1))
 			local slot = flat:PointToWorldSpace(slotOffset(i, #entry.Pets))
 			local bob = math.sin(now * 3 + pet.Phase) * 0.35
 			local height = if pet.Flying then 2.2 + bob * 1.4 else -2.6 + math.max(bob, 0) * 1.2

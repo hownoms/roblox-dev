@@ -16,7 +16,10 @@ function RewardText.Parts(reward: Types.Reward, maxDepth: number): { string }
 		table.insert(parts, "💰 " .. Format.Abbreviate(coins))
 	end
 	if reward.RebirthTokens and reward.RebirthTokens > 0 then
-		table.insert(parts, "🔷 " .. reward.RebirthTokens .. " Token" .. (if reward.RebirthTokens > 1 then "s" else ""))
+		table.insert(
+			parts,
+			"🔷 " .. reward.RebirthTokens .. " Token" .. (if reward.RebirthTokens > 1 then "s" else "")
+		)
 	end
 	if reward.Boost then
 		local boost = Config.GetBoost(reward.Boost)

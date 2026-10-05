@@ -130,7 +130,9 @@ local function buildStats(canvas: Frame)
 	end)
 	State.ObserveMany({ "Rebirths", "Pets", "Passes" }, function()
 		local mult = Config.RebirthMultiplier(State.Data.Rebirths)
-		rebirth:SetText("x" .. string.format("%.1f", mult) .. "  ·  🐾 x" .. string.format("%.2f", State.GetPetMultiplier()))
+		rebirth:SetText(
+			"x" .. string.format("%.1f", mult) .. "  ·  🐾 x" .. string.format("%.2f", State.GetPetMultiplier())
+		)
 	end)
 end
 
@@ -539,7 +541,10 @@ local function buildBottom(canvas: Frame)
 		local sand = State.Data.Sand or 0
 		local capacity = math.max(State.GetCapacity(), 1)
 		local full = sand >= capacity
-		bar:Set(sand / capacity, Icons.Backpack .. " " .. Format.Abbreviate(sand) .. " / " .. Format.Abbreviate(capacity))
+		bar:Set(
+			sand / capacity,
+			Icons.Backpack .. " " .. Format.Abbreviate(sand) .. " / " .. Format.Abbreviate(capacity)
+		)
 		bar:SetColor(if full then C.Danger elseif sand / capacity > 0.8 then C.Warning else C.Sand)
 		if full ~= wasFull then
 			wasFull = full

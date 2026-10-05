@@ -140,8 +140,7 @@ function EffectsController.FloatText(position: Vector3, text: string, color: Col
 	local pop = Instance.new("UIScale")
 	pop.Scale = 0.3
 	pop.Parent = label
-	TweenService:Create(pop, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
+	TweenService:Create(pop, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	local drift = Vector3.new((math.random() - 0.5) * 1.5, 4.5, 0)
 	TweenService:Create(
 		billboard,

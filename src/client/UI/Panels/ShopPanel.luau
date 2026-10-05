@@ -61,7 +61,11 @@ local function nextUpgrade(kind: Kind): string?
 	if kind == "Shovels" then
 		local equipped = State.GetShovel()
 		for _, def in Config.Shovels do
-			if not data.OwnedShovels[def.Id] and def.RebirthsRequired <= data.Rebirths and def.Power >= equipped.Power then
+			if
+				not data.OwnedShovels[def.Id]
+				and def.RebirthsRequired <= data.Rebirths
+				and def.Power >= equipped.Power
+			then
 				return def.Id
 			end
 		end
@@ -309,7 +313,9 @@ local function scrollToNext()
 	for _, item in cards do
 		if item.Id == id and item.Kind == currentTab then
 			task.defer(function()
-				local offset = item.Card.Holder.AbsolutePosition.Y - scroller.AbsolutePosition.Y + scroller.CanvasPosition.Y
+				local offset = item.Card.Holder.AbsolutePosition.Y
+					- scroller.AbsolutePosition.Y
+					+ scroller.CanvasPosition.Y
 				scroller.CanvasPosition = Vector2.new(0, math.max(0, offset - 20))
 				Style.Pop(item.Card.Holder, 0.08)
 			end)
@@ -318,7 +324,8 @@ local function scrollToNext()
 end
 
 function ShopPanel.Init()
-	panel = Panel.new({ Name = "Shop", Title = "Shop", Icon = Icons.Shop, Color = C.Palm, Size = Vector2.new(780, 480) })
+	panel =
+		Panel.new({ Name = "Shop", Title = "Shop", Icon = Icons.Shop, Color = C.Palm, Size = Vector2.new(780, 480) })
 	panel.Opened:Connect(function(args: any)
 		build()
 		if typeof(args) == "table" and (args.Tab == "Shovels" or args.Tab == "Backpacks") then

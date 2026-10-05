@@ -119,7 +119,13 @@ local function pump()
 	scale.Scale = 0.2
 	Style.Tween(scale, 0.5, { Scale = 1 }, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
 	task.delay(spec.Duration or 3.4, function()
-		Style.Tween(holder, 0.35, { Position = UDim2.fromScale(0.5, 0.12) }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		Style.Tween(
+			holder,
+			0.35,
+			{ Position = UDim2.fromScale(0.5, 0.12) },
+			Enum.EasingStyle.Back,
+			Enum.EasingDirection.In
+		)
 		local out = Style.Tween(scale, 0.35, { Scale = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 		out.Completed:Once(function()
 			holder:Destroy()
