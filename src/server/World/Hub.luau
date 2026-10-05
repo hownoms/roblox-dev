@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Models = require(ReplicatedStorage.Shared.Models)
+local Build = require(ReplicatedStorage.Shared.Models.Build)
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Layout = require(script.Parent.Layout)
@@ -144,7 +145,15 @@ local function buildSell(parent: Instance)
 	end
 
 	-- Touch pad in front of the counter
-	local pad = lp(m, base, "SellZone", Vector3.new(16, 1, 8), Vector3.new(0, 2.2, -6.5), C.Success, Enum.Material.Neon)
+	local pad = lp(
+		m,
+		base,
+		"SellZone",
+		Vector3.new(16, 1, 8),
+		Vector3.new(0, 2.2, -6.5),
+		rgb(50, 170, 75),
+		Enum.Material.SmoothPlastic
+	)
 	pad.Transparency = 0.3
 	pad.CanCollide = false
 	pad.CanQuery = false
@@ -302,7 +311,7 @@ local function buildEggs(parent: Instance)
 			pos + Vector3.new(0, 3.1, 0),
 			0.4,
 			4.8,
-			egg.Look.ShellColor,
+			Build.neonSafe(egg.Look.ShellColor),
 			Enum.Material.Neon,
 			true
 		)
@@ -370,7 +379,7 @@ local function buildEggs(parent: Instance)
 			Color = WHITE,
 			Parent = m,
 		})
-		Util.Ball(m, "Lamp", p + Vector3.new(0, 7.4, 0), 2.2, C.Warning, Enum.Material.Neon)
+		Util.Ball(m, "Lamp", p + Vector3.new(0, 7.4, 0), 2.2, rgb(210, 145, 40), Enum.Material.Neon)
 	end
 end
 
@@ -396,10 +405,19 @@ local function buildRebirth(parent: Instance)
 	local light = Instance.new("PointLight")
 	light.Color = C.Purple
 	light.Range = 18
-	light.Brightness = 1.5
+	light.Brightness = 0.9
 	light.Parent = pedestal
 
-	Util.Cylinder(m, "GlowDisc", (base * CFrame.new(0, 3.05, 0)).Position, 0.2, 9, C.Purple, Enum.Material.Neon, true)
+	Util.Cylinder(
+		m,
+		"GlowDisc",
+		(base * CFrame.new(0, 3.05, 0)).Position,
+		0.2,
+		9,
+		rgb(130, 75, 200),
+		Enum.Material.Neon,
+		true
+	)
 
 	-- Golden digger statue holding a shovel up high
 	local gold = C.Gold
@@ -418,7 +436,7 @@ local function buildRebirth(parent: Instance)
 	head.Reflectance = 0.25
 	-- Floating orbs
 	for _, x in { -5, 5 } do
-		Util.Ball(m, "Orb", (base * CFrame.new(x, 9, 2)).Position, 1.4, C.Purple, Enum.Material.Neon)
+		Util.Ball(m, "Orb", (base * CFrame.new(x, 9, 2)).Position, 1.4, rgb(130, 75, 200), Enum.Material.Neon)
 	end
 	Util.Sign(m, "REBIRTH", Vector3.new(8.6, 2.4, 0.5), base * CFrame.new(0, 4.3, -4.35), {
 		Name = "RebirthSign",

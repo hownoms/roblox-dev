@@ -42,13 +42,15 @@ local ZONES: { [string]: { Icon: string, Text: string, Color: Color3 } } = {
 	Cool = { Icon = "🌴", Text = "COOL", Color = Color3.fromRGB(70, 200, 120) },
 }
 local GRACE = { Icon = "🧴", Text = "SAFE", Color = Color3.fromRGB(90, 210, 200) }
+local BURNT_ZONE = { Icon = "🥵", Text = "BURNT!", Color = Color3.fromRGB(240, 50, 50) }
 
 local COLD = Color3.fromRGB(80, 190, 255)
 local WARM = Color3.fromRGB(255, 205, 60)
 local HOT = Color3.fromRGB(255, 120, 40)
 local BURNT = Color3.fromRGB(240, 50, 50)
 
-local TUBE_HEIGHT = 150
+local TUBE_HEIGHT = 108
+local HUD_HEIGHT = 206 -- fits the free region: y 180 .. bottom-150 at 540 design px
 
 type Slot = { Button: Button.Button, Count: TextLabel, Key: TextLabel }
 
@@ -60,7 +62,6 @@ local bulbLabel: TextLabel
 local zoneChip: Frame
 local zoneIcon: TextLabel
 local zoneText: TextLabel
-local burntTag: TextLabel
 local glow: Frame
 local glowGradient: UIGradient
 local slots: { Slot } = {}
@@ -163,14 +164,14 @@ local function buildMeter(holder: Frame)
 	local column = Instance.new("Frame")
 	column.Name = "Meter"
 	column.BackgroundTransparency = 1
-	column.Size = UDim2.fromOffset(62, 300)
+	column.Size = UDim2.fromOffset(56, HUD_HEIGHT)
 	column.Position = UDim2.new(1, 0, 0, 0)
 	column.AnchorPoint = Vector2.new(1, 0)
 	column.Parent = holder
 
 	zoneChip = Instance.new("Frame")
 	zoneChip.Name = "Zone"
-	zoneChip.Size = UDim2.fromOffset(58, 58)
+	zoneChip.Size = UDim2.fromOffset(50, 50)
 	zoneChip.Position = UDim2.new(0.5, 0, 0, 0)
 	zoneChip.AnchorPoint = Vector2.new(0.5, 0)
 	zoneChip.BackgroundColor3 = ZONES.Cool.Color
@@ -202,8 +203,8 @@ local function buildMeter(holder: Frame)
 
 	local tube = Instance.new("Frame")
 	tube.Name = "Tube"
-	tube.Size = UDim2.fromOffset(30, TUBE_HEIGHT)
-	tube.Position = UDim2.new(0.5, 0, 0, 68)
+	tube.Size = UDim2.fromOffset(26, TUBE_HEIGHT)
+	tube.Position = UDim2.new(0.5, 0, 0, 56)
 	tube.AnchorPoint = Vector2.new(0.5, 0)
 	tube.BackgroundColor3 = Color3.fromRGB(245, 245, 250)
 	tube.ClipsDescendants = true
@@ -238,8 +239,8 @@ local function buildMeter(holder: Frame)
 
 	bulb = Instance.new("Frame")
 	bulb.Name = "Bulb"
-	bulb.Size = UDim2.fromOffset(54, 54)
-	bulb.Position = UDim2.new(0.5, 0, 0, 68 + TUBE_HEIGHT - 14)
+	bulb.Size = UDim2.fromOffset(48, 48)
+	bulb.Position = UDim2.new(0.5, 0, 0, 56 + TUBE_HEIGHT - 10)
 	bulb.AnchorPoint = Vector2.new(0.5, 0)
 	bulb.BackgroundColor3 = COLD
 	bulb.ZIndex = 4
@@ -257,40 +258,24 @@ local function buildMeter(holder: Frame)
 		ZIndex = 5,
 		Parent = bulb,
 	})
-
-	burntTag = Style.Label({
-		Name = "Sunburnt",
-		Text = "🥵 SUNBURNT!",
-		Size = UDim2.fromOffset(150, 30),
-		Position = UDim2.new(1, -66, 0, 92),
-		AnchorPoint = Vector2.new(1, 0),
-		MaxTextSize = 20,
-		ZIndex = 6,
-		Parent = holder,
-	})
-	burntTag.BackgroundTransparency = 0
-	burntTag.BackgroundColor3 = BURNT
-	burntTag.Visible = false
-	Style.Corner(burntTag, Style.Theme.CornerPill)
-	Style.Stroke(burntTag, C.Stroke, 2)
 end
 
 local function buildSlots(holder: Frame)
 	local column = Instance.new("Frame")
 	column.Name = "QuickSlots"
 	column.BackgroundTransparency = 1
-	column.Size = UDim2.fromOffset(64, 300)
-	column.Position = UDim2.new(1, -70, 0, 0)
+	column.Size = UDim2.fromOffset(52, HUD_HEIGHT)
+	column.Position = UDim2.new(1, -62, 0, 0)
 	column.AnchorPoint = Vector2.new(1, 0)
 	column.Parent = holder
-	Style.List(column, Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom)
+	Style.List(column, Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom)
 
 	shadeButton = Button.new({
 		Name = "PlaceShade",
 		Icon = "⛱️",
 		Text = "F",
 		Vertical = true,
-		Size = UDim2.fromOffset(62, 62),
+		Size = UDim2.fromOffset(48, 48),
 		Color = C.Sunset,
 		MaxTextSize = 14,
 		LayoutOrder = 0,
@@ -311,7 +296,7 @@ local function buildSlots(holder: Frame)
 			Icon = "➕",
 			Text = "",
 			Vertical = true,
-			Size = UDim2.fromOffset(62, 62),
+			Size = UDim2.fromOffset(48, 48),
 			Color = C.Ocean,
 			MaxTextSize = 14,
 			LayoutOrder = i,
@@ -454,8 +439,9 @@ local function refreshHeat()
 	bulb.BackgroundColor3 = color
 	bulbLabel.Text = tostring(math.floor(heat + 0.5))
 
-	local zone = if SurvivalController.InGrace() and SurvivalController.GetZone() == "Sun"
-		then GRACE
+	local zone = if burnt
+		then BURNT_ZONE
+		elseif SurvivalController.InGrace() and SurvivalController.GetZone() == "Sun" then GRACE
 		else ZONES[SurvivalController.GetZone()] or ZONES.Cool
 	zoneChip.BackgroundColor3 = zone.Color
 	zoneIcon.Text = zone.Icon
@@ -463,12 +449,9 @@ local function refreshHeat()
 
 	-- Sunburnt state + toasts
 	if burnt and not wasBurnt then
-		burntTag.Visible = true
-		Style.PopIn(burntTag)
 		bulbPulse = Style.Pulse(bulb, 0.18, 0.7)
 		Toasts.Show("Sunburnt! Find shade or drink water 💧", "Error", 5)
 	elseif not burnt and wasBurnt then
-		burntTag.Visible = false
 		Style.StopPulse(bulb, bulbPulse)
 		bulbPulse = nil
 		Toasts.Show("Cooled down! Back to full speed 😎", "Success", 3)
@@ -521,9 +504,9 @@ function SurvivalHUD.Init()
 	local holder = Instance.new("Frame")
 	holder.Name = "SurvivalHUD"
 	holder.BackgroundTransparency = 1
-	holder.Size = UDim2.fromOffset(140, 300)
-	holder.Position = UDim2.new(1, -8, 0.5, 20)
-	holder.AnchorPoint = Vector2.new(1, 0.5)
+	holder.Size = UDim2.fromOffset(120, HUD_HEIGHT)
+	holder.Position = UDim2.new(1, -8, 0, 180)
+	holder.AnchorPoint = Vector2.new(1, 0)
 	holder.ZIndex = 2
 	holder.Parent = canvas
 	buildMeter(holder)

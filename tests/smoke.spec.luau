@@ -3,10 +3,11 @@
 	Headless end-to-end smoke test of the SERVER (Main.server.luau + Services + World + Shared)
 	against tests/mock/Roblox.luau. Run with tests/run.sh (it generates build/test/generated.luau).
 
-	Scripted session: boot -> join -> spawn at plot with shovel tool -> dig x20 -> sell at the
+	Scripted session: boot -> join -> spawn on the boardwalk with shovel tool -> dig x24 on the
+	shared beach -> sell at the
 	SellZone -> buy + equip a shovel -> hatch an egg -> quests/daily/code -> purchase prompts with
-	id 0 -> die deep in the hole + respawn -> ReturnToSurface -> rebirth -> leave (save, plot
-	reset, sign cleared) -> rejoin (data persisted). Fails on any uncaught error, unexpected
+	id 0 -> die deep in the hole + respawn -> ReturnToSurface -> rebirth -> leave (save) -> rejoin
+	(data persisted) -> 16 players -> beach (DigAt, tide refill, High Tide, Sunburnt, depth). Fails on any uncaught error, unexpected
 	warning, unsendable remote payload or non-JSON DataStore value.
 ]]
 
@@ -92,7 +93,8 @@ check(#Mock.Errors == 0, "no errors during boot")
 local Shared = byPath["ReplicatedStorage/Shared"]
 local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
 local DataService = Mock.Require(byPath["ServerScriptService/Server/Services/DataService"])
-local PlotService = Mock.Require(byPath["ServerScriptService/Server/Services/PlotService"])
+local BeachService = Mock.Require(byPath["ServerScriptService/Server/Services/BeachService"])
+local DigService = Mock.Require(byPath["ServerScriptService/Server/Services/DigService"])
 local World = Mock.Require(byPath["ServerScriptService/Server/World"])
 local _ = Shared
 
@@ -116,9 +118,17 @@ for _, t in
 		"LeaderboardCoins",
 		"LeaderboardDepth",
 		"SpawnLocation",
+		"WaterFountain",
+		"Garage",
+		"BeachShop",
 	}
 do
 	check(#Mock.Tagged(t) > 0, "map places tag " .. t)
+end
+for t, action in { WaterFountain = "Drink", Garage = "Garage", BeachShop = "Shop" } do
+	local part = Mock.Tagged(t)[1]
+	local prompt = part and part:FindFirstChildWhichIsA("ProximityPrompt", true)
+	check(prompt ~= nil and prompt.ActionText == action, t .. " has a '" .. action .. "' ProximityPrompt")
 end
 for _, egg in Mock.Tagged("EggShop") do
 	check(type(egg:GetAttribute("EggId")) == "string", "EggShop part has EggId attribute")
@@ -129,31 +139,59 @@ for _, t in { "ShovelShop", "BackpackShop", "RebirthStatue" } do
 	check(part and part:FindFirstChildWhichIsA("ProximityPrompt", true) ~= nil, t .. " has a ProximityPrompt")
 end
 
-local plots = World.GetPlots()
-check(#plots == Config.PLOT_COUNT, "World.GetPlots returns 12 plots")
+-- Dig zone: one long strip on the water side, exposed to clients as workspace attributes.
+local zone = World.GetDigZone()
+local zoneCenter, zoneSize = zone.CFrame.Position, zone.Size
+check(zoneSize.X >= 600 and zoneSize.Y == Config.TOTAL_DEPTH, "dig zone: long coastline, full depth")
+check(math.abs(zoneCenter.Y - Config.SURFACE_Y) < 0.01, "dig zone CFrame sits at the surface")
+check(zoneCenter.Z + zoneSize.Z / 2 <= 0, "dig zone is on the water side (-Z)")
+check(
+	workspace:GetAttribute("DigZoneCFrame") == zone.CFrame and workspace:GetAttribute("DigZoneSize") == zoneSize,
+	"DigZoneCFrame / DigZoneSize workspace attributes"
+)
+check(World.IsInDigZone(zoneCenter - Vector3.new(0, 5, 0)), "IsInDigZone inside")
+check(not World.IsInDigZone(Vector3.new(0, Config.SURFACE_Y, 40)), "hub is not in the dig zone")
+check(not World.IsInDigZone(zoneCenter - Vector3.new(0, Config.TOTAL_DEPTH + 10, 0)), "below the world is not in the zone")
+for _, sp in Mock.Tagged("SpawnLocation") do
+	check(
+		not World.IsInDigZone(sp.Position) and sp.Position.Y > Config.SURFACE_Y,
+		"SpawnLocation on the boardwalk, outside the dig zone"
+	)
+end
 
--- Terrain inside every plot: layered from the surface to the bottom.
+-- Terrain under the strip: layered from the surface to the bottom (both ends and the middle).
 section("terrain")
-for _, plot in plots do
-	local c = plot.Origin.Position
-	local topY, topMat = Mock.TerrainSurfaceBelow(c.X + 1, c.Z + 1, Config.SURFACE_Y + 8)
+for _, fx in { -0.49, 0, 0.49 } do
+	local x = zoneCenter.X + zoneSize.X * fx + 1
+	local z = zoneCenter.Z + 1
+	local topY, topMat = Mock.TerrainSurfaceBelow(x, z, Config.SURFACE_Y + 8)
 	check(
 		topY ~= nil and math.abs(topY - Config.SURFACE_Y) < 0.01,
-		"plot " .. plot.Id .. " surface at SURFACE_Y (got " .. tostring(topY) .. ")"
+		"dig zone surface at SURFACE_Y at x " .. math.floor(x) .. " (got " .. tostring(topY) .. ")"
 	)
-	check(topMat == Config.Layers[1].Material, "plot " .. plot.Id .. " top material is layer 1")
+	check(topMat == Config.Layers[1].Material, "dig zone top material is layer 1")
 	for i, layer in Config.Layers do
 		local depth = (layer.DepthStart + layer.DepthEnd) / 2
-		local v = Mock.GetVoxel(Vector3.new(c.X + 1, Config.SURFACE_Y - depth, c.Z + 1))
+		local v = Mock.GetVoxel(Vector3.new(x, Config.SURFACE_Y - depth, z))
 		if
 			not check(
 				v ~= nil and v.Material == layer.Material,
-				string.format("plot %d layer %d (%s) material at depth %d", plot.Id, i, layer.Id, depth)
+				string.format("x %d layer %d (%s) material at depth %d", math.floor(x), i, layer.Id, depth)
 			)
 		then
 			break
 		end
 	end
+end
+-- Solid layered walls around the zone (never dug: carving is clamped to the zone).
+for _, p in
+	{
+		Vector3.new(1, Config.SURFACE_Y - 300, zoneCenter.Z - zoneSize.Z / 2 - 2),
+		Vector3.new(1, Config.SURFACE_Y - 300, zoneCenter.Z + zoneSize.Z / 2 + 2),
+		Vector3.new(zoneCenter.X + zoneSize.X / 2 + 2, Config.SURFACE_Y - 300, zoneCenter.Z),
+	}
+do
+	check(Mock.GetVoxel(p) ~= nil, "solid wall around the dig zone at " .. tostring(p))
 end
 for _, layer in Config.Layers do
 	check(Mock.MaterialColors[layer.Material.Name] ~= nil, "material colour set for " .. layer.Material.Name)
@@ -178,17 +216,22 @@ check(
 	snapshot ~= nil and type(snapshot[1]) == "table" and snapshot[1].Version ~= nil and snapshot[1].Coins ~= nil,
 	"first DataChanged is the full snapshot"
 )
-local plotArgs = lastToClient(player, "PlotAssigned")
-check(plotArgs ~= nil and type(plotArgs[1]) == "table", "client got PlotAssigned")
-local plot = PlotService.GetPlot(player)
-check(plot ~= nil, "plot assigned")
-check(player:GetAttribute("PlotId") == plot.Id, "Player attribute PlotId")
-local root = player.Character.HumanoidRootPart
+local remotesFolder = byPath["ReplicatedStorage/Shared/Remotes"]:FindFirstChild("Net")
 check(
-	(root.Position - (plot.SpawnCFrame.Position + Vector3.new(0, 3, 0))).Magnitude < 0.1,
-	"character moved to plot spawn"
+	remotesFolder ~= nil
+		and remotesFolder:FindFirstChild("PlotAssigned") == nil
+		and remotesFolder:FindFirstChild("GetPlot") == nil,
+	"no PlotAssigned / GetPlot remotes"
 )
-check(Mock.InvokeServer("GetPlot", player) ~= nil, "GetPlot remote function returns the plot")
+local root = player.Character.HumanoidRootPart
+local function onBoardwalk(pos)
+	return pos.Y > Config.SURFACE_Y + 1
+		and pos.Z > zoneCenter.Z + zoneSize.Z / 2
+		and pos.Z < 14
+		and not World.IsInDigZone(pos)
+end
+check(onBoardwalk(root.Position), "character spawned on the boardwalk (" .. tostring(root.Position) .. ")")
+check(player:GetAttribute("Depth") == 0, "Depth attribute 0 on the boardwalk")
 local passes0 = Mock.InvokeServer("GetOwnedPasses", player)
 check(type(passes0) == "table", "GetOwnedPasses returns a table")
 local got = Mock.InvokeServer("GetData", player)
@@ -216,13 +259,13 @@ section("dig")
 local function standAt(pos)
 	player.Character:PivotTo(CFrame.new(pos))
 end
-local c = plot.Origin.Position
+local c = Vector3.new(0, Config.SURFACE_Y, zoneCenter.Z)
 standAt(Vector3.new(c.X, Config.SURFACE_Y + 3, c.Z))
 local results = {}
 local cooldown = Config.Shovels[1].Cooldown + 0.02
 local since = #Mock.Remote.ToClient
 for i = 1, 24 do
-	-- client: raycast from the camera onto the terrain near the feet, inside the plot
+	-- client: raycast from the camera onto the terrain near the feet, on the sand
 	local x = c.X + ((i % 5) - 2) * 3
 	local z = c.Z + ((i // 5) - 2) * 3
 	local y = Mock.TerrainSurfaceBelow(x, z, Config.SURFACE_Y + 8)
@@ -264,11 +307,21 @@ check(data.TotalSandDug > 0, "TotalSandDug increased")
 local carved = Mock.GetVoxel(Vector3.new(c.X, Config.SURFACE_Y - 2, c.Z))
 check(carved == nil or carved.Occupancy < 1, "terrain was carved at the dig point")
 check(countToClient(player, "DataChanged", since) > 0, "DataChanged deltas sent while digging")
--- out of plot / too far
-local other = plots[2].Origin.Position
-Mock.FireServer("Dig", player, Vector3.new(other.X, Config.SURFACE_Y, other.Z))
-Mock.Advance(0.3)
-check(lastToClient(player, "DigResult")[1].Reason == "OutOfPlot", "dig in another plot -> OutOfPlot")
+-- outside the dig zone (hub plaza in reach) -> OutOfZone; no server Notify for dig failures
+data.Sand = 0
+standAt(Vector3.new(44, Config.SURFACE_Y + 4, 18))
+local n1 = #Mock.Remote.ToClient
+Mock.FireServer("Dig", player, Vector3.new(44, Config.SURFACE_Y, 26))
+Mock.Advance(0.6)
+check(lastToClient(player, "DigResult")[1].Reason == "OutOfZone", "dig at the hub -> OutOfZone")
+check(#notifies(player, n1) == 0, "dig failures send no Notify (client hints only): " .. table.concat(notifies(player, n1), " / "))
+data.Sand = capacity
+standAt(Vector3.new(c.X, Config.SURFACE_Y + 3, c.Z))
+local n2 = #Mock.Remote.ToClient
+Mock.FireServer("Dig", player, Vector3.new(c.X + 8, Config.SURFACE_Y, c.Z))
+Mock.Advance(0.6)
+check(lastToClient(player, "DigResult")[1].Reason == "BackpackFull", "full backpack -> BackpackFull result")
+check(#notifies(player, n2) == 0, "backpack full: no duplicate server Notify")
 
 -- Sell --------------------------------------------------------------------------------------------
 section("sell")
@@ -488,17 +541,24 @@ check(type(workspace:GetAttribute("ActiveEvents")) == "string", "ActiveEvents at
 section("hole")
 standAt(Vector3.new(c.X, Config.SURFACE_Y - 60, c.Z))
 Mock.Advance(1)
-check(player:GetAttribute("Depth") ~= nil, "Depth attribute published")
+check((player:GetAttribute("Depth") or 0) >= 55, "Depth attribute in a hole (" .. tostring(player:GetAttribute("Depth")) .. ")")
 Mock.FireServer("ReturnToSurface", player)
 Mock.Advance(0.2)
 root = player.Character.HumanoidRootPart
 check(root.Position.Y > Config.SURFACE_Y, "ReturnToSurface teleports to the surface")
+check(
+	onBoardwalk(root.Position) and math.abs(root.Position.X - c.X) < 1,
+	"ReturnToSurface lands on the boardwalk nearby"
+)
+standAt(Vector3.new(0, Config.SURFACE_Y - 10, -110)) -- beach slope / sea, outside the dig zone
+Mock.Advance(1)
+check(player:GetAttribute("Depth") == 0, "Depth is 0 outside the dig zone")
 standAt(Vector3.new(c.X, Config.SURFACE_Y - 60, c.Z))
 player.Character.Humanoid.Health = 0
 Mock.SpawnCharacter(player, Vector3.new(0, Config.SURFACE_Y + 3, 4))
 Mock.Advance(1)
 root = player.Character.HumanoidRootPart
-check((root.Position - (plot.SpawnCFrame.Position + Vector3.new(0, 3, 0))).Magnitude < 0.1, "respawn at own plot")
+check(onBoardwalk(root.Position), "respawn on the boardwalk")
 check(equippedTool() ~= nil, "shovel tool given again after respawn")
 
 -- Rebirth -----------------------------------------------------------------------------------------
@@ -515,18 +575,15 @@ check(
 	equippedTool() and equippedTool():GetAttribute("ShovelId") == Config.Shovels[1].Id,
 	"starter shovel tool after rebirth"
 )
-local refill = Mock.GetVoxel(Vector3.new(c.X, Config.SURFACE_Y - 2, c.Z))
-check(refill ~= nil and refill.Occupancy == 1, "plot refilled after rebirth")
+check(onBoardwalk(player.Character.HumanoidRootPart.Position), "rebirth sends you to the surface")
 
 -- Leave + rejoin ------------------------------------------------------------------------------------
 section("leave")
 DataService.Set(player, "Coins", 4242)
 Mock.Advance(0.1)
--- dig a bit so the reset has something to refill
 standAt(Vector3.new(c.X, Config.SURFACE_Y + 3, c.Z))
 Mock.FireServer("Dig", player, Vector3.new(c.X, Config.SURFACE_Y, c.Z))
 Mock.Advance(1)
-local plotId = plot.Id
 Mock.RemovePlayer(player)
 Mock.Advance(3)
 if not STUDIO_NO_API then
@@ -534,16 +591,6 @@ if not STUDIO_NO_API then
 	check(saved ~= nil and saved.Data ~= nil and saved.Data.Coins == 4242, "data saved on leave")
 	check(saved ~= nil and saved.Lock == nil, "session lock released on leave")
 end
-check(workspace:GetAttribute("PlotOwner_" .. plotId) == 0, "plot freed")
-local sign
-for _, d in workspace:GetDescendants() do
-	if d.Name == "PlotSign" and d:GetAttribute("PlotId") == plotId then
-		sign = d
-	end
-end
-check(sign ~= nil and sign:GetAttribute("OwnerName") == "", "plot sign cleared")
-local afterReset = Mock.GetVoxel(Vector3.new(c.X, Config.SURFACE_Y - 2, c.Z))
-check(afterReset ~= nil and afterReset.Occupancy == 1, "plot terrain refilled after leave")
 check(not DataService.IsLoaded(player), "session cleared")
 
 section("rejoin")
@@ -553,34 +600,174 @@ Mock.SpawnCharacter(player2)
 Mock.Advance(2)
 local data2 = DataService.Get(player2)
 check(data2 ~= nil and data2.Coins == 4242 and data2.Rebirths == 1, "data persisted across sessions")
-check(PlotService.GetPlot(player2) ~= nil, "plot assigned on rejoin")
+check(onBoardwalk(player2.Character.HumanoidRootPart.Position), "rejoin spawns on the boardwalk")
 
 section("full server")
 local crowd = {}
-for i = 1, 12 do
+for i = 1, Config.MAX_PLAYERS - 1 do
 	local p = Mock.AddPlayer(2000 + i, "Crowd" .. i)
 	Mock.SpawnCharacter(p)
 	crowd[i] = p
 end
 Mock.Advance(3)
-local seen = { [PlotService.GetPlot(player2).Id] = true }
-local assigned = 1
-for i = 1, 11 do
-	local pl = PlotService.GetPlot(crowd[i])
-	if check(pl ~= nil, "crowd player " .. i .. " got a plot") then
-		check(not seen[pl.Id], "plots are unique")
-		seen[pl.Id] = true
-		assigned += 1
+local onDeck = if onBoardwalk(player2.Character.HumanoidRootPart.Position) then 1 else 0
+for _, p in crowd do
+	if p.Character and onBoardwalk(p.Character.HumanoidRootPart.Position) then
+		onDeck += 1
 	end
 end
-check(PlotService.GetPlot(crowd[12]) == nil, "13th player waits in the queue")
-Mock.RemovePlayer(crowd[1])
-Mock.Advance(3)
-check(PlotService.GetPlot(crowd[12]) ~= nil, "queued player gets the freed plot")
-for i = 2, 12 do
+check(onDeck == Config.MAX_PLAYERS, Config.MAX_PLAYERS .. " players all spawn on the boardwalk (" .. onDeck .. ")")
+-- everyone digs side by side on the shared beach
+for i, p in crowd do
+	local x = -300 + i * 36
+	p.Character:PivotTo(CFrame.new(x, Config.SURFACE_Y + 3, zoneCenter.Z + 4))
+end
+Mock.Advance(0.2)
+for i, p in crowd do
+	local x = -300 + i * 36
+	Mock.FireServer("Dig", p, Vector3.new(x, Mock.TerrainSurfaceBelow(x, zoneCenter.Z, Config.SURFACE_Y + 8), zoneCenter.Z))
+end
+Mock.Advance(0.5)
+local crowdDigs = 0
+for _, p in crowd do
+	local r = lastToClient(p, "DigResult")
+	if r and r[1].Success then
+		crowdDigs += 1
+	end
+end
+check(crowdDigs == #crowd, "every player digs on the shared beach (" .. crowdDigs .. "/" .. #crowd .. ")")
+for i = 1, #crowd do
 	Mock.RemovePlayer(crowd[i])
 end
 Mock.Advance(5)
+
+-- Beach: dig size, DigAt (Digger), Sunburnt, depth anti-cheat, tide refill, High Tide ------------
+section("beach")
+step("beach", function()
+	local S = Config.SURFACE_Y
+	local p, d = player2, data2
+	local MultiplierService = Mock.Require(byPath["ServerScriptService/Server/Services/MultiplierService"])
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local function stand(pos)
+		p.Character:PivotTo(CFrame.new(pos))
+	end
+	local function solid(x, y, z)
+		local v = Mock.GetVoxel(Vector3.new(x, y, z))
+		return v ~= nil and v.Occupancy > 0
+	end
+	-- Skip ahead so the real High Tide schedule (EventService) can't start during the waits below.
+	local highTide = Config.GetEvent("HighTide")
+	if highTide then
+		for _ = 1, 10 do
+			local untilStart = Config.GetSecondsUntilEvent("HighTide", Mock.Env.os.time())
+			if untilStart > Config.TIDE_REFILL_SECONDS * 2 + 60 then
+				break
+			end
+			Mock.Advance(untilStart + highTide.DurationSeconds + 2)
+		end
+	end
+	d.Sand = 0
+	check(d.Shovel == Config.Shovels[1].Id, "starter shovel equipped for the beach tests")
+
+	-- starter dig: one 4x4x4 voxel + the surface voxel above it, nothing more
+	local zDig = zoneCenter.Z + 2
+	stand(Vector3.new(302, S + 3, zDig + 4))
+	local since = #Mock.Remote.ToClient
+	Mock.FireServer("Dig", p, Vector3.new(302, S, zDig))
+	Mock.Advance(0.6)
+	local r = lastToClient(p, "DigResult")
+	check(r ~= nil and r[1].Success, "surface dig on the beach succeeds")
+	check(not solid(302, S - 2, zDig), "surface dig removes terrain")
+	check(solid(302, S - 6, zDig) and solid(306, S - 2, zDig), "starter dig stays small (one voxel) " .. tostring(solid(302, S - 6, zDig)) .. tostring(solid(306, S - 2, zDig)))
+	check(BeachService.GetDugDepthAt(Vector3.new(302, S, zDig)) >= 4, "dug cell recorded for the tide")
+	check(countToClient(p, "DigResult", since) == 1, "one DigResult per dig")
+
+	-- DigAt with a Digger source: own stats, no cooldown, range check, Silent, zone clamp
+	stand(Vector3.new(332, S + 3, zDig + 4))
+	local opts = { Power = 1e6, Radius = 4, SandMultiplier = 3, Source = "Digger", Silent = true }
+	local s0 = #Mock.Remote.ToClient
+	local r1 = DigService.DigAt(p, Vector3.new(334, S, zDig - 4), opts)
+	local r2 = DigService.DigAt(p, Vector3.new(326, S, zDig - 4), opts)
+	check(r1 ~= nil and r1.Success and r2 ~= nil and r2.Success, "Digger DigAt succeeds twice in a row (no cooldown)")
+	check(not solid(334, S - 6, zDig - 4), "Digger radius 4 carves a bigger (8-stud) cube")
+	check(countToClient(p, "DigResult", s0) == 0, "Silent digger digs send no DigResult")
+	check(d.Sand > 0, "digger sand goes into the backpack")
+	local far = DigService.DigAt(p, Vector3.new(374, S, zDig), opts)
+	check(far ~= nil and far.Reason == "TooFar", "Digger dig far from the owner -> TooFar")
+	local out = DigService.DigAt(p, Vector3.new(334, S, zoneCenter.Z - zoneSize.Z / 2 - 6), opts)
+	check(out ~= nil and out.Reason == "OutOfZone", "Digger dig outside the zone -> OutOfZone")
+	local weak = DigService.DigAt(p, Vector3.new(330, S - 400, zDig), {
+		Power = 1,
+		Radius = 2,
+		SandMultiplier = 1,
+		Source = "Digger",
+		Silent = true,
+	})
+	check(weak == nil or weak.Reason ~= nil, "weak digger cannot dig deep")
+	d.Sand = d.Sand -- (keep)
+
+	-- Sunburnt multiplies the shovel cooldown
+	d.Sand = 0
+	stand(Vector3.new(358, S + 3, zDig + 4))
+	local cd = Stats.GetCooldown(MultiplierService.GetContext(p))
+	local mult = Config.Heat.SunburntCooldownMultiplier
+	Mock.Advance(cd * 2)
+	p:SetAttribute("Sunburnt", true)
+	local a1 = DigService.TryDig(p, Vector3.new(358, S, zDig), false)
+	check(a1 ~= nil and a1.Success, "sunburnt dig succeeds after the cooldown")
+	Mock.Advance(cd * 1.1)
+	p:SetAttribute("Sunburnt", true)
+	local a2 = DigService.TryDig(p, Vector3.new(362, S, zDig), false)
+	if mult * Config.COOLDOWN_LENIENCY > 1.2 then
+		check(a2 ~= nil and a2.Reason == "Cooldown", "Sunburnt: cooldown x" .. mult .. " blocks the next dig")
+	end
+	p:SetAttribute("Sunburnt", false)
+	local a3 = DigService.TryDig(p, Vector3.new(362, S, zDig), false)
+	check(a3 ~= nil and a3.Success, "normal cooldown once no longer sunburnt")
+
+	-- Depth attribute + MaxDepth only counts dug terrain
+	local maxBefore = d.MaxDepth
+	stand(Vector3.new(-330, S - 300, zoneCenter.Z))
+	Mock.Advance(1.2)
+	check((p:GetAttribute("Depth") or 0) >= 290, "Depth attribute deep inside the zone")
+	check(d.MaxDepth == maxBefore, "standing in undug terrain does not raise MaxDepth")
+
+	-- Tide: holes refill once nobody was near for TIDE_REFILL_SECONDS
+	p.Character:PivotTo(World.GetSurfacePoint(Vector3.new(-330, S, 0)))
+	Mock.Advance(Config.TIDE_REFILL_SECONDS * 0.5)
+	check(not solid(302, S - 2, zDig), "hole stays open before the tide timer runs out")
+	Mock.Advance(Config.TIDE_REFILL_SECONDS * 0.5 + 6)
+	local v = Mock.GetVoxel(Vector3.new(302, S - 2, zDig))
+	check(
+		v ~= nil and v.Occupancy == 1 and v.Material == Config.Layers[1].Material,
+		"tide refilled the hole with the layer material"
+	)
+	check(solid(334, S - 6, zDig - 4), "tide refilled the digger hole")
+	check(BeachService.CountDugCells() == 0, "every idle dug cell refilled (" .. BeachService.CountDugCells() .. ")")
+
+	-- ...but not while someone stays near
+	d.Sand = 0
+	stand(Vector3.new(-98, S + 3, zDig + 4))
+	Mock.Advance(cd * 2)
+	Mock.FireServer("Dig", p, Vector3.new(-98, S, zDig))
+	Mock.Advance(0.6)
+	check(not solid(-98, S - 2, zDig), "new hole dug")
+	Mock.Advance(Config.TIDE_REFILL_SECONDS + 6)
+	check(not solid(-98, S - 2, zDig), "tide waits while a player is near the hole")
+
+	-- High Tide: lift the player out of the hole first, then smooth every hole
+	stand(Vector3.new(-98, S - 2, zDig))
+	local previous = workspace:GetAttribute("ActiveEvents")
+	workspace:SetAttribute("ActiveEvents", "")
+	workspace:SetAttribute("ActiveEvents", "HighTide")
+	Mock.Advance(2.5)
+	local pos = p.Character.HumanoidRootPart.Position
+	check(pos.Y > S + 1 and not World.IsInDigZone(pos), "High Tide lifts the player out of the hole first")
+	check(solid(-98, S - 2, zDig), "High Tide refills the hole")
+	check(BeachService.CountDugCells() == 0, "High Tide smooths every dug cell")
+	workspace:SetAttribute("ActiveEvents", previous or "")
+	Mock.Advance(0.5)
+end)
 
 -- Diggers (Diggers agent) ---------------------------------------------------------------------------
 section("diggers")
@@ -712,6 +899,247 @@ step("diggers", function()
 	check(DiggerService.GetSlots(digPlayer) == 2, "DiggerService.GetSlots")
 	Mock.RemovePlayer(digPlayer)
 	Mock.Advance(3)
+end)
+
+-- Survival (Survival agent): heat, shade, snacks -------------------------------------------------------
+section("survival")
+step("survival", function()
+	local SurvivalService = Mock.Require(byPath["ServerScriptService/Server/Services/SurvivalService"])
+	local Heat = Config.Heat
+	local sp = Mock.AddPlayer(3101, "SunnyTester")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(sp)
+	Mock.Advance(2)
+	local d = DataService.Get(sp)
+	check(d ~= nil and type(d.OwnedShades) == "table" and type(d.Consumables) == "table", "survival data fields")
+	check(sp:GetAttribute("Heat") == 0 and sp:GetAttribute("Sunburnt") == false, "Heat / Sunburnt attributes on join")
+	local humanoid = sp.Character:FindFirstChildOfClass("Humanoid")
+	Mock.Internal(humanoid).props.FloorMaterial = Enum.Material.Sand -- read-only in Roblox
+	local zone = World.GetDigZone()
+	local zc = zone.CFrame.Position
+	local function surfaceAt(x, z)
+		return Mock.TerrainSurfaceBelow(x, z, Config.SURFACE_Y + 8)
+	end
+	-- an undug patch of sand in the dig zone, away from other tests' holes
+	local spot
+	for _, dx in { 40, -40, 60, -60, 80, -80, 20, -20 } do
+		local x, z = zc.X + dx, zc.Z
+		local ok = true
+		for _, o in { Vector3.new(0, 0, 0), Vector3.new(6, 0, 0), Vector3.new(-6, 0, 0), Vector3.new(0, 0, 6) } do
+			local y = surfaceAt(x + o.X, z + o.Z)
+			if y == nil or math.abs(y - Config.SURFACE_Y) > 0.01 then
+				ok = false
+			end
+		end
+		if ok then
+			spot = Vector3.new(x, Config.SURFACE_Y, z)
+			break
+		end
+	end
+	if not check(spot ~= nil, "found an undug sand spot in the dig zone") then
+		return
+	end
+	local function stand(pos)
+		sp.Character:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
+	end
+	stand(spot)
+	sp:SetAttribute("Depth", 0)
+
+	-- Heat in the sun (grace first)
+	Mock.Advance(4)
+	check(sp:GetAttribute("HeatZone") == "Sun", "standing on the dig sand = Sun zone")
+	check(sp:GetAttribute("HeatGrace") == true and SurvivalService.GetHeat(sp) == 0, "new-player grace: no heat")
+	d.PlayTime = Heat.NewPlayerGraceSeconds + 60
+	Mock.Advance(10)
+	local h1 = SurvivalService.GetHeat(sp)
+	check(h1 > 2 and h1 < 8, string.format("heat rises in the sun (%.2f after 10s)", h1))
+	check(sp:GetAttribute("Heat") == math.floor(h1 * 10 + 0.5) / 10, "Heat attribute mirrors server heat")
+	-- digs add capped heat
+	local ServerSignals = Mock.Require(byPath["ServerScriptService/Server/Services/ServerSignals"])
+	local before = SurvivalService.GetHeat(sp)
+	for _ = 1, 30 do
+		ServerSignals.Dug:Fire(sp, 1, 1)
+	end
+	Mock.Advance(1)
+	local gained = SurvivalService.GetHeat(sp) - before
+	local sun = 1
+	for _, id in Mock.Service("Workspace"):GetAttribute("ActiveEvents"):split(",") do
+		sun *= Heat.EventSunMultipliers[id] or 1
+	end
+	check(
+		gained > Heat.SunRisePerSecond * sun * 0.9 and gained <= (Heat.SunRisePerSecond + Heat.DigRiseMaxPerSecond) * sun * 1.3 + 0.05,
+		string.format("dig heat added but capped (+%.2f in 1s)", gained)
+	)
+	-- Sunburnt toggles
+	SurvivalService.SetHeat(sp, Heat.SunburntAt - 0.2)
+	Mock.Advance(2)
+	check(sp:GetAttribute("Sunburnt") == true, "Sunburnt at SunburntAt")
+	SurvivalService.SetHeat(sp, Heat.RecoverAt + 5)
+	Mock.Advance(0.5)
+	check(sp:GetAttribute("Sunburnt") == true, "still Sunburnt above RecoverAt")
+
+	-- Shades: buy
+	DataService.Set(sp, "Coins", 0)
+	Mock.Advance(0.1)
+	local umbrella = Config.Shades[1]
+	Mock.FireServer("BuyShade", sp, umbrella.Id)
+	Mock.Advance(0.3)
+	check(d.OwnedShades[umbrella.Id] == nil, "BuyShade refused without coins")
+	DataService.Set(sp, "Coins", 1e9)
+	Mock.Advance(0.1)
+	Mock.FireServer("BuyShade", sp, umbrella.Id)
+	Mock.Advance(0.3)
+	check(d.OwnedShades[umbrella.Id] == true and d.Coins == 1e9 - umbrella.Price, "bought the umbrella")
+	local locked = Config.Shades[#Config.Shades]
+	Mock.FireServer("BuyShade", sp, locked.Id)
+	Mock.FireServer("BuyShade", sp, 42)
+	Mock.Advance(0.3)
+	check(d.OwnedShades[locked.Id] == nil, "rebirth-locked shade refused")
+
+	-- Shades: place (validation failures first)
+	local Shades = SurvivalService.Shades
+	local function placeCount()
+		return #Shades.GetPlaced(sp)
+	end
+	local ok, reason = Shades.Place(sp, Config.Shades[2].Id, spot, 0)
+	check(not ok and placeCount() == 0, "can't place an unowned shade (" .. tostring(reason) .. ")")
+	ok, reason = Shades.Place(sp, umbrella.Id, spot + Vector3.new(Heat.ShadePlaceRange + 20, 0, 0), 0)
+	check(not ok, "can't place too far away (" .. tostring(reason) .. ")")
+	ok, reason = Shades.Place(sp, umbrella.Id, spot - Vector3.new(0, 30, 0), 0)
+	check(not ok, "can't place down a hole (" .. tostring(reason) .. ")")
+	ok, reason = Shades.Place(sp, umbrella.Id, spot + Vector3.new(0, 12, 0), 0)
+	check(not ok, "can't place floating in the air (" .. tostring(reason) .. ")")
+	-- dig a pit next to us and try to place over it
+	local pit = spot + Vector3.new(8, 0, 0)
+	workspace.Terrain:FillBlock(CFrame.new(pit.X, Config.SURFACE_Y - 8, pit.Z), Vector3.new(8, 16, 8), Enum.Material.Air)
+	ok, reason = Shades.Place(sp, umbrella.Id, pit, 0)
+	check(not ok, "can't place over a hole (" .. tostring(reason) .. ")")
+	local fountain = Mock.Tagged("WaterFountain")[1]
+	if fountain then
+		local fp = fountain.Position
+		local saved = sp.Character.HumanoidRootPart.Position
+		stand(Vector3.new(fp.X, Config.SURFACE_Y, fp.Z + 6))
+		ok, reason = Shades.Place(sp, umbrella.Id, Vector3.new(fp.X + 3, fp.Y, fp.Z + 3), 0)
+		check(not ok, "can't place on the hub fountain (" .. tostring(reason) .. ")")
+		stand(saved - Vector3.new(0, 3, 0))
+	end
+	ok, reason = Shades.Place(sp, umbrella.Id, spot, math.pi / 2)
+	check(ok and placeCount() == 1, "placed the umbrella (" .. tostring(reason) .. ")")
+	local placed = Shades.GetPlaced(sp)[1]
+	local model = placed and placed.Model
+	check(model ~= nil and model.Parent ~= nil and model.Parent.Name == "Shades", "shade model in Workspace.Shades")
+	check(model and model:GetAttribute("OwnerUserId") == sp.UserId, "shade has OwnerUserId")
+	check(model and #Mock.Tagged("PlacedShade") >= 1, "shade tagged PlacedShade")
+	check(model and math.abs(model:GetPivot().Position.Y - Config.SURFACE_Y) < 3.5, "shade sits on the sand surface")
+	-- remote path + spacing rule
+	local n0 = #Mock.Remote.ToClient
+	Mock.FireServer("PlaceShade", sp, umbrella.Id, spot + Vector3.new(0, 0, 40), 0)
+	Mock.FireServer("PlaceShade", sp, "nope", spot, 0)
+	Mock.FireServer("PlaceShade", sp, umbrella.Id, "garbage", 0)
+	Mock.Advance(0.5)
+	check(#notifies(sp, n0) >= 1 and placeCount() == 1, "bad PlaceShade remotes are refused with a toast")
+
+	-- Shade cools anyone under it
+	Mock.Advance(1)
+	check(sp:GetAttribute("InShade") == true and sp:GetAttribute("HeatZone") == "Shade", "InShade under own shade")
+	local other = Mock.AddPlayer(3102, "ShadeGuest")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(other)
+	Mock.Advance(2)
+	other.Character:PivotTo(CFrame.new(spot + Vector3.new(3, 3, 2)))
+	Mock.Advance(1)
+	check(other:GetAttribute("InShade") == true, "other players are shaded too")
+	local burnt0 = SurvivalService.GetHeat(sp)
+	Mock.Advance(2)
+	check(SurvivalService.GetHeat(sp) < burnt0 - 4, "heat falls in the shade")
+	Mock.Advance((Heat.RecoverAt + 5) / (Heat.ShadeFallPerSecond * umbrella.Cooling) + 2)
+	check(sp:GetAttribute("Sunburnt") == false, "Sunburnt clears after cooling to RecoverAt")
+	Mock.RemovePlayer(other)
+	Mock.Advance(0.5)
+
+	-- move it (same shade) and pick it up
+	ok = Shades.Place(sp, umbrella.Id, spot + Vector3.new(0, 0, 6), 0)
+	check(ok and placeCount() == 1, "placing again moves the shade (still 1)")
+	Mock.FireServer("PickUpShade", sp)
+	Mock.Advance(0.5)
+	check(placeCount() == 0 and #Mock.Tagged("PlacedShade") == 0, "PickUpShade removes it")
+
+	-- Consumables
+	local lemonade = Config.GetConsumable("lemonade")
+	DataService.Set(sp, "Coins", 1e9)
+	Mock.Advance(0.1)
+	Mock.FireServer("BuyConsumable", sp, "lemonade", 3)
+	Mock.Advance(0.3)
+	check(d.Consumables.lemonade == 3 and d.Coins == 1e9 - lemonade.Price * 3, "bought 3 lemonades")
+	Mock.FireServer("BuyConsumable", sp, "water", 1)
+	Mock.FireServer("BuyConsumable", sp, "lemonade", -5)
+	Mock.FireServer("BuyConsumable", sp, "lemonade", 1e9)
+	Mock.Advance(0.5)
+	check(d.Consumables.water == nil, "water is not for sale")
+	check(d.Consumables.lemonade == 3, "bad counts are ignored")
+	SurvivalService.SetHeat(sp, 80)
+	Mock.FireServer("UseConsumable", sp, "lemonade")
+	Mock.Advance(0.3)
+	check(d.Consumables.lemonade == 2, "UseConsumable spends one")
+	check(math.abs(SurvivalService.GetHeat(sp) - (80 - lemonade.Cooling)) < 3, "lemonade cools")
+	Mock.FireServer("UseConsumable", sp, "popsicle")
+	Mock.Advance(0.3)
+	check(d.Consumables.popsicle == nil, "can't use what you don't have")
+	Mock.FireServer("BuyConsumable", sp, "popsicle", 1)
+	Mock.Advance(0.3)
+	Mock.FireServer("UseConsumable", sp, "popsicle")
+	Mock.Advance(0.3)
+	check(d.Consumables.popsicle == nil and (d.Boosts.SugarRush or 0) > Mock.Env.os.time(), "popsicle grants Sugar Rush")
+	check((sp:GetAttribute("SpeedMultiplier") or 1) > 1, "Sugar Rush speeds up digging")
+
+	-- Fountain
+	if check(fountain ~= nil, "map has a WaterFountain") then
+		SurvivalService.SetHeat(sp, 95)
+		Mock.FireServer("DrinkFountain", sp) -- far away: nothing
+		Mock.Advance(0.6)
+		check(SurvivalService.GetHeat(sp) > 90, "can't drink from far away")
+		local fp = fountain.Position
+		stand(Vector3.new(fp.X, fp.Y + 1, fp.Z + 9))
+		Mock.Internal(humanoid).props.FloorMaterial = Enum.Material.Marble
+		Mock.FireServer("DrinkFountain", sp)
+		Mock.Advance(0.6)
+		local afterDrink = SurvivalService.GetHeat(sp)
+		check(afterDrink < 95 - 60 and sp:GetAttribute("Sunburnt") == false, "fountain water cools fast")
+		SurvivalService.SetHeat(sp, 90)
+		Mock.FireServer("DrinkFountain", sp)
+		Mock.Advance(0.6)
+		check(SurvivalService.GetHeat(sp) > 85, "fountain has a short cooldown")
+		Mock.Advance(Heat.FountainCooldownSeconds)
+		check(sp:GetAttribute("HeatZone") == "Cool", "off the hot sand (hub) = Cool zone")
+	end
+
+	-- Underground
+	SurvivalService.SetHeat(sp, 50)
+	stand(Vector3.new(spot.X, Config.SURFACE_Y - 40, spot.Z))
+	sp:SetAttribute("Depth", 40)
+	Mock.Advance(1)
+	check(sp:GetAttribute("HeatZone") == "Underground" and SurvivalService.GetHeat(sp) < 50, "underground cools")
+
+	-- Cooler Pack product (configured id) through ProcessReceipt
+	local marketplace = Mock.Service("MarketplaceService")
+	Config.Monetization.Products.CoolerPack.Id = 9300
+	local decision
+	Mock.Env.task.spawn(function()
+		decision = marketplace.ProcessReceipt({ PlayerId = 3101, ProductId = 9300, PurchaseId = "cooler-1" })
+	end)
+	Mock.Advance(1)
+	check(decision == Enum.ProductPurchaseDecision.PurchaseGranted, "Cooler Pack receipt granted")
+	check((d.Consumables.shaved_ice or 0) >= 5, "Cooler Pack grants consumables")
+	Config.Monetization.Products.CoolerPack.Id = 0
+
+	-- leaving despawns shades
+	stand(spot)
+	sp:SetAttribute("Depth", 0)
+	Shades.Place(sp, umbrella.Id, spot, 0)
+	check(placeCount() == 1, "placed before leaving")
+	Mock.RemovePlayer(sp)
+	Mock.Advance(3)
+	check(#Mock.Tagged("PlacedShade") == 0, "shades despawn when the owner leaves")
 end)
 
 section("shutdown")

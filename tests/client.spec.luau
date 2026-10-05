@@ -75,15 +75,12 @@ do
 	end)
 end
 
-local plots = World.GetPlots()
-local plot = plots[1]
+local zone = World.GetDigZone()
+local spawnCF = World.GetSpawnCFrame(1)
 local data = Config.NewPlayerData()
 data.Coins = 5000
 Mock.ServerFunctions.GetData = function()
 	return data
-end
-Mock.ServerFunctions.GetPlot = function()
-	return plot
 end
 Mock.ServerFunctions.GetOwnedPasses = function()
 	local passes = {}
@@ -94,7 +91,7 @@ Mock.ServerFunctions.GetOwnedPasses = function()
 end
 
 local player = Mock.AddLocalPlayer(1001, "Tester")
-local character = Mock.SpawnCharacter(player, plot.SpawnCFrame.Position + Vector3.new(0, 3, 0))
+local character = Mock.SpawnCharacter(player, spawnCF.Position)
 
 -- Client boot ---------------------------------------------------------------------------------------
 section("client boot")
@@ -105,12 +102,15 @@ local playerGui = player:FindFirstChild("PlayerGui")
 check(#playerGui:GetChildren() >= 4, "ScreenGuis created")
 
 Mock.FireClientEvent("DataChanged", data)
-Mock.FireClientEvent("PlotAssigned", plot)
 Mock.FireClientEvent("EventChanged", {})
 Mock.Advance(1)
 local State = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/State"])
 check(State.Loaded and State.Data.Coins == 5000, "State has the snapshot")
-check(State.Plot ~= nil and State.Plot.Id == plot.Id, "State has the plot")
+local zcf, zsize = State.GetDigZone()
+check(zcf ~= nil and zsize == zone.Size, "State reads the dig zone from workspace attributes")
+check(State.InDigZone(zone.CFrame.Position) and not State.InDigZone(Vector3.new(0, Config.SURFACE_Y, 40)), "State.InDigZone")
+local sand = State.NearestSand(spawnCF.Position, 8)
+check(sand ~= nil and State.InDigZone(sand) and (sand - spawnCF.Position).Magnitude < 40, "NearestSand is close to the spawn")
 
 -- Deltas
 Mock.FireClientEvent("DataChanged", { Coins = 6000, Sand = 5 })
@@ -292,7 +292,7 @@ Mock.Advance(0.5)
 
 -- Dig ---------------------------------------------------------------------------------------------
 section("dig")
-local c = plot.Origin.Position
+local c = zone.CFrame.Position
 character:PivotTo(CFrame.new(c + Vector3.new(0, 3, 6)))
 local camera = Mock.Service("Workspace").CurrentCamera
 camera.CFrame = CFrame.lookAt(c + Vector3.new(0, 14, 16), c)
@@ -311,7 +311,7 @@ if digs[1] then
 	check(Mock.typeof(pos) == "Vector3", "Dig argument is a Vector3")
 	check(
 		math.abs(pos.Y - Config.SURFACE_Y) < 1 and (Vector3.new(pos.X, c.Y, pos.Z) - c).Magnitude < 14,
-		"Dig hit point is on our plot's surface"
+		"Dig hit point is on the dig zone surface"
 	)
 end
 
@@ -330,6 +330,22 @@ Mock.Advance(0.2)
 Mock.FireEvent(UIS, "InputEnded", pad, false)
 Mock.Advance(0.6)
 check(#sent("Dig", s2) >= 1, "gamepad R2 digs")
+-- clicking the hub plaza (outside the dig zone) never reaches the server
+do
+	local hubPoint = Vector3.new(0, Config.SURFACE_Y, 34)
+	character:PivotTo(CFrame.new(hubPoint + Vector3.new(0, 3, -6)))
+	camera.CFrame = CFrame.lookAt(hubPoint + Vector3.new(0, 14, -16), hubPoint)
+	Mock.Advance(0.6)
+	local s3 = #Mock.Remote.ToServer
+	Mock.FireEvent(UIS, "InputBegan", click, false)
+	Mock.Advance(0.1)
+	Mock.FireEvent(UIS, "InputEnded", click, false)
+	Mock.Advance(0.5)
+	check(#sent("Dig", s3) == 0, "click outside the dig zone sends no Dig")
+	character:PivotTo(CFrame.new(c + Vector3.new(0, 3, 6)))
+	camera.CFrame = CFrame.lookAt(c + Vector3.new(0, 14, 16), c)
+	Mock.Advance(0.5)
+end
 
 local function digResult(overrides)
 	local r = {
@@ -352,7 +368,7 @@ end
 Mock.FireClientEvent("DigResult", digResult({}))
 Mock.FireClientEvent("DigResult", digResult({ NewLayer = true, LayerIndex = 2, Depth = 21 }))
 Mock.FireClientEvent("DigResult", digResult({ Sand = 20 }))
-for _, reason in { "TooHard", "BackpackFull", "OutOfPlot", "TooFar", "NoPlot", "Bottom", "Cooldown" } do
+for _, reason in { "TooHard", "BackpackFull", "OutOfZone", "TooFar", "Bottom", "Cooldown" } do
 	Mock.FireClientEvent("DigResult", digResult({ Success = false, Reason = reason, SandGained = 0 }))
 end
 Mock.Advance(2)
@@ -383,10 +399,10 @@ character:PivotTo(CFrame.new(c - Vector3.new(0, 80, 0)))
 Mock.Advance(2)
 local LayerController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/LayerController"])
 check(LayerController.LayerIndex == Config.GetLayerIndexAtDepth(80 - 3), "LayerController tracks depth")
-character:PivotTo(CFrame.new(0, Config.SURFACE_Y - 10, -100)) -- lower beach slope, outside any plot
+character:PivotTo(CFrame.new(0, Config.SURFACE_Y - 10, -100)) -- lower beach slope, outside the dig zone
 Mock.Advance(1)
 check(LayerController.Depth == 0, "beach slope / ocean is not 'underground' (depth " .. LayerController.Depth .. ")")
-character = Mock.SpawnCharacter(player, plot.SpawnCFrame.Position + Vector3.new(0, 3, 0))
+character = Mock.SpawnCharacter(player, spawnCF.Position)
 Mock.Advance(2)
 -- keyboard shortcuts
 for name, action in Mock.Actions do

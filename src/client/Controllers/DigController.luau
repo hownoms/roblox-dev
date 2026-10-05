@@ -122,7 +122,7 @@ local function swing()
 	local down = TweenService:Create(
 		equipped,
 		TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Grip = base * CFrame.Angles(math.rad(-65), 0, 0) }
+		{ Grip = base * CFrame.Angles(math.rad(30), 0, 0) }
 	)
 	down.Completed:Once(function()
 		local up = TweenService:Create(

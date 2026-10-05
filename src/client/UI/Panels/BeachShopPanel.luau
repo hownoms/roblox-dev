@@ -68,7 +68,7 @@ local function safeModel(builder: (string) -> Model, id: string): Model?
 	return nil
 end
 
-local function preview(face: Frame, colors: { Color3 }, model: Model?, pitch: number, distance: number)
+local function preview(face: Frame, colors: { Color3 }, model: Model?, pitch: number, fillAmount: number)
 	local frame = Instance.new("Frame")
 	frame.Name = "Preview"
 	frame.Size = UDim2.new(1, -12, 0, PREVIEW_HEIGHT)
@@ -84,7 +84,8 @@ local function preview(face: Frame, colors: { Color3 }, model: Model?, pitch: nu
 			Size = UDim2.fromScale(1, 1),
 			ZIndex = 4,
 			Pitch = pitch,
-			Distance = distance,
+			Fill = fillAmount,
+			Yaw = 25,
 			Parent = frame,
 		})
 		vp:SetModel(model)
@@ -131,7 +132,7 @@ end
 local function makeShadeCard(def: Types.ShadeDef, order: number, parent: Instance): ItemCard
 	local card = Card.new({ Name = def.Id, LayoutOrder = order, Color = C.PanelAlt, Parent = parent })
 	local face = card.Face
-	preview(face, { C.Sky, Style.Lighten(C.Sand, 0.1) }, safeModel(Models.Shade, def.Id), 14, 0.82)
+	preview(face, { C.Sky, Style.Lighten(C.Sand, 0.1) }, safeModel(Models.Shade, def.Id), 14, 0.86)
 	nameLabel(face, def.Name)
 	local stats = statsLabel(face)
 	stats.Text = string.format(
@@ -213,7 +214,7 @@ end
 local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: Instance): ItemCard
 	local card = Card.new({ Name = def.Id, LayoutOrder = order, Color = C.PanelAlt, Parent = parent })
 	local face = card.Face
-	preview(face, { Style.Lighten(C.Ocean, 0.35), C.Sky }, safeModel(Models.Consumable, def.Id), 18, 0.78)
+	preview(face, { Style.Lighten(C.Ocean, 0.35), C.Sky }, safeModel(Models.Consumable, def.Id), 18, 0.8)
 	nameLabel(face, def.Icon .. " " .. def.Name)
 	local stats = statsLabel(face)
 	local boost = if def.Boost then Config.GetBoost(def.Boost) else nil

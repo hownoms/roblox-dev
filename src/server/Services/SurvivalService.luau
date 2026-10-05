@@ -356,8 +356,9 @@ function SurvivalService.Init()
 		if not Net.IsString(id, 64) then
 			return
 		end
-		local n = if Net.IsInteger(count, 1, MAX_BUY_COUNT) then count else 1
-		SurvivalService.BuyConsumable(player, id, n)
+		if Net.IsInteger(count, 1, MAX_BUY_COUNT) then
+			SurvivalService.BuyConsumable(player, id, count)
+		end
 	end, { Rate = 4, Window = 1 })
 
 	Net.On("UseConsumable", function(player: Player, id: any)

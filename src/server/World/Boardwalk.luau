@@ -33,7 +33,14 @@ local function lamp(parent: Instance, ground: Vector3)
 		Material = Enum.Material.Metal,
 		Parent = parent,
 	})
-	Util.Ball(parent, "LampGlobe", ground + Vector3.new(0, 10.6, 0), 1.8, rgb(255, 240, 200), Enum.Material.Neon)
+	Util.Ball(
+		parent,
+		"LampGlobe",
+		ground + Vector3.new(0, 10.6, 0),
+		1.8,
+		rgb(230, 170, 100),
+		Enum.Material.SmoothPlastic
+	)
 end
 
 local function buildPromenade(parent: Instance)

@@ -81,8 +81,8 @@ function World.Build()
 		Name = "CoreFloor",
 		Size = Vector3.new(Layout.STRIP_HALF_X * 2, 4, Layout.STRIP_Z_INLAND - Layout.STRIP_Z_SEA),
 		CFrame = CFrame.new(0, Layout.BOTTOM_Y - 2, (Layout.STRIP_Z_INLAND + Layout.STRIP_Z_SEA) / 2),
-		Color = Color3.fromRGB(255, 200, 60),
-		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(200, 150, 45),
+		Material = Enum.Material.SmoothPlastic,
 		CastShadow = false,
 		Parent = map,
 	})
