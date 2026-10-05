@@ -393,6 +393,64 @@ export type TutorialStep = {
 
 -- Persistence & networking -----------------------------------------------------------------
 
+-- v2: survival (heat / shade / consumables) ---------------------------------------------------
+-- Owned by the Survival agent; may add fields, must keep these.
+
+export type HeatConfig = {
+	Max: number, -- heat meter range 0..Max
+	SunRisePerSecond: number, -- standing in the sun on the surface
+	DigRisePerDig: number, -- extra heat per dig while in the sun
+	ShadeFallPerSecond: number, -- base cooling while in shade (scaled by the shade's Cooling)
+	UndergroundDepth: number, -- studs below surface where it counts as underground (cool)
+	UndergroundFallPerSecond: number,
+	SunburntAt: number, -- heat at which the player becomes Sunburnt
+	RecoverAt: number, -- Sunburnt clears when heat drops to this
+	SunburntCooldownMultiplier: number, -- dig cooldown multiplier while Sunburnt (e.g. 2)
+	NewPlayerGraceSeconds: number, -- no heat gain for brand-new players' first minutes
+}
+
+export type ShadeDef = {
+	Id: string,
+	Name: string,
+	Price: number,
+	RebirthsRequired: number?,
+	Radius: number, -- studs (horizontal) of shade
+	Cooling: number, -- multiplier on HeatConfig.ShadeFallPerSecond
+	Look: { [string]: any },
+}
+
+export type ConsumableDef = {
+	Id: string,
+	Name: string,
+	Price: number, -- coins; 0 = free (e.g. water fountain only)
+	Cooling: number, -- heat removed instantly
+	Boost: string?, -- Config.Boosts id granted on use
+	BoostSeconds: number?,
+	Icon: string, -- emoji/text icon
+	Look: { [string]: any },
+}
+
+-- v2: digger companions -------------------------------------------------------------------------
+-- Owned by the Diggers agent; may add fields, must keep these.
+
+export type DiggerDef = {
+	Id: string,
+	Name: string,
+	Price: number,
+	RebirthsRequired: number?,
+	Power: number, -- can dig layers with Hardness <= Power
+	Interval: number, -- seconds between digs
+	Radius: number, -- dig size, same scale as shovel Radius
+	SandMultiplier: number,
+	MaxLevel: number,
+	Look: { [string]: any },
+}
+
+export type DiggerInstance = {
+	Level: number,
+	Equipped: boolean,
+}
+
 export type PlayerData = {
 	Coins: number,
 	Sand: number, -- sand currently in backpack
@@ -414,6 +472,9 @@ export type PlayerData = {
 	RedeemedCodes: { [string]: boolean },
 	Settings: { [string]: any },
 	Boosts: { [string]: number }, -- boostId -> expires unix
+	Consumables: { [string]: number }, -- v2: consumable id -> count
+	OwnedShades: { [string]: boolean }, -- v2
+	Diggers: { [string]: DiggerInstance }, -- v2: digger id -> instance
 	PlayTime: number, -- seconds
 	FirstJoin: number, -- unix
 	Version: number,

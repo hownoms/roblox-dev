@@ -33,6 +33,10 @@ local Boosts = require(script.Boosts)
 local Events = require(script.Events)
 local Sounds = require(script.Sounds)
 local Theme = require(script.Theme)
+local Heat = require(script.Heat)
+local Shades = require(script.Shades)
+local Consumables = require(script.Consumables)
+local Diggers = require(script.Diggers)
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
 local PLOT_FOOTPRINT = 28
@@ -56,6 +60,10 @@ local Config = {
 	Events = Events,
 	Sounds = Sounds,
 	Theme = Theme,
+	Heat = Heat,
+	Shades = Shades,
+	Consumables = Consumables,
+	Diggers = Diggers,
 
 	-- World --------------------------------------------------------------------------------
 	PLOT_COUNT = 12,
@@ -391,6 +399,9 @@ function Config.NewPlayerData(): Types.PlayerData
 		RedeemedCodes = {},
 		Settings = {},
 		Boosts = {},
+		Consumables = {},
+		OwnedShades = {},
+		Diggers = {},
 		PlayTime = 0,
 		FirstJoin = os.time(),
 		Version = Config.DATA_VERSION,

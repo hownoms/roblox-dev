@@ -22,6 +22,9 @@ local Eggs = require(script.Eggs)
 local Treasures = require(script.Treasures)
 local Backpacks = require(script.Backpacks)
 local Props = require(script.Props)
+local Shades = require(script.Shades)
+local Consumables = require(script.Consumables)
+local Diggers = require(script.Diggers)
 
 local Models = {}
 
@@ -52,6 +55,19 @@ end
 
 function Models.ListProps(): { string }
 	return Props.List()
+end
+
+-- v2 (Survival agent: Shade, Consumable; Diggers agent: Digger)
+function Models.Shade(shadeId: string): Model
+	return Shades.Build(shadeId)
+end
+
+function Models.Consumable(consumableId: string): Model
+	return Consumables.Build(consumableId)
+end
+
+function Models.Digger(diggerId: string): Model
+	return Diggers.Build(diggerId)
 end
 
 return Models

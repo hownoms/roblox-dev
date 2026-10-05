@@ -23,6 +23,18 @@ Remotes.Events = table.freeze({
 	"RedeemCode",
 	"SetSetting",
 	"PromptPurchase",
+	-- v2 survival
+	"BuyShade",
+	"PlaceShade", -- (shadeId: string, position: Vector3, yaw: number)
+	"PickUpShade",
+	"BuyConsumable", -- (id: string, count: number)
+	"UseConsumable", -- (id: string)
+	"DrinkFountain",
+	-- v2 diggers
+	"BuyDigger",
+	"EquipDigger",
+	"UnequipDigger",
+	"UpgradeDigger",
 	-- server -> client
 	"DataChanged",
 	"Notify",
@@ -31,6 +43,7 @@ Remotes.Events = table.freeze({
 	"EggHatched",
 	"PlotAssigned",
 	"EventChanged",
+	"DiggerDug", -- server -> all clients: (player: Player, diggerId: string, position: Vector3)
 })
 
 Remotes.Functions = table.freeze({
