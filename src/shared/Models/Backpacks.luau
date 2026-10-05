@@ -139,11 +139,32 @@ shapes.Vehicle = function(x)
 	-- dump / sand truck, length along X, wheels on the ±Z sides
 	local zc = 0.65
 	local main = Build.part(x.m, "Bed", V(1.5, 0.7, 1.15), CF(0.4, -0.12, zc) * CFrame.Angles(0, 0, 0.15), x.c, x.mat)
-	Build.ellipsoid(x.m, "SandFill", V(1.3, 0.55, 1.0), CF(0.42, 0.25, zc) * CFrame.Angles(0, 0, 0.15), SAND, Enum.Material.Sand)
+	Build.ellipsoid(
+		x.m,
+		"SandFill",
+		V(1.3, 0.55, 1.0),
+		CF(0.42, 0.25, zc) * CFrame.Angles(0, 0, 0.15),
+		SAND,
+		Enum.Material.Sand
+	)
 	Build.part(x.m, "Chassis", V(2.4, 0.3, 1.2), CF(0, -0.62, zc), x.a, x.am)
 	Build.part(x.m, "Cab", V(0.8, 0.95, 1.1), CF(-0.8, -0.1, zc), x.c, x.mat)
-	Build.part(x.m, "Window", V(0.5, 0.35, 1.14), CF(-0.75, 0.08, zc), Color3.fromRGB(140, 210, 255), Enum.Material.Glass)
-	Build.part(x.m, "Bumper", V(0.12, 0.2, 1.2), CF(-1.25, -0.55, zc), Color3.fromRGB(220, 220, 225), Enum.Material.Metal)
+	Build.part(
+		x.m,
+		"Window",
+		V(0.5, 0.35, 1.14),
+		CF(-0.75, 0.08, zc),
+		Color3.fromRGB(140, 210, 255),
+		Enum.Material.Glass
+	)
+	Build.part(
+		x.m,
+		"Bumper",
+		V(0.12, 0.2, 1.2),
+		CF(-1.25, -0.55, zc),
+		Color3.fromRGB(220, 220, 225),
+		Enum.Material.Metal
+	)
 	for _, px in { -0.8, 0.75 } do
 		for _, pz in { zc - 0.62, zc + 0.62 } do
 			wheel(x.m, V(px, -0.8, pz), Z, 0.6, Color3.fromRGB(220, 220, 225))

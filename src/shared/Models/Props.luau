@@ -53,7 +53,17 @@ builders.PalmTree = function(m, v)
 	local segs = 6
 	for i = 0, segs - 1 do
 		local a, b = at(i / segs), at((i + 1) / segs)
-		solid(Build.cylBetween(m, "Trunk", a, b + (b - a).Unit * 0.15, 1.15 - 0.07 * i, if i % 2 == 0 then barkA else barkB, M.Wood))
+		solid(
+			Build.cylBetween(
+				m,
+				"Trunk",
+				a,
+				b + (b - a).Unit * 0.15,
+				1.15 - 0.07 * i,
+				if i % 2 == 0 then barkA else barkB,
+				M.Wood
+			)
+		)
 	end
 	local top = at(1)
 	Build.ball(m, "Crown", 1.3, CF(top), rgb(60, 150, 70))
@@ -124,7 +134,14 @@ builders.Sandcastle = function(m, v)
 			solid(Build.cyl(m, "Tower", 3.2, 1.7, CF(c + V(0, 1.6, 0)), SAND, mat))
 			for k = 0, 3 do
 				local a = (k + 0.5) / 4 * PI * 2
-				Build.part(m, "Crenel", V(0.45, 0.45, 0.45), CF(c + V(math.cos(a) * 0.6, 3.42, math.sin(a) * 0.6)), SAND, mat)
+				Build.part(
+					m,
+					"Crenel",
+					V(0.45, 0.45, 0.45),
+					CF(c + V(math.cos(a) * 0.6, 3.42, math.sin(a) * 0.6)),
+					SAND,
+					mat
+				)
 			end
 		end
 	end
@@ -160,6 +177,11 @@ builders.Crab = function(m, v)
 		end
 	end
 	crab:Destroy()
+	for _, d in m:GetDescendants() do
+		if d:IsA("WeldConstraint") then
+			d:Destroy()
+		end
+	end
 end
 
 local function trussPart(m: Model, size: Vector3, cf: CFrame, color: Color3): TrussPart
@@ -179,7 +201,9 @@ builders.LifeguardTower = function(m, v)
 	local wood = M.Wood
 	for sx = -1, 1, 2 do
 		for sz = -1, 1, 2 do
-			solid(Build.beam(m, "Leg", V(sx * 2.0, 0, sz * 2.0), V(sx * 1.75, 6.1, sz * 1.75), 0.4, 0.4, WHITE, wood, X))
+			solid(
+				Build.beam(m, "Leg", V(sx * 2.0, 0, sz * 2.0), V(sx * 1.75, 6.1, sz * 1.75), 0.4, 0.4, WHITE, wood, X)
+			)
 		end
 		Build.beam(m, "Brace", V(sx * 1.95, 0.6, -1.95), V(sx * 1.8, 5.5, 1.8), 0.22, 0.22, WHITE, wood, Z)
 	end
@@ -222,7 +246,14 @@ builders.BoardwalkStall = function(m, v)
 	end
 	for i = 0, 4 do
 		local x = -2.0 + i
-		Build.part(m, "Awning", V(1.0, 0.15, 3.9), CF(x, 4.0, -0.1) * CFrame.Angles(-0.2, 0, 0), cols[i % 2 + 1], M.Fabric)
+		Build.part(
+			m,
+			"Awning",
+			V(1.0, 0.15, 3.9),
+			CF(x, 4.0, -0.1) * CFrame.Angles(-0.2, 0, 0),
+			cols[i % 2 + 1],
+			M.Fabric
+		)
 		Build.tri(m, "Valance", CF(x, 3.42, -2.03) * CFrame.Angles(0, 0, PI), 1.0, 0.4, 0.06, cols[i % 2 + 1], M.Fabric)
 	end
 	local sign = Build.part(m, "SignBoard", V(3.2, 0.9, 0.15), CF(0, 4.85, -1.0), cols[1])
@@ -282,7 +313,13 @@ builders.Shell = function(m, v)
 	Build.ellipsoid(m, "Back", V(2.0, 0.25, 1.5), CF(0, 0.13, 0), Build.darken(col, 0.1))
 	for _, a in { -0.9, -0.45, 0, 0.45, 0.9 } do
 		local dir = V(math.sin(a), 0, -math.cos(a))
-		Build.ellipsoid(m, "Rib", V(0.5, 0.35, 1.6), CF(hinge + dir * 0.75 + V(0, 0.08, 0)) * CFrame.Angles(0, -a, 0), Build.lighten(col, 0.1))
+		Build.ellipsoid(
+			m,
+			"Rib",
+			V(0.5, 0.35, 1.6),
+			CF(hinge + dir * 0.75 + V(0, 0.08, 0)) * CFrame.Angles(0, -a, 0),
+			Build.lighten(col, 0.1)
+		)
 	end
 	Build.part(m, "Hinge", V(0.7, 0.25, 0.3), CF(0, 0.13, 0.8), col)
 end
@@ -345,7 +382,9 @@ builders.Bench = function(m, v)
 		solid(Build.part(m, "Seat", V(5, 0.18, 0.45), CF(0, 1.5, z), wood, M.Wood))
 	end
 	for i, y in { 2.2, 2.75 } do
-		solid(Build.part(m, "Back", V(5, 0.4, 0.15), CF(0, y, 0.78 + i * 0.05) * CFrame.Angles(-0.15, 0, 0), wood, M.Wood))
+		solid(
+			Build.part(m, "Back", V(5, 0.4, 0.15), CF(0, y, 0.78 + i * 0.05) * CFrame.Angles(-0.15, 0, 0), wood, M.Wood)
+		)
 	end
 	for _, x in { -2.2, 2.2 } do
 		Build.part(m, "Leg", V(0.2, 1.5, 0.2), CF(x, 0.75, -0.55), metal, M.Metal)
@@ -371,7 +410,15 @@ builders.Starfish = function(m, v)
 	Build.ellipsoid(m, "Body", V(1.0, 0.3, 1.0), c, col)
 	for k = 0, 4 do
 		local a = k / 5 * PI * 2
-		Build.tri(m, "Arm", c * CFrame.Angles(0, a, 0) * CFrame.Angles(-PI / 2, 0, 0) * CF(0, 0.85, 0), 0.8, 1.0, 0.25, col)
+		Build.tri(
+			m,
+			"Arm",
+			c * CFrame.Angles(0, a, 0) * CFrame.Angles(-PI / 2, 0, 0) * CF(0, 0.85, 0),
+			0.8,
+			1.0,
+			0.25,
+			col
+		)
 		Build.ball(m, "Dot", 0.16, c * CFrame.Angles(0, a, 0) * CF(0, 0.12, -0.75), dot)
 	end
 end
@@ -431,7 +478,8 @@ builders.SurfShack = function(m, v)
 	solid(Build.part(m, "FrontHeader", V(8.4, 1.2, 0.4), CF(1.8, 5.0, -4.8), wallCol, W))
 	Build.part(m, "WindowPost", V(0.3, 2.0, 0.3), CF(1.8, 3.4, -4.8), trim, W)
 	solid(Build.part(m, "Counter", V(8.6, 0.2, 1.0), CF(1.8, 2.5, -5.1), trim, W))
-	local ra, rb = Build.tri(m, "Roof", CF(0, 7.0, 0) * CFrame.Angles(0, PI / 2, 0), 11.5, 2.8, 13, rgb(225, 185, 105), M.Fabric)
+	local ra, rb =
+		Build.tri(m, "Roof", CF(0, 7.0, 0) * CFrame.Angles(0, PI / 2, 0), 11.5, 2.8, 13, rgb(225, 185, 105), M.Fabric)
 	solid(ra)
 	solid(rb)
 	local sign = Build.part(m, "SignBoard", V(6, 1.3, 0.3), CF(1.2, 6.25, -5.35), trim, W)
