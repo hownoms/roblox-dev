@@ -88,7 +88,7 @@ shapes.Bird = function(c)
 	local headC = V(0, 1.95, -0.3)
 	Build.ball(m, "Head", 1.1, CF(headC), B)
 	Build.face(m, CF(0, 1.98, -0.84), 0.85, { mouth = false, radius = 0.55 })
-	Build.spike(m, "Beak", V(0, 1.84, -0.72), V(0, 1.76, -1.22), 0.36, A)
+	Build.ellipsoid(m, "Beak", V(0.4, 0.24, 0.55), CF(0, 1.8, -0.86), A, am)
 	Build.triPts(m, "Crest", V(0, 2.4, -0.35), V(0, 2.85, -0.12), Z, 0.36, 0.12, A, am)
 	Build.triPts(m, "Crest", V(0, 2.38, -0.1), V(0, 2.72, 0.22), Z, 0.3, 0.12, A, am)
 	for side = -1, 1, 2 do
@@ -130,8 +130,8 @@ shapes.Turtle = function(c)
 		Build.ellipsoid(m, "Plate", V(0.62, 0.62, 0.2), Build.surface(shellC, shellS, dir), plate, c.am)
 	end
 	Build.ellipsoid(m, "Belly", V(1.7, 0.35, 1.8), CF(0, 0.45, 0.1), Build.lighten(B, 0.35))
-	Build.ball(m, "Head", 0.95, CF(0, 0.95, -1.15), B)
-	Build.face(m, CF(0, 0.97, -1.62), 0.8, { radius = 0.48 })
+	Build.ball(m, "Head", 0.95, CF(0, 1.0, -1.4), B)
+	Build.face(m, CF(0, 1.02, -1.87), 0.8, { radius = 0.48 })
 	for side = -1, 1, 2 do
 		for _, z in { -0.6, 0.75 } do
 			Build.ellipsoid(m, "Leg", V(0.5, 0.36, 0.62), CF(side * 0.78, 0.2, z) * CFrame.Angles(0, side * 0.4, 0), B)
@@ -202,7 +202,7 @@ shapes.Blob = function(c)
 	Build.face(m, CF(0, 0.8, -0.9), 1.1, { radius = 0.92 })
 	if puffer then
 		for k = 0, 7 do
-			local a = math.rad(45 * k)
+			local a = math.rad(45 * k + 22.5)
 			local dir = V(math.cos(a), if k % 2 == 0 then 0.35 else -0.05, math.sin(a))
 			local cf = Build.surface(bc, bs, dir)
 			local n = cf.LookVector

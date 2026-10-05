@@ -15,7 +15,7 @@ local V = Vector3.new
 local CF = CFrame.new
 
 local LOW_C, LOW_S = V(0, 1.2, 0), V(2.3, 2.4, 2.3)
-local TOP_C, TOP_S = V(0, 1.75, 0), V(1.9, 2.4, 1.9)
+local TOP_C, TOP_S = V(0, 1.65, 0), V(2.05, 2.6, 2.05)
 
 local FALLBACK: Types.EggLook = {
 	ShellColor = Color3.fromRGB(255, 245, 220),

@@ -285,7 +285,7 @@ builders.BeachBall = function(m, v)
 		{ rgb(255, 120, 200), rgb(90, 220, 140), rgb(255, 160, 40) },
 	}
 	for i, col in pick(sets, v) do
-		Build.ellipsoid(m, "Stripe", V(2.03, 2.03, 0.55), CF(c) * CFrame.Angles(0, (i - 1) * PI / 3, 0), col)
+		Build.ellipsoid(m, "Stripe", V(2.15, 2.15, 1.4), CF(c) * CFrame.Angles(0, (i - 1) * PI / 3, 0), col)
 	end
 	Build.ball(m, "Cap", 0.45, CF(c + V(0, 0.9, 0)), WHITE)
 end

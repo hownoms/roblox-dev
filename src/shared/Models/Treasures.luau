@@ -112,7 +112,11 @@ end
 shapes.Gem = function(x)
 	local main = Build.cyl(x.m, "Girdle", 0.22, 1.1, CF(0, 0.1, 0), x.c, x.mat)
 	Build.cyl(x.m, "Crown", 0.3, 0.78, CF(0, 0.35, 0), Build.lighten(x.c, 0.25), x.mat)
-	Build.spike(x.m, "Pavilion", V(0, 0.02, 0), V(0, -0.75, 0), 1.05, Build.darken(x.c, 0.08), x.mat)
+	local pav = Build.darken(x.c, 0.08)
+	local pcf = CFrame.new(0, -0.37, 0) * CFrame.Angles(math.pi, 0, 0)
+	for k = 0, 3 do
+		Build.tri(x.m, "Pavilion", pcf * CFrame.Angles(0, k * math.pi / 4, 0), 1.05, 0.78, 0.14, pav, x.mat)
+	end
 	if x.glow then
 		Build.ball(x.m, "Glint", 0.3, CF(0, 0.05, 0), Build.lighten(x.c, 0.5), NEON)
 	end
@@ -378,10 +382,33 @@ specials.beach_ball_of_creation = function(x)
 	local main = Build.ball(x.m, "Ball", 1.3, CF(), WHITE)
 	local stripes = { Color3.fromRGB(255, 70, 70), Color3.fromRGB(255, 215, 50), Color3.fromRGB(60, 150, 255) }
 	for i, col in stripes do
-		Build.ellipsoid(x.m, "Stripe", V(1.32, 1.32, 0.36), CFrame.Angles(0, (i - 1) * math.pi / 3, 0), col, NEON)
+		Build.ellipsoid(x.m, "Stripe", V(1.4, 1.4, 0.9), CFrame.Angles(0, (i - 1) * math.pi / 3, 0), col, NEON)
 	end
 	Build.ball(x.m, "Cap", 0.3, CF(0, 0.62, 0), WHITE, NEON)
 	return main, CFrame.Angles(0.3, 0.2, 0)
+end
+
+specials.trex_tooth = function(x)
+	local main = Build.ellipsoid(x.m, "Tooth", V(0.62, 0.95, 0.5), CF(0, -0.2, 0), x.c, x.mat)
+	Build.ellipsoid(x.m, "Tooth", V(0.42, 0.85, 0.36), CF(0.07, 0.3, 0) * CFrame.Angles(0, 0, -0.18), x.c, x.mat)
+	Build.ellipsoid(x.m, "Tip", V(0.22, 0.4, 0.2), CF(0.16, 0.66, 0) * CFrame.Angles(0, 0, -0.3), x.c, x.mat)
+	Build.ellipsoid(x.m, "Root", V(0.5, 0.3, 0.42), CF(0, -0.62, 0), Build.darken(x.c, 0.2), x.mat)
+	return main, CFrame.Angles(0, 0.4, -0.1)
+end
+
+specials.mammoth_tusk = function(x)
+	local pts = {}
+	for i = 0, 4 do
+		local a = math.rad(200 - i * 30)
+		table.insert(pts, V(math.cos(a) * 0.7 + 0.1, math.sin(a) * 0.7 + 0.25, 0))
+	end
+	local main: BasePart = Build.cylBetween(x.m, "Tusk", pts[1], pts[2], 0.42, Build.darken(x.c, 0.1), x.mat)
+	for i = 2, #pts - 1 do
+		Build.ball(x.m, "Joint", 0.42 - (i - 1) * 0.07, CF(pts[i]), x.c, x.mat)
+		Build.cylBetween(x.m, "Tusk", pts[i], pts[i + 1], 0.42 - (i - 1) * 0.07, x.c, x.mat)
+	end
+	Build.ball(x.m, "Tip", 0.16, CF(pts[#pts]), x.c, x.mat)
+	return main, CFrame.Angles(0, 0.3, 0)
 end
 
 local RAINBOW_GLOW = Color3.fromRGB(255, 230, 160)
