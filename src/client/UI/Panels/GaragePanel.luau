@@ -5,7 +5,7 @@
 
 	Top bar: slot pips (equipped / slots) + how to get more slots (AutoDig pass, rebirth 2 / 5).
 	Cards (one per Config.Diggers entry, price order): a ViewportFrame preview of Models.Digger
-	framed by the model's bounding box so it fills the card, level stars, stats (deepest layer it
+	(Viewport component, Fill 0.85 of the visible-part bounds, 3/4 front view), level stars, stats (deepest layer it
 	can dig, seconds per dig, sand multiplier at the current level), and buttons:
 	  not owned: Buy <price> (green) / <price> (can't afford, disabled) / 🔒 Rebirth N
 	  owned:     Equip (blue) | Unequip (grey) | Slots full (disabled)  +  Upgrade <cost> / MAX
@@ -25,6 +25,7 @@ local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
+local Viewport = require(Components.Viewport)
 local Icons = require(script.Parent.Parent.Icons)
 local UIEffects = require(script.Parent.Parent.UIEffects)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
@@ -37,8 +38,6 @@ local C = Style.Colors
 local ICON = "🚜"
 local CARD_SIZE = Vector2.new(196, 340)
 local PREVIEW_SIZE = Vector2.new(CARD_SIZE.X - 16, 132)
-local CAMERA_FOV = 30
-local VIEW_DIR = Vector3.new(0.85, 0.55, -1).Unit -- front-right-above (models face -Z)
 
 type DiggerCard = {
 	Id: string,
@@ -90,29 +89,6 @@ local function layerName(power: number): string
 	return Icons.Layer(layer.Id) .. " " .. layer.Name
 end
 
--- Frames `model` so its bounding box fills a viewport of the given aspect ratio (3/4 view).
-local function frameModel(camera: Camera, model: Model, aspect: number, margin: number)
-	model:PivotTo(CFrame.new())
-	local boxCFrame, size = model:GetBoundingBox()
-	local center = boxCFrame.Position
-	local view = CFrame.lookAt(center + VIEW_DIR, center)
-	local tanV = math.tan(math.rad(CAMERA_FOV / 2)) * margin
-	local tanH = tanV * aspect
-	local distance = 0
-	for _, sx in { -1, 1 } do
-		for _, sy in { -1, 1 } do
-			for _, sz in { -1, 1 } do
-				local corner = boxCFrame:PointToWorldSpace(Vector3.new(sx, sy, sz) * size / 2)
-				local p = view.Rotation:PointToObjectSpace(corner - center)
-				-- camera at center + VIEW_DIR * d looks along -VIEW_DIR; depth = d - p.Z
-				distance = math.max(distance, p.Z + math.abs(p.X) / tanH, p.Z + math.abs(p.Y) / tanV)
-			end
-		end
-	end
-	camera.FieldOfView = CAMERA_FOV
-	camera.CFrame = CFrame.lookAt(center + VIEW_DIR * math.max(distance, 1), center)
-end
-
 local function makePreview(id: string, parent: Instance)
 	local preview = Instance.new("Frame")
 	preview.Name = "Preview"
@@ -125,19 +101,16 @@ local function makePreview(id: string, parent: Instance)
 	Style.Corner(preview, Style.Theme.CornerSmall)
 	Style.Gradient(preview, { C.Sky, C.Sand }, 90)
 
-	local viewport = Instance.new("ViewportFrame")
-	viewport.Name = "Viewport"
-	viewport.BackgroundTransparency = 1
-	viewport.Size = UDim2.fromScale(1, 1)
-	viewport.ZIndex = 4
-	viewport.Ambient = Color3.fromRGB(190, 190, 200)
-	viewport.LightColor = Color3.fromRGB(255, 250, 235)
-	viewport.LightDirection = Vector3.new(-1, -1.4, -0.8)
-	viewport.Parent = preview
-	local camera = Instance.new("Camera")
-	camera.Parent = viewport
-	viewport.CurrentCamera = camera
-
+	local vp = Viewport.new({
+		Name = "Viewport",
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+		Spin = false,
+		Fill = 0.85,
+		Yaw = 30,
+		Pitch = 18,
+		Parent = preview,
+	})
 	local ok, result = pcall(Models.Digger, id)
 	if ok and typeof(result) == "Instance" and result:IsA("Model") then
 		local model = result :: Model
@@ -146,8 +119,7 @@ local function makePreview(id: string, parent: Instance)
 				d:Destroy()
 			end
 		end
-		frameModel(camera, model, PREVIEW_SIZE.X / PREVIEW_SIZE.Y, 0.9)
-		model.Parent = viewport
+		vp:SetModel(model)
 	else
 		warn("[GaragePanel] Models.Digger failed for", id, result)
 	end

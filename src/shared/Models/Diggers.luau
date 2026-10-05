@@ -510,7 +510,7 @@ function Diggers.Build(id: string): Model
 	local main = builder(ctx)
 	if glow then
 		Build.glow(main, accent, 1, 9)
-		Build.sparkle(main, accent, 3)
+		Build.sparkle(main, accent, 2)
 	end
 
 	-- Weld static parts only: hinge assemblies are re-posed by the client every frame.
