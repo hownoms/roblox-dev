@@ -2926,6 +2926,7 @@ function Mock.Init(generated, opts)
 		game = g,
 		workspace = workspace,
 		Workspace = workspace,
+		shared = {},
 		script = nil,
 		require = mockRequire,
 		task = task,

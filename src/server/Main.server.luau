@@ -14,6 +14,13 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local sharedState = shared :: any
+if sharedState.DigToTheCoreServer then
+	warn("[Main] Duplicate server script ignored: " .. script:GetFullName() .. ". Delete the extra copy.")
+	return
+end
+sharedState.DigToTheCoreServer = script:GetFullName()
+
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 Remotes.CreateAll()
 

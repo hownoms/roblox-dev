@@ -110,14 +110,16 @@ local function carve(plot: Types.PlotInfo, target: Vector3, radius: number)
 	local sz = axisStart(target.Z, origin.Z - half.Z, origin.Z + half.Z)
 	local floorY = origin.Y - plot.Size.Y + BOTTOM_FLOOR
 	local sy = math.max(math.floor(target.Y / VOXEL) - math.floor((cells - 1) / 2), math.ceil(floorY / VOXEL))
-	local size = Vector3.new(cells, cells, cells) * VOXEL
+	-- One extra voxel on top clears the partially filled surface voxel above the dig.
+	local size = Vector3.new(cells, cells + 1, cells) * VOXEL
 	local min = Vector3.new(sx, sy, sz) * VOXEL
 	terrain:FillBlock(CFrame.new(min + size / 2), size, Enum.Material.Air)
 end
 
 -- The smooth-terrain surface a player clicks is not on voxel boundaries, so the raw hit point can
 -- sit in the empty voxel above the ground. Re-cast from the digger toward the click and step 2
--- studs into the surface along its normal, which always lands inside the solid voxel.
+-- studs into the surface along its normal. 3 studs (not 2) so a hit exactly on a voxel boundary
+-- still lands in the solid voxel below rather than the partially filled one above.
 local terrainOnly = RaycastParams.new()
 terrainOnly.FilterType = Enum.RaycastFilterType.Include
 terrainOnly.FilterDescendantsInstances = { terrain }
@@ -128,11 +130,11 @@ local function resolveTarget(position: Vector3, root: BasePart?): Vector3
 		if offset.Magnitude > 0.01 then
 			local hit = Workspace:Raycast(root.Position, offset.Unit * (offset.Magnitude + 6), terrainOnly)
 			if hit then
-				return hit.Position - hit.Normal * 2
+				return hit.Position - hit.Normal * 3
 			end
 		end
 	end
-	return position - Vector3.new(0, 2, 0)
+	return position - Vector3.new(0, 3, 0)
 end
 
 local function hasSolidTerrainNear(position: Vector3): boolean

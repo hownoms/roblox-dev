@@ -6,6 +6,26 @@
 	never takes the whole client down, and nothing blocks on PlayerData: UI renders defaults
 	and fills in when DataChanged / GetData arrives (State.Observe).
 ]]
+-- Guard against a second copy of the client (e.g. a stale "Client" folder left in the place
+-- next to the Rojo-synced one), which would double every popup and remote call.
+local sharedState = shared :: any
+if sharedState.DigToTheCoreClient then
+	warn(
+		"[Client] Duplicate client script ignored: "
+			.. script:GetFullName()
+			.. " (already running: "
+			.. tostring(sharedState.DigToTheCoreClient)
+			.. "). Delete the extra copy from StarterPlayerScripts."
+	)
+	return
+end
+sharedState.DigToTheCoreClient = script:GetFullName()
+
+-- The shovel is auto-equipped, so hide Roblox's tool hotbar (it covers the backpack bar).
+pcall(function()
+	game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+end)
+
 local Client = script.Parent
 local Controllers = Client:WaitForChild("Controllers")
 local UI = Client:WaitForChild("UI")
