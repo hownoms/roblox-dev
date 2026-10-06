@@ -711,6 +711,52 @@ do
 	check(Panel.Current() == "Eggs" and #Mock.Errors == e0, "egg panel opens on a crate")
 	local kind = window:FindFirstChild("Kind", true)
 	check(kind ~= nil and string.find(kind.Text, "Construction Crate", 1, true) ~= nil, "crate detail says Construction Crate")
+	do
+		-- playtest: crates were mixed into the egg list. Crates tab shows only crates; Eggs tab only eggs.
+		local EggPanelMod = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Panels/EggPanel"])
+		local function shownCards(): { [string]: boolean }
+			local shown = {}
+			for _, egg in Config.Eggs do
+				local holder = window:FindFirstChild(egg.Id, true)
+				while holder and holder.Parent and not holder.Parent:IsA("ScrollingFrame") do
+					holder = holder.Parent
+				end
+				if holder and holder:IsA("GuiObject") and holder.Visible then
+					shown[egg.Id] = true
+				end
+			end
+			return shown
+		end
+		local function onlyKind(crates: boolean): boolean
+			local shown, any = shownCards(), false
+			for _, egg in Config.Eggs do
+				if shown[egg.Id] then
+					any = true
+					if (egg.Kind == "Crate") ~= crates then
+						return false
+					end
+				end
+			end
+			return any
+		end
+		check(EggPanelMod.GetTab() == "Crates", "a crate EggId opens the Crates tab")
+		check(onlyKind(true), "Crates tab lists only crates")
+		local title = window:FindFirstChild("Title", true)
+		check(title ~= nil and title.Text == "Construction Crates", "Crates tab is titled Construction Crates")
+		Panel.CloseAll()
+		Mock.Advance(0.3)
+		Panel.Open("Eggs")
+		Mock.Advance(0.5)
+		check(EggPanelMod.GetTab() == "Eggs" and onlyKind(false), "the menu opens the Eggs tab with eggs only")
+		check(title ~= nil and title.Text == "Eggs", "Eggs tab is titled Eggs")
+		EggPanelMod.SelectTab("Crates")
+		Mock.Advance(0.3)
+		check(onlyKind(true), "switching to the Crates tab shows crates")
+		Panel.CloseAll()
+		Mock.Advance(0.3)
+		Panel.Open("Eggs", { EggId = topCrate.Id })
+		Mock.Advance(1)
+	end
 	local digRows, rideRow = 0, false
 	for _, d in window:GetDescendants() do
 		if d:IsA("TextLabel") and d.Name == "Dig" and string.find(d.Text, "digs", 1, true) then
@@ -863,6 +909,8 @@ do
 		Mock.FireEvent(prompt, "Triggered", player)
 		Mock.Advance(0.5)
 		check(Panel.Current() == "Eggs", "crate pallet prompt opens the egg panel")
+		local EggPanelMod = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Panels/EggPanel"])
+		check(EggPanelMod.GetTab() == "Crates", "crate pallet prompt opens the Crates tab")
 	end
 	Panel.CloseAll()
 	Mock.Advance(0.5)
@@ -1181,15 +1229,35 @@ do
 	local spade = makeTool(hand.Id)
 	spade.Parent = otherChar
 	Mock.Advance(0.3)
-	check(not Pose.GetDebug(otherChar).Posed, "hand spade at rest keeps the hold animation")
+	-- v2.2 playtest: the spade rests with the arm down at the side (not held out in front), so
+	-- the scoop swings forward and UP instead of first dropping the arm.
+	local sd = Pose.GetDebug(otherChar)
+	check(sd.Posed and not sd.TwoHanded, "hand spade is posed at rest")
+	local sr = poseReport(otherRig, spade)
+	check(sr.Palm.Y < sr.Shoulder.Y - 1.2, "spade arm hangs at the side (" .. sr.Palm.Y - sr.Shoulder.Y .. ")")
+	check(sr.Blade.Z < sr.Palm.Z - 0.3, "spade points forward at rest")
+	check(sr.MaxJointSlip < 1e-3, "spade arm joints stay connected")
+	local restPalm = sr.Palm
 	Mock.FireClientEvent("Scoop", other)
-	Mock.Advance(0.2)
-	local od = Pose.GetDebug(otherChar)
-	check(od.Scooping and od.Posed and not od.TwoHanded, "other player's one-handed scoop plays")
+	local lowPalm, highPalm, scooped = math.huge, -math.huge, false
+	for _ = 1, 30 do
+		Mock.Advance(1 / 30)
+		local od = Pose.GetDebug(otherChar)
+		scooped = scooped or (od.Scooping and od.Posed and not od.TwoHanded)
+		local rr = poseReport(otherRig, spade)
+		lowPalm = math.min(lowPalm, rr.Palm.Y)
+		highPalm = math.max(highPalm, rr.Palm.Y)
+	end
+	check(scooped, "other player's one-handed scoop plays")
 	check(otherRig.LeftShoulder.Transform == CFrame.identity, "one-handed scoop leaves the left arm alone")
-	Mock.Advance(1)
-	check(not Pose.GetDebug(otherChar).Posed, "one-handed scoop blends back out")
-	check(otherRig.RightShoulder.Transform == CFrame.identity, "joints reset after the scoop")
+	check(lowPalm > restPalm.Y - 0.1, "spade scoop never drops the hand first (" .. lowPalm - restPalm.Y .. ")")
+	check(highPalm > restPalm.Y + 0.8, "spade scoop lifts the hand up (" .. highPalm - restPalm.Y .. ")")
+	Mock.Advance(0.5)
+	check(not Pose.IsScooping(otherChar), "one-handed scoop finishes")
+	check((poseReport(otherRig, spade).Palm - restPalm).Magnitude < 0.05, "spade arm returns to the side")
+	spade.Parent = nil
+	Mock.Advance(0.2)
+	check(otherRig.RightShoulder.Transform == CFrame.identity, "putting the spade away resets the arm")
 
 	-- R6 characters are skipped
 	otherChar:FindFirstChildOfClass("Humanoid").RigType = Enum.HumanoidRigType.R6

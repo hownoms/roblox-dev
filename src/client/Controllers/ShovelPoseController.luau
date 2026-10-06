@@ -8,8 +8,11 @@
 	    both arms are solved with 2-bone IK every frame so the right fist holds the top grip and
 	    the left fist holds the shaft lower down; the upper body twists and leans a little like
 	    a real digger. Arms ignore the walk animation while the shovel is out (legs still walk).
-	  * Hand tools (one-handed spade / trowel): the normal "toolnone" hold animation is kept;
-	    during a scoop the right arm is blended into a quick one-handed scoop flick.
+	  * Hand tools (one-handed spade / trowel): the right arm hangs at the side with the spade
+	    pointing forward/down (ONE_HAND_REST, solved with IK like the two-handed hold). v2.2
+	    playtest: with the default "toolnone" hold (arm out in front) every scoop first had to
+	    drop the arm, so the scoop read as digging DOWN. Now a scoop swings the blade forward
+	    into the sand and lifts it UP, then the arm goes back to the side.
 	  * Scoop (both): wind-up (blade lifts back) -> thrust down/forward into the sand -> LIFT the
 	    blade up with a sand clump on it -> toss forward -> back to rest. The length follows the
 	    shovel cooldown (SCOOP_*); a scoop that starts while another runs continues from the
@@ -159,37 +162,30 @@ local TWO_HAND_FAST: { Key } = {
 	{ T = 1, Pose = TWO_HAND_REST },
 }
 
--- One-handed rest ~ the default "toolnone" hold (forearm forward, spade pointing down/forward),
--- so blending in and out of the hold animation is gentle.
+-- One-handed rest: arm hanging at the side, hand by the hip just in front of the thigh, spade
+-- pointing forward and down (blade clear of the leg).
 local ONE_HAND_REST: Pose = {
-	Hand = V3(0.22, -0.4, -0.52),
-	Shaft = V3(-0.1, -0.82, -0.565),
+	Hand = V3(0.1, -0.9, -0.2),
+	Shaft = V3(0.05, -0.5, -0.86),
 	Roll = 0,
 	Yaw = 0,
 	Lean = 0,
 }
+-- From the side: swing the blade forward and down into the sand (lean in), then lift it UP with
+-- the sand on it and flick it forward, then let the arm fall back to the side.
 local ONE_HAND_SCOOP: { Key } = {
 	{ T = 0, Pose = ONE_HAND_REST },
 	{
-		T = 0.22,
-		Pose = { Hand = V3(0.2, -0.24, -0.48), Shaft = V3(-0.1, -0.35, -0.93), Roll = 0, Yaw = 0, Lean = rad(2) },
-	},
-	{
-		T = 0.48,
+		T = 0.38,
 		Pose = { Hand = V3(0.06, -0.72, -0.5), Shaft = V3(-0.12, -0.85, -0.5), Roll = 0, Yaw = rad(-6), Lean = rad(34) },
 	},
 	{
-		T = 0.76,
+		T = 0.72,
 		Pose = { Hand = V3(0.18, -0.2, -0.62), Shaft = V3(-0.1, 0.35, -0.93), Roll = rad(-45), Yaw = 0, Lean = rad(4) },
 	},
 	{ T = 1, Pose = ONE_HAND_REST },
 }
-local ONE_HAND_FAST: { Key } = {
-	{ T = 0, Pose = ONE_HAND_REST },
-	{ T = 0.38, Pose = ONE_HAND_SCOOP[3].Pose },
-	{ T = 0.72, Pose = ONE_HAND_SCOOP[4].Pose },
-	{ T = 1, Pose = ONE_HAND_REST },
-}
+local ONE_HAND_FAST: { Key } = ONE_HAND_SCOOP -- no wind-up to skip any more
 
 -- Elbow pole directions (where the elbow points): out to the side, down and a little back.
 local RIGHT_POLE = V3(0.8, -0.6, 0.6)
@@ -200,16 +196,15 @@ local ELBOW_MAX = rad(150) -- elbow flexion limit
 local LEFT_REACH = 0.97 -- left grip slides up the shaft beyond this fraction of a straight arm
 local LEFT_MIN_SPACING = 0.45 -- studs: the left fist never slides closer than this to the right
 local HEAD_LEAN_FOLLOW = 0.4 -- how much of the waist lean the head keeps (0 = level gaze)
-local TWO_HAND_BLEND_TIME = 0.15 -- seconds to blend from the animation into the two-hand hold
-local ONE_HAND_BLEND = 0.18 -- fraction of a one-hand scoop spent blending in / out
+local TWO_HAND_BLEND_TIME = 0.15 -- seconds to blend from the animation into either shovel hold
 
 local SCOOP_COOLDOWN_FRACTION = 0.95 -- scoop length = cooldown * this ...
 local SCOOP_MIN_TIME = 0.2 -- ... clamped to [min, max] seconds
 local SCOOP_MAX_TIME = 0.45
 local SCOOP_FAST_BELOW = 0.3 -- shorter scoops skip the wind-up
 
-local CLUMP_PICKUP_T = { Two = 0.44, One = 0.5 } -- scoop fraction where sand appears on the blade
-local CLUMP_TOSS_T = { Two = 0.84, One = 0.76 } -- ... and where it is thrown
+local CLUMP_PICKUP_T = { Two = 0.44, One = 0.4 } -- scoop fraction where sand appears on the blade
+local CLUMP_TOSS_T = { Two = 0.84, One = 0.72 } -- ... and where it is thrown
 local CLUMP_SIZE = { Two = 0.6, One = 0.36 }
 local CLUMP_TOSS_VELOCITY = V3(-4, 16, -14) -- character space (forward = -Z), studs/s
 local CLUMP_LIFETIME = 1
@@ -792,23 +787,11 @@ local function updateCharacter(character: Model, now: number, dt: number)
 		end
 	end
 
-	local pose: Pose
-	local weight: number
-	if info.TwoHanded then
-		state.Weight = math.min(1, state.Weight + dt / TWO_HAND_BLEND_TIME)
-		weight = state.Weight
-		pose = if scoop then sample(scoop.Keys, alpha) else TWO_HAND_REST
-	elseif scoop then
-		local fadeIn = if scoop.BlendIn then smooth(alpha / ONE_HAND_BLEND) else 1
-		weight = math.min(fadeIn, smooth((1 - alpha) / ONE_HAND_BLEND))
-		pose = sample(scoop.Keys, alpha)
-	else
-		if state.Posed then
-			release(state)
-		end
-		state.Pose = nil
-		return
-	end
+	-- Both holds are posed all the time while the shovel is out (blended in on equip).
+	state.Weight = math.min(1, state.Weight + dt / TWO_HAND_BLEND_TIME)
+	local weight = state.Weight
+	local rest = if info.TwoHanded then TWO_HAND_REST else ONE_HAND_REST
+	local pose: Pose = if scoop then sample(scoop.Keys, alpha) else rest
 
 	state.Pose = pose
 	if applyPose(state, rig, info, pose, weight) then

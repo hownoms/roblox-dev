@@ -201,7 +201,14 @@ local function fitLabel(label: TextLabel, constraint: UITextSizeConstraint)
 	local text = label.Text
 	if not hasSymbol(text) then
 		label.TextScaled = true
-		constraint.Parent = label
+		if constraint.Parent ~= label then
+			-- Playtest red error "Parent property of UITextSizeConstraint is locked": a refit
+			-- can still run for a label that is being destroyed (deferred signals fire after
+			-- Destroy), when its constraint is already locked. Nothing to fit then.
+			pcall(function()
+				constraint.Parent = label
+			end)
+		end
 		return
 	end
 	constraint.Parent = nil -- caps are applied by hand below

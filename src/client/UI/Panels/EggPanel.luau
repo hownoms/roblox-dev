@@ -11,6 +11,10 @@
 	"Open" buttons, a "Construction Crate" tag and odds rows that show each vehicle's dig stats
 	("⛏ digs Pirate Cove · every 3.0s") and a 🚜 badge on rideable pets. The crate yard pallets
 	(tag "CrateShop", attribute EggId, "Open" prompt) are hooked here and focus their crate.
+	v2.2 playtest ("I clicked the crates and eggs showed up"): the list has EGGS / CRATES tabs and
+	shows one kind at a time. A crate prompt (or any EggId that is a crate) opens the Crates tab,
+	titled "Construction Crates"; the menu button opens the Eggs tab. Panel.Open("Eggs",
+	{ Tab = "Crates" }) also works.
 
 	v2.2 TRUE ODDS (Roblox policy): every row shows the player's REAL chance for the next hatch,
 	from Stats.GetHatchOddsList(egg, Stats.GetLuck(State.GetStatsContext()), Pity[egg]), the same
@@ -66,8 +70,17 @@ local detail: {
 	nil
 local shownEgg: string? = nil
 
+type Tab = "Eggs" | "Crates"
+local currentTab: Tab = "Eggs"
+local tabButtons: { [Tab]: Button.Button } = {}
+local TAB_TITLES: { [Tab]: string } = { Eggs = "Eggs", Crates = "Construction Crates" }
+
 local function isCrate(egg: Types.EggDef): boolean
 	return egg.Kind == "Crate"
+end
+
+local function tabOf(egg: Types.EggDef): Tab
+	return if isCrate(egg) then "Crates" else "Eggs"
 end
 
 -- "⛏ digs Pirate Cove · every 3.0s" for a digging pet.
@@ -398,7 +411,29 @@ local function build()
 	built = true
 	local body = panel.Body
 
-	local list = Panel.Scroller(body, UDim2.new(0, 250, 1, 0), UDim2.new())
+	local tabRow = Instance.new("Frame")
+	tabRow.Name = "Tabs"
+	tabRow.BackgroundTransparency = 1
+	tabRow.Size = UDim2.fromOffset(250, 48)
+	tabRow.ZIndex = 5
+	tabRow.Parent = body
+	Style.List(tabRow, Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left)
+	for i, tab: Tab in { "Eggs", "Crates" } :: { Tab } do
+		tabButtons[tab] = Button.new({
+			Text = tab,
+			Icon = if tab == "Eggs" then "Eggs" else "Crate",
+			Size = UDim2.fromOffset(121, 46),
+			Color = C.NavyCard,
+			LayoutOrder = i,
+			ZIndex = 5,
+			Parent = tabRow,
+			OnClick = function()
+				EggPanel.SelectTab(tab)
+			end,
+		})
+	end
+
+	local list = Panel.Scroller(body, UDim2.new(0, 250, 1, -56), UDim2.fromOffset(0, 56))
 	Style.List(list, Enum.FillDirection.Vertical, 8)
 	for i, egg in Config.Eggs do
 		local card =
@@ -618,7 +653,7 @@ local function refreshTiles()
 		local egg = Config.GetEgg(id)
 		if egg then
 			local unlocked = egg.Currency == "Robux" or Config.IsEggUnlocked(id, State.Data.MaxDepth)
-			tile.Card.Holder.Visible = isListed(egg)
+			tile.Card.Holder.Visible = isListed(egg) and tabOf(egg) == currentTab
 			tile.Pity.Text = pityShort(egg)
 			tile.Lock.Frame.Visible = not unlocked
 			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price then C.Danger else C.Money
@@ -626,10 +661,50 @@ local function refreshTiles()
 	end
 	local selectedEgg = Config.GetEgg(selected)
 	if selectedEgg and not isListed(selectedEgg) then
-		showEgg(Config.Eggs[1].Id) -- the shown egg was hidden by policy
+		local fallback = Config.Eggs[1]
+		for _, egg in Config.Eggs do
+			if tabOf(egg) == tabOf(selectedEgg) then
+				fallback = egg
+				break
+			end
+		end
+		showEgg(fallback.Id) -- the shown egg was hidden by policy
 	end
 	refreshOdds()
 	updateButtons()
+end
+
+-- Best unlocked coin egg or crate of this tab (what the tab shows when nothing was asked for).
+local function defaultFor(tab: Tab): string
+	local best: string? = nil
+	for _, egg in Config.Eggs do
+		if tabOf(egg) == tab and isListed(egg) then
+			if best == nil or (egg.Currency == "Coins" and Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth)) then
+				best = egg.Id
+			end
+		end
+	end
+	return best or Config.Eggs[1].Id
+end
+
+-- Shows one tab (Eggs or Crates): filters the list, retitles the panel, picks an egg to show.
+function EggPanel.SelectTab(tab: Tab, eggId: string?)
+	if not built then
+		return
+	end
+	currentTab = tab
+	for t, button in tabButtons do
+		button:SetColor(if t == tab then C.Sunset else C.NavyCard)
+	end
+	panel:SetTitle(TAB_TITLES[tab])
+	local current = Config.GetEgg(selected)
+	local keep = current ~= nil and tabOf(current) == tab and isListed(current)
+	showEgg(eggId or (if keep then selected else defaultFor(tab)))
+	refreshTiles()
+end
+
+function EggPanel.GetTab(): string
+	return currentTab
 end
 
 -- Crate yard pallets (World/Hub: tag "CrateShop", attribute EggId, "Open" prompt).
@@ -647,21 +722,12 @@ function EggPanel.Init()
 	panel.Opened:Connect(function(args: any)
 		build()
 		local target = if typeof(args) == "table" and typeof(args.EggId) == "string" then args.EggId else nil
-		if not target then
-			-- default: best unlocked coin egg (crates only when asked for)
-			for _, egg in Config.Eggs do
-				if
-					egg.Currency == "Coins"
-					and not isCrate(egg)
-					and Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth)
-				then
-					target = egg.Id
-				end
-			end
-		end
-		local targetEgg = Config.GetEgg(target or selected)
-		showEgg(if targetEgg and isListed(targetEgg) then targetEgg.Id else Config.Eggs[1].Id)
-		refreshTiles()
+		local targetEgg = if target then Config.GetEgg(target) else nil
+		local tab: Tab = if targetEgg
+			then tabOf(targetEgg)
+			elseif typeof(args) == "table" and args.Tab == "Crates" then "Crates"
+			else "Eggs"
+		EggPanel.SelectTab(tab, if targetEgg and isListed(targetEgg) then targetEgg.Id else nil)
 	end)
 	State.ObserveMany({
 		"Coins",
