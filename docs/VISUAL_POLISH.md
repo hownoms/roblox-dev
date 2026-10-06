@@ -1,5 +1,7 @@
 # Dig to the Core — visual audit and production direction
 
+For the latest saved branch, PR, verification results and next-chat instructions, read [POLISH_HANDOFF.md](POLISH_HANDOFF.md).
+
 Audited 6 October 2026 against repository revision `9cc921e`, existing icon artwork, and a Studio baseline playtest. This is a production checklist, not a claim that every model has passed close-up visual review.
 
 ## The direction
