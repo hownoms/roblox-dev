@@ -66,7 +66,7 @@ break. The tide refills dug 8x8 columns (see BeachService).
 | Backpack hut | (36, 1024, 34) | counter `BackpackShop` + prompt "Shop" |
 | Garage (24x20 building, toy digger inside) | (-78, 1024, 44) | workbench `Garage` + prompt "Garage" |
 | Beach Shop stall | (76, 1024, 40) | counter `BeachShop` + prompt "Shop" |
-| Leaderboard coins / depth | (-14, 1037, 92) / (14, 1037, 92) | `LeaderboardCoins` / `LeaderboardDepth` |
+| Leaderboard coins / depth | (-14, 1037, 92) / (14, 1037, 92) | `LeaderboardCoins` / `LeaderboardDepth` (sign "TOP DIGGERS" / "DEEPEST"; boards cycle ALL TIME / THIS WEEK / THIS SERVER every 10 s) |
 | Egg arc (9 pedestals, r = 19, 110°, bulging towards the plaza) | centre (-50, 1024, 92) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" |
 | Rebirth shrine | (44, 1024, 72) | pedestal `RebirthStatue` + prompt "Rebirth" |
 | Title sign | (0, 1045, 118) faces south | — |

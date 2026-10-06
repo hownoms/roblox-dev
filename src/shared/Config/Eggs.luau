@@ -10,6 +10,15 @@
 	Config/Pets.luau and docs/design/Companions.md). Same hatch flow, prices and unlocks; the world
 	builds them in a small crate yard next to the plaza and the UI draws them as crates. The top
 	crate hides the rideable Mythic "mega_excavator" (0.5%).
+
+	v2.2 PITY (PityAt): after PityAt hatches IN A ROW without a Rare-or-better pet, the next hatch
+	of that egg is guaranteed Rare+ (re-rolled among the Rare+ entries by their relative weights).
+	Counter per egg in PlayerData.Pity, reset by any Rare+ hatch. Odds shown in the egg panel and
+	rolled on the server come from the same function, Stats.GetHatchOdds. Tuning (base Rare+ chance
+	-> chance a player ever reaches pity on a streak):
+	  Beach Egg 2% -> 40 (cheap egg, ~45% of 40-streaks)    other coin eggs 12% -> 30 (~2%)
+	  Cosmic Egg 30% -> 25 (almost never)                   Sandbox/Quarry/Mine Crate 7% -> 35 (~8%)
+	  Core Crate 38% -> 25 (almost never)                   Rebirth / Golden Egg: all Rare+, no pity
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -23,6 +32,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 100,
 		UnlockLayer = 1,
+		PityAt = 40,
 		Pets = {
 			{ PetId = "sandy_crab", Weight = 60 },
 			{ PetId = "seagull", Weight = 28 },
@@ -38,6 +48,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 2500,
 		UnlockLayer = 3,
+		PityAt = 30,
 		Pets = {
 			{ PetId = "clownfish", Weight = 60 },
 			{ PetId = "pufferfish", Weight = 28 },
@@ -53,6 +64,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 40000,
 		UnlockLayer = 5,
+		PityAt = 30,
 		Pets = {
 			{ PetId = "parrot", Weight = 60 },
 			{ PetId = "pirate_crab", Weight = 28 },
@@ -68,6 +80,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 600000,
 		UnlockLayer = 7,
+		PityAt = 30,
 		Pets = {
 			{ PetId = "mole", Weight = 60 },
 			{ PetId = "baby_raptor", Weight = 28 },
@@ -83,6 +96,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 8000000,
 		UnlockLayer = 9,
+		PityAt = 30,
 		Pets = {
 			{ PetId = "crystal_bat", Weight = 60 },
 			{ PetId = "gem_blob", Weight = 28 },
@@ -98,6 +112,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 150000000,
 		UnlockLayer = 12,
+		PityAt = 30,
 		Pets = {
 			{ PetId = "lava_salamander", Weight = 60 },
 			{ PetId = "magma_golem", Weight = 28 },
@@ -114,6 +129,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 3000000000,
 		UnlockLayer = 14,
+		PityAt = 25,
 		Pets = {
 			{ PetId = "alien_blob", Weight = 70 },
 			{ PetId = "cosmic_turtle", Weight = 25 },
@@ -157,6 +173,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 1000,
 		UnlockLayer = 3,
+		PityAt = 35,
 		Pets = {
 			{ PetId = "toy_truck", Weight = 65 },
 			{ PetId = "dump_truck", Weight = 28 },
@@ -171,6 +188,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 75000,
 		UnlockLayer = 6,
+		PityAt = 35,
 		Pets = {
 			{ PetId = "skid_steer", Weight = 65 },
 			{ PetId = "bulldozer", Weight = 28 },
@@ -185,6 +203,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 6000000,
 		UnlockLayer = 10,
+		PityAt = 35,
 		Pets = {
 			{ PetId = "drill_rig", Weight = 65 },
 			{ PetId = "mining_drill", Weight = 28 },
@@ -199,6 +218,7 @@ local Eggs: { Types.EggDef } = {
 		Currency = "Coins",
 		Price = 1500000000,
 		UnlockLayer = 14,
+		PityAt = 25,
 		Pets = {
 			{ PetId = "mole_machine", Weight = 62 },
 			{ PetId = "lava_drill", Weight = 30 },

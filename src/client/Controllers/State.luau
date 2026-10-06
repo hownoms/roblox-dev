@@ -6,6 +6,9 @@
 	- Dig zone: the shared diggable beach strip, from Workspace attributes "DigZoneCFrame" /
 	  "DigZoneSize" set by the server's World (State.GetDigZone / InDigZone / NearestSand)
 	- ActiveEvents: active event ids (EventChanged / Workspace attribute "ActiveEvents")
+	- PaidRandomRestricted (v2.2): Player attribute set by the server's PolicyService. true until
+	  the server says false, so paid random items (Config.IsPaidRandom) never flash on screen for
+	  players who may not see them. State.GetStatsContext() feeds Util/Stats (true luck + odds).
 
 	Every key has its own Changed signal: State.Changed("Coins"):Connect(fn(new, old)).
 	State.Observe(key, fn) calls fn right away with the current value and again on every change,
@@ -20,6 +23,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Stats = require(Shared:WaitForChild("Util"):WaitForChild("Stats"))
 local Signal = require(script.Parent.Parent.Util.Signal)
 
 type Signal = Signal.Signal
@@ -31,11 +35,12 @@ State.Data = Config.NewPlayerData()
 State.Loaded = false
 State.Passes = {} :: { [string]: boolean }
 State.ActiveEvents = {} :: { string }
+State.PaidRandomRestricted = true -- v2.2: until PolicyService's attribute says false
 
 State.LoadedSignal = Signal.new() -- fired once when the first real data arrives
 State.AnyChanged = Signal.new() -- (key, new, old)
 
-local SPECIAL_KEYS = { Passes = true, ActiveEvents = true }
+local SPECIAL_KEYS = { Passes = true, ActiveEvents = true, PaidRandomRestricted = true }
 
 local signals: { [string]: Signal } = {}
 local gotSnapshot = false
@@ -128,6 +133,16 @@ function State.OwnsPass(key: string): boolean
 	return State.Passes[key] == true
 end
 
+-- v2.2 Rebirth perks (Config.RebirthPerks): level of a perk (0 = not bought).
+function State.PerkLevel(perkId: string): number
+	return Config.RebirthPerks.Level(State.Data.RebirthPerks, perkId)
+end
+
+-- Sell Anywhere: the game pass OR the earned rebirth perk (server: EconomyService.CanSellAnywhere).
+function State.CanSellAnywhere(): boolean
+	return State.OwnsPass("SellAnywhere") or Config.RebirthPerks.HasSellAnywhere(State.Data.RebirthPerks)
+end
+
 function State.SetPassOwned(key: string, owned: boolean)
 	local copy = table.clone(State.Passes)
 	copy[key] = owned
@@ -197,7 +212,8 @@ function State.GetCapacity(): number
 	local mega = if State.OwnsPass("MegaBackpack")
 		then (Config.Monetization.GamePasses.MegaBackpack.CapacityMultiplier or 2)
 		else 1
-	return math.floor(State.GetBackpack().Capacity * Config.RebirthMultiplier(State.Data.Rebirths) * mega)
+	local pockets = Config.RebirthPerks.CapacityFactor(State.Data.RebirthPerks) -- v2.2 Deep Pockets
+	return math.floor(State.GetBackpack().Capacity * Config.RebirthMultiplier(State.Data.Rebirths) * mega * pockets)
 end
 
 function State.GetEquippedPetIds(): { string }
@@ -221,11 +237,46 @@ function State.GetPetSlots(): number
 			extra += pass.ExtraPetSlots
 		end
 	end
+	extra += Config.RebirthPerks.ExtraPetSlots(State.Data.RebirthPerks) -- v2.2 Pet Den perk
 	return (State.Data.PetSlots or Config.MAX_EQUIPPED_PETS) + extra
 end
 
 function State.GetPetMultiplier(): number
-	return Config.PetMultiplier(State.GetEquippedPetIds())
+	local ids = {}
+	local golden: { [number]: boolean } = {}
+	for _, pet in State.Data.Pets or {} :: { [string]: Types.PetInstance } do
+		if pet.Equipped then
+			table.insert(ids, pet.Id)
+			golden[#ids] = pet.Golden == true
+		end
+	end
+	return Config.PetMultiplier(ids, golden)
+end
+
+-- v2.2: a Util/Stats context from the replicated state (same inputs the server uses), for true
+-- odds / luck in the UI: Stats.GetLuck(State.GetStatsContext()).
+function State.GetStatsContext(): Stats.Context
+	local localPlayer = Players.LocalPlayer
+	local friends = localPlayer:GetAttribute("FriendsInServer")
+	return {
+		Data = State.Data,
+		Passes = State.Passes,
+		IsPremium = localPlayer:GetAttribute("Premium") == true,
+		InGroup = localPlayer:GetAttribute("InGroup") == true,
+		FriendsInServer = if typeof(friends) == "number" then friends else 0,
+		ActiveEvents = State.ActiveEvents,
+		Now = State.ServerNow(),
+	}
+end
+
+-- v2.2 policy: hide paid random items (Config.IsPaidRandom) for restricted players.
+function State.IsPaidRandomRestricted(): boolean
+	return State.PaidRandomRestricted ~= false
+end
+
+-- Can this pass / product be shown and prompted? kind: "GamePass" | "Product".
+function State.CanBuy(kind: string, key: string): boolean
+	return not (Config.IsPaidRandom(kind, key) and State.IsPaidRandomRestricted())
 end
 
 -- Seconds left on a boost (0 if inactive).
@@ -369,7 +420,7 @@ function State.Init()
 	end)
 
 	-- equipment / rebirth / pass changes invalidate the server-reported capacity
-	for _, key in { "Backpack", "Rebirths", "Passes" } do
+	for _, key in { "Backpack", "Rebirths", "Passes", "RebirthPerks" } do
 		State.Changed(key):Connect(function()
 			State.ServerCapacity = nil
 		end)
@@ -381,8 +432,17 @@ function State.Init()
 	-- The server checks pass ownership asynchronously after join (GetOwnedPasses may answer
 	-- before that finished) and mirrors it as Player attributes "Pass_<Key>": follow them.
 	local localPlayer = Players.LocalPlayer
+	local function readPolicy()
+		local restricted = localPlayer:GetAttribute("PaidRandomRestricted") ~= false
+		if State.PaidRandomRestricted ~= restricted then
+			set("PaidRandomRestricted", restricted)
+		end
+	end
+	readPolicy()
 	localPlayer.AttributeChanged:Connect(function(name: string)
-		if string.sub(name, 1, 5) == "Pass_" then
+		if name == "PaidRandomRestricted" then
+			readPolicy()
+		elseif string.sub(name, 1, 5) == "Pass_" then
 			local key = string.sub(name, 6)
 			local owned = localPlayer:GetAttribute(name) == true
 			if State.OwnsPass(key) ~= owned then

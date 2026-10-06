@@ -50,6 +50,7 @@ local Banner = require(UI:WaitForChild("Banner"))
 local HUD = require(UI:WaitForChild("HUD"))
 local HatchAnimation = require(UI:WaitForChild("HatchAnimation"))
 local TreasurePopup = require(UI:WaitForChild("TreasurePopup"))
+local OfflinePopup = require(UI:WaitForChild("OfflinePopup")) -- v2.2 offline pet earnings
 
 local ShopPanel = require(Panels:WaitForChild("ShopPanel"))
 local EggPanel = require(Panels:WaitForChild("EggPanel"))
@@ -66,6 +67,10 @@ local SurvivalController = require(Controllers:WaitForChild("SurvivalController"
 local PlacementController = require(Controllers:WaitForChild("PlacementController"))
 local RideController = require(Controllers:WaitForChild("RideController"))
 local RideButton = require(UI:WaitForChild("RideButton"))
+-- v2.2 status & social: nameplates + worn pack fill, rare-find banners, server goal / friends
+local StatusController = require(Controllers:WaitForChild("StatusController"))
+local Announcements = require(UI:WaitForChild("Announcements"))
+local SocialHUD = require(UI:WaitForChild("SocialHUD"))
 
 local function start(name: string, fn: () -> ())
 	local ok, err = xpcall(function(): any
@@ -103,6 +108,9 @@ start("BeachShopPanel", BeachShopPanel.Init)
 start("SurvivalHUD", SurvivalHUD.Init)
 start("HatchAnimation", HatchAnimation.Init)
 start("TreasurePopup", TreasurePopup.Init)
+start("OfflinePopup", OfflinePopup.Init)
+start("Announcements", Announcements.Init)
+start("SocialHUD", SocialHUD.Init)
 
 -- 3. Wiring between controllers and UI (controllers stay UI-agnostic)
 DigController.SetHintCallback(function(text: string, kind: string)
@@ -124,3 +132,4 @@ start("Survival", SurvivalController.Init)
 start("Placement", PlacementController.Init)
 start("Ride", RideController.Init)
 start("RideButton", RideButton.Init)
+start("Status", StatusController.Init)

@@ -7,6 +7,10 @@
 	v2.1: digging pets show a ⛏ badge (top-left of the tile) and their dig stats in the detail
 	("⛏ digs to Pirate Cove · every 3.0s · x2.25 sand"); rideable pets a 🚜 "Rideable" badge (the
 	Ride agent adds the actual ride button). Vehicle pets use vehicle icons.
+	v2.2 DUPLICATE FUSION: selecting a pet with >= Config.GOLDEN_FUSE_COUNT (5) identical non-golden
+	copies enables "Fuse 5 -> Golden" (remote FusePets(uid), validated by PetService). Golden pets
+	(PetInstance.Golden) get a gold outline + "GOLDEN" tag, a gold-tinted sparkling preview
+	(ModelFactory.MakeGolden), x1.5 sand bonus and 1.25x dig speed in their stats.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,7 +35,7 @@ local PetsPanel = {}
 
 local C = Style.Colors
 
-type Entry = { Uid: string, Pet: Types.PetInstance, Def: Types.PetDef, Order: number }
+type Entry = { Uid: string, Pet: Types.PetInstance, Def: Types.PetDef, Order: number, Mult: number }
 
 local panel: Panel.Panel
 local built = false
@@ -49,8 +53,25 @@ local infoLabel: TextLabel
 local digLabel: TextLabel
 local equipButton: Button.Button
 local deleteButton: Button.Button
+local fuseButton: Button.Button
 local emptyLabel: TextLabel
 local shownModelFor: string? = nil
+
+-- v2.2: this pet's own multiplier, Golden included.
+local function multOf(pet: Types.PetInstance): number
+	return Config.PetEffectiveMultiplier(pet.Id, pet.Golden == true)
+end
+
+-- Non-golden copies of petId in the inventory (the fusion count).
+local function copiesOf(petId: string): number
+	local n = 0
+	for _, pet in State.Data.Pets or {} :: { [string]: Types.PetInstance } do
+		if pet.Id == petId and pet.Golden ~= true then
+			n += 1
+		end
+	end
+	return n
+end
 
 local function petIcon(def: Types.PetDef): string
 	return if def.VehicleKind then "VehicleKinds." .. def.VehicleKind else "PetShapes." .. def.Look.Shape
@@ -62,14 +83,15 @@ local function rarityOrder(def: Types.PetDef): number
 end
 
 -- "⛏ digs to Pirate Cove · every 3.0s · x2.25 sand" (nil for pets that don't dig)
-local function digInfo(def: Types.PetDef): string?
+local function digInfo(def: Types.PetDef, golden: boolean?): string?
 	local dig = def.Dig
 	if not dig then
 		return nil
 	end
 	assert(dig) -- refine for the type checker (guarded above)
 	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(dig.Power)]
-	return string.format("digs to %s · every %.1fs · x%g sand", layer.Name, dig.Interval, dig.SandMultiplier)
+	local interval = Config.GetPetDigInterval(def.Id, golden) or dig.Interval
+	return string.format("digs to %s · every %.1fs · x%g sand", layer.Name, interval, dig.SandMultiplier)
 end
 
 local function entries(): { Entry }
@@ -77,7 +99,7 @@ local function entries(): { Entry }
 	for uid, pet in State.Data.Pets or {} :: { [string]: Types.PetInstance } do
 		local def = Config.GetPet(pet.Id)
 		if def then
-			table.insert(list, { Uid = uid, Pet = pet, Def = def, Order = 0 })
+			table.insert(list, { Uid = uid, Pet = pet, Def = def, Order = 0, Mult = multOf(pet) })
 		end
 	end
 	table.sort(list, function(a: Entry, b: Entry): boolean
@@ -87,8 +109,8 @@ local function entries(): { Entry }
 		if sortMode == "Rarity" and a.Def.Rarity ~= b.Def.Rarity then
 			return rarityOrder(a.Def) > rarityOrder(b.Def)
 		end
-		if a.Def.Multiplier ~= b.Def.Multiplier then
-			return a.Def.Multiplier > b.Def.Multiplier
+		if a.Mult ~= b.Mult then
+			return a.Mult > b.Mult
 		end
 		if a.Def.Id ~= b.Def.Id then
 			return a.Def.Id < b.Def.Id
@@ -101,7 +123,7 @@ end
 local function equipBest()
 	local list = entries()
 	table.sort(list, function(a: Entry, b: Entry): boolean
-		return a.Def.Multiplier > b.Def.Multiplier
+		return a.Mult > b.Mult
 	end)
 	local slots = State.GetPetSlots()
 	local best: { [string]: boolean } = {}
@@ -138,24 +160,39 @@ local function refreshDetail()
 		digLabel.Text = ""
 		equipButton:SetVisible(false)
 		deleteButton:SetVisible(false)
+		fuseButton:SetVisible(false)
 		return
 	end
 	local p = pet :: Types.PetInstance
 	local d = def :: Types.PetDef
+	local golden = p.Golden == true
 	if shownModelFor ~= uid then
 		shownModelFor = uid
-		view:SetModel(ModelFactory.Pet(d.Id))
+		local model = ModelFactory.Pet(d.Id)
+		view:SetModel(if golden then ModelFactory.MakeGolden(model) else model)
 		Style.Pop(view.Frame, 0.15)
 	end
 	local rarity = Config.GetRarity(d.Rarity)
-	nameLabel.Text = d.Name
-	nameLabel.TextColor3 = if rarity then rarity.Color else C.Text
+	nameLabel.Text = (if golden then "Golden " else "") .. d.Name
+	nameLabel.TextColor3 = if golden then C.Gold elseif rarity then rarity.Color else C.Text
 	infoLabel.Text = d.Rarity
 		.. "  ·  x"
-		.. string.format("%.2f", d.Multiplier)
+		.. string.format("%.2f", multOf(p))
 		.. " sand"
 		.. (if d.Rideable then "  ·  Rideable!" else "")
-	digLabel.Text = digInfo(d) or ""
+	digLabel.Text = digInfo(d, golden) or ""
+	-- v2.2 fusion: N identical non-golden copies -> one Golden pet
+	fuseButton:SetVisible(not golden)
+	if not golden then
+		local copies = copiesOf(d.Id)
+		local need = Config.GOLDEN_FUSE_COUNT
+		fuseButton:SetEnabled(copies >= need)
+		fuseButton:SetText(
+			if copies >= need
+				then string.format("Fuse %d → Golden", need)
+				else string.format("Golden: %d/%d copies", copies, need)
+		)
+	end
 	equipButton:SetVisible(true)
 	deleteButton:SetVisible(true)
 	if p.Equipped then
@@ -196,6 +233,23 @@ local function refreshGrid()
 		})
 		if entry.Uid == selectedUid then
 			card:SetHighlight(C.Gold)
+		elseif entry.Pet.Golden then
+			card.Stroke.Color = C.Gold
+		end
+		if entry.Pet.Golden then
+			local tag = Style.Label({
+				Name = "GoldenTag",
+				Text = "GOLDEN",
+				Size = UDim2.new(1, -8, 0, 16),
+				Position = UDim2.new(0.5, 0, 0.62, 0),
+				AnchorPoint = Vector2.new(0.5, 1),
+				TextColor = C.Gold,
+				StrokeThickness = 2,
+				MaxTextSize = 14,
+				ZIndex = 9,
+				Parent = card.Face,
+			})
+			tag.Rotation = -6
 		end
 		AtlasIcon.new({
 			Icon = petIcon(entry.Def),
@@ -206,7 +260,7 @@ local function refreshGrid()
 			Parent = card.Face,
 		})
 		Style.Label({
-			Text = "x" .. string.format("%.2f", entry.Def.Multiplier),
+			Text = "x" .. string.format("%.2f", entry.Mult),
 			Size = UDim2.new(1, -8, 0.3, 0),
 			Position = UDim2.new(0.5, 0, 1, -4),
 			AnchorPoint = Vector2.new(0.5, 1),
@@ -377,7 +431,7 @@ local function build()
 		Parent = body,
 	})
 	local stage = Instance.new("Frame")
-	stage.Size = UDim2.new(1, -20, 0, 130)
+	stage.Size = UDim2.new(1, -20, 0, 110)
 	stage.Position = UDim2.fromOffset(10, 10)
 	stage.ZIndex = 7
 	stage.Parent = side.Face
@@ -389,7 +443,7 @@ local function build()
 	nameLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, -16, 0, 30),
-		Position = UDim2.fromOffset(8, 144),
+		Position = UDim2.fromOffset(8, 124),
 		MaxTextSize = 24,
 		ZIndex = 7,
 		Parent = side.Face,
@@ -397,7 +451,7 @@ local function build()
 	infoLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, -16, 0, 20),
-		Position = UDim2.fromOffset(8, 174),
+		Position = UDim2.fromOffset(8, 154),
 		Font = Style.Fonts.Body,
 		StrokeThickness = 2,
 		MaxTextSize = 16,
@@ -407,7 +461,7 @@ local function build()
 	digLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, -16, 0, 20),
-		Position = UDim2.fromOffset(8, 196),
+		Position = UDim2.fromOffset(8, 176),
 		TextColor = C.Sand,
 		Font = Style.Fonts.Body,
 		StrokeThickness = 2,
@@ -416,6 +470,23 @@ local function build()
 		Parent = side.Face,
 	})
 	digLabel.Name = "DigInfo"
+	fuseButton = Button.new({
+		Name = "Fuse",
+		Text = "Fuse",
+		Size = UDim2.new(1, -20, 0, 46),
+		Position = UDim2.fromOffset(10, 200),
+		MaxTextSize = 18,
+		Color = C.Gold,
+		ZIndex = 7,
+		Parent = side.Face,
+		OnClick = function()
+			local uid = selectedUid
+			local pet = if uid then State.Data.Pets[uid] else nil
+			if uid and pet and pet.Golden ~= true and copiesOf(pet.Id) >= Config.GOLDEN_FUSE_COUNT then
+				Remotes.Get("FusePets"):FireServer(uid)
+			end
+		end,
+	})
 	equipButton = Button.new({
 		Text = "Equip",
 		Size = UDim2.new(0.5, -14, 0, 76),

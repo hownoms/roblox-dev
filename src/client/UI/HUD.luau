@@ -9,6 +9,10 @@
 	            Rebirth, Store) with oversized icons, outlined captions on the bottom edge and red
 	            "!" badges (claimable quests, rebirth ready, affordable next shovel/backpack).
 	            Hidden while a panel is open on small screens.
+	            Progressive disclosure (UI/MenuGate, docs/design/Onboarding.md): each button (and
+	            the top-right Daily button) appears only once relevant and never disappears
+	            again; the visible ones re-flow into the 2 columns without gaps; a newly
+	            unlocked one pops in with a toast and a gold "NEW!" tag until its panel is opened.
 	  Depth     "Depth" meter: depth, layer, progress bar, record + next layer
 	            (top-centre-right on wide screens, under the TopRight cluster on narrow ones)
 	  Timers    "Timers": active boost / event chips (live timers) in the top-centre column,
@@ -19,6 +23,7 @@
 	AutoDig). Every button face is >= 74 design px (44 real px at the minimum UI scale 0.6), the
 	small round buttons get an invisible 80 px touch area.
 ]]
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -37,6 +42,9 @@ local Layout = require(script.Parent.Layout)
 local AtlasIcon = require(script.Parent.Components.AtlasIcon)
 local ShopPanel = require(script.Parent.Panels.ShopPanel)
 local UIEffects = require(script.Parent.UIEffects)
+local MenuGate = require(script.Parent.MenuGate)
+local Toasts = require(script.Parent.Toasts)
+local Track = require(script.Parent.Parent.Util.Track)
 local State = require(script.Parent.Parent.Controllers.State)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 local LayerController = require(script.Parent.Parent.Controllers.LayerController)
@@ -56,11 +64,35 @@ local sellArrowTween: Tween? = nil
 local backpackBar: ProgressBar.ProgressBar? = nil
 local flashTweens: { [string]: Tween } = {}
 
--- Briefly pulse a HUD button to draw attention (e.g. Shop after "Too hard!").
+-- Progressive menu disclosure state (see the "Menu gating" section below).
+local gateVisible: { [string]: boolean } = {}
+local refreshMenu: () -> () = function() end
+
+-- Is a gated HUD button (menu entry or Daily) currently shown? Ungated buttons: true.
+function HUD.IsUnlocked(name: string): boolean
+	if MenuGate.MESSAGES[name] == nil then
+		return true
+	end
+	return gateVisible[name] == true
+end
+
+-- Re-evaluate the menu unlock rules right now (also runs on every relevant data change).
+function HUD.RefreshMenu()
+	refreshMenu()
+end
+
+-- Briefly pulse a HUD button to draw attention (e.g. Shop after "Too hard!"). Never points at
+-- a hidden (still locked) button.
 function HUD.Flash(name: string, seconds: number?)
 	local button = HUD.Buttons[name]
 	if not button or flashTweens[name] then
 		return
+	end
+	if not HUD.IsUnlocked(name) then
+		refreshMenu() -- e.g. the tutorial just reached the step that unlocks it
+		if not HUD.IsUnlocked(name) then
+			return
+		end
 	end
 	local tween = Style.Pulse(button.Holder, 0.14, 0.5)
 	flashTweens[name] = tween
@@ -205,13 +237,8 @@ local function buildMenu(canvas: Frame)
 		grid.Position = Layout.Position(regions.Menu)
 		grid.Size = Layout.SizeOf(regions.Menu)
 	end)
-	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(Layout.MENU_CELL, Layout.MENU_CELL)
-	layout.CellPadding = UDim2.fromOffset(Layout.MENU_GAP_X, Layout.MENU_GAP_Y)
-	layout.FillDirectionMaxCells = Layout.MENU_COLUMNS
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = grid
-
+	-- Cells are placed by the menu gating (2 columns, visible buttons only, no gaps), not by a
+	-- UIGridLayout, so the re-flow is deterministic and can slide.
 	for i, item in MENU do
 		HUD.Buttons[item.Name] = Button.new({
 			Name = item.Name,
@@ -219,6 +246,7 @@ local function buildMenu(canvas: Frame)
 			Text = item.Name,
 			Vertical = true,
 			Color = item.Color,
+			Size = UDim2.fromOffset(Layout.MENU_CELL, Layout.MENU_CELL),
 			LayoutOrder = i,
 			MaxTextSize = 20,
 			Corner = UDim.new(0, 12),
@@ -235,7 +263,9 @@ local function buildMenu(canvas: Frame)
 		local quests = Progress.ClaimableQuests(data)
 		HUD.Buttons.Quests:SetBadge(if quests > 0 then tostring(quests) else nil)
 		HUD.Buttons.Daily:SetBadge(if Progress.Daily(data).CanClaim and State.Loaded then "!" else nil)
-		HUD.Buttons.Rebirth:SetBadge(if Progress.CanRebirth(data) then "!" else nil)
+		HUD.Buttons.Rebirth:SetBadge(
+			if Progress.CanRebirth(data) or Progress.CanBuyRebirthPerk(data) then "!" else nil -- v2.2 perks
+		)
 		HUD.Buttons.Shop:SetBadge(if State.Loaded and canAffordUpgrade() then "!" else nil)
 	end
 	State.ObserveMany({
@@ -249,6 +279,8 @@ local function buildMenu(canvas: Frame)
 		"OwnedBackpacks",
 		"Shovel",
 		"Backpack",
+		"RebirthTokens", -- v2.2 perk badge
+		"RebirthPerks",
 	}, refreshBadges)
 	State.LoadedSignal:Connect(refreshBadges)
 	task.spawn(function()
@@ -341,7 +373,13 @@ local function buildTimers(canvas: Frame)
 				local key = "Event_" .. event.Id
 				seen[key] = true
 				local phase = (now + event.OffsetSeconds) % event.IntervalSeconds
-				local left = math.max(0, event.DurationSeconds - phase)
+				local left = if phase < event.DurationSeconds then event.DurationSeconds - phase else 0
+				-- v2.2: started early on this server (server dig goal) -> its real end time
+				local forcedEnd = workspace:GetAttribute("EventEnds_" .. event.Id)
+				if typeof(forcedEnd) == "number" then
+					left = math.max(left, forcedEnd - now)
+				end
+				left = math.max(0, left)
 				chip(key, "Events." .. event.Id, event.Color, order, false).Text = timed(event.Name .. "!", left)
 			end
 		end
@@ -608,7 +646,7 @@ local function buildBottom(canvas: Frame)
 		LayoutOrder = 2,
 		Parent = row,
 		OnClick = function()
-			if State.OwnsPass("SellAnywhere") then
+			if State.CanSellAnywhere() then
 				State.SetSetting("SellNow", true)
 			elseif not PurchaseController.PromptPass("SellAnywhere") then
 				SoundController.Play("Error")
@@ -637,8 +675,8 @@ local function buildBottom(canvas: Frame)
 	})
 	HUD.Buttons.AutoDig = auto
 
-	State.ObserveMany({ "Passes", "Settings" }, function()
-		local ownsSell = State.OwnsPass("SellAnywhere")
+	State.ObserveMany({ "Passes", "Settings", "RebirthPerks" }, function()
+		local ownsSell = State.CanSellAnywhere() -- v2.2: pass or rebirth perk
 		sell:SetVisible(ownsSell or PurchaseController.IsPassConfigured("SellAnywhere"))
 		sell:SetText(if ownsSell then "Sell" else "Sell R$")
 		local ownsAuto = State.OwnsPass("AutoDig")
@@ -673,7 +711,7 @@ local function buildBottom(canvas: Frame)
 					-1,
 					true
 				)
-				if State.OwnsPass("SellAnywhere") then
+				if State.CanSellAnywhere() then
 					HUD.Flash("Sell", 4)
 				end
 			else
@@ -703,6 +741,201 @@ local function buildBottom(canvas: Frame)
 	State.ObserveMany({ "Sand", "Backpack", "Rebirths", "Passes" }, update)
 end
 
+-- Menu gating: progressive disclosure (UI/MenuGate, docs/design/Onboarding.md) -------------------
+
+local newTags: { [string]: TextLabel } = {}
+
+-- Gold "NEW!" tag on the top-left corner until the button's panel is first opened.
+local function setNewTag(name: string, on: boolean)
+	local button = HUD.Buttons[name]
+	local tag = newTags[name]
+	if not button then
+		return
+	end
+	if on and not tag then
+		local label = Style.Label({
+			Name = "NewTag",
+			Text = "NEW!",
+			Size = UDim2.fromOffset(50, 22),
+			Position = UDim2.fromOffset(-8, -8),
+			AnchorPoint = Vector2.zero,
+			MaxTextSize = 16,
+			StrokeThickness = 2,
+			ZIndex = 8,
+			Parent = button.Holder,
+		})
+		label.BackgroundTransparency = 0
+		label.BackgroundColor3 = C.Gold
+		label.Rotation = -8
+		Style.Corner(label, Style.Theme.CornerPill)
+		local ring = Instance.new("UIStroke")
+		ring.Color = C.Stroke
+		ring.Thickness = 2.5
+		ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		ring.Parent = label
+		Style.Pulse(label, 0.1, 0.9)
+		newTags[name] = label
+	elseif not on and tag then
+		tag:Destroy()
+		newTags[name] = nil
+	end
+end
+
+-- Visible menu buttons fill the 2 columns in MENU order without gaps.
+local function reflow(previous: { [string]: boolean }, animate: boolean)
+	local k = 0
+	for _, name in MenuGate.MENU do
+		local button = HUD.Buttons[name]
+		if button then
+			local show = gateVisible[name] == true
+			button.Holder.Visible = show
+			if show then
+				k += 1
+				local cell = MenuGate.CellPosition(
+					k,
+					Layout.MENU_CELL,
+					Layout.MENU_GAP_X,
+					Layout.MENU_GAP_Y,
+					Layout.MENU_COLUMNS
+				)
+				local target = UDim2.fromOffset(cell.X, cell.Y)
+				if animate and previous[name] and button.Holder.Position ~= target then
+					Style.Tween(button.Holder, 0.25, { Position = target }, Enum.EasingStyle.Back)
+				else
+					button.Holder.Position = target
+				end
+			end
+		end
+	end
+	local daily = HUD.Buttons.Daily
+	if daily then
+		daily.Holder.Visible = gateVisible.Daily == true
+	end
+end
+
+local function buildMenuGating()
+	local evaluated = false
+	local heatUnlockAt = MenuGate.BEACH_HEAT
+	local localPlayer = Players.LocalPlayer
+
+	refreshMenu = function()
+		if not State.Loaded then
+			reflow({}, false) -- before the data arrives every gated button stays hidden
+			return
+		end
+		local data = State.Data
+		local heat = localPlayer:GetAttribute("Heat")
+		local visible = MenuGate.Evaluate({ Data = data, Heat = if type(heat) == "number" then heat else 0 })
+		local settings: { [string]: any } = data.Settings or {}
+		local persisted = MenuGate.ParseList(settings[MenuGate.UNLOCK_KEY])
+		local seen = MenuGate.ParseList(settings[MenuGate.SEEN_KEY])
+		local first = not evaluated
+		evaluated = true
+
+		if first and MenuGate.IsReturning(data) and settings[MenuGate.SEEN_KEY] == nil then
+			-- returning players: everything is already familiar, nothing is "NEW"
+			for _, name in MenuGate.ALL do
+				seen[name] = true
+			end
+			State.SetSetting(MenuGate.SEEN_KEY, MenuGate.FormatList(seen))
+		end
+
+		local fresh: { string } = {}
+		local changed = false
+		for _, name in MenuGate.ALL do
+			if visible[name] and not gateVisible[name] then
+				table.insert(fresh, name)
+			end
+			if visible[name] and not persisted[name] then
+				persisted[name] = true
+				changed = true
+			end
+		end
+		if changed and not MenuGate.IsReturning(data) then
+			State.SetSetting(MenuGate.UNLOCK_KEY, MenuGate.FormatList(persisted))
+		end
+
+		local previous = gateVisible
+		gateVisible = visible
+		reflow(previous, not first)
+		for _, name in MenuGate.ALL do
+			setNewTag(name, visible[name] == true and not seen[name])
+		end
+		if first or #fresh == 0 then
+			return -- unlocks found at load (earned last session) appear quietly
+		end
+		for _, name in fresh do
+			local button = HUD.Buttons[name]
+			if button then
+				Style.PopIn(button.Holder, 0.45)
+			end
+			Track.Send("menu_unlocked", name)
+		end
+		SoundController.Play("Purchase", 1.25)
+		if #fresh == 1 then
+			Toasts.Show(MenuGate.MESSAGES[fresh[1]], "Success", 4)
+		else
+			Toasts.Show("New menus unlocked! Look for NEW", "Success", 4)
+		end
+	end
+
+	-- Opening a panel (from the HUD, a world prompt or the tutorial) clears its NEW tag.
+	Panel.Changed:Connect(function(panelName: string?)
+		if not panelName then
+			return
+		end
+		Track.Send("panel_opened", panelName)
+		local name = MenuGate.PANEL_TO_BUTTON[panelName]
+		if not name or not State.Loaded then
+			return
+		end
+		local seen = MenuGate.ParseList(State.GetSetting(MenuGate.SEEN_KEY, nil))
+		if not seen[name] then
+			seen[name] = true
+			State.SetSetting(MenuGate.SEEN_KEY, MenuGate.FormatList(seen))
+		end
+		setNewTag(name, false)
+	end)
+
+	State.ObserveMany({
+		"Coins",
+		"Rebirths",
+		"Pets",
+		"Index",
+		"OwnedShovels",
+		"OwnedShades",
+		"Quests",
+		"PlayTime",
+		"LastDailyClaim",
+		"Settings",
+	}, refreshMenu)
+	State.LoadedSignal:Connect(refreshMenu)
+	-- "Getting hot" is transient: unlock the Beach shop the moment heat crosses the line.
+	localPlayer:GetAttributeChangedSignal("Heat"):Connect(function()
+		local heat = localPlayer:GetAttribute("Heat")
+		if type(heat) == "number" and heat >= heatUnlockAt and not gateVisible.Beach then
+			refreshMenu()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			refreshMenu()
+		end
+	end)
+end
+
+-- First visible menu button (gamepad ButtonY focus target), nil if none is unlocked yet.
+function HUD.FirstMenuButton(): Button.Button?
+	for _, name in MenuGate.MENU do
+		local button = HUD.Buttons[name]
+		if button and gateVisible[name] then
+			return button
+		end
+	end
+	return nil
+end
+
 function HUD.Init()
 	local canvas = Root.Get("HUD")
 	buildTopRight(canvas)
@@ -710,6 +943,7 @@ function HUD.Init()
 	buildTimers(canvas)
 	buildDepthMeter(canvas)
 	buildBottom(canvas)
+	buildMenuGating()
 
 	DigController.Feedback:Connect(function(reason: string)
 		if reason == "TooHard" then

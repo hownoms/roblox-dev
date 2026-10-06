@@ -76,6 +76,7 @@ local RELEVANT_KEYS = {
 	Rebirths = true,
 	Boosts = true,
 	Index = true,
+	RebirthPerks = true, -- v2.2 perks change capacity, coins and pet slots
 }
 
 function MultiplierService.Init() end

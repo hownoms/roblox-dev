@@ -161,6 +161,9 @@ export type PetDigDef = {
 export type PetInstance = {
 	Id: string, -- PetDef.Id
 	Equipped: boolean,
+	-- v2.2: fused from Config.GOLDEN_FUSE_COUNT identical copies (PetService "FusePets"):
+	-- x Config.GOLDEN_SAND_BONUS on its sand bonus, digs Config.GOLDEN_DIG_SPEED x as often.
+	Golden: boolean?,
 }
 
 export type EggCurrency = "Coins" | "Tokens" | "Robux"
@@ -186,6 +189,9 @@ export type EggDef = {
 	Pets: { EggEntry },
 	Look: EggLook,
 	Kind: ("Egg" | "Crate")?, -- v2.1: Construction Crates hatch vehicle pets; default "Egg"
+	-- v2.2 pity: after this many hatches in a row without a Rare-or-better pet, the next hatch is
+	-- guaranteed Rare+ (Stats.GetHatchOdds). nil = no pity (every entry is already Rare+).
+	PityAt: number?,
 }
 
 -- Treasure ---------------------------------------------------------------------------------
@@ -322,6 +328,9 @@ export type GamePassDef = {
 	CapacityMultiplier: number?,
 	ExtraPetSlots: number?,
 	SpeedMultiplier: number?,
+	-- v2.2: changes the odds of a random outcome (luck): hidden + refused for players whose
+	-- PolicyService says ArePaidRandomItemsRestricted (Services/PolicyService).
+	PaidRandom: boolean?,
 }
 
 export type ProductDef = {
@@ -330,6 +339,9 @@ export type ProductDef = {
 	Price: number, -- suggested Robux
 	Description: string,
 	Grant: Reward,
+	-- v2.2: buys a random item, a luck modifier, or currency that buys random items (eggs and
+	-- crates): hidden + refused for PolicyService-restricted players (Services/PolicyService).
+	PaidRandom: boolean?,
 }
 
 export type PremiumPerks = {
@@ -499,6 +511,9 @@ export type PlayerData = {
 	Consumables: { [string]: number }, -- v2: consumable id -> count
 	OwnedShades: { [string]: boolean }, -- v2
 	Diggers: { [string]: DiggerInstance }, -- v2 (legacy): emptied by the v2.1 migration, never written
+	Pity: { [string]: number }, -- v2.2: eggId -> hatches in a row without a Rare+ pet (EggDef.PityAt)
+	LastOnline: number, -- v2.2: unix time last seen online (OfflineService), 0 = never
+	RebirthPerks: { [string]: number }, -- v2.2: Config.RebirthPerks id -> level (never reset)
 	PlayTime: number, -- seconds
 	FirstJoin: number, -- unix
 	Version: number,

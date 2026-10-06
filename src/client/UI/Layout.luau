@@ -17,6 +17,9 @@
 	  Centre    top-centre column between the menu and the Depth/TopRight block (<= 380 wide):
 	            objective banner y 8..54, boost/event chips y 60..96, toasts from y 102
 	  Survival  SurvivalHUD (heat meter + snack slots) on the right edge under Depth/TopRight
+	  Social    server dig goal bar + "Friends +X%" chip (UI/SocialHUD), 200 x 80: under the
+	            Depth meter on wide screens, under the SurvivalHUD on narrow ones (left of it
+	            on short narrow PC windows)
 	  Bottom    backpack bar + Surface/Sell/Auto, 420 x 180 centred on the bottom edge
 	  Ride      Ride button beside the bottom bar (right side; left side only when that would
 	            meet the SurvivalHUD, i.e. short narrow PC windows); RideDig = touch dig button
@@ -41,6 +44,7 @@ export type Regions = {
 	Timers: Rect,
 	Toasts: Rect,
 	Survival: Rect,
+	Social: Rect,
 	Bottom: Rect,
 	Ride: Rect,
 	RideDig: Rect,
@@ -54,6 +58,7 @@ Layout.MENU_ROWS = 4
 Layout.TOP_RIGHT = Vector2.new(388, 100)
 Layout.DEPTH = Vector2.new(200, 118)
 Layout.SURVIVAL = Vector2.new(218, 184)
+Layout.SOCIAL = Vector2.new(200, 80)
 Layout.BOTTOM = Vector2.new(420, 180)
 Layout.RIDE = Vector2.new(80, 86)
 Layout.RIDE_DIG = 96
@@ -105,6 +110,13 @@ function Layout.Compute(size: Vector2): Regions
 		ride.X = bottom.X - 4 - Layout.RIDE.X
 	end
 	local rideDig = rect(W - 170 - Layout.RIDE_DIG, H - 16 - Layout.RIDE_DIG, Layout.RIDE_DIG, Layout.RIDE_DIG)
+	local social = if wide
+		then rect(depth.X, depth.Y + depth.H + 6, Layout.SOCIAL.X, Layout.SOCIAL.Y)
+		else rect(W - MARGIN - Layout.SOCIAL.X, survival.Y + survival.H + 6, Layout.SOCIAL.X, Layout.SOCIAL.Y)
+	if not wide and (social.Y + social.H > H - 8 or Layout.Overlaps(social, rideDig)) then
+		-- short narrow screens (PC windows): left of the SurvivalHUD, under the top-centre column
+		social = rect(survival.X - 8 - Layout.SOCIAL.X, survival.Y, Layout.SOCIAL.X, Layout.SOCIAL.Y)
+	end
 
 	return {
 		Size = size,
@@ -117,6 +129,7 @@ function Layout.Compute(size: Vector2): Regions
 		Timers = timers,
 		Toasts = toasts,
 		Survival = survival,
+		Social = social,
 		Bottom = bottom,
 		Ride = ride,
 		RideDig = rideDig,

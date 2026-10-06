@@ -1,9 +1,12 @@
 --!strict
 -- SettingsPanel — Music / SFX / Low graphics / Auto Dig toggles (SetSetting) and the Codes box
 -- (RedeemCode). Toggles update locally at once; the server persists them in Settings.
+-- v2.2 (Status & Social): "Nameplates" toggle (ShowNameplates, StatusController) and an
+-- "Invite friends" card (SocialHUD.PromptInvite: Roblox invite dialog, no reward).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local Components = script.Parent.Parent.Components
 local Style = require(Components.Style)
@@ -13,6 +16,7 @@ local Card = require(Components.Card)
 local AtlasIcon = require(Components.AtlasIcon)
 local Icons = require(script.Parent.Parent.Icons)
 local Toasts = require(script.Parent.Parent.Toasts)
+local SocialHUD = require(script.Parent.Parent.SocialHUD)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 
 local SettingsPanel = {}
@@ -25,6 +29,7 @@ local TOGGLES = {
 	{ Key = "Music", Label = "Music", Icon = "music", Default = true },
 	{ Key = "SFX", Label = "Sound Effects", Icon = "sfx", Default = true },
 	{ Key = "LowGraphics", Label = "Low Graphics", Icon = "settings|📱", Default = false },
+	{ Key = "ShowNameplates", Label = "Nameplates", Icon = "star", Default = true },
 	{ Key = "AutoDig", Label = "Auto Dig", Icon = "AutoDig", Default = false, NeedsPass = "AutoDig" },
 }
 
@@ -107,6 +112,52 @@ local function build()
 			{ Key = def.Key, Default = def.Default, Button = button, Row = card.Holder, NeedsPass = def.NeedsPass }
 		)
 	end
+
+	local invite = Card.new({
+		Name = "Invite",
+		Size = UDim2.new(1, -16, 0, 84),
+		LayoutOrder = 90,
+		Color = C.NavyCardDark,
+		ZIndex = 6,
+		Parent = list,
+	})
+	AtlasIcon.new({
+		Icon = "👫",
+		Size = UDim2.fromOffset(52, 52),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 8,
+		Parent = invite.Face,
+	})
+	Style.Label({
+		Text = string.format(
+			"Dig with friends: +%d%% sand each (up to +%d%%)!",
+			math.floor(Config.FRIEND_BONUS_PER_FRIEND * 100 + 0.5),
+			math.floor(Config.FRIEND_BONUS_MAX * 100 + 0.5)
+		),
+		Size = UDim2.new(1, -250, 0.7, 0),
+		Position = UDim2.new(0, 70, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		StrokeThickness = 2,
+		MaxTextSize = 22,
+		Wrapped = true,
+		XAlign = Enum.TextXAlignment.Left,
+		ZIndex = 8,
+		Parent = invite.Face,
+	})
+	Button.new({
+		Name = "InviteButton",
+		Text = "Invite",
+		Size = UDim2.fromOffset(160, 74),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Color = C.Coral,
+		ZIndex = 8,
+		Parent = invite.Face,
+		OnClick = function()
+			SocialHUD.PromptInvite()
+		end,
+	})
 
 	local codes = Card.new({
 		Name = "Codes",

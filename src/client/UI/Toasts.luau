@@ -10,6 +10,8 @@
 	dropped (it only refreshes the visible toast's timer). Repeats after that window, while the
 	toast is still visible, are merged into an "x2" counter instead of stacking.
 	Kinds: Success, Error, Info, Warning, Reward, Announce (anything else -> Info).
+	Routes (v2.2): Toasts.SetRoute(kind, fn) hands every message of that kind to another
+	presenter instead (UI/Announcements takes "Announce" -> big gold top banner).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -194,8 +196,20 @@ pump = function()
 	end
 end
 
+local routes: { [string]: (text: string) -> () } = {}
+
+-- Send every message of `kind` (case-insensitive) to `fn` instead of a toast (nil: back to toasts).
+function Toasts.SetRoute(kind: string, fn: ((text: string) -> ())?)
+	routes[string.lower(kind)] = fn :: any
+end
+
 function Toasts.Show(text: string, kind: string?, duration: number?)
 	if text == "" then
+		return
+	end
+	local route = routes[string.lower(kind or "Info")]
+	if route then
+		route(text)
 		return
 	end
 	local key = normalise(text)

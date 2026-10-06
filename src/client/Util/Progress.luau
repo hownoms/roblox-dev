@@ -88,4 +88,16 @@ function Progress.CanRebirth(data: Types.PlayerData): boolean
 	return (data.Coins or 0) >= Config.RebirthCost(data.Rebirths or 0)
 end
 
+-- v2.2: Rebirth Tokens can buy the next level of some Rebirth Perk.
+function Progress.CanBuyRebirthPerk(data: Types.PlayerData): boolean
+	local tokens = data.RebirthTokens or 0
+	for _, def in Config.RebirthPerks.List do
+		local cost = Config.RebirthPerks.NextCost(data.RebirthPerks, def.Id)
+		if cost and tokens >= cost then
+			return true
+		end
+	end
+	return false
+end
+
 return Progress

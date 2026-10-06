@@ -4,7 +4,7 @@
 
 	Three kinds of keys:
 	  1. Actions (not persisted), registered by other services:  RegisterAction(key, fn)
-	       "SellNow"  (EconomyService) sell from anywhere — needs the SellAnywhere pass
+	       "SellNow"  (EconomyService) sell from anywhere — needs the SellAnywhere pass or rebirth perk
 	  2. Validated settings, registered by other services:        RegisterValidator(key, fn)
 	       "AutoDig"  (DigService) boolean — needs the AutoDig pass to turn on
 	  3. Generic client preferences (persisted in PlayerData.Settings): any key matching
@@ -22,7 +22,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
-local TableUtil = require(Shared.Util.TableUtil)
 local Types = require(Shared.Types)
 
 local DataService = require(script.Parent.DataService)
@@ -59,6 +58,17 @@ local function isReserved(key: string): boolean
 		end
 	end
 	return false
+end
+
+-- Only client keys count toward MAX_CLIENT_KEYS (server FTUE_ / Server_ flags don't).
+local function clientKeyCount(settings: { [string]: any }): number
+	local n = 0
+	for key in settings do
+		if not isReserved(key) then
+			n += 1
+		end
+	end
+	return n
 end
 
 local function genericValue(value: any): (boolean, any)
@@ -98,7 +108,7 @@ local function onSetSetting(player: Player, key: any, value: any)
 			return
 		end
 		ok, stored = genericValue(value)
-		if ok and data.Settings[key] == nil and stored ~= nil and TableUtil.Count(data.Settings) >= MAX_CLIENT_KEYS then
+		if ok and data.Settings[key] == nil and stored ~= nil and clientKeyCount(data.Settings) >= MAX_CLIENT_KEYS then
 			ok = false
 		end
 	end

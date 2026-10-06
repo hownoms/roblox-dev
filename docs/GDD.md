@@ -55,7 +55,7 @@ DIG (tap/hold) -> sand fills BACKPACK -> SELL at stand (or Sell Anywhere) -> COI
 | First upgrade | < 2 min | Garden Trowel 30 coins (2nd sell), Sand Pail 50 coins |
 | First egg | < 5 min | Beach Egg 100 coins (~3–4 min); tutorial step points at it |
 | First new layer | ~1 min | Wet Sand at 20 m (toy shovel can dig it) |
-| First rebirth | 45–60 min | Rebirth 1 costs 4M; simulated ~56 min of real play |
+| First rebirth | ~35 min | v2.2: Rebirth 1 costs 500K (was 4M, ~56 min); `tools/sim/economy.luau` |
 | Reach the Core | ~10–15 h | Core Breaker needs 10 rebirths |
 
 Session rhythm: a sell trip every 30–60 s, a purchase every 2–5 min early / 5–10 min mid,
@@ -114,8 +114,11 @@ Pirate Cove, Fossil @ Fossil Bed, Crystal @ Crystal Caverns, Magma @ Magma Chamb
 Alien Hive). Rebirth Egg costs Rebirth Tokens. Golden Egg is Robux only (Epic+ guaranteed, but its
 best pet ≈ a mid-game Crystal Legendary — strong early, outgrown later).
 
-**Rebirth:** cost `4M x 3.3^n` (4M, 13M, 44M, 140M, 470M, 1.6B ...), +0.5x permanent multiplier
-each (sand *and* backpack capacity), tokens `1 + floor(n/3)`. Resets coins, sand, shovels,
+**Rebirth (v2.2, see `docs/design/Rebirth.md`):** cost 500K, 2.8M, 15M, 85M, then the old
+`4M x 3.3^n` curve from rebirth 5 on (470M, 1.6B, 5.2B ...), +0.5x permanent multiplier
+each (sand *and* backpack capacity), tokens `2 + floor(n/2)` (2, 2, 3, 3, 4 ...). Tokens buy
+permanent **Rebirth Perks** (Head Start, Keep Backpack, Sell Anywhere, Deep Pockets, Lucky Digger,
+Long Nap, Pet Den, Golden Touch) or Rebirth Eggs. Resets coins, sand, shovels,
 backpacks, unsold treasures. Keeps pets, index, rebirth stats, MaxDepth record, quests, boosts.
 Your plot is refilled ("the tide washes it away") and you start at the surface — but with
 x1.5 everything the first 20 minutes fly by, which feels great.
@@ -153,8 +156,13 @@ numbers from Config). Times are cumulative minutes since joining.
 | Frostbite Pick | 600K | 37.8 | Frozen Abyss | ~2K/s |
 | Wheelbarrow | 600K | 43.2 | Frozen Abyss | ~4K/s |
 | **Rebirth 1** | **4M** | **~56** | — | x1.5 |
+| **Rebirth 1 (v2.2)** | **500K** | **~35** | — | x1.5, 2 tokens |
 
-Rebirth pacing (same model): R2 ~43 min later, R3–R5 ~35–40 min each, R6–R8 ~40–50 min, R9+
+v2.2 retune (`tools/sim/economy.luau`, which is stricter than this table's model: it gives the old
+curve 73 min, so its output is rescaled by 56/73): first rebirth ~35 min, then ~30, ~28, ~38, ~41
+min without perks; with a typical perk plan ~25, ~24, then ~9 min per rebirth once Sell Anywhere is
+unlocked (the pass gave the same speed-up before). Rebirth 5+ costs are unchanged.
+Old pacing (pre-v2.2, same model): R2 ~43 min later, R3–R5 ~35–40 min each, R6–R8 ~40–50 min, R9+
 1–2 h each; Core Breaker (10 rebirths) ≈ 9–11 h of idealised play, realistically 12–20 h —
 two to three weeks for a 45-min/day player. Beyond R11 the cost curve (x3.3) outruns income on
 purpose: that is the wall each content update pushes back.
@@ -177,6 +185,7 @@ Tuning knobs, in order of preference: `Rebirths.BaseCost / CostGrowth`, shovel/b
 | Events | **High Tide** every 20 min for 3 min (2x Luck), **Golden Hour** every 45 min for 5 min (2x Coins). Deterministic from `os.time()` so all servers agree; countdown banner in HUD | `Events.luau` |
 | Group / like rewards | Join group -> +10% sand forever (checked live), group-only code DIGDEEP; like-milestone codes. (Likes/favourites can't be detected, so use codes.) | `GROUP_ID`, `Codes.luau` |
 | Friends | +5% sand per friend in server (max +20%) | `FRIEND_BONUS_*` |
+| Offline earnings (v2.2) | Equipped digging pets keep digging while you are away: 40% of their live rate, up to 2 h (Long Nap perk: up to 6 h / 80%), paid as coins with a welcome-back popup | `RebirthPerks.luau`, `OfflineService` |
 | Server announcements | Legendary/Mythic finds and hatches toast to the whole server | `RarityDef.Announce` |
 
 ---
@@ -199,7 +208,7 @@ Tuning knobs, in order of preference: `Rebirths.BaseCost / CostGrowth`, shovel/b
 |---|---|---|---|
 | VIP | VIP | 249 | +25% sand, +25% luck, chat tag, VIP lounge |
 | DoubleSand | 2x Sand | 299 | x2 sand forever |
-| SellAnywhere | Sell Anywhere | 149 | Sell button works anywhere |
+| SellAnywhere | Sell Anywhere | 149 | Sell button works anywhere (v2.2: also a 5-token Rebirth Perk) |
 | AutoDig | Auto Dig | 199 | Toggle auto-dig straight down |
 | Lucky | Lucky Shovel | 149 | x2 luck (treasure + egg) |
 | TripleHatch | Triple Hatch | 99 | Hatch 3 eggs at once |
@@ -233,7 +242,7 @@ drive products.
 6. **egg** — at 100 coins, arrow to Egg shop; hatch animation; auto-equip the pet.
 Then the tutorial hides; contextual hints remain ("Too hard! Get a Metal Spade" with shop arrow,
 "Backpack full — sell!", "New layer: Pirate Cove!" banner with flavor text).
-Analytics funnel steps: joined, first dig, first sell, first shovel, first egg, first rebirth.
+Analytics funnel steps: see `docs/ANALYTICS.md` (18 steps since v2.2). Menu buttons unlock progressively: `docs/design/Onboarding.md`.
 
 ---
 

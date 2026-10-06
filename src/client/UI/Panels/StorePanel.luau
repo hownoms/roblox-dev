@@ -3,6 +3,9 @@
 	StorePanel — Robux store from Config.Monetization. Tabs: Game Passes / Boosts & Coins.
 	Items with Id 0 are shown greyed out as "Soon" (never prompted). Owned passes show ✅.
 	Coin packs show the live amount for your deepest layer (Config.ResolveCoins).
+	v2.2 policy: items marked PaidRandom (coins, golden eggs, luck, skip rebirth, Lucky pass) are
+	hidden entirely while State.IsPaidRandomRestricted() (server PolicyService attribute). The grid
+	re-flows, and an empty tab says so instead of showing a blank page. The Cooler Pack is gone.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -48,19 +51,28 @@ local PRODUCT_ORDER = {
 	"SkipRebirth",
 }
 
-type Item = { Key: string, IsPass: boolean, Button: Button.Button, Detail: TextLabel }
+type Item = { Key: string, IsPass: boolean, Button: Button.Button, Detail: TextLabel, Card: Card.Card }
 
 local panel: Panel.Panel
 local built = false
 local items: { Item } = {}
 local tabs: { [string]: Button.Button } = {}
 local pages: { [string]: ScrollingFrame } = {}
+local emptyNotes: { [string]: TextLabel } = {}
 
 local function refresh()
 	if not built then
 		return
 	end
+	local shown: { [string]: number } = {}
 	for _, item in items do
+		local visible = State.CanBuy(if item.IsPass then "GamePass" else "Product", item.Key)
+		item.Card.Holder.Visible = visible
+		local page = if item.IsPass then "Passes" else "Boosts & Coins"
+		shown[page] = (shown[page] or 0) + (if visible then 1 else 0)
+		if not visible then
+			continue
+		end
 		if item.IsPass then
 			local pass = Config.Monetization.GamePasses[item.Key]
 			if State.OwnsPass(item.Key) then
@@ -86,6 +98,9 @@ local function refresh()
 				item.Button:SetText("R$ " .. product.Price)
 			end
 		end
+	end
+	for page, note in emptyNotes do
+		note.Visible = (shown[page] or 0) == 0
 	end
 end
 
@@ -171,7 +186,7 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 			end
 		end,
 	})
-	table.insert(items, { Key = key, IsPass = isPass, Button = button, Detail = detail })
+	table.insert(items, { Key = key, IsPass = isPass, Button = button, Detail = detail, Card = card })
 end
 
 local function build()
@@ -206,6 +221,21 @@ local function build()
 		grid.SortOrder = Enum.SortOrder.LayoutOrder
 		grid.Parent = page
 		pages[tab] = page
+		local note = Style.Label({
+			Text = "Nothing here right now. Dig, rebirth and finish quests to earn boosts!",
+			Size = UDim2.new(1, -40, 0, 60),
+			Position = UDim2.new(0.5, 0, 0, 120),
+			AnchorPoint = Vector2.new(0.5, 0),
+			TextColor = C.Sand,
+			StrokeThickness = 2,
+			Wrapped = true,
+			MaxTextSize = 22,
+			ZIndex = 6,
+			Parent = page,
+		})
+		note.Name = "EmptyNote"
+		note.Visible = false
+		emptyNotes[tab] = note
 	end
 	for i, key in PASS_ORDER do
 		if Config.Monetization.GamePasses[key] then
@@ -235,7 +265,7 @@ function StorePanel.Init()
 		end
 		refresh()
 	end)
-	State.ObserveMany({ "Passes", "MaxDepth" }, refresh)
+	State.ObserveMany({ "Passes", "MaxDepth", "PaidRandomRestricted" }, refresh)
 end
 
 return StorePanel

@@ -10,6 +10,9 @@
 	- ProcessReceipt: idempotent via the PurchaseHistory DataStore (key = PurchaseId) plus an
 	  in-server guard; grants Config.Monetization.Products[key].Grant through the grant handler
 	  (RewardsService.Grant, wired by Main) and saves the player's data before acknowledging.
+	- v2.2 policy: PromptPass / PromptProduct refuse PaidRandom items (Config.IsPaidRandom) for
+	  players PolicyService marks ArePaidRandomItemsRestricted. ProcessReceipt never checks the
+	  policy: a purchase that already completed is always granted.
 
 	Public API:
 		MonetizationService.OwnsPass(player, key): boolean
@@ -33,7 +36,9 @@ local Types = require(Shared.Types)
 local Signal = require(Shared.Util.Signal)
 
 local DataService = require(script.Parent.DataService)
+local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Net)
+local PolicyService = require(script.Parent.PolicyService)
 
 export type GrantHandler = (player: Player, reward: Types.Reward, source: string) -> boolean
 
@@ -148,6 +153,10 @@ function MonetizationService.PromptPass(player: Player, key: string): boolean
 		Net.Notify(player, "Info", pass.Name .. " is coming soon!")
 		return false
 	end
+	if not PolicyService.CanBuy(player, "GamePass", key) then
+		Net.Notify(player, "Info", pass.Name .. " isn't available for your account.")
+		return false
+	end
 	if MonetizationService.OwnsPass(player, key) then
 		Net.Notify(player, "Info", "You already own " .. pass.Name .. "!")
 		return false
@@ -155,6 +164,9 @@ function MonetizationService.PromptPass(player: Player, key: string): boolean
 	local ok = pcall(function()
 		MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 	end)
+	if ok then
+		Analytics.PurchasePrompted(player, "Pass:" .. key)
+	end
 	return ok
 end
 
@@ -167,9 +179,16 @@ function MonetizationService.PromptProduct(player: Player, key: string): boolean
 		Net.Notify(player, "Info", product.Name .. " is coming soon!")
 		return false
 	end
+	if not PolicyService.CanBuy(player, "Product", key) then
+		Net.Notify(player, "Info", product.Name .. " isn't available for your account.")
+		return false
+	end
 	local ok = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, product.Id)
 	end)
+	if ok then
+		Analytics.PurchasePrompted(player, "Product:" .. key)
+	end
 	return ok
 end
 
@@ -255,6 +274,7 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 		end
 		if granted then
 			grantedThisServer[purchaseId] = true
+			Analytics.PurchaseCompleted(player, "Product:" .. productKey)
 			DataService.SaveAsync(player)
 			if record(purchaseId, info, productKey) then
 				decision = Enum.ProductPurchaseDecision.PurchaseGranted
@@ -298,6 +318,7 @@ function MonetizationService.Init()
 			map[passKey] = true
 			publish(player)
 			Net.Notify(player, "Success", "Thanks! " .. Config.Monetization.GamePasses[passKey].Name .. " unlocked!")
+			Analytics.PurchaseCompleted(player, "Pass:" .. passKey)
 			MonetizationService.PassesChanged:Fire(player, passKey)
 		end
 	)

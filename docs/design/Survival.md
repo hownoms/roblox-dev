@@ -64,14 +64,14 @@ The server publishes these player attributes: `Heat` (rounded to 0.1), `Sunburnt
 
 - **Buying and using:** `BuyConsumable(id, count 1..50)` adds to `PlayerData.Consumables`, up to 99 of each item. `UseConsumable(id)` uses one. A plain drink is refused if you are already at 0 heat, so kids do not waste items.
 - **Boosts:** snack boosts stack time only up to 5 minutes (`ConsumableBoostCapSeconds`), so they cannot be bulk-stacked into a permanent buff. They are deliberately weaker than the Robux boosts (×1.25 speed, ×1.5 sand, against ×2) and are new boost ids (`SugarRush`, `MelonPower`), so Robux boost timers are untouched.
-- **Cooler Pack** (developer product, `Id = 0` placeholder, 29 R$): 10 Coconut Water, 5 Shaved Ice and 3 Watermelon Slices. It is granted through the normal receipt path: `Main` calls `SurvivalService.GrantConsumables` after `RewardsService.Grant` (`Reward.Consumables`).
+- **Cooler Pack (removed in v2.2):** the snack bundle developer product was removed. Selling relief from heat friction we designed is a pattern players dislike, so snacks are bought with coins only. `Reward.Consumables` still works for codes and rewards (`Main` calls `SurvivalService.GrantConsumables` after `RewardsService.Grant`).
 
 ## Economy impact
 
 - **New coin sinks:** shade tiers (one-off) and snacks (recurring and cheap) take a small share of income. The umbrella delays the first egg or bag by about 30–60 s, which is acceptable.
 - **Income when unprepared:** an unprepared player in full sun loses at most about 38% dig speed for the 20–60 s it takes to walk to the fountain or dig deeper. A prepared player (umbrella placed, or the habit of digging deep) loses almost nothing.
 - **Late game:** snack boosts are a "cheap at your depth" convenience. Melon Power uptime costs about 25K per 45 s, which is trivial late on. It is capped at 5 minutes of stacking, and +50% does not compete with the 2x Sand pass or product.
-- **Robux:** the VIP pass gains "2 shades at once". The Cooler Pack is a small impulse product; every Robux item has a free path (the fountain, shade and digging deep).
+- **Robux:** the VIP pass gains "2 shades at once". There is no paid way to skip heat (the Cooler Pack was removed in v2.2); every Robux item has a free path (the fountain, shade and digging deep).
 
 ## Client
 

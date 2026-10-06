@@ -10,6 +10,15 @@
 	"Open" buttons, a "Construction Crate" tag and odds rows that show each vehicle's dig stats
 	("⛏ digs Pirate Cove · every 3.0s") and a 🚜 badge on rideable pets. The crate yard pallets
 	(tag "CrateShop", attribute EggId, "Open" prompt) are hooked here and focus their crate.
+
+	v2.2 TRUE ODDS (Roblox policy): every row shows the player's REAL chance for the next hatch,
+	from Stats.GetHatchOddsList(egg, Stats.GetLuck(State.GetStatsContext()), Pity[egg]), the same
+	function the server rolls with (PetService -> Stats.RollHatch). It refreshes when passes,
+	boosts, events or the pity counter change, and every second while open (boost expiry). A note
+	under the title lists the active luck modifiers ("Includes your luck x4: Lucky Shovel x2, ...").
+	PITY: each egg card says "Rare+ in N" and the detail says "Rare+ guaranteed in N hatches". On the
+	guaranteed hatch the odds rows show the Rare+-only distribution.
+	POLICY: Robux eggs whose products are PaidRandom are hidden while State.IsPaidRandomRestricted().
 ]]
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +28,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Format = require(Shared:WaitForChild("Util"):WaitForChild("Format"))
+local Stats = require(Shared:WaitForChild("Util"):WaitForChild("Stats"))
 
 local Components = script.Parent.Parent.Components
 local Style = require(Components.Style)
@@ -40,13 +50,15 @@ local C = Style.Colors
 local panel: Panel.Panel
 local built = false
 local selected: string = Config.Eggs[1].Id
-local tiles: { [string]: { Card: Card.Card, Price: TextLabel, Lock: AtlasIcon.AtlasIcon } } = {}
+local tiles: { [string]: { Card: Card.Card, Price: TextLabel, Lock: AtlasIcon.AtlasIcon, Pity: TextLabel } } = {}
+local chanceLabels: { [string]: TextLabel } = {} -- petId -> "Chance" label of the shown egg
 local detail: {
 	View: Viewport.Viewport,
 	Name: TextLabel,
 	Price: TextLabel,
 	Odds: ScrollingFrame,
 	Kind: TextLabel,
+	Luck: TextLabel,
 	Hatch1: Button.Button,
 	Hatch3: Button.Button,
 }? =
@@ -112,14 +124,83 @@ local function productFor(egg: Types.EggDef, count: number): string?
 	return nil
 end
 
-local function oddsText(weight: number, total: number): string
-	local pct = weight / total * 100
-	if pct >= 10 then
-		return string.format("%.0f%%", pct)
-	elseif pct >= 1 then
-		return string.format("%.1f%%", pct)
+-- "x1.5" / "x2" / "x1.25"
+local function factorText(value: number): string
+	local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
+	return "x" .. text
+end
+
+-- The player's luck right now (same Stats.GetLuck the server rolls with) and its modifiers.
+local function currentLuck(): (number, { Stats.Factor })
+	local ctx = State.GetStatsContext()
+	return Stats.GetLuck(ctx), Stats.GetLuckFactors(ctx)
+end
+
+local function pityCount(egg: Types.EggDef): number
+	local pity = State.Data.Pity
+	local count = if pity then pity[egg.Id] else nil
+	return if typeof(count) == "number" then count else 0
+end
+
+-- What the panel shows for one egg: { [petId] = text } plus the luck / pity note (tests read it).
+function EggPanel.GetDisplayedOdds(eggId: string): ({ [string]: string }, string)
+	local maybeEgg = Config.GetEgg(eggId)
+	if not maybeEgg then
+		return {}, ""
 	end
-	return string.format("%.2f%%", pct)
+	local egg = maybeEgg :: Types.EggDef
+	local luck, factors = currentLuck()
+	local list, pityActive = Stats.GetHatchOddsList(egg, luck, pityCount(egg))
+	local texts: { [string]: string } = {}
+	for _, odd in list do
+		texts[odd.PetId] = Format.Chance(odd.Chance)
+	end
+	local parts: { string } = {}
+	for _, factor in factors do
+		table.insert(parts, factor.Name .. " " .. factorText(factor.Value))
+	end
+	local note = if #factors > 0
+		then "Includes your luck " .. factorText(luck) .. ": " .. table.concat(parts, ", ")
+		else "Your odds per hatch (no luck boosts active)"
+	local untilPity = Stats.HatchesUntilPity(egg, pityCount(egg))
+	if pityActive then
+		note ..= "  ·  PITY: this hatch is Rare+ guaranteed!"
+	elseif untilPity then
+		note ..= string.format("  ·  Rare+ guaranteed in %d hatches", untilPity :: number)
+	end
+	return texts, note
+end
+
+-- Short pity line for an egg card ("" when the egg has no pity).
+local function pityShort(egg: Types.EggDef): string
+	local untilPity = Stats.HatchesUntilPity(egg, pityCount(egg))
+	if not untilPity then
+		return ""
+	end
+	local n = untilPity :: number
+	return if n <= 1 then "Rare+ next hatch!" else "Rare+ in " .. n
+end
+
+-- Robux eggs are only listed while one of their products may be offered (policy).
+local function isListed(egg: Types.EggDef): boolean
+	if egg.Currency ~= "Robux" then
+		return true
+	end
+	local key = productFor(egg, 1)
+	return key == nil or State.CanBuy("Product", key :: string)
+end
+
+local function refreshOdds()
+	local d = detail
+	local egg = Config.GetEgg(selected)
+	if not d or not egg or shownEgg ~= selected then
+		return
+	end
+	local texts, note = EggPanel.GetDisplayedOdds(selected)
+	for petId, label in chanceLabels do
+		label.Text = texts[petId] or "0%"
+	end
+	((d :: any).Luck :: TextLabel).Text = note
 end
 
 local function hatch(egg: Types.EggDef, count: number)
@@ -219,18 +300,15 @@ local function showEgg(eggId: string)
 		Style.Pop((dd.View :: Viewport.Viewport).Frame, 0.15);
 		(dd.Name :: TextLabel).Text = egg.Name;
 		(dd.Kind :: TextLabel).Text = if isCrate(egg)
-			then "Construction Crate: pets that DIG for you! Chances:"
-			else "Chances (before luck boosts):"
+			then "Construction Crate: pets that DIG for you! Your odds:"
+			else "Your odds per hatch:"
 		local odds: ScrollingFrame = dd.Odds
 		for _, child in odds:GetChildren() do
 			if child:IsA("GuiObject") then
 				child:Destroy()
 			end
 		end
-		local total = 0
-		for _, entry in egg.Pets do
-			total += entry.Weight
-		end
+		table.clear(chanceLabels)
 		for i, entry in egg.Pets do
 			local pet = Config.GetPet(entry.PetId)
 			if pet then
@@ -289,8 +367,9 @@ local function showEgg(eggId: string)
 					ZIndex = 8,
 					Parent = row.Face,
 				})
-				Style.Label({
-					Text = oddsText(entry.Weight, total),
+				chanceLabels[entry.PetId] = Style.Label({
+					Name = "Chance",
+					Text = "",
 					Size = UDim2.new(0.2, 0, 0.75, 0),
 					Position = UDim2.new(1, -10, 0.5, 0),
 					AnchorPoint = Vector2.new(1, 0.5),
@@ -307,6 +386,7 @@ local function showEgg(eggId: string)
 	(dd.Price :: TextLabel).Text = if unlocked or egg.Currency == "Robux"
 		then priceText(egg, 1) .. " each"
 		else "Unlocks at " .. Config.Layers[egg.UnlockLayer].Name
+	refreshOdds()
 	updateButtons()
 end
 
@@ -321,7 +401,7 @@ local function build()
 	Style.List(list, Enum.FillDirection.Vertical, 8)
 	for i, egg in Config.Eggs do
 		local card =
-			Card.new({ Name = egg.Id, Size = UDim2.new(1, -14, 0, 64), LayoutOrder = i, ZIndex = 6, Parent = list })
+			Card.new({ Name = egg.Id, Size = UDim2.new(1, -14, 0, 78), LayoutOrder = i, ZIndex = 6, Parent = list })
 		local swatch = Instance.new("Frame")
 		swatch.Size = UDim2.fromOffset(42, 50)
 		swatch.Position = UDim2.new(0, 8, 0.5, 0)
@@ -369,6 +449,19 @@ local function build()
 			ZIndex = 8,
 			Parent = card.Face,
 		})
+		local pity = Style.Label({
+			Name = "Pity",
+			Text = pityShort(egg),
+			Size = UDim2.new(1, -66, 0, 18),
+			Position = UDim2.fromOffset(58, 54),
+			TextColor = C.Gold,
+			Font = Style.Fonts.Body,
+			StrokeThickness = 2,
+			MaxTextSize = 14,
+			XAlign = Enum.TextXAlignment.Left,
+			ZIndex = 8,
+			Parent = card.Face,
+		})
 		local lock = AtlasIcon.new({
 			Name = "Lock",
 			Icon = "Lock",
@@ -388,7 +481,7 @@ local function build()
 		hit.Activated:Connect(function()
 			showEgg(egg.Id)
 		end)
-		tiles[egg.Id] = { Card = card, Price = price, Lock = lock }
+		tiles[egg.Id] = { Card = card, Price = price, Lock = lock, Pity = pity }
 	end
 
 	local right = Instance.new("Frame")
@@ -440,9 +533,9 @@ local function build()
 		Parent = right,
 	})
 	local kind = Style.Label({
-		Text = "Chances (before luck boosts):",
+		Text = "Your odds per hatch:",
 		Size = UDim2.new(1, -200, 0, 20),
-		Position = UDim2.fromOffset(200, 72),
+		Position = UDim2.fromOffset(200, 68),
 		Font = Style.Fonts.Body,
 		StrokeThickness = 2,
 		MaxTextSize = 14,
@@ -488,11 +581,35 @@ local function build()
 			hatch(egg, Config.TRIPLE_HATCH_COUNT)
 		end,
 	})
-	local odds = Panel.Scroller(right, UDim2.new(1, -200, 1, -96), UDim2.fromOffset(200, 96))
+	-- v2.2: the player's active luck modifiers + pity status (true odds disclosure)
+	local luckNote = Style.Label({
+		Name = "LuckNote",
+		Text = "",
+		Size = UDim2.new(1, -200, 0, 30),
+		Position = UDim2.fromOffset(200, 88),
+		TextColor = C.Gold,
+		Font = Style.Fonts.Body,
+		StrokeThickness = 2,
+		Wrapped = true,
+		MaxTextSize = 13,
+		XAlign = Enum.TextXAlignment.Left,
+		ZIndex = 6,
+		Parent = right,
+	})
+	local odds = Panel.Scroller(right, UDim2.new(1, -200, 1, -122), UDim2.fromOffset(200, 122))
 	Style.List(odds, Enum.FillDirection.Vertical, 6)
 
 	kind.Name = "Kind"
-	detail = { View = view, Name = name, Price = price, Odds = odds, Kind = kind, Hatch1 = hatch1, Hatch3 = hatch3 }
+	detail = {
+		View = view,
+		Name = name,
+		Price = price,
+		Odds = odds,
+		Kind = kind,
+		Luck = luckNote,
+		Hatch1 = hatch1,
+		Hatch3 = hatch3,
+	}
 end
 
 local function refreshTiles()
@@ -500,10 +617,17 @@ local function refreshTiles()
 		local egg = Config.GetEgg(id)
 		if egg then
 			local unlocked = egg.Currency == "Robux" or Config.IsEggUnlocked(id, State.Data.MaxDepth)
+			tile.Card.Holder.Visible = isListed(egg)
+			tile.Pity.Text = pityShort(egg)
 			tile.Lock.Frame.Visible = not unlocked
 			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price then C.Danger else C.Money
 		end
 	end
+	local selectedEgg = Config.GetEgg(selected)
+	if selectedEgg and not isListed(selectedEgg) then
+		showEgg(Config.Eggs[1].Id) -- the shown egg was hidden by policy
+	end
+	refreshOdds()
 	updateButtons()
 end
 
@@ -566,12 +690,32 @@ function EggPanel.Init()
 				end
 			end
 		end
-		showEgg(target or selected)
+		local targetEgg = Config.GetEgg(target or selected)
+		showEgg(if targetEgg and isListed(targetEgg) then targetEgg.Id else Config.Eggs[1].Id)
 		refreshTiles()
 	end)
-	State.ObserveMany({ "Coins", "RebirthTokens", "MaxDepth", "Passes", "Pets" }, function()
+	State.ObserveMany({
+		"Coins",
+		"RebirthTokens",
+		"MaxDepth",
+		"Passes",
+		"Pets",
+		"Pity",
+		"Boosts",
+		"ActiveEvents",
+		"PaidRandomRestricted",
+	}, function()
 		if built then
 			refreshTiles()
+		end
+	end)
+	-- boosts expire and friends come and go without a data change: keep the odds live while open
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if built and panel.IsOpen then
+				refreshOdds()
+			end
 		end
 	end)
 	hookCrateYard()

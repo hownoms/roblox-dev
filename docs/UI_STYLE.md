@@ -95,6 +95,9 @@ style in our beach palette.
   - Top-centre column: up to 380 px wide, between the menu and the depth/currency block. The
     objective pill is at y 8, the boost/event chips at y 60, and toasts from y 102.
   - SurvivalHUD: right edge, under the cluster/depth meter, 218 × 184 px.
+  - Social (v2.2): the server goal bar and the "Friends +X%" chip, 200 × 80, under the depth meter
+    on wide screens and under the SurvivalHUD on narrow ones (left of it on short PC windows).
+    Rare-find announcements use a gold banner over the toast column (`UI/Announcements`).
   - Bottom bar: centred, 420 × 180. The Ride button sits beside it (to the right; to the left
     only when the right side would meet the SurvivalHUD).
 - **Icons**: `Components/AtlasIcon.luau` everywhere. Pasting the uploaded image id into

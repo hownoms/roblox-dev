@@ -37,6 +37,9 @@ local Heat = require(script.Heat)
 local Shades = require(script.Shades)
 local Consumables = require(script.Consumables)
 local Ride = require(script.Ride) -- v2.1 ride-on excavator tuning (Ride agent)
+local RebirthPerks = require(script.RebirthPerks) -- v2.2 rebirth token perk shop (Rebirth agent)
+local Titles = require(script.Titles) -- v2.2 nameplate titles (Status & Social agent)
+local Social = require(script.Social) -- v2.2 announcements / leaderboard scopes / server goal
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
 
@@ -63,6 +66,9 @@ local Config = {
 	Shades = Shades,
 	Consumables = Consumables,
 	Ride = Ride,
+	RebirthPerks = RebirthPerks,
+	Titles = Titles,
+	Social = Social,
 
 	-- World --------------------------------------------------------------------------------
 	-- One shared dig zone along the shoreline (World.GetDigZone); no plots.
@@ -92,6 +98,11 @@ local Config = {
 	MAX_EQUIPPED_PETS = 3,
 	PET_INVENTORY_LIMIT = 200,
 	TRIPLE_HATCH_COUNT = 3,
+	-- v2.2 hatch pity + duplicate fusion (docs/design/Companions.md "Pity and Golden pets").
+	PITY_MIN_RARITY_ORDER = 3, -- "Rare or better" (RarityDef.Order); EggDef.PityAt per egg
+	GOLDEN_FUSE_COUNT = 5, -- identical non-golden copies fused into one Golden pet
+	GOLDEN_SAND_BONUS = 1.5, -- a Golden pet's sand bonus (Multiplier - 1) is x1.5
+	GOLDEN_DIG_SPEED = 1.25, -- a Golden digging pet digs 1.25x as often (Interval / 1.25)
 
 	-- Social -------------------------------------------------------------------------------
 	GROUP_ID = 0, -- OWNER: paste the Roblox group id; members get GROUP_SAND_MULTIPLIER
@@ -269,15 +280,25 @@ function Config.RebirthTokens(rebirths: number): number
 end
 
 -- Additive pet bonus: 1 + sum(Multiplier - 1). Unknown ids are ignored.
-function Config.PetMultiplier(petIds: { string }): number
+-- v2.2: golden[i] = true marks petIds[i] as a Golden pet (bonus x GOLDEN_SAND_BONUS).
+function Config.PetMultiplier(petIds: { string }, golden: { [number]: boolean }?): number
 	local total = 1
-	for _, id in petIds do
+	for i, id in petIds do
 		local pet = petById[id]
 		if pet then
-			total += pet.Multiplier - 1
+			local bonus = pet.Multiplier - 1
+			if golden and golden[i] then
+				bonus *= Config.GOLDEN_SAND_BONUS
+			end
+			total += bonus
 		end
 	end
 	return total
+end
+
+-- v2.2: one pet's own multiplier (1 + bonus), Golden included. Unknown id -> 1.
+function Config.PetEffectiveMultiplier(petId: string, golden: boolean?): number
+	return Config.PetMultiplier({ petId }, { golden == true })
 end
 
 -- Flat Coins + ScaledCoins * RewardScale of the layer at maxDepth. Rounded down.
@@ -367,6 +388,31 @@ function Config.GetPetDig(petId: string): Types.PetDigDef?
 	return if pet then pet.Dig else nil
 end
 
+-- v2.2: seconds between digs for this pet; Golden pets dig GOLDEN_DIG_SPEED x as often.
+function Config.GetPetDigInterval(petId: string, golden: boolean?): number?
+	local dig = Config.GetPetDig(petId)
+	if not dig then
+		return nil
+	end
+	return (dig :: Types.PetDigDef).Interval / (if golden then Config.GOLDEN_DIG_SPEED else 1)
+end
+
+-- Compliance (v2.2) -----------------------------------------------------------------------------
+
+-- Is this pass / product a paid random item, a paid luck modifier or currency that buys random
+-- items (Monetization PaidRandom)? Those are hidden and refused for PolicyService-restricted
+-- players (ArePaidRandomItemsRestricted). kind: "GamePass" | "Product".
+function Config.IsPaidRandom(kind: string, key: string): boolean
+	if kind == "GamePass" then
+		local pass = Monetization.GamePasses[key]
+		return pass ~= nil and pass.PaidRandom == true
+	elseif kind == "Product" then
+		local product = Monetization.Products[key]
+		return product ~= nil and product.PaidRandom == true
+	end
+	return false
+end
+
 -- Ride (v2.1, Ride agent) ----------------------------------------------------------------------
 
 -- The best rideable pet (PetDef.Rideable) among an inventory (PlayerData.Pets), or nil. Scans
@@ -436,6 +482,27 @@ function Config.CountCompletedIndexLayers(index: { [string]: boolean }): number
 	return complete
 end
 
+-- Status & Social (v2.2) ------------------------------------------------------------------------
+
+-- Nameplate title for a layer index (clamped to 1..#Layers): (title, colour).
+function Config.GetTitle(layerIndex: number): (string, Color3)
+	local index = math.clamp(math.floor(layerIndex), 1, #Titles)
+	local def = Titles[index]
+	return def.Title, def.Color or Layers[index].Color
+end
+
+-- Server dig goal (sand) for a server whose players have these MaxDepth values. See Config/Social.
+function Config.ServerGoalTarget(maxDepths: { number }): number
+	local goal = Social.ServerGoal
+	local total = 0
+	for _, depth in maxDepths do
+		local layer = Config.GetLayerAtDepth(depth)
+		total += math.max(goal.PerPlayerSand, layer.RewardScale * goal.DigSeconds)
+	end
+	total = math.max(total, goal.MinSand)
+	return math.ceil(total / goal.Round) * goal.Round
+end
+
 -- Fresh default save for a brand-new player.
 function Config.NewPlayerData(): Types.PlayerData
 	local firstShovel = Shovels[1].Id
@@ -492,9 +559,21 @@ do
 		if egg.ProductKey then
 			assert(Monetization.Products[egg.ProductKey], "Config: unknown product key " .. egg.ProductKey)
 		end
+		if egg.PityAt then
+			local hasRarePlus = false
+			for _, entry in egg.Pets do
+				local rarity = rarityByName[petById[entry.PetId].Rarity]
+				hasRarePlus = hasRarePlus or rarity.Order >= Config.PITY_MIN_RARITY_ORDER
+			end
+			assert(egg.PityAt >= 1 and hasRarePlus, "Config: PityAt needs a Rare+ pet in egg " .. egg.Id)
+		end
 	end
 	for _, treasure in Treasures do
 		assert(rarityByName[treasure.Rarity], "Config: unknown rarity on " .. treasure.Id)
+	end
+	assert(#Titles == #Layers, "Config: one title per layer")
+	for i, title in Titles do
+		assert(title.LayerId == Layers[i].Id, "Config: title " .. i .. " is not for layer " .. Layers[i].Id)
 	end
 	for _, pet in Pets do
 		local dig = pet.Dig

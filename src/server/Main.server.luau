@@ -35,6 +35,8 @@ end
 
 local Services = script.Parent.Services
 local DataService = require(Services.DataService)
+local PolicyService = require(Services.PolicyService)
+local Analytics = require(Services.Analytics)
 local MonetizationService = require(Services.MonetizationService)
 local EventService = require(Services.EventService)
 local MultiplierService = require(Services.MultiplierService)
@@ -47,11 +49,14 @@ local DigService = require(Services.DigService)
 local RebirthService = require(Services.RebirthService)
 local RewardsService = require(Services.RewardsService)
 local LeaderboardService = require(Services.LeaderboardService)
+local StatusService = require(Services.StatusService) -- v2.2 nameplate attributes + worn backpack
+local ServerGoalService = require(Services.ServerGoalService) -- v2.2 server-wide dig goal
 local BadgeAwardService = require(Services.BadgeAwardService)
 local DevCommands = require(Services.DevCommands)
 local SurvivalService = require(Services.SurvivalService)
 local PetDigService = require(Services.PetDigService)
 local RideService = require(Services.RideService)
+local OfflineService = require(Services.OfflineService)
 local Net = require(Services.Net)
 
 type Service = {
@@ -64,6 +69,8 @@ type Service = {
 -- Dependency order (each service only requires services listed before it).
 local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "DataService", Module = DataService :: any },
+	{ Name = "PolicyService", Module = PolicyService :: any }, -- v2.2: paid random item policy
+	{ Name = "Analytics", Module = Analytics :: any },
 	{ Name = "MonetizationService", Module = MonetizationService :: any },
 	{ Name = "EventService", Module = EventService :: any },
 	{ Name = "MultiplierService", Module = MultiplierService :: any },
@@ -76,10 +83,13 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "RebirthService", Module = RebirthService :: any },
 	{ Name = "RewardsService", Module = RewardsService :: any },
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },
+	{ Name = "StatusService", Module = StatusService :: any },
+	{ Name = "ServerGoalService", Module = ServerGoalService :: any },
 	{ Name = "BadgeAwardService", Module = BadgeAwardService :: any },
 	{ Name = "SurvivalService", Module = SurvivalService :: any },
 	{ Name = "PetDigService", Module = PetDigService :: any },
 	{ Name = "RideService", Module = RideService :: any },
+	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
 	{ Name = "DevCommands", Module = DevCommands :: any },
 }
 
@@ -100,7 +110,7 @@ end
 -- Developer products are granted through RewardsService (coins, boosts, eggs, skip rebirth).
 MonetizationService.SetGrantHandler(function(player: Player, reward, source: string): boolean
 	local granted = RewardsService.Grant(player, reward, source)
-	-- v2 survival: consumables (Cooler Pack) are granted by SurvivalService.
+	-- v2 survival: consumables (rewards with Consumables) are granted by SurvivalService.
 	if granted and reward.Consumables then
 		SurvivalService.GrantConsumables(player, reward.Consumables, source)
 	end

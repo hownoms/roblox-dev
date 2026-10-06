@@ -74,6 +74,36 @@ function ModelFactory.Pet(id: string): Model
 	end)
 end
 
+-- v2.2 Golden pets (PetInstance.Golden): tint every part toward gold, add a little shine and a
+-- gold sparkle on the biggest part. Client-side only (followers and viewports). Idempotent.
+local GOLD = Color3.fromRGB(255, 205, 60)
+
+function ModelFactory.MakeGolden(model: Model): Model
+	if model:GetAttribute("Golden") == true then
+		return model
+	end
+	model:SetAttribute("Golden", true)
+	local biggest: BasePart? = nil
+	local biggestVolume = -1
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Color = d.Color:Lerp(GOLD, 0.6)
+			d.Reflectance = math.max(d.Reflectance, 0.25)
+			local volume = d.Size.X * d.Size.Y * d.Size.Z
+			if volume > biggestVolume then
+				biggest, biggestVolume = d, volume
+			end
+		end
+	end
+	if biggest then
+		local sparkles = Instance.new("Sparkles")
+		sparkles.Name = "GoldenSparkles"
+		sparkles.SparkleColor = GOLD
+		sparkles.Parent = biggest
+	end
+	return model
+end
+
 function ModelFactory.Egg(id: string): Model
 	return build(Models.Egg, id, function()
 		local def = Config.GetEgg(id)

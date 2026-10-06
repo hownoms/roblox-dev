@@ -7,6 +7,9 @@
 	skips the wobble; hatches are queued.
 	v2.1: Construction Crates (EggDef.Kind == "Crate") don't crack: their lid (sub-Model "Lid" of
 	Models.Egg) pops off and flips away before the vehicle springs out. Digging pets show a ⛏ line.
+	v2.2: EggHatched's optional second argument { EggId, Chances, Pity } adds a CHANCE row to each
+	card: the true chance (luck and pity included) that pet had on the server's roll, e.g. "0.5%"
+	or "100% (pity)". EggId picks the right shell even for hatches the panel didn't start.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +17,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Types = require(Shared:WaitForChild("Types"))
+local Format = require(Shared:WaitForChild("Util"):WaitForChild("Format"))
 
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
@@ -33,7 +37,9 @@ HatchAnimation.Hatched = Signal.new() -- (petIds) fired as soon as results arriv
 
 local C = Style.Colors
 local pendingEgg: string? = nil
-local queue: { { string } } = {}
+export type HatchInfo = { EggId: string?, Chances: { number }?, Pity: { boolean }? }
+type Batch = { Ids: { string }, Info: HatchInfo? }
+local queue: { Batch } = {}
 local playing = false
 
 -- The egg panel tells us which egg was just requested so we show the right shell.
@@ -93,8 +99,8 @@ local function popLid(view: Viewport.Viewport)
 	end)
 end
 
--- Reveal card for one hatched pet.
-local function revealItem(petId: string): Reveal.Item
+-- Reveal card for one hatched pet (chance = the true probability the server rolled it with).
+local function revealItem(petId: string, chance: number?, pity: boolean?): Reveal.Item
 	local def = Config.GetPet(petId)
 	local rarity = if def then Config.GetRarity(def.Rarity) else nil
 	local color = if rarity then rarity.Color else C.Text
@@ -116,6 +122,13 @@ local function revealItem(petId: string): Reveal.Item
 			Value = if def.Rideable then "YES!" else "No",
 			Color = if def.Rideable then C.Gold else C.Disabled,
 		})
+		if chance then
+			table.insert(rows, {
+				Label = "CHANCE",
+				Value = Format.Chance(chance) .. (if pity then " (pity)" else ""),
+				Color = if pity then C.Gold else C.Time,
+			})
+		end
 	end
 	return {
 		Name = if def then def.Name else petId,
@@ -125,8 +138,11 @@ local function revealItem(petId: string): Reveal.Item
 	}
 end
 
-local function play(petIds: { string })
+local function play(petIds: { string }, info: HatchInfo?)
 	playing = true
+	if info and typeof(info.EggId) == "string" and Config.GetEgg(info.EggId :: string) then
+		pendingEgg = info.EggId
+	end
 	local canvas = Root.Get("Popups")
 	local overlay = Instance.new("TextButton")
 	overlay.Name = "Hatch"
@@ -234,8 +250,12 @@ local function play(petIds: { string })
 	overlay:Destroy()
 	local bestRarity: Types.RarityDef? = nil
 	local items: { Reveal.Item } = {}
-	for _, petId in petIds do
-		table.insert(items, revealItem(petId))
+	local chances = if info then info.Chances else nil
+	local pities = if info then info.Pity else nil
+	for i, petId in petIds do
+		local chance = if chances and typeof(chances[i]) == "number" then chances[i] else nil
+		local pity = if pities then pities[i] == true else false
+		table.insert(items, revealItem(petId, chance, pity))
 		local def = Config.GetPet(petId)
 		local rarity = if def then Config.GetRarity(def.Rarity) else nil
 		if rarity and (not bestRarity or rarity.Order > (bestRarity :: Types.RarityDef).Order) then
@@ -264,11 +284,11 @@ local function play(petIds: { string })
 	playing = false
 	local nextBatch = table.remove(queue, 1)
 	if nextBatch then
-		play(nextBatch)
+		play(nextBatch.Ids, nextBatch.Info)
 	end
 end
 
-function HatchAnimation.Play(results: { any })
+function HatchAnimation.Play(results: { any }, info: HatchInfo?)
 	local ids = {}
 	for _, value in results do
 		local id = resolvePetId(value)
@@ -284,19 +304,27 @@ function HatchAnimation.Play(results: { any })
 	end
 	HatchAnimation.Hatched:Fire(ids)
 	if playing then
-		table.insert(queue, ids)
+		table.insert(queue, { Ids = ids, Info = info })
 	else
-		task.spawn(play, ids)
+		task.spawn(play, ids, info)
 	end
 end
 
 function HatchAnimation.Init()
 	task.spawn(function()
-		Remotes.Get("EggHatched").OnClientEvent:Connect(function(results: any)
+		Remotes.Get("EggHatched").OnClientEvent:Connect(function(results: any, rawInfo: any)
+			local info: HatchInfo? = nil
+			if typeof(rawInfo) == "table" then
+				info = {
+					EggId = if typeof(rawInfo.EggId) == "string" then rawInfo.EggId else nil,
+					Chances = if typeof(rawInfo.Chances) == "table" then rawInfo.Chances else nil,
+					Pity = if typeof(rawInfo.Pity) == "table" then rawInfo.Pity else nil,
+				}
+			end
 			if typeof(results) == "table" then
 				-- accept {petIds} or {Pets = {...}}
 				local list = if typeof(results.Pets) == "table" then results.Pets else results
-				HatchAnimation.Play(list)
+				HatchAnimation.Play(list, info)
 			elseif typeof(results) == "string" then
 				HatchAnimation.Play({ results })
 			end

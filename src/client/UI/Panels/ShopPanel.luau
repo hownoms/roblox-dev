@@ -62,7 +62,8 @@ end
 
 local function capacityOf(def: Types.BackpackDef): number
 	local mega = if State.OwnsPass("MegaBackpack") then 2 else 1
-	return def.Capacity * Config.RebirthMultiplier(State.Data.Rebirths) * mega
+	local pockets = Config.RebirthPerks.CapacityFactor(State.Data.RebirthPerks) -- v2.2 Deep Pockets
+	return def.Capacity * Config.RebirthMultiplier(State.Data.Rebirths) * mega * pockets
 end
 
 local function backpackStat(def: Types.BackpackDef): UpgradeRow.Stat

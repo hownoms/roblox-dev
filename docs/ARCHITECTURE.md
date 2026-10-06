@@ -134,9 +134,11 @@ every 120s, save on leave and `game:BindToClose`. Works in Studio without API ac
 back to in-memory and warns). OrderedDataStores `Leaderboard_Coins`, `Leaderboard_Depth`.
 
 ## Analytics
-Use `AnalyticsService:LogOnboardingFunnelStepEvent` for the first-session funnel
-(joined, first dig, first sell, first shovel, first egg, first rebirth) and
-`LogEconomyEvent` for coin sources/sinks.
+All AnalyticsService calls go through `Services/Analytics.luau` (pcall'd, never blocks
+gameplay): an 18-step onboarding funnel, layer/rebirth progression, coin/token economy events
+with `<Kind>:<id>` SKUs, a "Shop" purchase funnel and single-step custom events, plus the
+whitelisted client `Track` remote. The full event list and dashboards are in
+`docs/ANALYTICS.md` (v2.2 supersedes the original 6-step funnel).
 
 ## Amendments after design phase (binding)
 - Title: **Dig to the Core! Beach Simulator**. See `docs/GDD.md`.

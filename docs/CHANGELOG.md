@@ -107,6 +107,24 @@ Based on the owner's research on top Roblox simulators and tycoons. The plan:
   - Hatch pity and duplicate fusion.
   - Free Sell Anywhere through a rebirth perk.
 
+**As built, Status & Social (v2.2 B6 / A8 / social):**
+- **Nameplates** are client-rendered (`Controllers/StatusController`) for every player from Player
+  attributes set by `StatusService` (`TitleLayer`, `RebirthCount`, `BackpackFill`) plus `VIP` /
+  `Premium`. Why client-side: no server GUI traffic, and each viewer can switch them off
+  (Settings → "Nameplates", key `ShowNameplates`). Titles per deepest layer ever reached live in
+  `Config/Titles.luau` (Sandcastle Rookie … Core Breaker). MaxDistance 60, not AlwaysOnTop.
+- **Worn backpack:** `StatusService` welds `Models.Backpack(id)` to UpperTorso/Torso (massless,
+  no collide/query/touch) on equip and every respawn; the client scales the `SandFill` part.
+- **Rare-find banners:** Notify kind `Announce` is routed (`Toasts.SetRoute`) to
+  `UI/Announcements`: one gold top banner at a time with a rarity pill, queued and capped.
+- **Leaderboards** cycle ALL TIME / THIS WEEK / THIS SERVER every 10 s. Weekly stores are keyed by
+  ISO week (`Leaderboard_Sand_W2026_41`, `Leaderboard_Depth_W2026_41`), written on the existing
+  60 s cadence with backoff and a request-budget check. The coins board sign now reads "TOP DIGGERS".
+- **Server dig goal** (`ServerGoalService`): everyone's dug sand fills one bar; when full,
+  Golden Hour starts early on that server (`EventService.StartEarly`) and is announced.
+  "Friends +X%" chip and the Invite button (Settings) make the friend bonus visible; invites give
+  no reward because they can't be verified.
+
 ---
 
 ## Standing rules (learned the hard way)

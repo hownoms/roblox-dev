@@ -254,7 +254,7 @@ local function setupGuides()
 			if shop then
 				GuideController.Set("TooHard", shop, 5, "🛠️", 8)
 			end
-		elseif reason == "BackpackFull" and not State.OwnsPass("SellAnywhere") then
+		elseif reason == "BackpackFull" and not State.CanSellAnywhere() then
 			local sell = GuideController.FindTagged("SellZone", from)
 			if sell then
 				GuideController.Set("SellHint", sell, 4, "💰")

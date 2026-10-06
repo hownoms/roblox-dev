@@ -33,13 +33,21 @@ Remotes.Events = table.freeze({
 	-- v2.1 ride-on excavator (RideService)
 	"ToggleRide", -- () spawn + sit in your rideable pet, or get out
 	"RideDig", -- () scoop in front of your vehicle (server picks the point)
+	-- v2.2 duplicate fusion: (uid: string) fuse Config.GOLDEN_FUSE_COUNT copies into a Golden pet
+	"FusePets",
+	-- v2.2 analytics: (name: string, a: any?, b: any?) whitelisted UI events (Analytics.OnTrack)
+	"Track",
+	-- v2.2 rebirth perks: (perkId: string) buy the next level with Rebirth Tokens (RebirthService)
+	"BuyRebirthPerk",
 	-- server -> client
 	"DataChanged",
 	"Notify",
 	"DigResult",
 	"TreasureFound",
-	"EggHatched",
+	"EggHatched", -- (petIds: {string}, info: { EggId, Chances: {number}, Pity: {boolean} }?) v2.2 info
 	"EventChanged",
+	-- v2.2 offline earnings (OfflineService): (info: { Seconds, Sand, Coins, CapSeconds, Capped, PetId })
+	"OfflineEarnings",
 	-- v2.1 companions: a digging pet dug. server -> all clients:
 	-- (player: Player, slot: number, petId: string, position: Vector3, sandGained: number)
 	-- slot = 1-based index into the owner's "EquippedPets" attribute list.

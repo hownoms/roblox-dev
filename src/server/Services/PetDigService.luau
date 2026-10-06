@@ -24,7 +24,8 @@
 	pet's 1-based index in the owner's "EquippedPets" attribute (PetService: sorted equipped ids).
 
 	Public API:
-		PetDigService.GetDiggers(player): { { Slot: number, Id: string } }   active digging pets
+		PetDigService.GetDiggers(player): { { Slot: number, Id: string, Golden: boolean? } }   active digging pets
+	v2.2: Golden pets (PetInstance.Golden) dig every Config.GetPetDigInterval (Interval / 1.25).
 		PetDigService.GetSpot(player, slot): Vector3?    current spot of that pet (tests / debug)
 		PetDigService.Step(player)                        one dig-loop tick for a player (tests)
 ]]
@@ -45,7 +46,7 @@ local Net = require(script.Parent.Net)
 local PetService = require(script.Parent.PetService)
 local World = require(script.Parent.Parent.World)
 
-export type ActiveDigger = { Slot: number, Id: string }
+export type ActiveDigger = { Slot: number, Id: string, Golden: boolean? }
 
 local TICK = 0.1
 local VOXEL = 4 -- DigService carves whole 4-stud voxels
@@ -97,16 +98,9 @@ end
 
 -- Active digging pets -------------------------------------------------------------------------------
 
--- Equipped pet ids in the same order as the "EquippedPets" attribute (PetService: sorted ids).
-local function equippedIds(data: Types.PlayerData): { string }
-	local ids = {}
-	for _, pet in data.Pets do
-		if pet.Equipped and Config.GetPet(pet.Id) then
-			table.insert(ids, pet.Id)
-		end
-	end
-	table.sort(ids)
-	return ids
+-- Equipped pets in the same order as the "EquippedPets" attribute (Stats.SortEquipped).
+local function equippedPets(data: Types.PlayerData): { Types.PetInstance }
+	return Stats.SortEquipped(data.Pets)
 end
 
 function PetDigService.GetDiggers(player: Player): { ActiveDigger }
@@ -115,15 +109,15 @@ function PetDigService.GetDiggers(player: Player): { ActiveDigger }
 		return {}
 	end
 	assert(data) -- refine for the type checker (guarded above)
-	local ids = equippedIds(data)
+	local pets = equippedPets(data)
 	local slots = PetService.GetSlots(player)
 	local list: { ActiveDigger } = {}
-	for i, id in ids do
+	for i, pet in pets do
 		if i > slots then
 			break -- more equipped than slots (pass refund pending): only the first `slots` dig
 		end
-		if Config.GetPetDig(id) then
-			table.insert(list, { Slot = i, Id = id })
+		if Config.GetPetDig(pet.Id) then
+			table.insert(list, { Slot = i, Id = pet.Id, Golden = pet.Golden == true })
 		end
 	end
 	return list
@@ -334,12 +328,14 @@ function PetDigService.Step(player: Player)
 		end
 		assert(def) -- refine for the type checker (guarded above)
 		assert(dig) -- refine for the type checker (guarded above)
+		-- v2.2: Golden pets dig Config.GOLDEN_DIG_SPEED x as often
+		local interval = Config.GetPetDigInterval(a.Id, a.Golden) or dig.Interval
 		local key = a.Slot .. ":" .. a.Id
 		local pet = state.Pets[key]
 		if not pet then
 			-- stagger freshly equipped pets so several never fire on the same frame
 			state.Pets[key] = {
-				NextDig = now + dig.Interval * (0.3 + 0.7 * rng:NextNumber()),
+				NextDig = now + interval * (0.3 + 0.7 * rng:NextNumber()),
 				Spot = nil,
 				Shift = 0,
 			}
@@ -349,7 +345,7 @@ function PetDigService.Step(player: Player)
 		if p.NextDig and now < (p.NextDig :: number) then
 			continue
 		end
-		p.NextDig = now + dig.Interval
+		p.NextDig = now + interval
 
 		local spot = p.Spot
 		if spot and not spotOk(player, feet, spot :: Vector3, dig.Radius) then
@@ -383,7 +379,7 @@ function PetDigService.Step(player: Player)
 			Net.FireAll("PetDug", player, a.Slot, a.Id, result.Position, result.SandGained)
 		elseif result.Reason == "TooHard" then
 			repick(p)
-			p.NextDig = now + dig.Interval * 3
+			p.NextDig = now + interval * 3
 			if now - state.LastTooHard > TOO_HARD_NOTIFY_SECONDS then
 				state.LastTooHard = now
 				Net.Notify(player, "Info", def.Name .. " can't dig this layer. Hatch a stronger digging pet!")

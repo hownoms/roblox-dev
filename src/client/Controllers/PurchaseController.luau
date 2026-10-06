@@ -3,6 +3,8 @@
 	PurchaseController — Robux prompts straight from the client via MarketplaceService.
 	Ids of 0 mean "not configured" (Config.Monetization): never prompt, callers disable the UI.
 	On a completed pass purchase we mark it owned locally and re-sync with GetOwnedPasses.
+	v2.2: never prompts a PaidRandom item while the player is policy-restricted (State.CanBuy);
+	the server's MonetizationService refuses those prompts too.
 ]]
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -11,19 +13,23 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local State = require(script.Parent.State)
 local Signal = require(script.Parent.Parent.Util.Signal)
+local Track = require(script.Parent.Parent.Util.Track)
 
 local PurchaseController = {}
 
 PurchaseController.PassPurchased = Signal.new() -- (key)
 
+-- "Configured" = has a real id AND may be offered to this player (v2.2 policy: PaidRandom items
+-- are unavailable while State.IsPaidRandomRestricted()), so UI that hides unconfigured items
+-- (Rebirth panel's Skip button, Golden Egg buttons) also hides restricted ones.
 function PurchaseController.IsPassConfigured(key: string): boolean
 	local pass = Config.Monetization.GamePasses[key]
-	return pass ~= nil and pass.Id ~= 0
+	return pass ~= nil and pass.Id ~= 0 and State.CanBuy("GamePass", key)
 end
 
 function PurchaseController.IsProductConfigured(key: string): boolean
 	local product = Config.Monetization.Products[key]
-	return product ~= nil and product.Id ~= 0
+	return product ~= nil and product.Id ~= 0 and State.CanBuy("Product", key)
 end
 
 -- Returns false (and does nothing) when the pass id is 0 or it is already owned.
@@ -32,9 +38,15 @@ function PurchaseController.PromptPass(key: string): boolean
 	if not pass or pass.Id == 0 or State.OwnsPass(key) then
 		return false
 	end
+	if not State.CanBuy("GamePass", key) then
+		return false -- v2.2 policy: paid random items are hidden for this player
+	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptGamePassPurchase(Players.LocalPlayer, pass.Id)
 	end)
+	if ok then
+		Track.Send("purchase_prompted", "GamePass", key)
+	end
 	if not ok then
 		warn("[Purchase] pass prompt failed", key, err)
 	end
@@ -46,9 +58,15 @@ function PurchaseController.PromptProduct(key: string): boolean
 	if not product or product.Id == 0 then
 		return false
 	end
+	if not State.CanBuy("Product", key) then
+		return false -- v2.2 policy: paid random items are hidden for this player
+	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptProductPurchase(Players.LocalPlayer, product.Id)
 	end)
+	if ok then
+		Track.Send("purchase_prompted", "Product", key)
+	end
 	if not ok then
 		warn("[Purchase] product prompt failed", key, err)
 	end

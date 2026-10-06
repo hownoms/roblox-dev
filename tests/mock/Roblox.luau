@@ -2403,6 +2403,11 @@ local dataStoreService = {
 	GetOrderedDataStore = function(_s, name)
 		return newDataStore("ordered:" .. name, true)
 	end,
+	-- Mock.DataStoreBudget: number of requests left (default plenty)
+	GetRequestBudgetForRequestType = function(_s, requestType)
+		assert(mockTypeof(requestType) == "EnumItem", "GetRequestBudgetForRequestType expects an Enum.DataStoreRequestType")
+		return Mock.DataStoreBudget or 100
+	end,
 	GetGlobalDataStore = function()
 		return newDataStore("global", false)
 	end,
@@ -2412,6 +2417,17 @@ local dataStoreService = {
 
 Mock.Prompts = {} -- { Kind, Player, Id }
 Mock.Analytics = {}
+-- AnalyticsService customFields: nil or { CustomField01..03 = string }.
+function Mock.CheckAnalyticsFields(fields)
+	if fields == nil then
+		return
+	end
+	assert(type(fields) == "table", "analytics customFields must be a table")
+	for k, v in fields do
+		assert(k == "CustomField01" or k == "CustomField02" or k == "CustomField03", "analytics custom field key " .. tostring(k))
+		assert(type(v) == "string" and #v <= 50, "analytics custom field value must be a short string")
+	end
+end
 local marketplace = {
 	PromptGamePassPurchase = function(_s, player, id)
 		assert(type(id) == "number" and id > 0, "PromptGamePassPurchase with invalid id " .. tostring(id))
@@ -2551,6 +2567,32 @@ local function buildGame()
 	}
 	classMethods.DataStoreService = dataStoreService
 	classMethods.MarketplaceService = marketplace
+	-- PolicyService: Mock.Policy[userId] overrides the answer; Mock.PolicyFail = true makes the
+	-- lookup throw (exercises PolicyService's retry + fallback default).
+	Mock.Policy = Mock.Policy or {}
+	Mock.PolicyFail = false
+	Mock.PolicyCalls = 0
+	classMethods.PolicyService = {
+		GetPolicyInfoForPlayerAsync = function(_s, player)
+			assert(instances[player] and instances[player].className == "Player", "policy: Player expected")
+			Mock.PolicyCalls += 1
+			if Mock.PolicyFail then
+				error("HTTP 500 (mock policy failure)", 2)
+			end
+			local custom = Mock.Policy[player.UserId]
+			if custom then
+				return table.clone(custom)
+			end
+			return {
+				ArePaidRandomItemsRestricted = false,
+				IsPaidItemTradingAllowed = true,
+				AllowedExternalLinkReferences = { "Discord", "Facebook", "Twitch", "YouTube" },
+				IsEligibleToPurchaseSubscription = true,
+				AreAdsAllowed = true,
+				IsSubjectToChinaPolicies = false,
+			}
+		end,
+	}
 	classMethods.BadgeService = {
 		UserHasBadgeAsync = function(_s, _u, id)
 			assert(id ~= 0, "badge id 0")
@@ -2569,7 +2611,7 @@ local function buildGame()
 			assert(instances[player] and instances[player].className == "Player", "funnel: player")
 			assert(type(step) == "number" and step >= 1 and step % 1 == 0, "funnel step must be an integer >= 1")
 			assert(name == nil or type(name) == "string", "funnel step name")
-			table.insert(Mock.Analytics, { Kind = "Funnel", Step = step, Name = name })
+			table.insert(Mock.Analytics, { Kind = "Funnel", Player = player, Step = step, Name = name })
 		end,
 		LogEconomyEvent = function(_s, player, flow, currency, amount, ending, transaction, sku)
 			assert(instances[player], "economy: player")
@@ -2578,7 +2620,39 @@ local function buildGame()
 			assert(amount > 0, "economy: amount must be > 0")
 			assert(type(transaction) == "string", "economy: transactionType must be a string")
 			assert(sku == nil or type(sku) == "string", "economy: sku")
-			table.insert(Mock.Analytics, { Kind = "Economy", Currency = currency, Amount = amount, Sku = sku })
+			table.insert(
+				Mock.Analytics,
+				{ Kind = "Economy", Player = player, Flow = flow.Name, Currency = currency, Amount = amount, Ending = ending, Sku = sku }
+			)
+		end,
+		LogFunnelStepEvent = function(_s, player, funnelName, sessionId, step, stepName, customFields)
+			assert(instances[player] and instances[player].className == "Player", "funnel step: player")
+			assert(type(funnelName) == "string" and #funnelName > 0, "funnel step: funnelName")
+			assert(sessionId == nil or type(sessionId) == "string", "funnel step: funnelSessionId")
+			assert(type(step) == "number" and step >= 1 and step % 1 == 0, "funnel step: step must be an integer >= 1")
+			assert(stepName == nil or type(stepName) == "string", "funnel step: stepName")
+			Mock.CheckAnalyticsFields(customFields)
+			table.insert(Mock.Analytics, {
+				Kind = "FunnelStep",
+				Player = player,
+				Funnel = funnelName,
+				Session = sessionId,
+				Step = step,
+				Name = stepName,
+				Fields = customFields,
+			})
+		end,
+		LogProgressionStartEvent = function(_s, player, path, level, levelName, customFields)
+			assert(instances[player], "progression: player")
+			assert(type(path) == "string" and type(level) == "number" and level >= 1 and level % 1 == 0, "progression: path/level")
+			Mock.CheckAnalyticsFields(customFields)
+			table.insert(Mock.Analytics, { Kind = "Progression", Status = "Start", Player = player, Path = path, Level = level, Name = levelName, Fields = customFields })
+		end,
+		LogProgressionCompleteEvent = function(_s, player, path, level, levelName, customFields)
+			assert(instances[player], "progression: player")
+			assert(type(path) == "string" and type(level) == "number" and level >= 1 and level % 1 == 0, "progression: path/level")
+			Mock.CheckAnalyticsFields(customFields)
+			table.insert(Mock.Analytics, { Kind = "Progression", Status = "Complete", Player = player, Path = path, Level = level, Name = levelName, Fields = customFields })
 		end,
 		LogCustomEvent = function() end,
 		LogProgressionEvent = function() end,
@@ -2886,6 +2960,27 @@ classMethods.GuiService = {
 	IsTenFootInterface = stub(false),
 }
 classMethods.SoundService = { PlayLocalSound = stub(nil) }
+-- SocialService (game invites): Mock.CanInvite = false -> CanSendGameInviteAsync answers false;
+-- Mock.InviteFail = true -> both calls throw. Opened prompts land in Mock.Invites.
+Mock.Invites = {}
+Mock.CanInvite = true
+Mock.InviteFail = false
+classMethods.SocialService = {
+	CanSendGameInviteAsync = function(_s, player)
+		assert(instances[player] and instances[player].className == "Player", "CanSendGameInviteAsync: Player expected")
+		if Mock.InviteFail then
+			error("HTTP 500 (mock invite failure)", 2)
+		end
+		return Mock.CanInvite ~= false
+	end,
+	PromptGameInvite = function(_s, player)
+		assert(instances[player] and instances[player].className == "Player", "PromptGameInvite: Player expected")
+		if Mock.InviteFail then
+			error("HTTP 500 (mock invite failure)", 2)
+		end
+		table.insert(Mock.Invites, player)
+	end,
+}
 classMethods.TextService = {
 	GetTextSize = function(_s, text, size)
 		return v2(#tostring(text) * size * 0.5, size)

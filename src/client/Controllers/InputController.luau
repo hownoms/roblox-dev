@@ -40,9 +40,9 @@ function InputController.Init()
 				GuiService.SelectedObject = nil
 				return
 			end
-			local shop = HUD.Buttons.Shop
-			if shop then
-				GuiService.SelectedObject = shop.Face
+			local first = HUD.FirstMenuButton() -- the menu unlocks progressively
+			if first then
+				GuiService.SelectedObject = first.Face
 			end
 		end),
 		false,

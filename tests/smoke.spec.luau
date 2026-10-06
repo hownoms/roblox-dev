@@ -594,6 +594,197 @@ check(
 )
 check(onBoardwalk(player.Character.HumanoidRootPart.Position), "rebirth sends you to the surface")
 
+-- Analytics (Onboarding & Analytics agent): funnel order / once-only, economy sinks, Track ------
+section("analytics")
+step("analytics", function()
+	local Analytics = Mock.Require(byPath["ServerScriptService/Server/Services/Analytics"])
+	local function events(kind, filter)
+		local list = {}
+		for _, e in Mock.Analytics do
+			if e.Kind == kind and e.Player == player and (filter == nil or filter(e)) then
+				table.insert(list, e)
+			end
+		end
+		return list
+	end
+
+	-- Steps are numbered 1..N without gaps, in the documented order.
+	local expected = {
+		"Joined", "AtSand", "FirstDig", "BackpackFull", "FirstSell", "FirstShovel", "SecondShovel",
+		"FirstBackpack", "Layer2", "FirstEgg", "FirstPet", "Layer3", "FirstShadeOrSnack",
+		"FirstQuestClaim", "FirstCrate", "FirstPetDig", "Layer5", "FirstRebirth",
+	}
+	local total = 0
+	for _ in Analytics.Steps do
+		total += 1
+	end
+	check(total == #expected and Analytics.StepCount == #expected, "funnel has " .. #expected .. " steps")
+	for i, name in expected do
+		check(Analytics.Steps[name] == i, "funnel step " .. i .. " is " .. name)
+	end
+
+	-- Every step this session's player reached was logged exactly once, with its own name.
+	local funnel = events("Funnel")
+	local seen, dupes = {}, 0
+	for _, e in funnel do
+		if seen[e.Step] then
+			dupes += 1
+		end
+		seen[e.Step] = true
+		check(expected[e.Step] == e.Name, "funnel step " .. e.Step .. " logged as " .. tostring(e.Name))
+		check(data.Settings["FTUE_" .. e.Name] == true, "FTUE_" .. tostring(e.Name) .. " flag persisted")
+	end
+	check(dupes == 0, "no funnel step logged twice (" .. dupes .. ")")
+	for _, name in { "Joined", "AtSand", "FirstDig", "FirstSell", "FirstShovel", "FirstBackpack", "FirstEgg", "FirstPet", "FirstRebirth" } do
+		check(seen[Analytics.Steps[name]] == true, "funnel step reached: " .. name)
+	end
+	-- the core FTUE steps arrive in increasing order
+	local lastIndex = 0
+	for _, name in { "Joined", "FirstDig", "FirstSell", "FirstShovel", "FirstEgg", "FirstRebirth" } do
+		local at
+		for i, e in funnel do
+			if e.Name == name then
+				at = i
+			end
+		end
+		check(at ~= nil and at > lastIndex, "funnel order: " .. name .. " after the previous core step")
+		lastIndex = at or lastIndex
+	end
+	-- once per player ever: repeats are ignored
+	local n0 = #events("Funnel")
+	Analytics.Funnel(player, Analytics.Steps.FirstDig)
+	Analytics.Funnel(player, Analytics.Steps.FirstSell)
+	Mock.FireServer("SetSetting", player, "FTUE_FirstDig", false)
+	Mock.Advance(0.2)
+	check(#events("Funnel") == n0, "funnel steps are logged once only")
+	check(data.Settings.FTUE_FirstDig == true, "FTUE_ flags not client-writable")
+	-- server FTUE_ flags don't eat the client's 40-key settings budget
+	for i = 1, 30 do
+		data.Settings["FTUE_Pad" .. i] = true
+	end
+	Mock.FireServer("SetSetting", player, "MenuSeen", "Shop,Eggs")
+	Mock.Advance(0.2)
+	check(data.Settings.MenuSeen == "Shop,Eggs", "client keys still writable next to many FTUE_ flags")
+	for i = 1, 30 do
+		data.Settings["FTUE_Pad" .. i] = nil
+	end
+	Analytics.Funnel(player, 999)
+	check(#events("Funnel") == n0, "unknown funnel step ignored")
+
+	-- Economy: sources and sinks with consistent "<Kind>:<id>" SKUs
+	local function economy(flow, prefix)
+		return #events("Economy", function(e)
+			return e.Flow == flow and type(e.Sku) == "string" and string.sub(e.Sku, 1, #prefix) == prefix
+		end)
+	end
+	check(economy("Source", "Sell:") >= 1, "economy source: Sell:<where>")
+	check(economy("Sink", "Shovel:" .. second.Id) == 1, "economy sink: Shovel:<id>")
+	check(economy("Sink", "Backpack:" .. Config.Backpacks[2].Id) == 1, "economy sink: Backpack:<id>")
+	check(economy("Sink", "Egg:" .. egg.Id) >= 1, "economy sink: Egg:<id>")
+	check(economy("Sink", "Rebirth") == 1, "economy sink: Rebirth")
+	check(economy("Source", "Rebirth") == 1, "economy source: Rebirth tokens")
+	for _, e in events("Economy") do
+		check(e.Amount > 0 and e.Ending >= 0, "economy amounts positive (" .. tostring(e.Sku) .. ")")
+	end
+
+	-- Progression: rebirths and layers
+	check(#events("Progression", function(e)
+		return e.Path == "Rebirth" and e.Status == "Complete" and e.Level == 1
+	end) == 1, "progression: Rebirth 1 complete")
+	local ServerSignals = Mock.Require(byPath["ServerScriptService/Server/Services/ServerSignals"])
+	local layers0 = #events("Progression", function(e)
+		return e.Path == "Layers"
+	end)
+	ServerSignals.DepthReached:Fire(player, Config.Layers[3].DepthStart + 1)
+	Mock.Advance(0.1)
+	ServerSignals.DepthReached:Fire(player, Config.Layers[3].DepthStart + 2) -- same layer: nothing new
+	Mock.Advance(0.1)
+	local layerEvents = events("Progression", function(e)
+		return e.Path == "Layers"
+	end)
+	check(#layerEvents - layers0 == 4, "progression: layers 1-2 complete, 2-3 start (" .. (#layerEvents - layers0) .. ")")
+	local lastLayerEvent = layerEvents[#layerEvents]
+	check(lastLayerEvent and lastLayerEvent.Status == "Start" and lastLayerEvent.Level == 3 and lastLayerEvent.Name == Config.Layers[3].Name, "progression: Start layer 3 with its name")
+	check(lastLayerEvent and lastLayerEvent.Fields.CustomField01 == "1", "progression: layer events carry the rebirth count")
+	check(data.Settings.FTUE_Layer2 == true and data.Settings.FTUE_Layer3 == true, "funnel: Layer2 + Layer3 reached")
+
+	-- Custom events: hatch (egg id + rarity + pet id)
+	local hatches = events("FunnelStep", function(e)
+		return e.Funnel == "Hatch"
+	end)
+	check(#hatches >= 1, "custom event Hatch logged")
+	local h = hatches[1]
+	check(h and h.Fields.CustomField01 == egg.Id and Config.GetRarity(h.Fields.CustomField02) ~= nil, "Hatch fields: egg id + rarity")
+
+	-- Track remote: whitelist + argument validation
+	local function custom(name)
+		return #events("FunnelStep", function(e)
+			return e.Funnel == name
+		end)
+	end
+	Mock.Advance(6) -- fresh rate-limit window
+	local opened0, shop0 = custom("PanelOpened"), custom("Shop")
+	Mock.FireServer("Track", player, "panel_opened", "Store")
+	Mock.Advance(0.2)
+	check(custom("PanelOpened") == opened0 + 1, "Track panel_opened logged")
+	check(custom("Shop") == shop0 + 1, "opening a selling panel starts a Shop funnel session")
+	local passKey = next(Config.Monetization.GamePasses)
+	Mock.FireServer("Track", player, "purchase_prompted", "GamePass", passKey)
+	Mock.Advance(0.2)
+	local shopSteps = events("FunnelStep", function(e)
+		return e.Funnel == "Shop"
+	end)
+	local last = shopSteps[#shopSteps]
+	check(last and last.Step == 2 and last.Fields.CustomField02 == "Pass:" .. passKey, "Track purchase_prompted -> Shop step 2")
+	check(last and last.Session == shopSteps[#shopSteps - 1].Session, "prompt continues the open Shop session")
+	Mock.Advance(6)
+	local before = #Mock.Analytics
+	for _, bad in {
+		{ "panel_opened", "NotAPanel" },
+		{ "panel_opened", 5 },
+		{ "panel_opened", string.rep("x", 500) },
+		{ "purchase_prompted", "GamePass", "NoSuchPass" },
+		{ "purchase_prompted", "Robux", passKey },
+		{ "menu_unlocked", "Garage" },
+		{ "give_me_coins", "Shop" },
+		{ 42 },
+		{},
+	} do
+		check(Analytics.OnTrack(player, table.unpack(bad)) == false, "Track rejects " .. tostring(bad[1]) .. "/" .. tostring(bad[2]))
+		Mock.FireServer("Track", player, table.unpack(bad))
+	end
+	Mock.Advance(0.2)
+	check(#Mock.Analytics == before, "rejected Track calls log nothing")
+	-- rate limit
+	Mock.Advance(6)
+	local o0 = custom("PanelOpened")
+	for _ = 1, 30 do
+		Mock.FireServer("Track", player, "panel_opened", "Pets")
+	end
+	Mock.Advance(0.2)
+	local accepted = custom("PanelOpened") - o0
+	check(accepted >= 1 and accepted <= Analytics.TRACK_RATE, "Track is rate limited (" .. accepted .. " of 30)")
+	Mock.FireServer("Track", player, "menu_unlocked", "Eggs")
+	Mock.Advance(6)
+	Mock.FireServer("Track", player, "menu_unlocked", "Eggs")
+	Mock.Advance(0.2)
+	check(custom("MenuUnlocked") >= 1, "Track menu_unlocked logged")
+
+	-- Sunburnt / ride start are picked up from player attributes
+	local sun0 = custom("Sunburnt")
+	player:SetAttribute("Sunburnt", true)
+	Mock.Advance(0.1)
+	player:SetAttribute("Sunburnt", false)
+	Mock.Advance(0.1)
+	check(custom("Sunburnt") == sun0 + 1, "custom event Sunburnt")
+	local ride0 = custom("RideStarted")
+	player:SetAttribute("Riding", "mega_excavator")
+	Mock.Advance(0.1)
+	player:SetAttribute("Riding", nil)
+	Mock.Advance(0.1)
+	check(custom("RideStarted") == ride0 + 1, "custom event RideStarted")
+end)
+
 -- Leave + rejoin ------------------------------------------------------------------------------------
 section("leave")
 DataService.Set(player, "Coins", 4242)
@@ -1300,17 +1491,8 @@ step("survival", function()
 	Mock.Advance(1)
 	check(sp:GetAttribute("HeatZone") == "Underground" and SurvivalService.GetHeat(sp) < 50, "underground cools")
 
-	-- Cooler Pack product (configured id) through ProcessReceipt
-	local marketplace = Mock.Service("MarketplaceService")
-	Config.Monetization.Products.CoolerPack.Id = 9300
-	local decision
-	Mock.Env.task.spawn(function()
-		decision = marketplace.ProcessReceipt({ PlayerId = 3101, ProductId = 9300, PurchaseId = "cooler-1" })
-	end)
-	Mock.Advance(1)
-	check(decision == Enum.ProductPurchaseDecision.PurchaseGranted, "Cooler Pack receipt granted")
-	check((d.Consumables.shaved_ice or 0) >= 5, "Cooler Pack grants consumables")
-	Config.Monetization.Products.CoolerPack.Id = 0
+	-- v2.2: the Cooler Pack product was removed (paid relief from heat friction we designed)
+	check(Config.Monetization.Products.CoolerPack == nil, "no Cooler Pack product")
 
 	-- leaving despawns shades
 	stand(spot)
@@ -1543,6 +1725,705 @@ step("ride", function()
 	end
 end)
 
+section("hatching + compliance")
+step("hatching + compliance", function()
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local Format = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Format"])
+	local PetService = Mock.Require(byPath["ServerScriptService/Server/Services/PetService"])
+	local PetDigService = Mock.Require(byPath["ServerScriptService/Server/Services/PetDigService"])
+	local MultiplierService = Mock.Require(byPath["ServerScriptService/Server/Services/MultiplierService"])
+	local PolicyService = Mock.Require(byPath["ServerScriptService/Server/Services/PolicyService"])
+	local marketplace = Mock.Service("MarketplaceService")
+
+	-- A1: the one odds function ----------------------------------------------------------------
+	for _, e in Config.Eggs do
+		for _, luck in { 1, 2.5, 0 / 0, -3 } do
+			for _, pity in { 0, e.PityAt or 0 } do
+				local list = Stats.GetHatchOddsList(e, luck, pity)
+				local sum = 0
+				for _, odd in list do
+					sum += odd.Chance
+				end
+				check(math.abs(sum - 1) < 1e-9, "odds of " .. e.Id .. " sum to 1 (luck " .. tostring(luck) .. ", pity " .. pity .. ")")
+			end
+		end
+	end
+	local beach = Config.GetEgg("beach_egg")
+	local base = Stats.GetHatchOdds(beach, 1, 0)
+	check(math.abs(base.golden_crab - 0.001) < 1e-12 and math.abs(base.sandy_crab - 0.6) < 1e-12, "base odds = weights / total")
+	local lucky = Stats.GetHatchOdds(beach, 2.5, 0)
+	-- luck multiplies every non-Common weight: total = 60 + 28 + (10 + 1.9 + 0.1) * 2.5 = 118
+	check(math.abs(lucky.golden_crab - 0.25 / 118) < 1e-12, "luck x2.5 -> golden_crab " .. lucky.golden_crab)
+	check(math.abs(lucky.sandy_crab - 60 / 118) < 1e-12, "luck lowers Common odds")
+	local pityOdds, pityActive = Stats.GetHatchOdds(beach, 1, beach.PityAt)
+	check(pityActive and pityOdds.sandy_crab == 0 and pityOdds.starfish == 0, "pity: no Common / Uncommon on the guaranteed hatch")
+	check(math.abs(pityOdds.baby_turtle - 0.95) < 1e-12 and math.abs(pityOdds.golden_crab - 0.05) < 1e-12, "pity: Rare+ by relative weights")
+	check(not select(2, Stats.GetHatchOdds(beach, 1, beach.PityAt - 1)), "pity not active one hatch early")
+	check(Stats.HatchesUntilPity(beach, 0) == beach.PityAt + 1 and Stats.HatchesUntilPity(beach, beach.PityAt) == 1, "HatchesUntilPity")
+	check(Stats.HatchesUntilPity(Config.GetEgg("golden_egg"), 0) == nil, "all-Rare+ eggs have no pity")
+	check(Format.Chance(0.005) == "0.5%" and Format.Chance(0.0005) == "0.05%" and Format.Chance(0.6) == "60%", "Format.Chance precision")
+
+	-- statistical: the server's real roll matches the displayed odds (large N)
+	local function distribution(egg, luck, pity, n)
+		local counts = {}
+		for _ = 1, n do
+			local id = PetService._Roll(egg, luck, pity)
+			counts[id] = (counts[id] or 0) + 1
+		end
+		local odds = Stats.GetHatchOdds(egg, luck, pity)
+		local worst = 0
+		for petId, p in odds do
+			local f = (counts[petId] or 0) / n
+			local sigma = math.sqrt(math.max(p * (1 - p), 1e-12) / n)
+			worst = math.max(worst, math.abs(f - p) / (sigma + 1e-9))
+			if p == 0 and (counts[petId] or 0) > 0 then
+				worst = math.huge
+			end
+		end
+		return worst
+	end
+	local N = 200000
+	local z1 = distribution(beach, 2.5, 0, N)
+	check(z1 < 5, string.format("server roll matches displayed odds with luck (worst %.2f sigma, N=%d)", z1, N))
+	local tide = Config.GetEgg("tidepool_egg")
+	local z2 = distribution(tide, 1.5, tide.PityAt, 50000)
+	check(z2 < 5, string.format("server roll matches displayed PITY odds (worst %.2f sigma)", z2))
+	local core = Config.GetEgg("core_crate")
+	local z3 = distribution(core, 4, 0, 100000)
+	check(z3 < 5, string.format("crate roll matches displayed odds (worst %.2f sigma)", z3))
+
+	-- real hatch path: pity triggers, resets, counts; EggHatched carries the true chances ------
+	local hp = Mock.AddPlayer(5101, "Hatcher")
+	Mock.Advance(1)
+	local hd = DataService.Get(hp)
+	hd.Coins = 1e9
+	hd.Boosts.LuckBoost = os.time() + 600
+	DataService.MarkDirty(hp, "Boosts")
+	Mock.Advance(1.2)
+	local ctx = MultiplierService.GetContext(hp)
+	local luck = Stats.GetLuck(ctx)
+	check(luck == 2 and hp:GetAttribute("Luck") == 2, "LuckBoost: server luck x2 (attribute " .. tostring(hp:GetAttribute("Luck")) .. ")")
+	hd.Pity[beach.Id] = beach.PityAt
+	local before = #Mock.Remote.ToClient
+	Mock.FireServer("HatchEgg", hp, beach.Id, 1)
+	Mock.Advance(0.5)
+	local args = lastToClient(hp, "EggHatched")
+	local petId = args and args[1][1]
+	local info = args and args[2]
+	check(petId ~= nil and Stats.IsPityRarity(petId), "pity hatch is Rare+ (" .. tostring(petId) .. ")")
+	check(hd.Pity[beach.Id] == 0, "pity counter reset by a Rare+ hatch")
+	check(type(info) == "table" and info.EggId == beach.Id and info.Pity[1] == true, "EggHatched info: egg + pity flag")
+	local shown = Stats.GetHatchOdds(beach, luck, beach.PityAt)
+	check(info and math.abs(info.Chances[1] - shown[petId]) < 1e-12, "EggHatched chance == displayed odds with modifiers")
+	check(countToClient(hp, "EggHatched", before) == 1, "one EggHatched")
+	-- the counter moves exactly like Stats.NextPityCount
+	for _ = 1, 3 do
+		local c0 = hd.Pity[beach.Id] or 0
+		Mock.FireServer("HatchEgg", hp, beach.Id, 1)
+		Mock.Advance(0.4)
+		local a = lastToClient(hp, "EggHatched")
+		check(hd.Pity[beach.Id] == Stats.NextPityCount(beach, c0, a[1][1]), "pity counter follows the hatch result")
+	end
+	local golden = Config.GetEgg("golden_egg")
+	PetService.HatchFree(hp, golden.Id, 1)
+	check(hd.Pity[golden.Id] == nil, "eggs without PityAt keep no counter")
+
+	-- B9 fusion --------------------------------------------------------------------------------
+	for uidKey in hd.Pets do
+		hd.Pets[uidKey] = nil
+	end
+	local crabUids = {}
+	for i = 1, 5 do
+		table.insert(crabUids, PetService.GrantPet(hp, "sandy_crab", i == 3))
+	end
+	local other = PetService.GrantPet(hp, "seagull", false)
+	Mock.Advance(0.3)
+	local function countPets(id, isGolden)
+		local n = 0
+		for _, pet in hd.Pets do
+			if pet.Id == id and (pet.Golden == true) == isGolden then
+				n += 1
+			end
+		end
+		return n
+	end
+	-- not enough copies
+	local spare = crabUids[5]
+	hd.Pets[spare] = nil
+	Mock.FireServer("FusePets", hp, crabUids[1])
+	Mock.Advance(0.3)
+	check(countPets("sandy_crab", false) == 4 and countPets("sandy_crab", true) == 0, "fusion refused with 4 copies")
+	hd.Pets[spare] = { Id = "sandy_crab", Equipped = false }
+	Mock.FireServer("FusePets", hp, "nonsense")
+	Mock.FireServer("FusePets", hp, 42)
+	Mock.FireServer("FusePets", hp, crabUids[1])
+	Mock.Advance(0.4)
+	check(countPets("sandy_crab", false) == 0 and countPets("sandy_crab", true) == 1, "Fuse 5 -> 1 Golden")
+	check(hd.Pets[other] ~= nil, "other pets untouched by fusion")
+	local goldenUid
+	for u, pet in hd.Pets do
+		if pet.Golden then
+			goldenUid = u
+		end
+	end
+	check(goldenUid and hd.Pets[goldenUid].Equipped == true, "Golden pet stays equipped (a fused copy was)")
+	check(hp:GetAttribute("EquippedPets") == "sandy_crab" and hp:GetAttribute("EquippedGolden") == "1", "EquippedGolden attribute marks the golden slot")
+	local crabDef = Config.GetPet("sandy_crab")
+	local expected = 1 + (crabDef.Multiplier - 1) * Config.GOLDEN_SAND_BONUS
+	check(math.abs(Stats.GetPetMultiplier(MultiplierService.GetContext(hp)) - expected) < 1e-9, "Golden pet: sand bonus x1.5")
+	Mock.FireServer("FusePets", hp, goldenUid)
+	Mock.Advance(0.4)
+	check(hd.Pets[goldenUid] ~= nil and countPets("sandy_crab", true) == 1, "Golden pets can't be fused again")
+	-- golden digging pet digs faster
+	local truck = PetService.GrantPet(hp, "toy_truck", true)
+	hd.Pets[truck].Golden = true
+	DataService.MarkDirty(hp, "Pets")
+	Mock.Advance(0.3)
+	local diggers = PetDigService.GetDiggers(hp)
+	local found = false
+	for _, dg in diggers do
+		if dg.Id == "toy_truck" and dg.Golden == true then
+			found = true
+		end
+	end
+	check(found, "PetDigService sees the Golden digging pet")
+	local dig = Config.GetPetDig("toy_truck")
+	check(math.abs(Config.GetPetDigInterval("toy_truck", true) - dig.Interval / 1.25) < 1e-9, "Golden digger: interval / 1.25")
+	check(hp:GetAttribute("EquippedGolden") == "1,2", "golden slots follow Stats.SortEquipped (" .. tostring(hp:GetAttribute("EquippedGolden")) .. ")")
+
+	-- A2 PolicyService ---------------------------------------------------------------------------
+	check(hp:GetAttribute("PaidRandomRestricted") == false and hp:GetAttribute("PolicyLoaded") == true, "unrestricted policy published")
+	Mock.Policy[5102] = { ArePaidRandomItemsRestricted = true, IsPaidItemTradingAllowed = false }
+	local rp = Mock.AddPlayer(5102, "Restricted")
+	Mock.Advance(1)
+	check(rp:GetAttribute("PaidRandomRestricted") == true and PolicyService.IsPaidRandomRestricted(rp), "restricted policy published")
+	local rd = DataService.Get(rp)
+	Config.Monetization.Products.CoinsSmall.Id = 9001
+	Config.Monetization.Products.GoldenEgg.Id = 9501
+	Config.Monetization.Products.LuckBoost15.Id = 9502
+	Config.Monetization.Products.SandBoost15.Id = 9503
+	Config.Monetization.GamePasses.Lucky.Id = 7003
+	Config.Monetization.GamePasses.DoubleSand.Id = 7004
+	local function promptsFor(p, since)
+		local n = 0
+		for i = since + 1, #Mock.Prompts do
+			if Mock.Prompts[i].Player == p then
+				n += 1
+			end
+		end
+		return n
+	end
+	local p0 = #Mock.Prompts
+	for _, key in { "CoinsSmall", "GoldenEgg", "LuckBoost15" } do
+		Mock.FireServer("PromptPurchase", rp, "Product", key)
+		Mock.Advance(0.7)
+	end
+	Mock.FireServer("PromptPurchase", rp, "GamePass", "Lucky")
+	Mock.Advance(0.7)
+	Mock.FireServer("HatchEgg", rp, golden.Id, 1)
+	Mock.Advance(0.7)
+	check(promptsFor(rp, p0) == 0, "restricted: no prompt for coins / golden egg / luck / Lucky pass")
+	Mock.FireServer("PromptPurchase", rp, "Product", "SandBoost15")
+	Mock.Advance(0.7)
+	Mock.FireServer("PromptPurchase", rp, "GamePass", "DoubleSand")
+	Mock.Advance(0.7)
+	check(promptsFor(rp, p0) == 2, "restricted: non-random items still prompt")
+	local p1 = #Mock.Prompts
+	Mock.FireServer("PromptPurchase", hp, "Product", "CoinsSmall")
+	Mock.Advance(0.7)
+	Mock.FireServer("PromptPurchase", hp, "GamePass", "Lucky")
+	Mock.Advance(0.7)
+	check(promptsFor(hp, p1) == 2, "unrestricted: coins + Lucky pass prompt")
+	-- a purchase that already completed is honoured even for a restricted player
+	local coins0 = rd.Coins
+	local decision
+	Mock.Env.task.spawn(function()
+		decision = marketplace.ProcessReceipt({ PlayerId = 5102, ProductId = 9001, PurchaseId = "policy-1" })
+	end)
+	Mock.Advance(1)
+	check(decision == Enum.ProductPurchaseDecision.PurchaseGranted and rd.Coins > coins0, "restricted: completed purchase still granted")
+	Config.Monetization.Products.GoldenEgg.Id = 0
+	Config.Monetization.Products.LuckBoost15.Id = 0
+	Config.Monetization.Products.SandBoost15.Id = 0
+	Config.Monetization.GamePasses.DoubleSand.Id = 0
+	-- lookup failure: retries, then restricted-safe live / unrestricted in Studio
+	Mock.PolicyFail = true
+	local calls0 = Mock.PolicyCalls
+	local fp = Mock.AddPlayer(5103, "PolicyDown")
+	Mock.Advance(0.2)
+	check(fp:GetAttribute("PaidRandomRestricted") == not STUDIO_NO_API, "pending lookup: safe default published at once")
+	Mock.Advance(5)
+	check(Mock.PolicyCalls - calls0 == 3, "policy lookup retried 3 times (" .. (Mock.PolicyCalls - calls0) .. ")")
+	check(fp:GetAttribute("PolicyLoaded") == false, "PolicyLoaded false after failure")
+	if STUDIO_NO_API then
+		check(fp:GetAttribute("PaidRandomRestricted") == false, "Studio: failed lookup -> not restricted")
+	else
+		check(fp:GetAttribute("PaidRandomRestricted") == true, "live: failed lookup -> restricted (safe)")
+	end
+	Mock.PolicyFail = false
+	Mock.Advance(61)
+	if not STUDIO_NO_API then
+		check(fp:GetAttribute("PaidRandomRestricted") == false and fp:GetAttribute("PolicyLoaded") == true, "live: late retry recovers")
+	end
+	Mock.Policy[5102] = nil
+	for _, p in { hp, rp, fp } do
+		Mock.RemovePlayer(p)
+	end
+	Mock.Advance(1)
+end)
+
+-- Status & Social (v2.2): nameplate attributes + titles, worn backpack weld, weekly / server
+-- leaderboard scopes, server dig goal -> early Golden Hour ---------------------------------------
+section("status & social")
+step("status & social", function()
+	local Week = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Week"])
+	local LeaderboardService = Mock.Require(byPath["ServerScriptService/Server/Services/LeaderboardService"])
+	local ServerGoalService = Mock.Require(byPath["ServerScriptService/Server/Services/ServerGoalService"])
+	local EventService = Mock.Require(byPath["ServerScriptService/Server/Services/EventService"])
+	local StatusService = Mock.Require(byPath["ServerScriptService/Server/Services/StatusService"])
+	local ServerSignals = Mock.Require(byPath["ServerScriptService/Server/Services/ServerSignals"])
+	local e0 = #Mock.Errors
+
+	-- titles: one per layer, unique, first / last as designed
+	check(#Config.Titles == #Config.Layers, "one title per layer")
+	local seenTitles = {}
+	for i = 1, #Config.Layers do
+		local title, color = Config.GetTitle(i)
+		check(type(title) == "string" and title ~= "" and not seenTitles[title], "title " .. i .. " unique: " .. tostring(title))
+		check(Mock.Env.typeof(color) == "Color3", "title " .. i .. " has a colour")
+		seenTitles[title] = true
+	end
+	check(Config.GetTitle(1) == "Sandcastle Rookie" and Config.GetTitle(#Config.Layers) == "Core Breaker", "rookie .. core breaker")
+	check(Config.GetTitle(0) == "Sandcastle Rookie" and Config.GetTitle(99) == "Core Breaker", "GetTitle clamps")
+
+	-- ISO week keys (weekly leaderboards)
+	local function utc(y, m, d)
+		return Mock.Env.os.time({ year = y, month = m, day = d, hour = 12 })
+	end
+	check(Week.Key(utc(2026, 10, 6)) == "W2026_41", "2026-10-06 is ISO week 41 (" .. Week.Key(utc(2026, 10, 6)) .. ")")
+	check(Week.Key(utc(2021, 1, 3)) == "W2020_53", "2021-01-03 belongs to 2020-W53")
+	check(Week.Key(utc(2024, 12, 30)) == "W2025_01", "2024-12-30 belongs to 2025-W01")
+	check(Week.Key(utc(2026, 1, 5)) == "W2026_02", "2026-01-05 (Monday) starts W02")
+	local left = Week.SecondsLeft(utc(2026, 10, 6))
+	check(left > 0 and left <= 7 * 86400, "seconds until the weekly reset")
+	check(
+		LeaderboardService.WeeklyStoreName("Depth", utc(2026, 10, 6)) == "Leaderboard_Depth_W2026_41"
+			and LeaderboardService.WeeklyStoreName("Coins", utc(2026, 10, 6)) == "Leaderboard_Sand_W2026_41",
+		"weekly store names keyed by ISO week"
+	)
+
+	-- a fresh player: attributes + worn backpack (torso arrives after CharacterAdded)
+	local sp = Mock.AddPlayer(39001, "Shower")
+	Mock.Advance(0.5)
+	local character = Mock.SpawnCharacter(sp, Vector3.new(30, Config.SURFACE_Y + 3, 4))
+	Mock.Advance(2)
+	local sd = DataService.Get(sp)
+	check(sd ~= nil, "status player loaded")
+	check(sp:GetAttribute("TitleLayer") == 1, "new player: title layer 1 (" .. tostring(sp:GetAttribute("TitleLayer")) .. ", MaxDepth " .. tostring(sd and sd.MaxDepth) .. ")")
+	check(sp:GetAttribute("RebirthCount") == 0, "new player: 0 rebirth stars")
+	check(sp:GetAttribute("BackpackFill") == 0, "empty backpack fill 0")
+	check(character:FindFirstChild("WornBackpack") == nil, "no worn pack before the torso exists")
+	local rig = Mock.MakeR15(character)
+	Mock.Advance(0.5)
+	local function checkPack(char, id, label)
+		local pack = char:FindFirstChild("WornBackpack")
+		if not check(pack ~= nil, label .. ": backpack worn") then
+			return nil
+		end
+		check(pack:GetAttribute("BackpackId") == id, label .. ": the equipped backpack (" .. tostring(pack:GetAttribute("BackpackId")) .. ")")
+		local weld = pack.PrimaryPart and pack.PrimaryPart:FindFirstChild("BackpackWeld")
+		local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+		check(weld ~= nil and weld.Part0 == torso and weld.Part1 == pack.PrimaryPart, label .. ": welded to the torso")
+		check(weld ~= nil and math.abs(weld.C0.Position.Z - torso.Size.Z / 2) < 1e-6, label .. ": on the torso's back face (" .. tostring(weld and weld.C0.Position) .. " / " .. tostring(torso.Size) .. ")")
+		local bad = 0
+		for _, d in pack:GetDescendants() do
+			if d:IsA("BasePart") and (d.Anchored or d.CanCollide or d.CanQuery or d.CanTouch or not d.Massless) then
+				bad += 1
+			end
+		end
+		check(bad == 0, label .. ": every part unanchored, massless, no collide/query/touch (" .. bad .. " bad)")
+		return pack
+	end
+	checkPack(character, sd.Backpack, "spawn")
+	local _ = rig
+
+	-- progress shows up in the attributes
+	DataService.Set(sp, "MaxDepth", Config.Layers[5].DepthStart + 1)
+	DataService.Set(sp, "Rebirths", 7)
+	Mock.Advance(0.5)
+	check(sp:GetAttribute("TitleLayer") == 5, "title follows MaxDepth (layer 5)")
+	check(sp:GetAttribute("RebirthCount") == 7, "rebirth stars follow Rebirths")
+	local cap = sp:GetAttribute("Capacity")
+	DataService.Set(sp, "Sand", math.floor((cap or 20) / 2))
+	Mock.Advance(0.5)
+	local fill = sp:GetAttribute("BackpackFill")
+	check(type(fill) == "number" and fill >= 0.4 and fill <= 0.6, "half-full backpack fill ~0.5 (" .. tostring(fill) .. ")")
+
+	-- equip another backpack -> re-welded; respawn -> worn again
+	local otherPack = Config.Backpacks[2].Id
+	DataService.Mutate(sp, { "OwnedBackpacks" }, function(d)
+		d.OwnedBackpacks[otherPack] = true
+	end)
+	Mock.FireServer("EquipBackpack", sp, otherPack)
+	Mock.Advance(0.5)
+	checkPack(character, otherPack, "equip")
+	local count = 0
+	for _, c in character:GetChildren() do
+		if c.Name == "WornBackpack" then
+			count += 1
+		end
+	end
+	check(count == 1, "only one worn pack after re-equip")
+	local character2 = Mock.SpawnCharacter(sp, Vector3.new(30, Config.SURFACE_Y + 3, 4))
+	Mock.MakeR15(character2)
+	Mock.Advance(0.5)
+	checkPack(character2, otherPack, "respawn")
+	check(StatusService.AttachBackpack(sp) == character2:FindFirstChild("WornBackpack"), "AttachBackpack keeps an up-to-date pack")
+
+	-- leaderboards: weekly + server counters from digs, weekly stores keyed by ISO week
+	ServerSignals.Dug:Fire(sp, 37, 120, "Shovel")
+	ServerSignals.Dug:Fire(sp, 12, 30, "Pet")
+	local session = LeaderboardService.GetSession(sp)
+	check(session ~= nil and session.WeekSand == 150 and session.SessionSand == 150, "weekly + session sand counted")
+	check(session ~= nil and session.WeekDepth == 37 and session.SessionDepth == 37, "deepest dig this week / session")
+	local serverRows = LeaderboardService.GetEntries("LeaderboardCoins", "Server")
+	local mine = nil
+	for _, row in serverRows do
+		if row.UserId == 39001 then
+			mine = row
+		end
+	end
+	check(mine ~= nil and mine.Value == 150, "THIS SERVER scope is live from memory")
+	Mock.Env.task.spawn(LeaderboardService.Refresh)
+	Mock.Advance(3)
+	local weekKey = Week.Key(Mock.Env.os.time())
+	local sandStore = Mock.DataStores["ordered:Leaderboard_Sand_" .. weekKey]
+	local depthStore = Mock.DataStores["ordered:Leaderboard_Depth_" .. weekKey]
+	if STUDIO_NO_API then
+		check(sandStore == nil or sandStore["39001"] == nil, "Studio without DataStores: no weekly writes")
+		local weekRows = LeaderboardService.GetEntries("LeaderboardDepth", "Week")
+		local found = false
+		for _, row in weekRows do
+			found = found or (row.UserId == 39001 and row.Value == 37)
+		end
+		check(found, "Studio: THIS WEEK falls back to this server")
+	else
+		check(sandStore ~= nil and sandStore["39001"] == 150, "weekly sand written to Leaderboard_Sand_" .. weekKey)
+		check(depthStore ~= nil and depthStore["39001"] == 37, "weekly depth written to Leaderboard_Depth_" .. weekKey)
+		-- more digs: sand increments by the delta, depth keeps the best
+		ServerSignals.Dug:Fire(sp, 20, 50, "Shovel")
+		Mock.Env.task.spawn(LeaderboardService.Refresh)
+		Mock.Advance(3)
+		check(sandStore["39001"] == 200, "weekly sand adds only the new delta (" .. tostring(sandStore["39001"]) .. ")")
+		check(depthStore["39001"] == 37, "weekly depth keeps the best dig")
+		local weekRows = LeaderboardService.GetEntries("LeaderboardDepth", "Week")
+		check(#weekRows > 0 and weekRows[1].Value >= 37, "THIS WEEK read back from the weekly store")
+		-- request budget exhausted: no writes this round
+		Mock.DataStoreBudget = 0
+		ServerSignals.Dug:Fire(sp, 20, 5, "Shovel")
+		Mock.Env.task.spawn(LeaderboardService.Refresh)
+		Mock.Advance(3)
+		check(sandStore["39001"] == 200, "no writes without request budget")
+		Mock.DataStoreBudget = nil
+	end
+
+	-- scope cycling: both boards flip ALL TIME -> THIS WEEK -> THIS SERVER, header shows it
+	local boardPart = Mock.Tagged("LeaderboardDepth")[1]
+	local function scopeShown()
+		local gui = boardPart:FindFirstChild("LeaderboardGui")
+		local bar = gui and gui:FindFirstChild("Scope", true)
+		return bar and bar:GetAttribute("Scope"), bar and bar:FindFirstChild("Text") and bar.Text.Text
+	end
+	LeaderboardService.SetScope("AllTime")
+	local s1, t1 = scopeShown()
+	check(s1 == "AllTime" and string.find(t1 or "", "ALL TIME", 1, true) ~= nil, "header shows ALL TIME")
+	Mock.Advance(Config.Social.Leaderboard.CycleSeconds + 0.5)
+	local s2, t2 = scopeShown()
+	check(s2 == "Week" and string.find(t2 or "", "THIS WEEK", 1, true) ~= nil, "cycles to THIS WEEK (" .. tostring(t2) .. ")")
+	Mock.Advance(Config.Social.Leaderboard.CycleSeconds)
+	local s3, t3 = scopeShown()
+	check(s3 == "Server" and string.find(t3 or "", "THIS SERVER", 1, true) ~= nil, "cycles to THIS SERVER")
+	local list = boardPart.LeaderboardGui:FindFirstChild("List", true)
+	local listed = false
+	for _, row in list:GetChildren() do
+		local name = row:FindFirstChild("Name")
+		if name and name.Text == sp.DisplayName then
+			listed = true
+		end
+	end
+	check(listed, "a new player appears on THIS SERVER")
+	Mock.Advance(Config.Social.Leaderboard.CycleSeconds)
+	check(LeaderboardService.GetScope() == "AllTime", "back to ALL TIME")
+
+	-- server dig goal: scales with players / depth, triggers Golden Hour early + announcement
+	check(Config.ServerGoalTarget({ 0 }) == Config.Social.ServerGoal.MinSand, "1 beginner: the minimum goal")
+	check(
+		Config.ServerGoalTarget({ 0, 0, 0, 0 }) == 4 * Config.Social.ServerGoal.PerPlayerSand,
+		"4 beginners: 4 shares (" .. Config.ServerGoalTarget({ 0, 0, 0, 0 }) .. ")"
+	)
+	check(Config.ServerGoalTarget({ 950 }) > Config.ServerGoalTarget({ 0, 0, 0, 0, 0, 0 }), "deep players raise the goal")
+	check(Config.ServerGoalTarget({ 1, 2, 3 }) % Config.Social.ServerGoal.Round == 0, "goal is rounded")
+	ServerGoalService.Recompute()
+	local state = ServerGoalService.GetState()
+	check(workspace:GetAttribute("ServerGoalTarget") ~= nil, "goal replicated to workspace")
+	check(state.Target >= Config.Social.ServerGoal.MinSand, "goal target set (" .. state.Target .. ")")
+	check(EventService.StartEarly("NotAnEvent", 60) == false, "StartEarly rejects unknown ids")
+	local mark = #Mock.Remote.ToClient
+	local completedBefore = state.Completed
+	ServerGoalService.Add(state.Target - state.Progress - 1)
+	check(ServerGoalService.GetState().Completed == completedBefore, "one sand short: not yet")
+	ServerSignals.Dug:Fire(sp, 5, 10, "Shovel") -- digs count via ServerSignals.Dug
+	Mock.Advance(1.5)
+	local after = ServerGoalService.GetState()
+	check(after.Completed == completedBefore + 1, "goal reached by digging")
+	check(EventService.IsActive(Config.Social.ServerGoal.EventId), "Golden Hour started early")
+	local ends = workspace:GetAttribute("EventEnds_" .. Config.Social.ServerGoal.EventId)
+	check(type(ends) == "number" and ends > Mock.Env.os.time(), "EventEnds attribute for the client countdown")
+	check(EventService.GetSecondsLeft(Config.Social.ServerGoal.EventId) >= Config.Social.ServerGoal.EventSeconds - 2, "event lasts EventSeconds")
+	check(after.Progress == 0 and after.ResumeAt > Mock.Env.os.time(), "goal resets and pauses during the event")
+	local announced = false
+	for i = mark + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		if e.Name == "Notify" and e.Args[1] == "Announce" and string.find(tostring(e.Args[2]), "SERVER GOAL", 1, true) then
+			announced = true
+		end
+	end
+	check(announced, "server goal announced to everyone")
+	ServerGoalService.Add(1000)
+	check(ServerGoalService.GetState().Progress == 0, "no counting while the reward runs")
+	check(workspace:GetAttribute("ServerGoalResumeAt") == after.ResumeAt, "ResumeAt replicated")
+
+	Mock.RemovePlayer(sp)
+	Mock.Advance(2)
+	check(LeaderboardService.GetSession(sp) == nil, "session counters dropped on leave")
+	check(#Mock.Errors == e0, "status & social: no errors")
+end)
+
+-- Rebirth & economy (v2.2): rebirth perk shop, Head Start / Keep Backpack on rebirth, perks in
+-- Stats (capacity, coins, luck, slots), Sell Anywhere via perk, offline pet earnings ------------
+section("rebirth & economy")
+step("rebirth & economy", function()
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local OfflineService = Mock.Require(byPath["ServerScriptService/Server/Services/OfflineService"])
+	local MultiplierService = Mock.Require(byPath["ServerScriptService/Server/Services/MultiplierService"])
+	local Perks = Config.RebirthPerks
+	local e0 = #Mock.Errors
+
+	-- config sanity: costs tuned to the token rewards
+	check(Config.RebirthTokens(0) >= 2, "first rebirth gives at least 2 tokens")
+	local cheap = 0
+	for _, def in Perks.List do
+		check(#def.Costs == #def.Levels and #def.Costs >= 1, def.Id .. ": one cost per level")
+		if def.Costs[1] <= Config.RebirthTokens(0) then
+			cheap += 1
+		end
+	end
+	check(cheap >= 3, "the first rebirth can afford several different level-1 perks")
+	check(Perks.MaxLevel("PetDen") == 2, "Pet Den has 2 levels")
+	check(Perks.Get("SellAnywhere") ~= nil and Perks.MaxLevel("SellAnywhere") == 1, "Sell Anywhere is a single unlock")
+	check(Config.RebirthCost(0) < 4_000_000 and Config.RebirthCost(4) == 470_000_000, "cheaper first rebirths, same late curve")
+	for n = 0, 12 do
+		check(Config.RebirthCost(n + 1) > Config.RebirthCost(n) * 2, "rebirth cost keeps climbing at " .. n)
+	end
+	check(Perks.Level({ GoldenTouch = 99 }, "GoldenTouch") == 5, "Level clamps to max")
+	check(Perks.Level({ GoldenTouch = "x" } :: any, "GoldenTouch") == 0, "Level ignores junk")
+	check(Perks.Level(nil, "GoldenTouch") == 0, "Level of nil table")
+
+	local p = Mock.AddPlayer(5005, "PerkTester")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(p)
+	Mock.Advance(2)
+	local d = DataService.Get(p)
+	check(d ~= nil and type(d.RebirthPerks) == "table" and next(d.RebirthPerks) == nil, "new save: no perks")
+	check(type(d.LastOnline) == "number" and d.LastOnline > 0, "LastOnline stamped on join")
+
+	-- buying
+	local function buy(id)
+		Mock.FireServer("BuyRebirthPerk", p, id)
+		Mock.Advance(0.6)
+	end
+	buy("GoldenTouch")
+	check(Perks.Level(d.RebirthPerks, "GoldenTouch") == 0, "no tokens: perk refused")
+	DataService.Set(p, "RebirthTokens", 30)
+	Mock.Advance(0.1)
+	buy("nope")
+	buy(123)
+	buy(nil)
+	check(d.RebirthTokens == 30 and next(d.RebirthPerks) == nil, "junk perk ids ignored")
+	local capBefore = p:GetAttribute("Capacity")
+	local slotsBefore = p:GetAttribute("PetSlots")
+	buy("GoldenTouch")
+	check(d.RebirthPerks.GoldenTouch == 1 and d.RebirthTokens == 29, "Golden Touch L1 bought for 1 token")
+	buy("DeepPockets")
+	buy("PetDen")
+	buy("LuckyDigger")
+	Mock.Advance(1.2)
+	check(p:GetAttribute("Capacity") == math.floor(capBefore * 1.1), "Deep Pockets: +10% capacity attribute")
+	check(p:GetAttribute("PetSlots") == slotsBefore + 1, "Pet Den: +1 pet slot attribute")
+	local ctx = MultiplierService.GetContext(p)
+	local hasTouch = false
+	for _, f in Stats.GetCoinFactors(ctx) do
+		hasTouch = hasTouch or (f.Name == "Golden Touch" and f.Value == 1.1)
+	end
+	check(hasTouch, "Golden Touch is a coin factor")
+	local layer3 = Config.Layers[3]
+	check(
+		math.abs(Stats.GetTreasureChance(ctx, 3) - math.min(layer3.TreasureChance * Stats.GetLuck(ctx) * 1.1, Config.MAX_TREASURE_CHANCE)) < 1e-9,
+		"Lucky Digger: x1.1 treasure chance"
+	)
+	-- max level
+	buy("PetDen")
+	local tokensAtMax = d.RebirthTokens
+	buy("PetDen")
+	check(d.RebirthPerks.PetDen == 2 and d.RebirthTokens == tokensAtMax, "Pet Den stops at level 2, no tokens taken")
+
+	-- Sell Anywhere: refused without pass/perk, works with the perk
+	local n0 = #Mock.Remote.ToClient
+	DataService.Set(p, "Sand", 7)
+	Mock.Advance(0.1)
+	Mock.FireServer("SetSetting", p, "SellNow", true)
+	Mock.Advance(1.2)
+	check(d.Sand == 7 and #notifies(p, n0) > 0, "SellNow refused without pass or perk")
+	buy("SellAnywhere")
+	check(d.RebirthPerks.SellAnywhere == 1, "Sell Anywhere perk bought")
+	local coins0 = d.Coins
+	Mock.FireServer("SetSetting", p, "SellNow", true)
+	Mock.Advance(1.2)
+	check(d.Sand == 0 and d.Coins > coins0, "SellNow sells with the Sell Anywhere perk (" .. d.Sand .. ", " .. d.Coins - coins0 .. ")")
+
+	-- Head Start: shovel owned + equipped right away (better than the starter)
+	buy("HeadStart")
+	local head = Config.Shovels[Perks.Get("HeadStart").Levels[1].ShovelIndex]
+	check(d.OwnedShovels[head.Id] == true and d.Shovel == head.Id, "Head Start shovel owned + equipped on purchase")
+
+	-- Keep Backpack + Head Start on rebirth
+	buy("KeepBackpack")
+	local keepPack = Config.Backpacks[3]
+	DataService.Mutate(p, { "OwnedBackpacks", "Backpack", "Coins" }, function(dd)
+		dd.OwnedBackpacks[keepPack.Id] = true
+		dd.Backpack = keepPack.Id
+		dd.Coins = Config.RebirthCost(0)
+	end)
+	Mock.Advance(0.2)
+	local perksBefore = table.clone(d.RebirthPerks)
+	local tokensBefore = d.RebirthTokens
+	Mock.FireServer("Rebirth", p)
+	Mock.Advance(2)
+	check(d.Rebirths == 1, "perk tester rebirthed")
+	check(d.Shovel == head.Id and d.OwnedShovels[head.Id] == true, "Head Start: rebirth starts with " .. head.Name)
+	check(d.Coins == Perks.Get("HeadStart").Levels[1].Coins, "Head Start: rebirth starts with its coins")
+	check(d.Backpack == keepPack.Id and d.OwnedBackpacks[keepPack.Id] == true, "Keep Backpack: backpack kept")
+	check(d.RebirthTokens == tokensBefore + Config.RebirthTokens(0), "rebirth tokens added")
+	local same = true
+	for id, level in perksBefore do
+		same = same and d.RebirthPerks[id] == level
+	end
+	check(same, "perks survive rebirth")
+	-- Keep Backpack L1 does not keep a backpack above its limit
+	DataService.Mutate(p, { "OwnedBackpacks", "Backpack", "Coins" }, function(dd)
+		local big = Config.Backpacks[9]
+		dd.OwnedBackpacks[big.Id] = true
+		dd.Backpack = big.Id
+		dd.Coins = Config.RebirthCost(1)
+	end)
+	Mock.Advance(0.2)
+	Mock.FireServer("Rebirth", p)
+	Mock.Advance(2.5)
+	check(d.Rebirths == 2 and d.Backpack == Config.Backpacks[1].Id, "Keep Backpack L1 does not keep a big backpack")
+
+	-- Offline earnings -----------------------------------------------------------------------------
+	DataService.Mutate(p, { "Pets", "MaxDepth", "Rebirths", "RebirthPerks", "Boosts", "Index" }, function(dd)
+		dd.Pets = { offline1 = { Id = "toy_truck", Equipped = true } }
+		dd.MaxDepth = Config.Layers[6].DepthStart + 5 -- reached Shipwreck; toy truck digs Pirate Cove (15)
+		dd.Rebirths = 0
+		dd.RebirthPerks = {}
+		dd.Boosts = {}
+		dd.Index = {}
+	end)
+	Mock.Advance(1.2)
+	ctx = MultiplierService.GetContext(p)
+	local truck = Config.GetPet("toy_truck")
+	local expectedRate = Config.Layers[5].SandValue * truck.Multiplier * truck.Dig.SandMultiplier / truck.Dig.Interval
+	local hour = OfflineService.Estimate(ctx, 3600)
+	check(math.abs(hour.SandPerSecond - expectedRate) < 1e-6, string.format("offline rate = live pet-dig formula (%.3f vs %.3f)", hour.SandPerSecond, expectedRate))
+	check(hour.Efficiency == 0.4 and hour.Seconds == 3600 and not hour.Capped, "1 h: 40% efficiency, uncapped")
+	check(hour.Coins == math.floor(expectedRate * 0.4 * 3600), "1 h coins = rate x 40% x seconds (" .. hour.Coins .. ")")
+	check(hour.PetId == "toy_truck", "best digging pet reported")
+	local long = OfflineService.Estimate(ctx, 10 * 3600)
+	check(long.Seconds == 2 * 3600 and long.Capped and long.CapSeconds == 7200, "capped at 2 h without Long Nap")
+	check(long.Coins == math.floor(expectedRate * 0.4 * 7200), "capped coins")
+	d.RebirthPerks = { LongNap = 2, GoldenTouch = 1 }
+	local napped = OfflineService.Estimate(ctx, 10 * 3600)
+	check(napped.CapSeconds == 4 * 3600 and math.abs(napped.Efficiency - 0.6) < 1e-9, "Long Nap L2: 4 h cap, 60%")
+	check(napped.Coins == math.floor(expectedRate * 0.6 * 4 * 3600 * 1.1), "Golden Touch applies to offline coins")
+	d.RebirthPerks = {}
+	-- boosts / events do not count while offline
+	d.Boosts = { SandBoost = Mock.Env.os.time() + 9999 }
+	check(OfflineService.Estimate(ctx, 3600).Coins == hour.Coins, "active boosts are ignored offline")
+	d.Boosts = {}
+	-- a non-digging pet earns nothing
+	d.Pets = { offline2 = { Id = "seagull", Equipped = true } }
+	check(OfflineService.Estimate(ctx, 3600).Coins == 0, "no digging pet: no offline coins")
+	d.Pets = { offline1 = { Id = "toy_truck", Equipped = true } }
+
+	-- grant + guards
+	local now = Mock.Env.os.time()
+	local function grantWith(last, firstJoin)
+		d.LastOnline = last
+		if firstJoin then
+			d.FirstJoin = firstJoin
+		end
+		return OfflineService.Grant(p, now)
+	end
+	local firstJoin = now - 400 * 86400
+	d.FirstJoin = firstJoin
+	check(grantWith(0) == nil, "LastOnline 0: nothing")
+	check(d.LastOnline == now, "LastOnline stamped by Grant")
+	check(grantWith(now - 4 * 60) == nil, "away < 5 min: nothing")
+	check(grantWith(now + 3600) == nil, "LastOnline in the future (clock skew): nothing")
+	check(grantWith(now - 366 * 86400) == nil, "absurd gap: nothing")
+	check(grantWith(now - 3600, now - 60) == nil, "LastOnline before FirstJoin: nothing")
+	d.FirstJoin = firstJoin
+	local coins1 = d.Coins
+	local r0 = #Mock.Remote.ToClient
+	local granted = grantWith(now - 3600)
+	Mock.Advance(0.2)
+	check(granted ~= nil and granted.Coins == hour.Coins and d.Coins == coins1 + hour.Coins, "1 h away grants the estimate")
+	check(d.Sand == 0, "offline earnings go to coins, not the backpack")
+	local popup = lastToClient(p, "OfflineEarnings")
+	check(countToClient(p, "OfflineEarnings", r0) == 1 and popup[1].Coins == hour.Coins and popup[1].Seconds == 3600, "OfflineEarnings popup sent")
+	check(grantWith(now) == nil, "granting again right away gives nothing")
+
+	-- leave / rejoin: perks persist, LastOnline saved; a long absence pays on join
+	local perksSaved = table.clone(d.RebirthPerks)
+	DataService.Set(p, "RebirthPerks", { GoldenTouch = 2, SellAnywhere = 1 })
+	Mock.Advance(0.2)
+	Mock.RemovePlayer(p)
+	Mock.Advance(3)
+	local _ = perksSaved
+	if not STUDIO_NO_API then
+		local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_5005"]
+		check(saved.Data.LastOnline >= Mock.Env.os.time() - 5, "LastOnline saved on leave (" .. saved.Data.LastOnline - Mock.Env.os.time() .. ")")
+		check(saved.Data.RebirthPerks.GoldenTouch == 2, "perks saved")
+		saved.Data.LastOnline = Mock.Env.os.time() - 2 * 3600 -- pretend the player left 2 hours ago
+	end
+	local p2 = Mock.AddPlayer(5005, "PerkTester")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(p2)
+	Mock.Advance(5)
+	local d2 = DataService.Get(p2)
+	check(d2 ~= nil and d2.RebirthPerks.GoldenTouch == 2 and d2.RebirthPerks.SellAnywhere == 1, "perks persist across sessions")
+	if not STUDIO_NO_API then
+		local info = lastToClient(p2, "OfflineEarnings")
+		check(info ~= nil and info[1].Coins > 0 and info[1].Seconds == 2 * 3600, "rejoin after 2 h: offline earnings paid")
+	else
+		check(lastToClient(p2, "OfflineEarnings") == nil, "quick rejoin (studio): no offline earnings")
+	end
+	Mock.RemovePlayer(p2)
+	Mock.Advance(1)
+	check(#Mock.Errors == e0, "no errors in rebirth & economy")
+end)
+
 section("shutdown")
 Mock.RunBindToClose()
 Mock.Advance(3)
@@ -1562,6 +2443,7 @@ local unexpected = {}
 local EXPECTED_WARNINGS = {
 	"receipt for unknown product id 4242", -- provoked above
 	"Studio has no DataStore access", -- studio mode only
+	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"
 }
 for _, w in Mock.Warnings do
 	local ok = false

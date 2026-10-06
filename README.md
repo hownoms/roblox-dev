@@ -70,10 +70,12 @@ every game pass for free. It only works in Studio.
    | SkipRebirth | Skip Rebirth | 199 |
    | GoldenEgg | Golden Egg | 79 |
    | GoldenEgg3 | 3 Golden Eggs | 199 |
-   | CoolerPack | Cooler Pack (snacks) | 29 |
 
    An id left at `0` means "not configured". The store hides or disables that item and never
    prompts a purchase for it, so you can launch with only some of them set up.
+   Coins, Golden Eggs, 2x Luck, Skip Rebirth and the Lucky pass are "paid random" items
+   (`PaidRandom = true`): players whose Roblox policy restricts paid random items never see them
+   (`Services/PolicyService.luau`).
 4. **Badges.** Create the 10 badges listed in `src/shared/Config/Badges.luau` (the art is in
    `marketing/badges/`) and paste their ids there.
 5. **Group.** Create a Roblox group and put its id in `GROUP_ID` in

@@ -18,6 +18,15 @@
 	Config.Monetization.GamePasses.SellAnywhere.
 	Design rule: everything a pass gives can be approximated by playing (boosts from quests,
 	pets, rebirths). Passes make it faster/comfier, never exclusive power walls.
+
+	v2.2 compliance:
+	- PaidRandom = true marks items that buy a random outcome (Golden Eggs), a paid luck modifier
+	  (Lucky pass, 2x Luck), or a currency that buys random outcomes (Coins buy eggs and crates;
+	  Skip Rebirth grants Rebirth Tokens, which buy the Rebirth Egg). Players whose
+	  PolicyService:GetPolicyInfoForPlayerAsync says ArePaidRandomItemsRestricted never see them
+	  and the server refuses to prompt them (Services/PolicyService). Completed purchases are
+	  always honoured. Every random outcome shows its true odds incl. luck (Stats.GetHatchOdds).
+	- The Cooler Pack product was removed: it sold relief from heat friction we designed.
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -47,7 +56,8 @@ local Monetization: Types.MonetizationConfig = {
 			Id = 0,
 			Name = "Sell Anywhere",
 			Price = 149,
-			Description = "Sell your sand from anywhere with one tap - even at the bottom of the hole.",
+			-- v2.2: also earnable for free with the Sell Anywhere rebirth perk (Config.RebirthPerks)
+			Description = "Sell your sand from anywhere with one tap - even at the bottom of the hole. Get it now, or unlock it for free later with Rebirth Perks!",
 			Color = rgb(60, 200, 110),
 		},
 		AutoDig = {
@@ -65,6 +75,7 @@ local Monetization: Types.MonetizationConfig = {
 			Description = "2x treasure luck and better pets from eggs. Forever!",
 			Color = rgb(90, 230, 120),
 			LuckMultiplier = 2,
+			PaidRandom = true,
 		},
 		TripleHatch = {
 			Id = 0,
@@ -98,6 +109,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 25,
 			Description = "5 minutes worth of coins at your deepest layer.",
 			Grant = { ScaledCoins = 300, Coins = 500 },
+			PaidRandom = true,
 		},
 		CoinsMedium = {
 			Id = 0,
@@ -105,6 +117,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 99,
 			Description = "25 minutes worth of coins at your deepest layer.",
 			Grant = { ScaledCoins = 1500, Coins = 2500 },
+			PaidRandom = true,
 		},
 		CoinsLarge = {
 			Id = 0,
@@ -112,6 +125,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 299,
 			Description = "2 hours worth of coins at your deepest layer.",
 			Grant = { ScaledCoins = 7200, Coins = 12000 },
+			PaidRandom = true,
 		},
 		CoinsHuge = {
 			Id = 0,
@@ -119,6 +133,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 799,
 			Description = "6 hours worth of coins at your deepest layer!",
 			Grant = { ScaledCoins = 21600, Coins = 40000 },
+			PaidRandom = true,
 		},
 		SandBoost15 = {
 			Id = 0,
@@ -133,6 +148,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 35,
 			Description = "Double luck for 15 minutes. Stacks time.",
 			Grant = { Boost = "LuckBoost", BoostSeconds = 900 },
+			PaidRandom = true,
 		},
 		SkipRebirth = {
 			Id = 0,
@@ -140,6 +156,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 199,
 			Description = "Rebirth right now without paying the coin cost.",
 			Grant = { Rebirth = true },
+			PaidRandom = true,
 		},
 		GoldenEgg = {
 			Id = 0,
@@ -147,6 +164,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 79,
 			Description = "Hatch 1 Golden Egg (Epic or better guaranteed!).",
 			Grant = { Egg = "golden_egg", EggCount = 1 },
+			PaidRandom = true,
 		},
 		GoldenEgg3 = {
 			Id = 0,
@@ -154,14 +172,7 @@ local Monetization: Types.MonetizationConfig = {
 			Price = 199,
 			Description = "Hatch 3 Golden Eggs at once (save 38 Robux).",
 			Grant = { Egg = "golden_egg", EggCount = 3 },
-		},
-		-- v2 survival (Survival agent). Granted by SurvivalService via the Main grant handler.
-		CoolerPack = {
-			Id = 0,
-			Name = "Cooler Pack",
-			Price = 29,
-			Description = "10 Coconut Waters, 5 Shaved Ice and 3 Watermelon Slices. Stay cool!",
-			Grant = { Consumables = { coconut_water = 10, shaved_ice = 5, watermelon_slice = 3 } },
+			PaidRandom = true,
 		},
 	},
 

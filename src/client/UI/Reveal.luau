@@ -279,8 +279,16 @@ local function card(parent: Instance, item: Item, spec: Spec, single: boolean, z
 	rowsFrame.Position = UDim2.fromOffset(0, nameHeight + 6)
 	rowsFrame.ZIndex = z + 2
 	rowsFrame.Parent = right
-	local rowHeight = if single then 32 else 26
-	statRows(rowsFrame, item.Rows, rowHeight, if single then 20 else 16, z + 3)
+	-- 5+ rows (hatches add a CHANCE row, v2.2 true odds) get slightly shorter rows to fit the card
+	local many = #item.Rows > 4
+	local rowHeight = if single then (if many then 30 else 32) else (if many then 23 else 26)
+	statRows(
+		rowsFrame,
+		item.Rows,
+		rowHeight,
+		if single then (if many then 19 else 20) else (if many then 15 else 16),
+		z + 3
+	)
 
 	if item.Tag then
 		local tag = Style.Label({

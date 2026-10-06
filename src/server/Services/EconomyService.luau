@@ -5,13 +5,15 @@
 	Sources of a sell:
 	  - touching any part tagged "SellZone" (CollectionService; debounced per player, distance
 	    checked against the part so spoofed touches from far away are ignored),
-	  - SetSetting("SellNow", true) — the Sell Anywhere pass.
+	  - SetSetting("SellNow", true) — the Sell Anywhere pass OR the Sell Anywhere rebirth perk
+	    (v2.2, Config.RebirthPerks; EconomyService.CanSellAnywhere).
 	Coins = floor((Sand * SELL_RATE + sum(treasure SellValue * count)) * coin multiplier)
 	(coin multiplier = CoinBoost x Golden Hour, see Stats.GetCoinMultiplier).
 	Client feedback: Notify("Sell", "+1.2K Coins!") + DataChanged.
 
 	Public API:
 		EconomyService.Sell(player, source): number   (coins earned; source "Zone" | "Anywhere")
+		EconomyService.CanSellAnywhere(player): boolean (pass or perk)
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -19,6 +21,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
 local Format = require(Shared.Util.Format)
 local Stats = require(Shared.Util.Stats)
 
@@ -120,8 +123,17 @@ local function connectZone(instance: Instance)
 	end)
 end
 
+-- v2.2: the game pass (early shortcut) or the earned Sell Anywhere rebirth perk.
+function EconomyService.CanSellAnywhere(player: Player): boolean
+	if MonetizationService.OwnsPass(player, "SellAnywhere") then
+		return true
+	end
+	local data = DataService.Get(player)
+	return data ~= nil and Config.RebirthPerks.HasSellAnywhere(data.RebirthPerks)
+end
+
 local function onSellNow(player: Player, _value: any)
-	if not MonetizationService.OwnsPass(player, "SellAnywhere") then
+	if not EconomyService.CanSellAnywhere(player) then
 		Net.NotifyThrottled(player, "Error", "Get Sell Anywhere to sell from here!", "SellAnywhere", 2)
 		return
 	end

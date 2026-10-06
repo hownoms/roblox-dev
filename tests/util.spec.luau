@@ -4,6 +4,7 @@
 local Weighted = require("../src/shared/Util/Weighted")
 local RateLimiter = require("../src/shared/Util/RateLimiter")
 local TableUtil = require("../src/shared/Util/TableUtil")
+local Format = require("../src/shared/Util/Format")
 
 local passed, failed = 0, 0
 local function test(name: string, fn: () -> ())
@@ -109,6 +110,18 @@ test("TableUtil.DeepCopy / Count", function()
 	copy.a.b.c = 2
 	eq(src.a.b.c, 1)
 	eq(TableUtil.Count({ x = 1, y = 2, z = 3 }), 3)
+end)
+
+test("Format.Chance (v2.2 true odds display precision)", function()
+	eq(Format.Chance(0.6), "60%")
+	eq(Format.Chance(0.125), "12.5%")
+	eq(Format.Chance(0.019), "1.9%")
+	eq(Format.Chance(0.005), "0.5%")
+	eq(Format.Chance(0.0005), "0.05%")
+	eq(Format.Chance(0.000123), "0.012%")
+	eq(Format.Chance(1), "100%")
+	eq(Format.Chance(0), "0%")
+	eq(Format.Chance(0 / 0), "0%")
 end)
 
 print(string.format("%d passed, %d failed", passed, failed))

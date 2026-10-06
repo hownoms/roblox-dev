@@ -12,6 +12,13 @@
 		EventService.GetActiveIds(): { string }
 		EventService.IsActive(eventId): boolean
 		EventService.Changed: Signal<{ string }>
+		EventService.StartEarly(eventId, seconds): boolean
+			Starts an event now for `seconds` on THIS server (server dig goal, v2.2), on top of
+			the deterministic schedule. Sets Workspace attribute "EventEnds_<id>" = unix end time
+			(cleared when it ends) so clients count down the real remaining time. If the event
+			is already running it is extended to last at least `seconds` more. Returns false for
+			an unknown id or a non-positive duration.
+		EventService.GetSecondsLeft(eventId): number   (0 when inactive)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,11 +36,21 @@ EventService.Changed = Signal.new() :: Signal.Signal<{ string }>
 
 local activeIds: { string } = {}
 local activeKey = ""
+local forcedUntil: { [string]: number } = {} -- event id -> unix end time (StartEarly)
 
 local function compute(): ({ string }, string)
+	local now = os.time()
 	local ids = {}
-	for _, event in Config.GetActiveEvents(os.time()) do
+	for _, event in Config.GetActiveEvents(now) do
 		table.insert(ids, event.Id)
+	end
+	for id, ends in forcedUntil do
+		if ends <= now then
+			forcedUntil[id] = nil
+			Workspace:SetAttribute("EventEnds_" .. id, nil)
+		elseif not table.find(ids, id) then
+			table.insert(ids, id)
+		end
 	end
 	table.sort(ids)
 	return ids, table.concat(ids, ",")
@@ -69,6 +86,32 @@ end
 
 function EventService.IsActive(eventId: string): boolean
 	return table.find(activeIds, eventId) ~= nil
+end
+
+function EventService.GetSecondsLeft(eventId: string): number
+	if not EventService.IsActive(eventId) then
+		return 0
+	end
+	local now = os.time()
+	local forced = forcedUntil[eventId]
+	local scheduled = 0
+	local def = Config.GetEvent(eventId)
+	if def and Config.GetSecondsUntilEvent(eventId, now) == 0 then
+		scheduled = def.DurationSeconds - (now + def.OffsetSeconds) % def.IntervalSeconds
+	end
+	return math.max(scheduled, if forced then forced - now else 0)
+end
+
+function EventService.StartEarly(eventId: string, seconds: number): boolean
+	if not Config.GetEvent(eventId) or not (seconds > 0) then
+		return false
+	end
+	local now = os.time()
+	local ends = math.max(now + math.floor(seconds), now + EventService.GetSecondsLeft(eventId))
+	forcedUntil[eventId] = ends
+	Workspace:SetAttribute("EventEnds_" .. eventId, ends)
+	update(true)
+	return true
 end
 
 function EventService.Init()

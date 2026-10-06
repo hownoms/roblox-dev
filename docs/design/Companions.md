@@ -162,3 +162,67 @@ The Garage building is gone. A **crate yard** stands in its place (`Layout.GARAG
 
 The egg arc builds pedestals only for non-crate eggs. That keeps its spacing, and it keeps the
 tutorial's "nearest EggShop" arrow pointing at real eggs.
+
+## v2.2: true odds, pity and Golden pets (Hatching and Compliance agent)
+
+### True odds (Roblox policy)
+Coins and Rebirth Tokens can be bought with Robux, so **every egg and crate is a paid random
+item**. Every one shows the player's real odds, with every active modifier applied.
+- **One function:** `Stats.GetHatchOddsList(egg, luck, pityCount)`, plus `Stats.GetHatchOdds`
+  (the same odds as a map) and `Stats.RollHatch(egg, luck, pityCount, roll)`.
+  - The server rolls with `RollHatch`, which is `Weighted.Pick` over `GetHatchOddsList`.
+  - `EggPanel` shows `GetHatchOddsList` with `Stats.GetLuck(State.GetStatsContext())` and
+    `PlayerData.Pity[egg]`. The two can't diverge.
+- **Luck** (Lucky pass x2, VIP x1.25, 2x Luck boost, Luck events) multiplies the weight of every
+  non-Common pet.
+- **What the panel shows:**
+  - Odds are shown as `Format.Chance` values: 60%, 12.5%, 1.9%, 0.5%, 0.05%.
+  - A gold note under the header lists the modifiers, e.g.
+    "Includes your luck x4: Lucky Shovel x2, 2x Luck x2".
+  - The odds refresh on pass, boost, event and pity changes, and every second while the panel
+    is open.
+- **Reveal:** `EggHatched(petIds, { EggId, Chances, Pity })`. The hatch reveal shows a CHANCE row
+  with the probability that pet really had.
+- **Tests:**
+  - `tests/smoke.spec.luau` "hatching + compliance" compares 200k server rolls with luck, 50k
+    pity rolls and 100k crate rolls against the displayed odds (5 sigma).
+  - `tests/client.spec.luau` checks that every panel row equals `Format.Chance(GetHatchOddsList(...))`.
+
+### Pity (`EggDef.PityAt`, `PlayerData.Pity`)
+After `PityAt` hatches in a row without a **Rare or better** pet (`Config.PITY_MIN_RARITY_ORDER = 3`),
+the next hatch of that egg is guaranteed Rare+.
+- **The guaranteed roll:** it picks among the Rare+ entries, using their (luck) weights.
+- **The counter:** any Rare+ hatch resets it. Every hatch counts: paid, free, rewards, and each
+  egg of a Triple Hatch.
+- **Where it shows:**
+  - The egg card says "Rare+ in N", or "Rare+ next hatch!".
+  - The detail note says "Rare+ guaranteed in N hatches".
+  - On the guaranteed hatch, the odds rows show the Rare+-only distribution.
+
+| Egg / crate | Base Rare+ | PityAt | Streak reaches pity |
+|---|---|---|---|
+| Beach Egg | 2% | 40 | ~45% of the time (cheap starter egg) |
+| Tide Pool, Pirate, Fossil, Crystal, Magma | 12% | 30 | ~2% |
+| Cosmic Egg | 30% | 25 | almost never |
+| Sandbox, Quarry, Deep Mine Crate | 7% | 35 | ~8% |
+| Core Crate | 38% | 25 | almost never |
+| Rebirth Egg, Golden Egg | 100% | none | n/a |
+
+### Duplicate fusion and Golden pets
+- **How to fuse:** in `PetsPanel`, select a pet with at least `Config.GOLDEN_FUSE_COUNT` (5)
+  identical **non-golden** copies and press "Fuse 5 → Golden". This sends
+  `FusePets(uid)`, which `PetService` validates.
+- **What is consumed:** the selected pet plus 4 copies, unequipped copies first.
+- **What you get:** one pet with `PetInstance.Golden = true`. It is equipped if any of the fused
+  copies was equipped.
+- **Golden pets can't be fused again.**
+- **Golden bonuses:**
+  - Its sand bonus `(Multiplier - 1)` is multiplied by `GOLDEN_SAND_BONUS` (1.5), in
+    `Config.PetMultiplier(ids, golden)` and `Stats.GetPetMultiplier`.
+  - A digging Golden pet digs `GOLDEN_DIG_SPEED` (1.25x) as often, via
+    `Config.GetPetDigInterval` in `PetDigService`.
+- **Replication:**
+  - `EquippedPets` keeps sorted ids (`Stats.SortEquipped`: by id, normal before Golden).
+  - `EquippedGolden` lists the 1-based Golden slots, e.g. "2".
+  - `PetFollowController` and the PetsPanel preview tint Golden pets gold, with sparkles
+    (`ModelFactory.MakeGolden`).

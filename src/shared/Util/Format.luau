@@ -24,6 +24,21 @@ function Format.Abbreviate(n: number): string
 	return sign .. text .. SUFFIXES[tier + 1]
 end
 
+-- v2.2 odds display: probability (0..1) -> "60%", "12.5%", "1.9%", "0.5%", "0.05%", "0.012%".
+-- >= 10%: one decimal; >= 1%: two; below that two significant digits. Trailing zeros dropped.
+function Format.Chance(probability: number): string
+	if probability ~= probability or probability <= 0 then
+		return "0%"
+	end
+	local pct = math.min(probability, 1) * 100
+	local decimals = if pct >= 10 then 1 elseif pct >= 1 then 2 else math.ceil(-math.log10(pct)) + 1
+	local text = string.format("%." .. math.clamp(decimals, 0, 8) .. "f", pct)
+	if string.find(text, ".", 1, true) then
+		text = (text:gsub("0+$", ""):gsub("%.$", ""))
+	end
+	return text .. "%"
+end
+
 -- 1234567 -> "1,234,567"
 function Format.Commas(n: number): string
 	local s = tostring(math.floor(math.abs(n)))

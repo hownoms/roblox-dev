@@ -259,7 +259,7 @@ do
 		-- PC windows and 1920x1080 (scale 1.35)
 		{ 1000, 540, "pc" }, { 1044, 540, "pc" }, { 1422, 757, "pc" }, { 1422, 800, "pc" }, { 1600, 900, "pc" },
 	}
-	local names = { "TopRight", "Menu", "Depth", "Centre", "Survival", "Bottom", "Ride", "RideDig" }
+	local names = { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Bottom", "Ride", "RideDig" }
 	for _, entry in sizes do
 		local W, H, kind = entry[1], entry[2], entry[3]
 		local r = Layout.Compute(Mock.Env.Vector2.new(W, H))
@@ -276,7 +276,7 @@ do
 		if kind == "phone" then
 			local thumb = { X = 0, Y = H - 190, W = 260, H = 190 }
 			local jump = { X = W - 170, Y = H - 160, W = 170, H = 160 }
-			for _, n in { "TopRight", "Menu", "Depth", "Centre", "Survival", "Ride", "RideDig", "Bottom" } do
+			for _, n in { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Ride", "RideDig", "Bottom" } do
 				check(not Layout.Overlaps(r[n], thumb), tag .. ": " .. n .. " clear of the thumbstick")
 				check(not Layout.Overlaps(r[n], jump), tag .. ": " .. n .. " clear of the jump button")
 			end
@@ -1241,7 +1241,795 @@ do
 	check(#Mock.Errors == e0, "ride client flow without errors")
 end
 
+-- Menu gating: progressive disclosure (Onboarding & Analytics agent) -----------------------------
+section("menu gating")
+do
+	local e0 = #Mock.Errors
+	local HUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HUD"])
+	local MenuGate = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/MenuGate"])
+	local Layout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Layout"])
+
+	-- Pure rules ----------------------------------------------------------------------------------
+	local function fresh(patch)
+		local d = Config.NewPlayerData()
+		d.FirstJoin = 0
+		for k, v in patch or {} do
+			d[k] = v
+		end
+		return d
+	end
+	local function visibleSet(d, heat)
+		return MenuGate.Evaluate({ Data = d, Heat = heat })
+	end
+	local none = visibleSet(fresh())
+	for _, name in MenuGate.ALL do
+		check(none[name] == false, "fresh player: " .. name .. " hidden")
+	end
+	local starter = Config.Shovels[1].Id
+	local function shovels(n)
+		local t = {}
+		for i = 1, n do
+			t[Config.Shovels[i].Id] = true
+		end
+		return t
+	end
+	local cases = {
+		{ "Shop", fresh({ Settings = { FTUE_FirstSell = true } }), "after the first sell" },
+		{ "Shop", fresh({ Settings = { Tutorial = MenuGate.TUTORIAL_SHOP } }), "at the tutorial shop step" },
+		{ "Eggs", fresh({ Settings = { Tutorial = MenuGate.TUTORIAL_EGGS } }), "at the tutorial egg step" },
+		{ "Eggs", fresh({ OwnedShovels = shovels(3) }), "after 2 shovel upgrades" },
+		{ "Pets", fresh({ Pets = { a = { Id = Config.Pets[1].Id, Equipped = false } } }), "with a pet" },
+		{ "Beach", fresh({ PlayTime = MenuGate.BEACH_PLAYTIME }), "after 4 min" },
+		{ "Index", fresh({ Index = { [Config.Treasures[1].Id] = true } }), "after the first treasure" },
+		{ "Quests", fresh({ OwnedShovels = shovels(2) }), "after the first shovel" },
+		{ "Rebirth", fresh({ Coins = math.ceil(Config.RebirthCost(0) * MenuGate.REBIRTH_FRACTION) }), "at 60% of the rebirth cost" },
+		{ "Store", fresh({ PlayTime = MenuGate.STORE_PLAYTIME }), "after 8 min" },
+		{ "Daily", fresh({ PlayTime = MenuGate.DAILY_PLAYTIME }), "after the first minute" },
+	}
+	for _, case in cases do
+		local v = visibleSet(case[2])
+		check(v[case[1]] == true, case[1] .. " unlocks " .. case[3])
+	end
+	check(visibleSet(fresh(), MenuGate.BEACH_HEAT)["Beach"] == true, "Beach unlocks when heat reaches 50")
+	check(visibleSet(fresh(), MenuGate.BEACH_HEAT - 1)["Beach"] == false, "Beach stays hidden below 50 heat")
+	check(visibleSet(fresh({ PlayTime = MenuGate.BEACH_PLAYTIME - 1 }))["Beach"] == false, "Beach hidden before 4 min")
+	check(visibleSet(fresh({ PlayTime = MenuGate.STORE_PLAYTIME - 1 }))["Store"] == false, "Store hidden before 8 min")
+	check(visibleSet(fresh({ Coins = Config.RebirthCost(0) * 0.5 }))["Rebirth"] == false, "Rebirth hidden at 50% of the cost")
+	check(visibleSet(fresh({ OwnedShovels = { [starter] = true } }))["Quests"] == false, "Quests hidden with only the starter shovel")
+	-- persistence: transient triggers stay unlocked
+	local persisted = fresh({ Settings = { MenuUnlocked = "Rebirth,Beach" } })
+	local pv = visibleSet(persisted)
+	check(pv.Rebirth and pv.Beach and not pv.Shop, "persisted unlocks stay visible after the trigger is gone")
+	check(MenuGate.ParseList("Shop,Garage,,Eggs").Garage == nil, "unknown names ignored in the persisted list")
+	local allSet = {}
+	for _, name in MenuGate.ALL do
+		allSet[name] = true
+	end
+	local full = MenuGate.FormatList(allSet)
+	check(#full <= 64, "persisted list fits a SetSetting string (" .. #full .. " chars)")
+	check(MenuGate.FormatList(MenuGate.ParseList(full)) == full, "persisted list round-trips")
+	-- returning players see everything
+	for _, d in { fresh({ PlayTime = MenuGate.RETURNING_PLAYTIME + 1 }), fresh({ Rebirths = 1 }) } do
+		local v = visibleSet(d)
+		local all = true
+		for _, name in MenuGate.ALL do
+			all = all and v[name] == true
+		end
+		check(all and MenuGate.IsReturning(d), "returning player sees every button")
+	end
+	-- re-flow: any number of visible buttons packs into 2 columns inside the Menu region, no
+	-- overlaps, at every tested screen size
+	local sizes = {
+		{ 1187, 503 }, { 1200, 540 }, { 1219, 540 }, { 1333, 503 }, { 1333, 540 }, { 1000, 750 },
+		{ 1000, 768 }, { 1000, 540 }, { 1044, 540 }, { 1422, 757 }, { 1422, 800 }, { 1600, 900 },
+	}
+	local cell = Layout.MENU_CELL
+	for _, size in sizes do
+		local r = Layout.Compute(Mock.Env.Vector2.new(size[1], size[2]))
+		local ok = true
+		for count = 1, #MenuGate.MENU do
+			local rects = {}
+			for k = 1, count do
+				local p = MenuGate.CellPosition(k, cell, Layout.MENU_GAP_X, Layout.MENU_GAP_Y, Layout.MENU_COLUMNS)
+				local rect = { X = r.Menu.X + p.X, Y = r.Menu.Y + p.Y, W = cell, H = cell }
+				ok = ok and rect.X + rect.W <= r.Menu.X + r.Menu.W and rect.Y + rect.H <= r.Menu.Y + r.Menu.H
+				for _, other in rects do
+					ok = ok and not Layout.Overlaps(rect, other)
+				end
+				table.insert(rects, rect)
+			end
+		end
+		check(ok, size[1] .. "x" .. size[2] .. ": re-flowed menu cells fit the Menu region without overlaps")
+	end
+
+	-- HUD integration -----------------------------------------------------------------------------
+	local function shown(name)
+		return HUD.Buttons[name].Holder.Visible == true
+	end
+	local function newTag(name)
+		return HUD.Buttons[name].Holder:FindFirstChild("NewTag") ~= nil
+	end
+	local function toastWith(text)
+		for _, d in playerGui:GetDescendants() do
+			if d:IsA("TextLabel") and string.find(d.Text, text, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	local function setData(patch)
+		Mock.FireClientEvent("DataChanged", patch)
+		Mock.Advance(0.4)
+	end
+	local function settingsWith(patch)
+		local t = table.clone(State.Data.Settings or {})
+		for k, v in patch do
+			t[k] = v
+		end
+		return t
+	end
+	local function checkPacked(tag)
+		local k = 0
+		local ok = true
+		for _, name in MenuGate.MENU do
+			local holder = HUD.Buttons[name].Holder
+			if holder.Visible then
+				k += 1
+				local p = MenuGate.CellPosition(k, cell, Layout.MENU_GAP_X, Layout.MENU_GAP_Y, Layout.MENU_COLUMNS)
+				ok = ok and holder.Position.X.Offset == p.X and holder.Position.Y.Offset == p.Y
+				ok = ok and holder.Size.X.Offset == cell and holder.Size.Y.Offset == cell
+			end
+		end
+		check(ok, "menu re-flows without gaps (" .. tag .. ", " .. k .. " visible)")
+	end
+
+	Panel.CloseAll()
+	player:SetAttribute("Heat", 0)
+	setData({
+		Coins = 0,
+		Rebirths = 0,
+		PlayTime = 0,
+		Pets = {},
+		Index = {},
+		Quests = {},
+		OwnedShades = {},
+		LastDailyClaim = 0,
+		OwnedShovels = { [starter] = true },
+		Settings = { Tutorial = 0 },
+	})
+	local hiddenAll = true
+	for _, name in MenuGate.ALL do
+		hiddenAll = hiddenAll and not shown(name)
+	end
+	check(hiddenAll, "new player: every gated button hidden")
+	check(shown("Settings"), "Settings button always visible")
+	check(HUD.IsUnlocked("Surface") and HUD.IsUnlocked("Settings"), "ungated buttons count as unlocked")
+	HUD.Flash("Store", 1)
+	Mock.Advance(0.2)
+	local storePop = HUD.Buttons.Store.Holder:FindFirstChild("Pop")
+	check(not shown("Store") and (storePop == nil or storePop.Scale == 1), "Flash never points at a hidden button")
+
+	local s0 = #Mock.Remote.ToServer
+	setData({ Settings = settingsWith({ FTUE_FirstSell = true }) })
+	Mock.Advance(0.6)
+	check(shown("Shop"), "Shop appears after the first sell")
+	check(newTag("Shop"), "Shop gets a NEW! tag")
+	check(toastWith("Shop unlocked"), "unlock toast shown")
+	local unlockedSent, trackSent = false, false
+	for _, args in sent("SetSetting", s0) do
+		if args[1] == "MenuUnlocked" and string.find(args[2], "Shop", 1, true) then
+			unlockedSent = true
+		end
+	end
+	for _, args in sent("Track", s0) do
+		if args[1] == "menu_unlocked" and args[2] == "Shop" then
+			trackSent = true
+		end
+	end
+	check(unlockedSent, "unlock persisted with SetSetting(MenuUnlocked)")
+	check(trackSent, "unlock tracked (Track menu_unlocked)")
+	checkPacked("Shop only")
+
+	-- tutorial egg step -> Eggs; first pet -> Pets; packed in MENU order
+	setData({ Settings = settingsWith({ Tutorial = MenuGate.TUTORIAL_EGGS }) })
+	check(shown("Eggs"), "Eggs appears at the tutorial egg step")
+	setData({ Pets = { p1 = { Id = Config.Pets[1].Id, Equipped = true } } })
+	check(shown("Pets"), "Pets appears with the first pet")
+	Mock.Advance(1)
+	checkPacked("Shop, Eggs, Pets")
+	check(not shown("Beach") and not shown("Index"), "unrelated buttons stay hidden")
+
+	-- transient triggers persist: heat, coins
+	player:SetAttribute("Heat", MenuGate.BEACH_HEAT + 5)
+	Mock.Advance(0.4)
+	check(shown("Beach"), "Beach appears when the player first gets hot")
+	player:SetAttribute("Heat", 0)
+	Mock.Advance(0.4)
+	setData({ Coins = Config.RebirthCost(0) })
+	check(shown("Rebirth"), "Rebirth appears near the rebirth cost")
+	setData({ Coins = 0 })
+	Mock.Advance(6)
+	check(shown("Beach") and shown("Rebirth"), "transient unlocks never disappear again")
+	local persistedNow = MenuGate.ParseList(State.GetSetting("MenuUnlocked", nil))
+	check(persistedNow.Beach and persistedNow.Rebirth and persistedNow.Shop, "unlocks stored in Settings.MenuUnlocked")
+	Mock.Advance(1)
+	checkPacked("after transient unlocks")
+
+	-- NEW tag cleared on first open (HUD click or any other route), persisted in MenuSeen
+	local s1 = #Mock.Remote.ToServer
+	Mock.FireEvent(HUD.Buttons.Shop.Face, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	Mock.Advance(0.5)
+	check(Panel.Current() == "Shop", "Shop button opens the Shop")
+	check(not newTag("Shop"), "NEW! tag gone after the first open")
+	check(MenuGate.ParseList(State.GetSetting("MenuSeen", nil)).Shop == true, "seen state persisted (MenuSeen)")
+	local panelTracked = false
+	for _, args in sent("Track", s1) do
+		panelTracked = panelTracked or (args[1] == "panel_opened" and args[2] == "Shop")
+	end
+	check(panelTracked, "panel open tracked (Track panel_opened)")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	Panel.Open("BeachShop", {})
+	Mock.Advance(0.5)
+	check(not newTag("Beach"), "opening BeachShop elsewhere clears the Beach NEW! tag")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	check(newTag("Eggs") and newTag("Pets"), "unopened unlocks keep their NEW! tag")
+
+	-- a Flash right after the unlocking change (tutorial step advanced this frame) re-checks
+	-- the rules first, so the highlighted button is already there
+	check(not shown("Index"), "Index hidden before the first treasure")
+	State.Data.Index = { [Config.Treasures[1].Id] = true } -- not yet signalled
+	HUD.Flash("Index", 0.5)
+	check(shown("Index"), "Flash re-evaluates the rules before highlighting")
+	Mock.Advance(1)
+	setData({ Settings = settingsWith({ FTUE_FirstSell = false }) })
+	check(HUD.IsUnlocked("Shop"), "Shop stays unlocked (persisted)")
+
+	-- returning players: everything
+	setData({ PlayTime = MenuGate.RETURNING_PLAYTIME + 60 })
+	Mock.Advance(1)
+	local allShown = true
+	for _, name in MenuGate.ALL do
+		allShown = allShown and shown(name)
+	end
+	check(allShown, "returning player: every button visible")
+	checkPacked("all 8")
+	check(HUD.FirstMenuButton() == HUD.Buttons.Shop, "gamepad menu focus starts on the first visible button")
+	check(#Mock.Errors == e0, "menu gating without errors")
+end
+
 -- Report ------------------------------------------------------------------------------------------
+section("hatching + compliance")
+do
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local Format = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Format"])
+	local EggPanel = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Panels/EggPanel"])
+	local PurchaseController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/PurchaseController"])
+	local PetFollowController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/PetFollowController"])
+	local HatchAnimation = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HatchAnimation"])
+	local e0 = #Mock.Errors
+	local function click(button)
+		local face = if button:IsA("GuiButton") then button else button:FindFirstChildWhichIsA("GuiButton", true)
+		Mock.FireEvent(face, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	end
+
+	-- A2 policy on the client: nothing PaidRandom shows until the server says "not restricted"
+	player:SetAttribute("PaidRandomRestricted", false)
+	Mock.Advance(0.3)
+	check(State.IsPaidRandomRestricted() == false and State.CanBuy("Product", "CoinsSmall"), "unrestricted: paid random items allowed")
+	Panel.CloseAll()
+	Panel.Open("Store", { Tab = "Boosts & Coins" })
+	Mock.Advance(1)
+	local store = Panel.Get("Store").Window
+	local function storeCard(key)
+		return store:FindFirstChild(key, true)
+	end
+	check(storeCard("CoinsSmall") and storeCard("CoinsSmall").Visible, "store shows coins when unrestricted")
+	check(storeCard("Lucky") and storeCard("Lucky").Visible, "store shows the Lucky pass when unrestricted")
+	check(storeCard("CoolerPack") == nil, "no Cooler Pack in the store")
+	player:SetAttribute("PaidRandomRestricted", true)
+	Mock.Advance(0.5)
+	for _, key in { "CoinsSmall", "CoinsMedium", "CoinsLarge", "CoinsHuge", "GoldenEgg", "GoldenEgg3", "LuckBoost15", "SkipRebirth", "Lucky" } do
+		check(storeCard(key) and storeCard(key).Visible == false, "restricted: store hides " .. key)
+	end
+	check(storeCard("SandBoost15").Visible and storeCard("DoubleSand").Visible, "restricted: other items still shown")
+	Config.Monetization.Products.CoinsSmall.Id = 9001
+	Config.Monetization.GamePasses.Lucky.Id = 7003
+	local p0 = #Mock.Prompts
+	check(PurchaseController.PromptProduct("CoinsSmall") == false and PurchaseController.PromptPass("Lucky") == false, "restricted: PurchaseController refuses")
+	check(#Mock.Prompts == p0, "restricted: no MarketplaceService prompt")
+	Config.Monetization.Products.CoinsSmall.Id = 0
+	Config.Monetization.GamePasses.Lucky.Id = 0
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	Panel.Open("Eggs", { EggId = "golden_egg" })
+	Mock.Advance(1)
+	local eggs = Panel.Get("Eggs").Window
+	local goldenTile = eggs:FindFirstChild("golden_egg", true)
+	check(goldenTile and goldenTile.Visible == false, "restricted: Golden Egg hidden in the egg panel")
+	local kindLabel = eggs:FindFirstChild("Kind", true)
+	check(eggs:FindFirstChild("Detail", true) and #Mock.Errors == e0, "restricted: egg panel still works")
+	player:SetAttribute("PaidRandomRestricted", false)
+	Mock.Advance(0.5)
+	check(goldenTile.Visible == true, "unrestricted: Golden Egg listed")
+
+	-- A1 true odds: Lucky pass + 2x Luck boost + pity, live
+	local beach = Config.GetEgg("beach_egg")
+	State.SetPassOwned("Lucky", true)
+	Mock.FireClientEvent("DataChanged", { Boosts = { LuckBoost = os.time() + 3600 }, Pity = { beach_egg = 5 }, MaxDepth = Config.TOTAL_DEPTH })
+	Mock.Advance(0.5)
+	Panel.Open("Eggs", { EggId = beach.Id })
+	Mock.Advance(1.2)
+	local luck = Stats.GetLuck(State.GetStatsContext())
+	-- events may also be active (an earlier section left High Tide on): they count too
+	local eventLuck = 1
+	for _, id in State.ActiveEvents do
+		local ev = Config.GetEvent(id)
+		if ev and ev.Kind == "Luck" then
+			eventLuck *= ev.Multiplier
+		end
+	end
+	check(luck == 4 * eventLuck, "client luck = Lucky x2 * 2x Luck x2 * events (" .. luck .. ")")
+	local function shownRows()
+		local rows = {}
+		for _, entry in beach.Pets do
+			local row = eggs:FindFirstChild(entry.PetId, true)
+			local label = row and row:FindFirstChild("Chance", true)
+			rows[entry.PetId] = label and label.Text
+		end
+		return rows
+	end
+	local function matches(pity)
+		local rows = shownRows()
+		local list = Stats.GetHatchOddsList(beach, luck, pity)
+		for _, odd in list do
+			if rows[odd.PetId] ~= Format.Chance(odd.Chance) then
+				return false, odd.PetId .. " shows " .. tostring(rows[odd.PetId]) .. " want " .. Format.Chance(odd.Chance)
+			end
+		end
+		return true, ""
+	end
+	local ok, why = matches(5)
+	check(ok, "egg panel shows Stats.GetHatchOddsList with luck + pity " .. why)
+	check(kindLabel.Text == "Your odds per hatch:", "odds header no longer says 'before luck boosts'")
+	local note = eggs:FindFirstChild("LuckNote", true)
+	check(note and string.find(note.Text, "x" .. luck, 1, true) and string.find(note.Text, "Lucky Shovel", 1, true) and string.find(note.Text, "2x Luck", 1, true), "luck note lists the modifiers: " .. (note and note.Text or "nil"))
+	check(note and string.find(note.Text, "Rare+ guaranteed in " .. (beach.PityAt + 1 - 5) .. " hatches", 1, true), "pity countdown in the detail")
+	local beachTile = eggs:FindFirstChild(beach.Id, true)
+	local pityLabel = beachTile and beachTile:FindFirstChild("Pity", true)
+	check(pityLabel and pityLabel.Text == "Rare+ in " .. (beach.PityAt + 1 - 5), "egg card shows the pity countdown")
+	local texts = EggPanel.GetDisplayedOdds(beach.Id)
+	local direct = Stats.GetHatchOdds(beach, luck, 5)
+	check(texts.golden_crab == Format.Chance(direct.golden_crab), "GetDisplayedOdds == Stats.GetHatchOdds")
+	-- boost expires -> odds update without reopening
+	Mock.FireClientEvent("DataChanged", { Boosts = {} })
+	Mock.Advance(1.2)
+	luck = Stats.GetLuck(State.GetStatsContext())
+	ok, why = matches(5)
+	check(luck == 2 * eventLuck and ok, "odds update live when a boost ends " .. why)
+	-- pity reached: the guaranteed hatch shows the Rare+ distribution
+	Mock.FireClientEvent("DataChanged", { Pity = { beach_egg = beach.PityAt } })
+	Mock.Advance(0.6)
+	ok, why = matches(beach.PityAt)
+	check(ok and shownRows().sandy_crab == "0%", "pity hatch shows Rare+ odds " .. why)
+	check(string.find(note.Text, "PITY", 1, true) ~= nil and pityLabel.Text == "Rare+ next hatch!", "pity active is announced")
+	State.SetPassOwned("Lucky", false)
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- Reveal shows the true chance of the hatched pet
+	local popups = playerGui:FindFirstChild("Dig_Popups"):FindFirstChild("Canvas")
+	Mock.FireClientEvent("EggHatched", { "golden_crab" }, { EggId = beach.Id, Chances = { 0.0025 }, Pity = { false } })
+	Mock.Advance(4)
+	local chanceRow = false
+	for _, d in popups:GetDescendants() do
+		if d:IsA("TextLabel") and d.Text == "0.25%" then
+			chanceRow = true
+		end
+	end
+	check(chanceRow, "hatch reveal shows the CHANCE row (0.25%)")
+	Mock.Advance(6)
+
+	-- B9 fusion UI
+	local pets = {}
+	for i = 1, 5 do
+		pets[string.format("{F0000000-0000-4000-8000-00000000000%d}", i)] = { Id = "sandy_crab", Equipped = i == 1 }
+	end
+	pets["{F0000000-0000-4000-8000-000000000009}"] = { Id = "toy_truck", Equipped = true, Golden = true }
+	Mock.FireClientEvent("DataChanged", { Pets = pets })
+	Mock.Advance(0.5)
+	Panel.Open("Pets", {})
+	Mock.Advance(1)
+	local petsWindow = Panel.Get("Pets").Window
+	local crabTile = petsWindow:FindFirstChild("{F0000000-0000-4000-8000-000000000002}", true)
+	click(crabTile:FindFirstChild("Face", true))
+	Mock.Advance(0.5)
+	local fuse = petsWindow:FindFirstChild("Fuse", true)
+	local fuseText = fuse and fuse:FindFirstChildWhichIsA("TextLabel", true)
+	check(fuse and fuse.Visible and fuseText and string.find(fuseText.Text, "Fuse 5", 1, true), "Fuse 5 -> Golden offered with 5 copies")
+	local s0 = #Mock.Remote.ToServer
+	click(fuse)
+	Mock.Advance(0.5)
+	local fuses = sent("FusePets", s0)
+	check(#fuses == 1 and fuses[1][1] == "{F0000000-0000-4000-8000-000000000002}", "Fuse sends FusePets(uid)")
+	local goldenTile2 = petsWindow:FindFirstChild("{F0000000-0000-4000-8000-000000000009}", true)
+	check(goldenTile2 and goldenTile2:FindFirstChild("GoldenTag", true) ~= nil, "Golden pet tile is tagged GOLDEN")
+	click(goldenTile2:FindFirstChild("Face", true))
+	Mock.Advance(0.5)
+	check(not fuse.Visible, "no Fuse button on a Golden pet")
+	local viewport = petsWindow:FindFirstChild("Detail", true):FindFirstChildWhichIsA("ViewportFrame", true)
+	local model = viewport and viewport:FindFirstChildWhichIsA("Model", true)
+	check(model and model:GetAttribute("Golden") == true, "Golden pet preview is gold-tinted")
+	Panel.CloseAll()
+	-- followers: EquippedGolden marks the slot
+	player:SetAttribute("EquippedPets", "sandy_crab,toy_truck")
+	player:SetAttribute("EquippedGolden", "2")
+	Mock.Advance(0.5)
+	local visuals = PetFollowController.GetVisuals(player)
+	local goldenOk = #visuals == 2
+	for _, v in visuals do
+		local want = v.Id == "toy_truck"
+		goldenOk = goldenOk and v.Golden == want and (v.Model:GetAttribute("Golden") == true) == want
+	end
+	check(goldenOk, "Golden follower rendered gold (and only it)")
+	check(visuals[2] and visuals[2].Model:FindFirstChild("GoldenSparkles", true) ~= nil, "Golden follower sparkles")
+	player:SetAttribute("EquippedGolden", "")
+	player:SetAttribute("EquippedPets", "")
+	Mock.Advance(0.3)
+	local _ = HatchAnimation
+	check(#Mock.Errors == e0, "hatching + compliance client section: no errors")
+end
+
+section("status & social")
+do
+	local e0 = #Mock.Errors
+	local StatusController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/StatusController"])
+	local Announcements = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Announcements"])
+	local SocialHUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/SocialHUD"])
+	local Toasts = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Toasts"])
+	local Layout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Layout"])
+	local Models = Mock.Require(byPath["ReplicatedStorage/Shared/Models"])
+	local State = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/State"])
+	local workspace = Mock.Service("Workspace")
+
+	-- stars
+	check(StatusController.StarsText(0) == "", "no rebirths: no stars")
+	check(StatusController.StarsText(3) == "★★★", "3 rebirths: 3 stars")
+	check(StatusController.StarsText(Config.Social.Nameplate.StarsInline) == string.rep("★", Config.Social.Nameplate.StarsInline), "inline stars up to the cap")
+	check(StatusController.StarsText(12) == "★x12", "12 rebirths: ★x12")
+
+	-- nameplates for every player (local + another), from attributes
+	local me = Mock.Service("Players").LocalPlayer
+	if not me.Character or not me.Character:FindFirstChild("Head") then
+		Mock.SpawnCharacter(me, spawnCF.Position)
+	end
+	Mock.Advance(0.5)
+	me:SetAttribute("TitleLayer", 5)
+	me:SetAttribute("RebirthCount", 3)
+	me:SetAttribute("VIP", true)
+	Mock.Advance(0.2)
+	local plate = StatusController.GetPlate(me)
+	check(plate ~= nil and plate:IsA("BillboardGui"), "local player has a nameplate")
+	if plate then
+		local title5, color5 = Config.GetTitle(5)
+		check(plate.MaxDistance == Config.Social.Nameplate.MaxDistance and plate.AlwaysOnTop == false, "nameplate: short MaxDistance, not always on top")
+		check(plate.Adornee == me.Character.Head, "nameplate on the head")
+		check(plate.Title.Text == title5 and plate.Title.TextColor3 == color5, "title + layer colour (" .. plate.Title.Text .. ")")
+		check(plate.Stars.Text == "★★★" and plate.Stars.Visible, "rebirth stars shown")
+		check(plate.Tag.Visible and plate.Tag.Text == "VIP", "VIP tag")
+		check(plate.PlayerName.Text == me.DisplayName, "display name")
+		local strokes = 0
+		for _, d in plate:GetDescendants() do
+			if d:IsA("UIStroke") then
+				strokes += 1
+			end
+		end
+		check(strokes >= 4, "nameplate text is outlined")
+		me:SetAttribute("VIP", false)
+		me:SetAttribute("Premium", true)
+		me:SetAttribute("RebirthCount", 12)
+		Mock.Advance(0.1)
+		check(plate.Tag.Text == "PREMIUM" and plate.Stars.Text == "★x12", "Premium tag, ★x12")
+		me:SetAttribute("Premium", false)
+		Mock.Advance(0.1)
+		check(not plate.Tag.Visible, "no tag without VIP / Premium")
+		-- settings toggle
+		local humanoid = me.Character:FindFirstChildOfClass("Humanoid")
+		check(humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None, "default name hidden while nameplates show")
+		State.SetSetting("ShowNameplates", false)
+		Mock.Advance(0.1)
+		check(plate.Enabled == false and humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.Viewer, "Nameplates OFF: hidden, default names back")
+		State.SetSetting("ShowNameplates", true)
+		Mock.Advance(0.1)
+		check(plate.Enabled == true, "Nameplates ON again")
+	end
+	local other = Mock.AddPlayer(1002, "Buddy")
+	other:SetAttribute("TitleLayer", #Config.Layers)
+	Mock.SpawnCharacter(other, spawnCF.Position + Vector3.new(6, 0, 0))
+	Mock.Advance(0.3)
+	local otherPlate = StatusController.GetPlate(other)
+	check(otherPlate ~= nil and otherPlate.Title.Text == "Core Breaker", "other players get nameplates too")
+	local d = StatusController.Describe(other)
+	check(d.Title == "Core Breaker" and d.Stars == "" and d.Tag == nil, "Describe(other)")
+
+	-- worn backpack sand level (client-side visual)
+	local pack = Models.Backpack(Config.Backpacks[1].Id)
+	pack.Name = "WornBackpack"
+	pack.Parent = other.Character
+	local sandFill = pack:FindFirstChild("SandFill", true)
+	check(sandFill ~= nil, "bucket has a SandFill part")
+	if sandFill then
+		local fullY = sandFill.Size.Y
+		local color0 = sandFill.Color
+		other:SetAttribute("BackpackFill", 1)
+		Mock.Advance(0.1)
+		check(math.abs(sandFill.Size.Y - fullY) < 1e-6 and sandFill.Color == Config.Theme.Colors.Gold, "full pack: full height, gold")
+		other:SetAttribute("BackpackFill", 0.5)
+		Mock.Advance(0.1)
+		check(sandFill.Size.Y < fullY and sandFill.Color == color0, "half pack: lower sand")
+		other:SetAttribute("BackpackFill", 0)
+		Mock.Advance(0.1)
+		check(sandFill.Transparency == 1, "empty pack: no sand")
+	end
+	Mock.RemovePlayer(other)
+	Mock.Advance(0.2)
+	check(StatusController.GetPlate(other) == nil, "nameplate removed when the player leaves")
+
+	-- announcements: parse, banner, queue + rate limit, not a toast
+	local parsed = Announcements.Parse("Sandy found a LEGENDARY Golden Idol!")
+	check(parsed and parsed.Player == "Sandy" and parsed.Rarity == "Legendary" and parsed.Item == "Golden Idol" and parsed.Verb == "found", "parse a find")
+	local hatch = Announcements.Parse("Max hatched a MYTHIC Mega Excavator!")
+	check(hatch and hatch.Rarity == "Mythic" and hatch.Verb == "hatched", "parse a hatch")
+	check(Announcements.Parse("SERVER GOAL REACHED! 5K sand dug together: GOLDEN HOUR for everyone!") == nil, "other text: plain banner")
+	Mock.Advance(Config.Social.Announce.Duration + 2)
+	local popups = playerGui:FindFirstChild("Dig_Popups")
+	local toastLayer = playerGui:FindFirstChild("Dig_Toasts")
+	Mock.FireClientEvent("Notify", "Announce", "Sandy found a LEGENDARY Golden Idol!")
+	Mock.Advance(0.2)
+	check(Announcements.IsShowing(), "announcement banner showing")
+	local banner = popups and popups:FindFirstChild("Announcement", true)
+	check(banner ~= nil, "gold banner in the popup layer")
+	if banner then
+		local tag = banner:FindFirstChild("Tag")
+		check(tag and tag.Text == "LEGENDARY!" and tag.BackgroundColor3 == Config.GetRarity("Legendary").Color, "rarity pill in the rarity colour")
+		local text = banner:FindFirstChild("Text", true)
+		check(text and string.find(text.Text, "Golden Idol", 1, true) ~= nil and string.find(text.Text, "Sandy", 1, true) ~= nil, "banner names player + item")
+	end
+	local toastHit = false
+	for _, dsc in toastLayer:GetDescendants() do
+		if dsc:IsA("TextLabel") and string.find(dsc.Text, "Golden Idol", 1, true) then
+			toastHit = true
+		end
+	end
+	check(not toastHit, "Announce goes to the banner, not a toast")
+	for i = 1, 8 do
+		Mock.FireClientEvent("Notify", "Announce", "Player" .. i .. " hatched a MYTHIC Mega Excavator!")
+	end
+	Mock.Advance(0.1)
+	check(Announcements.QueueLength() <= Config.Social.Announce.MaxQueued, "queue capped (" .. Announcements.QueueLength() .. ")")
+	Mock.Advance(1)
+	local visible = 0
+	for _, dsc in popups:GetDescendants() do
+		if dsc.Name == "Announcement" then
+			visible += 1
+		end
+	end
+	check(visible == 1, "one banner at a time")
+	Mock.Advance((Config.Social.Announce.Duration + Config.Social.Announce.Gap + 1) * (Config.Social.Announce.MaxQueued + 2))
+	check(Announcements.QueueLength() == 0 and not Announcements.IsShowing(), "queue drains")
+	check(Toasts ~= nil, "toasts still loaded")
+
+	-- social HUD: server goal bar + friends chip, in the Layout "Social" region
+	local holder = SocialHUD.Holder
+	check(holder ~= nil, "social HUD built")
+	if holder then
+		local r = Layout.Current().Social
+		check(holder.Position.X.Offset == r.X and holder.Position.Y.Offset == r.Y, "social HUD placed by Layout")
+		workspace:SetAttribute("ServerGoalTarget", 5000)
+		workspace:SetAttribute("ServerGoalProgress", 2500)
+		workspace:SetAttribute("ServerGoalResumeAt", 0)
+		Mock.Advance(0.2)
+		local bar = holder:FindFirstChild("GoalBar")
+		local label = bar and bar:FindFirstChildWhichIsA("TextLabel", true)
+		local barText = ""
+		for _, dsc in bar:GetDescendants() do
+			if dsc:IsA("TextLabel") and string.find(dsc.Text, "Server goal", 1, true) then
+				barText = dsc.Text
+			end
+		end
+		check(bar ~= nil and bar.Visible and barText == SocialHUD.GoalText(2500, 5000, 0), "goal bar: " .. barText)
+		local _ = label
+		workspace:SetAttribute("ServerGoalResumeAt", workspace:GetServerTimeNow() + 120)
+		Mock.Advance(1.2)
+		local reachedText = ""
+		for _, dsc in bar:GetDescendants() do
+			if dsc:IsA("TextLabel") and string.find(dsc.Text, "Goal reached", 1, true) then
+				reachedText = dsc.Text
+			end
+		end
+		check(reachedText ~= "", "goal bar shows the cooldown after a goal")
+		workspace:SetAttribute("ServerGoalResumeAt", 0)
+		local chip = holder:FindFirstChild("FriendsChip")
+		check(chip and not chip.Visible, "no friends: chip hidden")
+		check(SocialHUD.FriendBonusText(0) == nil and SocialHUD.FriendBonusText(2) == "Friends +10%", "friend bonus text")
+		local maxPct = math.floor(Config.FRIEND_BONUS_MAX * 100 + 0.5)
+		check(SocialHUD.FriendBonusText(99) == "Friends +" .. maxPct .. "%", "friend bonus capped")
+		me:SetAttribute("FriendsInServer", 2)
+		Mock.Advance(0.2)
+		check(chip and chip.Visible and chip.Text.Text == "Friends +10%", "friends chip visible with friends here")
+		me:SetAttribute("FriendsInServer", 0)
+	end
+
+	-- invite: every SocialService call is pcall'd
+	local invites0 = #Mock.Invites
+	local ok1, why1 = SocialHUD.PromptInvite()
+	check(ok1 and why1 == "Opened" and #Mock.Invites == invites0 + 1, "invite dialog opened")
+	Mock.CanInvite = false
+	local ok2, why2 = SocialHUD.PromptInvite()
+	check(not ok2 and why2 == "NotAllowed", "CanSendGameInviteAsync false: no prompt")
+	Mock.CanInvite = true
+	Mock.InviteFail = true
+	local ok3, why3 = SocialHUD.PromptInvite()
+	check(not ok3 and why3 == "Error", "SocialService error is caught")
+	Mock.InviteFail = false
+	-- the Settings card button
+	local Panel = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/Panel"])
+	Panel.Open("Settings", {})
+	Mock.Advance(0.5)
+	local inviteButton = nil
+	for _, dsc in playerGui:GetDescendants() do
+		if dsc.Name == "InviteButton" then
+			inviteButton = dsc
+		end
+	end
+	check(inviteButton ~= nil, "Settings has an Invite button")
+	if inviteButton then
+		local face = inviteButton:FindFirstChild("Face")
+		local before = #Mock.Invites
+		Mock.FireEvent(face, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+		Mock.Advance(0.3)
+		check(#Mock.Invites == before + 1, "Invite button opens the invite dialog")
+	end
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+	check(#Mock.Errors == e0, "status & social client section: no errors")
+end
+
+-- Rebirth & economy (v2.2): Rebirth panel tabs + recovery preview, perk rows, Sell Anywhere via
+-- perk on the HUD, offline earnings popup ---------------------------------------------------------
+section("rebirth & economy")
+do
+	local e0 = #Mock.Errors
+	local Panel = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/Panel"])
+	local HUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HUD"])
+	local State = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/State"])
+	local RebirthPanel = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Panels/RebirthPanel"])
+	local OfflinePopup = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/OfflinePopup"])
+	local Perks = Config.RebirthPerks
+	local function click(button)
+		Mock.FireEvent(button, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+		Mock.Advance(0.3)
+	end
+
+	-- recovery preview text (pure)
+	local text, ratio = RebirthPanel.RecoveryText(0, Config.Layers[9].DepthStart + 1)
+	check(
+		string.find(text, Config.Layers[9].Name, 1, true) ~= nil and string.find(text, "1.5", 1, true) ~= nil and ratio == 1.5,
+		"recovery preview: " .. text
+	)
+	check(select(2, RebirthPanel.RecoveryText(3, 0)) == Config.RebirthMultiplier(4) / Config.RebirthMultiplier(3), "recovery ratio = multiplier ratio")
+	check(string.find(RebirthPanel.PerkStartText({ HeadStart = 1 }), Config.Shovels[Perks.Get("HeadStart").Levels[1].ShovelIndex].Name, 1, true) ~= nil, "perk note names the Head Start shovel")
+	for _, def in Perks.List do
+		for level = 0, #def.Costs do
+			local stat = RebirthPanel.PerkStat(def.Id, level)
+			check(type(stat.Main) == "string" and stat.Main ~= "", def.Id .. " L" .. level .. " stat text")
+		end
+	end
+
+	Mock.FireClientEvent("DataChanged", {
+		Coins = 100,
+		Rebirths = 0,
+		RebirthTokens = 3,
+		RebirthPerks = { PetDen = 2 },
+		MaxDepth = Config.Layers[9].DepthStart + 1,
+	})
+	Mock.Advance(0.4)
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	Panel.Open("Rebirth", { Tab = "Rebirth" })
+	Mock.Advance(0.6)
+	local window = Panel.Get("Rebirth").Window
+	local rebirthPage = window:FindFirstChild("RebirthPage", true)
+	local perksPage = window:FindFirstChild("PerksPage", true)
+	check(rebirthPage ~= nil and perksPage ~= nil, "Rebirth panel has Rebirth + Perks pages")
+	check(rebirthPage.Visible and not perksPage.Visible, "Rebirth tab shown first")
+	local recovery = rebirthPage:FindFirstChild("Recovery", true)
+	check(recovery ~= nil and string.find(recovery.Text, Config.Layers[9].Name, 1, true) ~= nil, "recovery preview names your deepest layer: " .. tostring(recovery and recovery.Text))
+	local perksTab = window:FindFirstChild("PerksTab", true)
+	click(perksTab:FindFirstChild("Face"))
+	check(perksPage.Visible and not rebirthPage.Visible and RebirthPanel.CurrentTab() == "Perks", "Perks tab button switches pages")
+	local list = perksPage:FindFirstChild("PerkList", true)
+	local rows = 0
+	for _, def in Perks.List do
+		if list:FindFirstChild(def.Id) then
+			rows += 1
+		end
+	end
+	check(rows == #Perks.List, "one upgrade row per perk (" .. rows .. ")")
+	local denRow = list:FindFirstChild("PetDen")
+	local denLabel = denRow:FindFirstChild("Action", true):FindFirstChild("Label", true)
+	check(denLabel ~= nil and denLabel.Text == "MAX", "maxed perk shows MAX")
+	local touchRow = list:FindFirstChild("GoldenTouch")
+	local touchNext = touchRow:FindFirstChild("Next", true):FindFirstChild("Main")
+	check(touchNext.Text == "Coins +10%", "next level spelled out: " .. touchNext.Text)
+	local s0 = #Mock.Remote.ToServer
+	click(touchRow:FindFirstChild("Action", true):FindFirstChild("Face"))
+	local buys = sent("BuyRebirthPerk", s0)
+	check(#buys == 1 and buys[1][1] == "GoldenTouch", "perk price button sends BuyRebirthPerk(id)")
+	Mock.FireClientEvent("DataChanged", { RebirthTokens = 2, RebirthPerks = { PetDen = 2, GoldenTouch = 1 } })
+	Mock.Advance(0.4)
+	check(touchNext.Text == "Coins +20%", "row moves to the next level after buying")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	Panel.Open("Rebirth", { Tab = "Perks" })
+	Mock.Advance(0.4)
+	check(perksPage.Visible, "Panel.Open(Rebirth, { Tab = Perks })")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+
+	-- Sell Anywhere from the perk (no pass): HUD Sell button works
+	local passes = table.clone(State.Passes)
+	passes.SellAnywhere = false
+	State.Apply({ Passes = passes })
+	Mock.FireClientEvent("DataChanged", { RebirthPerks = { SellAnywhere = 1 } })
+	Mock.Advance(0.4)
+	check(State.CanSellAnywhere(), "State.CanSellAnywhere via perk")
+	local sell = HUD.Buttons.Sell
+	check(sell.Holder.Visible and sell.Label.Text == "Sell", "HUD Sell button visible for the perk")
+	local s1 = #Mock.Remote.ToServer
+	click(sell.Face)
+	local sets = sent("SetSetting", s1)
+	check(#sets == 1 and sets[1][1] == "SellNow", "Sell button sells anywhere with the perk")
+	Mock.FireClientEvent("DataChanged", { RebirthPerks = {} })
+	Mock.Advance(0.4)
+	check(not State.CanSellAnywhere(), "no pass, no perk: cannot sell anywhere")
+
+	-- Offline earnings popup
+	local popups = playerGui:FindFirstChild("Dig_Popups"):FindFirstChild("Canvas")
+	Mock.FireClientEvent("OfflineEarnings", "junk")
+	Mock.FireClientEvent("OfflineEarnings", { Coins = 0 })
+	Mock.Advance(0.3)
+	check(popups:FindFirstChild("Reveal") == nil, "junk / zero offline payloads show nothing")
+	Mock.FireClientEvent("OfflineEarnings", {
+		Seconds = 7200,
+		Away = 30000,
+		Sand = 12345,
+		Coins = 12345,
+		CapSeconds = 7200,
+		Capped = true,
+		PetId = "toy_truck",
+	})
+	Mock.Advance(0.8)
+	local reveal = popups:FindFirstChild("Reveal")
+	local headline = reveal and reveal:FindFirstChild("Headline", true)
+	check(headline ~= nil and headline.Text == "WELCOME BACK!", "offline earnings open the welcome-back popup")
+	check(string.find(OfflinePopup.LastText, "12.3K sand", 1, true) ~= nil and string.find(OfflinePopup.LastText, "+12.3K coins", 1, true) ~= nil, "popup text: " .. OfflinePopup.LastText)
+	local limit = false
+	for _, d in reveal:GetDescendants() do
+		if d:IsA("TextLabel") and string.find(d.Text, "Long Nap", 1, true) then
+			limit = true
+		end
+	end
+	check(limit, "capped absence points at the Long Nap perk")
+	Mock.FireEvent(reveal, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	Mock.Advance(1.5)
+	check(popups:FindFirstChild("Reveal") == nil, "tap collects / closes the popup")
+	check(#Mock.Errors == e0, "no errors in rebirth & economy (client)")
+end
+
 section("report")
 check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))
