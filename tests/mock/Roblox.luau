@@ -1160,6 +1160,19 @@ local function onEnterGame(self)
 	end)
 end
 
+-- v2.3: like the engine, CollectionService's InstanceRemoved fires when a tagged instance leaves
+-- the DataModel (destroyed, reparented out, or streamed out on a client).
+local function onLeaveGame(self)
+	forEachSubtree(self, function(node)
+		for t in node.tags do
+			local s = tagRemoved[t]
+			if s then
+				s:_fire(node.proxy)
+			end
+		end
+	end)
+end
+
 local function getEventSignal(self, name)
 	local s = self.events[name]
 	if not s then
@@ -1226,6 +1239,8 @@ local function setParent(self, newParent)
 	fireChanged(self, "Parent")
 	if not wasInGame and isInGame(self) then
 		onEnterGame(self)
+	elseif wasInGame and not isInGame(self) then
+		onLeaveGame(self)
 	end
 end
 
@@ -1814,6 +1829,25 @@ classMethods.Model = {
 	GetPrimaryPartCFrame = function(p)
 		return classMethods.Model.GetPivot(p)
 	end,
+	-- v2.3 streaming (PersistentPerPlayer models)
+	AddPersistentPlayer = function(p, player)
+		local self = instances[p]
+		self.persistentPlayers = self.persistentPlayers or {}
+		self.persistentPlayers[player] = true
+	end,
+	RemovePersistentPlayer = function(p, player)
+		local self = instances[p]
+		if self.persistentPlayers then
+			self.persistentPlayers[player] = nil
+		end
+	end,
+	GetPersistentPlayers = function(p)
+		local list = {}
+		for player in instances[p].persistentPlayers or {} do
+			table.insert(list, player)
+		end
+		return list
+	end,
 }
 
 classMethods.Humanoid = {
@@ -2278,6 +2312,12 @@ function Mock.PlayerFromCharacter(character)
 end
 
 Mock.Kicked = {}
+local function asyncYieldStream()
+	if coroutine.isyieldable() then
+		task.wait()
+	end
+end
+
 classMethods.Player = {
 	Kick = function(p, message)
 		table.insert(Mock.Kicked, { Player = p, Message = message })
@@ -2298,11 +2338,15 @@ classMethods.Player = {
 	GetMouse = function()
 		error("GetMouse is client-only")
 	end,
+	RequestStreamAroundAsync = function()
+		asyncYieldStream()
+	end,
 }
 
 -- DataStores (in memory, JSON-ability enforced) ------------------------------------------------
 
 Mock.DataStores = {} -- name -> { [key] = value }
+Mock.ProductPrices = {} -- v2.3: MarketplaceService:GetProductInfo(id).PriceInRobux
 Mock.DataStoreFail = false
 
 local function asyncYield()
@@ -2442,8 +2486,11 @@ local marketplace = {
 		asyncYield()
 		return false
 	end,
-	GetProductInfo = function()
-		return { PriceInRobux = 0, Name = "x" }
+	GetProductInfo = function(_s, id, _infoType)
+		asyncYield()
+		-- v2.3: tests set Mock.ProductPrices[id] to simulate the Creator Hub price
+		local price = Mock.ProductPrices and Mock.ProductPrices[id]
+		return { PriceInRobux = price or 0, Name = "x" }
 	end,
 }
 
@@ -2519,6 +2566,11 @@ local function buildGame()
 		end,
 		IsRunning = function()
 			return true
+		end,
+	}
+	classMethods.Stats = {
+		GetTotalMemoryUsageMb = function()
+			return Mock.MemoryMb or 512
 		end,
 	}
 	classMethods.CollectionService = {
@@ -2830,6 +2882,24 @@ end
 
 function Mock.Internal(inst)
 	return instances[inst]
+end
+
+-- v2.3 streaming simulation (client mode). StreamOut(inst) removes `inst` the way the engine does
+-- when it leaves the client's streaming radius: the client's copy is destroyed (Destroying,
+-- CollectionService InstanceRemoved, Parent locked). StreamIn(token) brings it back as a NEW
+-- instance (a clone with the same tags/attributes/children) under the same parent, which is what
+-- client code must cope with: never cache streamed instances across a stream-out.
+function Mock.StreamOut(inst)
+	local self = instances[inst]
+	local parent = self.parent and self.parent.proxy
+	local copy = methods.Clone(inst)
+	methods.Destroy(inst)
+	return { Copy = copy, Parent = parent }
+end
+
+function Mock.StreamIn(token)
+	token.Copy.Parent = token.Parent
+	return token.Copy
 end
 
 function Mock.Tagged(t)

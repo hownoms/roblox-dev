@@ -16,6 +16,7 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 | [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Code layout, remotes, data schema, module ownership |
 | [`docs/MAP.md`](docs/MAP.md) | Map layout, coordinates, thumbnail camera positions |
+| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Streaming settings, budgets, the `/stress` load test, MicroProfiler on desktop and Android |
 | [`marketing/STORE_PAGE.md`](marketing/STORE_PAGE.md) | Store description, keywords, badges, launch marketing plan |
 | [`marketing/README.md`](marketing/README.md) | Icon, thumbnails, badge art, and how to upload them |
 
@@ -43,38 +44,43 @@ every game pass for free. It only works in Studio.
 
 1. **Publish** the place (File → Publish to Roblox). Set **Max Players = 16** (one shared dig beach).
 2. **Game passes.** Create these in Creator Hub (Monetization → Passes), then paste each id into
-   `src/shared/Config/Monetization.luau`:
+   `src/shared/Config/Monetization.luau`. Prices are v2.3 suggestions in the competitor band
+   (comparable passes sell for 175–750 R$):
 
-   | Key | Name | Suggested price (Robux) |
-   |---|---|---|
-   | VIP | VIP | 249 |
-   | DoubleSand | 2x Sand | 299 |
-   | SellAnywhere | Sell Anywhere | 149 |
-   | AutoDig | Auto Dig | 199 |
-   | Lucky | Lucky Shovel | 149 |
-   | TripleHatch | Triple Hatch | 99 |
-   | ExtraPets | +2 Pet Slots | 199 |
-   | MegaBackpack | Mega Backpack | 129 |
+   | Key | Name | What it gives | Suggested price (Robux) |
+   |---|---|---|---|
+   | VIP | VIP | +25% sand, +10% sell coins, 2 shades at once, gold nameplate tag | 349 |
+   | DoubleSand | 2x Sand | x2 sand per dig | 399 |
+   | SellAnywhere | Sell Anywhere | Sell from anywhere (also a free rebirth perk) | 249 |
+   | AutoDig | Auto Dig | Auto-swing + 1 pet slot | 299 |
+   | FastDig | Turbo Shovel | +25% dig speed | 249 |
+   | TripleHatch | Triple Hatch | Hatch 3 eggs at once | 249 |
+   | ExtraPets | +2 Pet Slots | +2 equipped pets | 349 |
+   | MegaBackpack | Mega Backpack | x2 backpack capacity | 299 |
 
 3. **Developer products.** Create these (Monetization → Developer Products) and paste the ids
    into the same file:
 
    | Key | Name | Price |
    |---|---|---|
-   | CoinsSmall | Pile of Coins | 25 |
-   | CoinsMedium | Bag of Coins | 99 |
-   | CoinsLarge | Chest of Coins | 299 |
-   | CoinsHuge | Sunken Ship of Coins | 799 |
-   | SandBoost15 | 2x Sand (15 min) | 35 |
-   | LuckBoost15 | 2x Luck (15 min) | 35 |
+   | CoinsSmall | Pile of Coins | 49 |
+   | CoinsMedium | Bag of Coins | 149 |
+   | CoinsLarge | Chest of Coins | 399 |
+   | CoinsHuge | Sunken Ship of Coins | 999 |
+   | SandBoost15 | 2x Sand (15 min) | 49 |
    | SkipRebirth | Skip Rebirth | 199 |
-   | GoldenEgg | Golden Egg | 79 |
-   | GoldenEgg3 | 3 Golden Eggs | 199 |
 
    An id left at `0` means "not configured". The store hides or disables that item and never
-   prompts a purchase for it, so you can launch with only some of them set up.
-   Coins, Golden Eggs, 2x Luck, Skip Rebirth and the Lucky pass are "paid random" items
-   (`PaidRandom = true`): players whose Roblox policy restricts paid random items never see them
+   prompts a purchase for it, so you can launch with only some of them set up. Once an id is
+   set, the store shows the **real price from Creator Hub** (`MarketplaceService:GetProductInfo`)
+   and only falls back to the suggested price if that lookup fails.
+   **After launch, turn on Roblox Managed Pricing** for the developer products (Creator Hub →
+   Monetization → Developer Products). Roblox then tests regional prices for you.
+
+   **v2.3: no Robux item sells a random outcome or luck.** The Golden Egg costs Rebirth Tokens,
+   and the Lucky pass, 2x Luck and the Golden Egg products are gone. Coin packs and Skip Rebirth
+   are still marked "paid random" (`PaidRandom = true`), because they buy currency that buys
+   eggs. Players whose Roblox policy restricts paid random items never see them
    (`Services/PolicyService.luau`).
 4. **Badges.** Create the 10 badges listed in `src/shared/Config/Badges.luau` (the art is in
    `marketing/badges/`) and paste their ids there.
@@ -83,8 +89,9 @@ every game pass for free. It only works in Studio.
    `DIGDEEP`.
 6. **Icon and thumbnails.** Upload `marketing/icon.png` and `marketing/thumbnails/thumb_1..4.png`.
 7. **Experience settings.** Genre is Simulation. Fill in the Experience Questionnaire; the
-   expected maturity is *Minimal*, and you must disclose that there are paid random items (the
-   Golden Egg). Enable Phone, Tablet, Computer and Console. Paste in the description from
+   expected maturity is *Minimal*. Paid random items: answer as described in
+   `marketing/STORE_PAGE.md`. Since v2.3 they exist only indirectly, through coin packs and Skip
+   Rebirth, which buy currency that can hatch eggs. Enable Phone, Tablet, Computer and Console. Paste in the description from
    `marketing/STORE_PAGE.md`.
 8. **Music (optional).** `src/shared/Config/Sounds.luau` has empty music and ambience slots.
    Upload audio you own (or audio from the Creator Store) and paste in the ids.

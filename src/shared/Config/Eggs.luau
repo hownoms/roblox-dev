@@ -2,8 +2,8 @@
 --[[
 	Eggs — hatch pets. Coin eggs unlock when your MaxDepth reaches the layer UnlockLayer
 	(Config.IsEggUnlocked). Weights are relative (they sum to 100 for readability).
-	Rebirth Egg costs Rebirth Tokens. Golden Egg is Robux-only: one hatch = one purchase of
-	Config.Monetization.Products[ProductKey] (Price here is the Robux suggestion).
+	Rebirth Egg and Golden Egg cost Rebirth Tokens (v2.3: the Golden Egg is no longer sold for
+	Robux; Config rejects any egg with Currency "Robux").
 	Luck boosts multiply the weight of non-Common pets; Triple Hatch pass hatches 3 at once.
 
 	v2.1: Construction Crates (Kind = "Crate") are eggs that hatch digging vehicle pets (see
@@ -152,11 +152,11 @@ local Eggs: { Types.EggDef } = {
 		Look = { ShellColor = rgb(120, 255, 200), SpotColor = rgb(255, 255, 255), Glow = true },
 	},
 	{
+		-- v2.3: earnable only (was a Robux product). 10 Rebirth Tokens ~ 4 early rebirths.
 		Id = "golden_egg",
 		Name = "Golden Egg",
-		Currency = "Robux",
-		Price = 79,
-		ProductKey = "GoldenEgg",
+		Currency = "Tokens",
+		Price = 10,
 		UnlockLayer = 1,
 		Pets = {
 			{ PetId = "golden_seagull", Weight = 70 },

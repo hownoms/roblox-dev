@@ -130,12 +130,42 @@ local function migrateDiggersToPets(data: { [string]: any })
 	data.Diggers = {}
 end
 
+-- v2 -> v3 (discovery slice): unsold treasures (data.Treasures, id -> count) become plain finds
+-- (Normal size, no material, Good quality = exactly the old SellValue each), and every treasure
+-- already in the Index gets its default variants (Normal, None) ticked in FindVariants.
+-- data.Treasures is emptied (the field stays for Reconcile / old code paths).
+local function migrateTreasuresToFinds(data: { [string]: any })
+	local finds = if type(data.Finds) == "table" then data.Finds else {}
+	data.Finds = finds
+	local variants = if type(data.FindVariants) == "table" then data.FindVariants else {}
+	data.FindVariants = variants
+	if type(data.Treasures) == "table" then
+		for id, count in data.Treasures do
+			if type(id) == "string" and Config.GetTreasure(id) and type(count) == "number" and count >= 1 then
+				local key = id .. "|Normal|None|Good"
+				finds[key] = (if type(finds[key]) == "number" then finds[key] else 0) + math.floor(count)
+			end
+		end
+	end
+	data.Treasures = {}
+	if type(data.Index) == "table" then
+		for id, found in data.Index do
+			if type(id) == "string" and found == true and Config.GetTreasure(id) then
+				variants[id .. "/Normal"] = true
+				variants[id .. "/None"] = true
+			end
+		end
+	end
+end
+
 -- Migrations: MIGRATIONS[v] upgrades a save from version v to v + 1.
 local MIGRATIONS: { [number]: (data: { [string]: any }) -> ...any } = {
 	[1] = migrateDiggersToPets,
+	[2] = migrateTreasuresToFinds,
 }
 
 DataService._MigrateDiggersToPets = migrateDiggersToPets -- tests
+DataService._MigrateTreasuresToFinds = migrateTreasuresToFinds -- tests
 
 local dataChanged: RemoteEvent
 local getDataFunction: RemoteFunction

@@ -187,6 +187,7 @@ local function refresh()
 			else "Rebirth!"
 	)
 	skipButton:SetVisible(PurchaseController.IsProductConfigured("SkipRebirth"))
+	skipButton:SetText("Skip R$ " .. PurchaseController.GetPrice("Product", "SkipRebirth"))
 	refreshPerks()
 	local perkBadge = false
 	for _, def in Perks.List do
@@ -337,7 +338,7 @@ local function buildRebirthPage(page: Frame)
 	})
 	skipButton = Button.new({
 		Name = "Skip",
-		Text = "Skip R$ " .. Config.Monetization.Products.SkipRebirth.Price,
+		Text = "Skip R$ " .. PurchaseController.GetPrice("Product", "SkipRebirth"),
 		Size = UDim2.fromOffset(170, 74),
 		Position = UDim2.new(1, -10, 1, -4),
 		AnchorPoint = Vector2.new(1, 1),

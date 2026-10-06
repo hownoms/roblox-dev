@@ -394,6 +394,10 @@ function SurvivalShades.Place(player: Player, shadeId: string, position: Vector3
 	model:SetAttribute("Height", def.Height)
 	ownerLabel(model, player, def)
 	CollectionService:AddTag(model, SurvivalShades.TAG)
+	-- v2.3 streaming: the owner always has their shade (BeachShop "placed" state, GetMyShades);
+	-- everyone else streams it in and out as one unit.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.PersistentPerPlayer
+	model:AddPersistentPlayer(player)
 	model.Parent = getFolder()
 
 	placeCounter += 1

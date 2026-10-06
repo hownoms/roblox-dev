@@ -17,10 +17,16 @@
 	Worn backpack (welded by the server, model "WornBackpack"): the "SandFill" part(s) scale with
 	the owner's "BackpackFill" attribute (0..1) and turn gold when full. Local-only visual.
 
+	v2.3 streaming: other players' characters stream out (far away) and back in as NEW parts.
+	A 0.5 s reconcile re-adorns each plate to the current Head (plates whose Head is gone are just
+	hidden by the engine) and re-applies the backpack fill when a new WornBackpack shows up, so
+	no state depends on CharacterAdded firing again.
+
 	API (tests): StatusController.StarsText(n), StatusController.Describe(player),
 	             StatusController.GetPlate(player): BillboardGui?, StatusController.Refresh()
 ]]
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
@@ -288,7 +294,42 @@ function StatusController.Refresh()
 	end
 end
 
+-- v2.3 streaming: keep plates and backpack fills attached to the parts that exist right now.
+local lastPack: { [Player]: Instance? } = setmetatable({}, { __mode = "k" }) :: any
+local RECONCILE_INTERVAL = 0.5
+
+function StatusController.Reconcile()
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local head = if character then character:FindFirstChild("Head") else nil
+		if head and head:IsA("BasePart") then
+			local plate = plates[player]
+			if not plate then
+				buildPlate(player, head)
+			elseif plate.Gui.Adornee ~= head then
+				plate.Gui.Adornee = head
+				setDefaultName(character, enabled())
+			end
+		end
+		local pack = if character then character:FindFirstChild("WornBackpack") else nil
+		if pack ~= lastPack[player] then
+			lastPack[player] = pack
+			if pack then
+				applyFill(player)
+			end
+		end
+	end
+end
+
 function StatusController.Init()
+	local elapsed = 0
+	RunService.Heartbeat:Connect(function(dt: number)
+		elapsed += dt
+		if elapsed >= RECONCILE_INTERVAL then
+			elapsed = 0
+			StatusController.Reconcile()
+		end
+	end)
 	for _, player in Players:GetPlayers() do
 		watchPlayer(player)
 	end

@@ -13,11 +13,11 @@
 
 -- Rarity ---------------------------------------------------------------------------------
 
-export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic"
+export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic" | "Relic" -- v3: Relic (finds only)
 
 export type RarityDef = {
 	Name: Rarity,
-	Order: number, -- 1 = Common ... 6 = Mythic
+	Order: number, -- 1 = Common ... 6 = Mythic, 7 = Relic (v3 discovery slice, finds only)
 	Color: Color3, -- main text / frame colour
 	Gradient: { Color3 }, -- 2+ colours for UIGradient on cards
 	Announce: boolean, -- server-wide chat/toast when someone finds/hatches this rarity
@@ -229,6 +229,58 @@ export type TreasureDef = {
 	SellValue: number, -- coins when sold
 	FlavorText: string,
 	Look: TreasureLook,
+	-- v3 Relics: value = ScaledValue seconds of income (RewardScale of the player's deepest layer)
+	-- instead of SellValue; findable in any deposit of layer >= Layer (Config.Discovery).
+	ScaledValue: number?,
+}
+
+-- v3 discovery slice (docs/design/Discovery.md) ------------------------------------------------
+
+export type FindSize = "Tiny" | "Normal" | "Large" | "Giant"
+export type FindMaterial = "None" | "Golden" | "Fossilized" | "Crystal"
+export type FindQuality = "Damaged" | "Good" | "Pristine"
+-- Presentation tier: Pop (float text) < Beam (coloured beam) < Card (Reveal card + camera)
+-- < Server (announce + beam for everyone) < Spectacle (Relic).
+export type FindTier = "Pop" | "Beam" | "Card" | "Server" | "Spectacle"
+export type DetectorSignal = "White" | "Gold" | "Purple"
+
+-- server -> owner "DetectorPing": coarse info only (never positions or the deposit list).
+export type DetectorPing = {
+	Band: number, -- 0 = nothing in range, 1 = hot (closest) .. 4 = edge of range
+	Sector: number, -- 0..SECTORS-1 compass sector (0 = +Z, clockwise towards +X); -1 = none
+	Vertical: string, -- "Down" | "Level" | "Up" | ""
+	Signal: string, -- DetectorSignal or ""
+	Remaining: number, -- seconds left in this scan
+}
+
+-- server -> owner "ExcavationStart"
+export type ExcavationInfo = {
+	Id: string,
+	Position: Vector3, -- where the find emerges (visible ground)
+	Signal: string, -- DetectorSignal of the find (ring colour)
+	Rings: number,
+	RingSeconds: number,
+	RingGap: number,
+	PerfectWindow: number,
+	GoodWindow: number,
+	Timeout: number,
+}
+
+-- server -> owner "FindRevealed"
+export type FindInfo = {
+	Id: string, -- excavation id ("" for ambient finds)
+	TreasureId: string,
+	Rarity: string,
+	Size: string,
+	Material: string,
+	Quality: string,
+	Value: number, -- coins at sell time (before coin boosts)
+	Tier: string, -- FindTier
+	IsNew: boolean, -- first time this treasure is in the Index
+	NewVariants: { string }, -- variant ids seen for the first time on this treasure
+	Perfect: boolean, -- every ring Perfect
+	Ambient: boolean, -- popcorn find straight from a dig (no excavation)
+	Position: Vector3,
 }
 
 -- Progression ------------------------------------------------------------------------------
@@ -324,7 +376,8 @@ export type GamePassDef = {
 	Description: string,
 	Color: Color3,
 	SandMultiplier: number?,
-	LuckMultiplier: number?,
+	LuckMultiplier: number?, -- v2.3: must stay nil on every pass (no paid luck; Config asserts)
+	CoinMultiplier: number?, -- v2.3: sell coins factor (VIP), Stats.GetCoinFactors
 	CapacityMultiplier: number?,
 	ExtraPetSlots: number?,
 	SpeedMultiplier: number?,
@@ -500,7 +553,11 @@ export type PlayerData = {
 	OwnedBackpacks: { [string]: boolean },
 	Pets: { [string]: PetInstance }, -- key = uid
 	PetSlots: number,
-	Treasures: { [string]: number }, -- unsold treasures by id
+	Treasures: { [string]: number }, -- legacy (v3: emptied by the migration into Finds, never written)
+	-- v3 discovery: unsold finds, key "treasureId|Size|Material|Quality" -> count (Util/Finds.Key)
+	Finds: { [string]: number },
+	-- v3 discovery: variants seen per treasure, key "treasureId/VariantId" (never reset)
+	FindVariants: { [string]: boolean },
 	Index: { [string]: boolean }, -- discovered treasures (collection), never reset
 	DailyStreak: number,
 	LastDailyClaim: number, -- unix

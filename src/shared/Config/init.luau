@@ -40,6 +40,7 @@ local Ride = require(script.Ride) -- v2.1 ride-on excavator tuning (Ride agent)
 local RebirthPerks = require(script.RebirthPerks) -- v2.2 rebirth token perk shop (Rebirth agent)
 local Titles = require(script.Titles) -- v2.2 nameplate titles (Status & Social agent)
 local Social = require(script.Social) -- v2.2 announcements / leaderboard scopes / server goal
+local Discovery = require(script.Discovery) -- v3 buried finds / detector / excavation (Discovery agent)
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
 
@@ -69,6 +70,7 @@ local Config = {
 	RebirthPerks = RebirthPerks,
 	Titles = Titles,
 	Social = Social,
+	Discovery = Discovery,
 
 	-- World --------------------------------------------------------------------------------
 	-- One shared dig zone along the shoreline (World.GetDigZone); no plots.
@@ -120,7 +122,9 @@ local Config = {
 	DATASTORE_NAME = "PlayerData_v1",
 	LEADERBOARD_COINS_STORE = "Leaderboard_Coins",
 	LEADERBOARD_DEPTH_STORE = "Leaderboard_Depth",
-	DATA_VERSION = 2, -- 2: v2.1 converts data.Diggers into vehicle pets (DataService migration)
+	-- 2: v2.1 converts data.Diggers into vehicle pets; 3: v3 moves unsold Treasures into Finds
+	-- (DataService migrations)
+	DATA_VERSION = 3,
 	AUTOSAVE_SECONDS = 120,
 	SESSION_LOCK_SECONDS = 1800,
 
@@ -521,6 +525,8 @@ function Config.NewPlayerData(): Types.PlayerData
 		Pets = {},
 		PetSlots = Config.MAX_EQUIPPED_PETS,
 		Treasures = {},
+		Finds = {}, -- v3 discovery
+		FindVariants = {}, -- v3 discovery
 		Index = {},
 		DailyStreak = 0,
 		LastDailyClaim = 0,
@@ -570,6 +576,36 @@ do
 	end
 	for _, treasure in Treasures do
 		assert(rarityByName[treasure.Rarity], "Config: unknown rarity on " .. treasure.Id)
+		assert(not string.find(treasure.Id, "[|/]"), "Config: treasure ids may not contain | or / " .. treasure.Id)
+		if treasure.Rarity == "Relic" then
+			assert((treasure.ScaledValue or 0) > 0, "Config: Relic without ScaledValue " .. treasure.Id)
+		end
+	end
+	assert(#Discovery.DENSITY == #Layers, "Config: one Discovery.DENSITY per layer")
+	for _, group in { Discovery.SIZES, Discovery.MATERIALS } do
+		local total = 0
+		for _, v in group do
+			total += v.Weight
+		end
+		assert(math.abs(total - 100) < 1e-6, "Config: Discovery variant weights must sum to 100")
+	end
+	-- v2.3 paid randomness rules (owner decision, docs/CHANGELOG.md v2.3): no Robux item sells
+	-- a random outcome or a luck modifier.
+	for _, egg in Eggs do
+		assert(egg.Currency ~= "Robux" and egg.ProductKey == nil, "Config: eggs are never sold for Robux " .. egg.Id)
+	end
+	for key, pass in Monetization.GamePasses do
+		assert(pass.LuckMultiplier == nil, "Config: no paid luck (pass " .. key .. ")")
+	end
+	for key, product in Monetization.Products do
+		local boostDef: Types.BoostDef? = nil
+		for _, b in Boosts do
+			if b.Id == product.Grant.Boost then
+				boostDef = b
+			end
+		end
+		assert(product.Grant.Egg == nil, "Config: no paid eggs (product " .. key .. ")")
+		assert(not (boostDef and boostDef.Kind == "Luck"), "Config: no paid luck (product " .. key .. ")")
 	end
 	assert(#Titles == #Layers, "Config: one title per layer")
 	for i, title in Titles do

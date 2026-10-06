@@ -425,14 +425,47 @@ check(player:GetAttribute("EquippedPets") == "", "EquippedPets cleared")
 Mock.FireServer("EquipPet", player, uid)
 Mock.Advance(0.2)
 check(data.Pets[uid].Equipped == true, "equip pet")
-for _, e in Config.Eggs do
-	if e.Currency == "Robux" then
-		local p0 = #Mock.Prompts
-		Mock.FireServer("HatchEgg", player, e.Id, 1)
-		Mock.Advance(0.5)
-		check(#Mock.Prompts == p0, "Robux egg with product id 0 never prompts")
-		break
+do
+	-- v2.3: no egg is sold for Robux; the Golden Egg costs Rebirth Tokens and never prompts
+	local robuxEggs = 0
+	for _, e in Config.Eggs do
+		robuxEggs += if e.Currency == "Robux" or e.ProductKey then 1 else 0
 	end
+	local golden = Config.GetEgg("golden_egg")
+	check(robuxEggs == 0 and golden and golden.Currency == "Tokens", "v2.3: Golden Egg is earnable only (Rebirth Tokens)")
+	local p0 = #Mock.Prompts
+	local pets0 = 0
+	for _ in data.Pets do
+		pets0 += 1
+	end
+	Mock.FireServer("HatchEgg", player, "golden_egg", 1)
+	Mock.Advance(0.5)
+	local pets1 = 0
+	for _ in data.Pets do
+		pets1 += 1
+	end
+	check(#Mock.Prompts == p0 and (data.RebirthTokens >= golden.Price or pets1 == pets0), "Golden Egg without tokens: no prompt, no pet")
+	for key, pass in Config.Monetization.GamePasses do
+		check(pass.LuckMultiplier == nil, "v2.3: no pass sells luck: " .. key)
+	end
+	for _, key in { "GoldenEgg", "GoldenEgg3", "LuckBoost15" } do
+		check(Config.Monetization.Products[key] == nil, "v2.3: product removed: " .. key)
+	end
+	check(Config.Monetization.GamePasses.Lucky == nil, "v2.3: Lucky pass removed")
+	local StatsV23 = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local vipCtx = {
+		Data = Config.NewPlayerData(),
+		Passes = { VIP = true },
+		IsPremium = false,
+		InGroup = false,
+		FriendsInServer = 0,
+		ActiveEvents = {},
+		Now = os.time(),
+	}
+	check(StatsV23.GetLuck(vipCtx) == 1, "v2.3: VIP gives no luck")
+	check(math.abs(StatsV23.GetCoinMultiplier(vipCtx) - 1.1) < 1e-9, "v2.3: VIP gives +10% sell coins")
+	vipCtx.Passes = { FastDig = true }
+	check(math.abs(StatsV23.GetSpeedMultiplier(vipCtx) - 1.25) < 1e-9, "v2.3: Turbo Shovel +25% dig speed")
 end
 
 -- Rewards -----------------------------------------------------------------------------------------
@@ -527,9 +560,9 @@ Mock.Advance(1)
 check(decision == Enum.ProductPurchaseDecision.NotProcessedYet, "unknown product id not granted")
 Config.Monetization.GamePasses.AutoDig.Id = 7001
 Config.Monetization.GamePasses.SellAnywhere.Id = 7002
-Config.Monetization.GamePasses.Lucky.Id = 7003
+Config.Monetization.GamePasses.FastDig.Id = 7003
 local p1 = #Mock.Prompts
-Mock.FireServer("PromptPurchase", player, "GamePass", "Lucky")
+Mock.FireServer("PromptPurchase", player, "GamePass", "FastDig")
 Mock.Advance(1)
 check(#Mock.Prompts == p1 + 1 and Mock.Prompts[#Mock.Prompts].Id == 7003, "configured pass prompts")
 Mock.FireEvent(marketplace, "PromptGamePassPurchaseFinished", player, 7001, true)
@@ -613,6 +646,7 @@ step("analytics", function()
 		"Joined", "AtSand", "FirstDig", "BackpackFull", "FirstSell", "FirstShovel", "SecondShovel",
 		"FirstBackpack", "Layer2", "FirstEgg", "FirstPet", "Layer3", "FirstShadeOrSnack",
 		"FirstQuestClaim", "FirstCrate", "FirstPetDig", "Layer5", "FirstRebirth",
+		"FirstFind", "FirstRareFind", "FirstPerfectExcavation",
 	}
 	local total = 0
 	for _ in Analytics.Steps do
@@ -1689,9 +1723,17 @@ step("ride", function()
 	v:PivotTo(good + Vector3.new(0, -40, 0))
 	Mock.Advance(R.ValidateInterval + 0.1)
 	check(vehicle() == v and v:GetPivot().Position.Y > S - 2, "vehicle sunk into a hole is put back")
+	-- v2.3: wait for each validation tick instead of a fixed advance; a fixed
+	-- ValidateInterval + 0.05 can hold two ticks depending on the clock phase, and the second one
+	-- sees the put-back (valid) position and resets the strikes.
+	local invalid = CFrame.new(x0, S, 90)
 	for _ = 1, R.MaxStrikes do
-		v:PivotTo(CFrame.new(x0, S, 90))
-		Mock.Advance(R.ValidateInterval + 0.05)
+		v:PivotTo(invalid)
+		local waited = 0
+		while vehicle() == v and (v:GetPivot().Position - invalid.Position).Magnitude < 1 and waited < R.ValidateInterval * 3 do
+			Mock.Advance(0.02)
+			waited += 0.02
+		end
 	end
 	check(vehicle() == nil, "repeated invalid positions despawn the vehicle")
 	check(rp:GetAttribute("Riding") == nil, "Riding attribute cleared")
@@ -1899,10 +1941,9 @@ step("hatching + compliance", function()
 	check(rp:GetAttribute("PaidRandomRestricted") == true and PolicyService.IsPaidRandomRestricted(rp), "restricted policy published")
 	local rd = DataService.Get(rp)
 	Config.Monetization.Products.CoinsSmall.Id = 9001
-	Config.Monetization.Products.GoldenEgg.Id = 9501
-	Config.Monetization.Products.LuckBoost15.Id = 9502
+	Config.Monetization.Products.SkipRebirth.Id = 9501
 	Config.Monetization.Products.SandBoost15.Id = 9503
-	Config.Monetization.GamePasses.Lucky.Id = 7003
+	Config.Monetization.GamePasses.FastDig.Id = 7003
 	Config.Monetization.GamePasses.DoubleSand.Id = 7004
 	local function promptsFor(p, since)
 		local n = 0
@@ -1914,26 +1955,26 @@ step("hatching + compliance", function()
 		return n
 	end
 	local p0 = #Mock.Prompts
-	for _, key in { "CoinsSmall", "GoldenEgg", "LuckBoost15" } do
+	for _, key in { "CoinsSmall", "SkipRebirth" } do
 		Mock.FireServer("PromptPurchase", rp, "Product", key)
 		Mock.Advance(0.7)
 	end
-	Mock.FireServer("PromptPurchase", rp, "GamePass", "Lucky")
-	Mock.Advance(0.7)
 	Mock.FireServer("HatchEgg", rp, golden.Id, 1)
 	Mock.Advance(0.7)
-	check(promptsFor(rp, p0) == 0, "restricted: no prompt for coins / golden egg / luck / Lucky pass")
+	check(promptsFor(rp, p0) == 0, "restricted: no prompt for coin packs / skip rebirth / golden egg")
 	Mock.FireServer("PromptPurchase", rp, "Product", "SandBoost15")
 	Mock.Advance(0.7)
 	Mock.FireServer("PromptPurchase", rp, "GamePass", "DoubleSand")
 	Mock.Advance(0.7)
-	check(promptsFor(rp, p0) == 2, "restricted: non-random items still prompt")
+	Mock.FireServer("PromptPurchase", rp, "GamePass", "FastDig")
+	Mock.Advance(0.7)
+	check(promptsFor(rp, p0) == 3, "restricted: non-random items (incl. Turbo Shovel) still prompt")
 	local p1 = #Mock.Prompts
 	Mock.FireServer("PromptPurchase", hp, "Product", "CoinsSmall")
 	Mock.Advance(0.7)
-	Mock.FireServer("PromptPurchase", hp, "GamePass", "Lucky")
+	Mock.FireServer("PromptPurchase", hp, "GamePass", "FastDig")
 	Mock.Advance(0.7)
-	check(promptsFor(hp, p1) == 2, "unrestricted: coins + Lucky pass prompt")
+	check(promptsFor(hp, p1) == 2, "unrestricted: coins + Turbo Shovel prompt")
 	-- a purchase that already completed is honoured even for a restricted player
 	local coins0 = rd.Coins
 	local decision
@@ -1942,8 +1983,7 @@ step("hatching + compliance", function()
 	end)
 	Mock.Advance(1)
 	check(decision == Enum.ProductPurchaseDecision.PurchaseGranted and rd.Coins > coins0, "restricted: completed purchase still granted")
-	Config.Monetization.Products.GoldenEgg.Id = 0
-	Config.Monetization.Products.LuckBoost15.Id = 0
+	Config.Monetization.Products.SkipRebirth.Id = 0
 	Config.Monetization.Products.SandBoost15.Id = 0
 	Config.Monetization.GamePasses.DoubleSand.Id = 0
 	-- lookup failure: retries, then restricted-safe live / unrestricted in Studio
@@ -2422,6 +2462,429 @@ step("rebirth & economy", function()
 	Mock.RemovePlayer(p2)
 	Mock.Advance(1)
 	check(#Mock.Errors == e0, "no errors in rebirth & economy")
+end)
+
+section("stress (v2.3 /stress)")
+step("stress", function()
+	local e0 = #Mock.Errors
+	local DevCommands = Mock.Require(byPath["ServerScriptService/Server/Services/DevCommands"])
+	local sp = Mock.AddPlayer(39501, "StressDev")
+	Mock.Advance(1)
+	local zc = World.GetDigZone().CFrame.Position
+	Mock.SpawnCharacter(sp, zc + Vector3.new(0, 4, 0))
+	Mock.Advance(1)
+	local n = DevCommands.StartStress(sp, 3, true)
+	Mock.Advance(0.1)
+	local folder = workspace:FindFirstChild("StressBots")
+	check(n == 3 and folder and #folder:GetChildren() == 3, "/stress spawns 3 bots")
+	local bot = folder and folder:FindFirstChild("StressBot_1")
+	check(bot and bot:IsA("Model") and bot.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "bot is an Atomic model StressBot_1")
+	local pets = 0
+	if bot then
+		for _, c in bot:GetChildren() do
+			if string.sub(c.Name, 1, 3) == "Pet" then
+				pets += 1
+			end
+		end
+	end
+	check(pets == 3, "each bot has 3 digging pets")
+	check(bot and bot:FindFirstChild("DigBurst", true) ~= nil, "fx: particle stream on bots")
+	Mock.Advance(3)
+	local stats = DevCommands.GetStressStats()
+	check(stats.Bots == 3 and stats.Attempts > 20, "bots dig at the shovel rate (" .. stats.Attempts .. " attempts in 3 s)")
+	check(stats.Digs > 0, "bot digs go through DigService.DigAt (" .. stats.Digs .. " ok)")
+	local d = DataService.Get(sp)
+	check(d and d.TotalSandDug > 0, "bot digs add sand through the real dig path")
+	Mock.Advance(10.5) -- one 10 s summary
+	local summary = DevCommands.StopStress()
+	check(summary ~= nil and string.find(summary, "digs/s", 1, true) ~= nil and string.find(summary, "heartbeat", 1, true) ~= nil, "summary line: " .. tostring(summary))
+	check(workspace:FindFirstChild("StressBots") == nil, "/stress stop removes the bots")
+	check(DevCommands.StopStress() == nil, "stop twice is harmless")
+	Mock.RemovePlayer(sp)
+	Mock.Advance(1)
+	check(#Mock.Errors == e0, "no errors during /stress")
+end)
+
+-- Discovery (v3 slice): buried deposits, uncover via dig, ownership, excavation scoring +
+-- clamping, variant odds, value math, Index variants, detector pings, migration --------------
+section("discovery")
+step("discovery", function()
+	local Finds = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Finds"])
+	local Discovery = Mock.Require(byPath["ServerScriptService/Server/Services/DiscoveryService"])
+	local D = Config.Discovery
+	local e0 = #Mock.Errors
+	local S = Config.SURFACE_Y
+	Discovery.SetSeed(4242)
+
+	-- config + pure math --------------------------------------------------------------------------
+	check(Config.GetRarity("Relic") ~= nil and Config.GetRarity("Relic").Order == 7, "Relic rarity above Mythic")
+	check(#Finds.Relics() >= 1 and #Finds.Relics() <= 2, "one or two Relic items (" .. #Finds.Relics() .. ")")
+	for _, group in { "Size", "Material" } do
+		for _, luck in { 1, 2, 5 } do
+			local total = 0
+			for _, o in Finds.VariantOdds(group, luck) do
+				total += o.Chance
+			end
+			check(math.abs(total - 1) < 1e-9, group .. " odds sum to 1 at luck " .. luck)
+		end
+	end
+	local base = Finds.VariantOdds("Size", 1)
+	local lucky = Finds.VariantOdds("Size", 2)
+	check(math.abs(base[4].Chance - 0.04) < 1e-9 and lucky[4].Chance > base[4].Chance, "Giant 4% at luck 1, more with luck")
+	check(lucky[1].Chance < base[1].Chance or lucky[1].Chance == base[1].Chance * (100 / 118), "Tiny is not a lucky variant")
+	check(Finds.VariantOdds("Material", 0 / 0)[1].Chance == 0.88, "junk luck -> base odds")
+	-- variant roll distribution: stratified rolls reproduce the true odds exactly
+	for _, group in { "Size", "Material" } do
+		local N = 20000
+		local counts = {}
+		for i = 0, N - 1 do
+			local id = Finds.RollVariant(group, 1, (i + 0.5) / N)
+			counts[id] = (counts[id] or 0) + 1
+		end
+		for _, o in Finds.VariantOdds(group, 1) do
+			check(math.abs((counts[o.Id] or 0) / N - o.Chance) < 0.001, string.format("%s roll distribution: %s %.4f vs %.4f", group, o.Id, (counts[o.Id] or 0) / N, o.Chance))
+		end
+	end
+	-- random rolls are close too (sanity)
+	local seed = 12345
+	local function rnd()
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		return seed / 2147483648
+	end
+	local giant, golden = 0, 0
+	for _ = 1, 20000 do
+		if Finds.RollVariant("Size", 1, rnd()) == "Giant" then
+			giant += 1
+		end
+		if Finds.RollVariant("Material", 1, rnd()) == "Golden" then
+			golden += 1
+		end
+	end
+	check(math.abs(giant / 20000 - 0.04) < 0.006 and math.abs(golden / 20000 - 0.07) < 0.008, "random variant rolls ~ odds (" .. giant .. ", " .. golden .. ")")
+	-- scoring + clamping
+	check(Finds.Grade(0.05) == "Perfect" and Finds.Grade(0.15) == "Good" and Finds.Grade(0.5) == "Miss", "ring grades")
+	check(Finds.Grade(-1) == "Miss" and Finds.Grade(0 / 0) == "Miss" and Finds.Grade("x") == "Miss", "junk ring errors are misses")
+	check(select(1, Finds.Score({ 0, 0, 0, 0, 0, 0, 0 })) == 6, "score clamps to RINGS entries")
+	check(Finds.Score("nope") == 0 and Finds.Score(nil) == 0, "junk reports score 0")
+	check(Finds.QualityForScore(6) == "Pristine" and Finds.QualityForScore(5) == "Pristine", "5+ points: Pristine")
+	check(Finds.QualityForScore(3) == "Good" and Finds.QualityForScore(1) == "Damaged", "Good / Damaged thresholds")
+	-- value math: base x size x material x quality
+	check(Finds.Value("bottle_cap", "Giant", "Golden", "Pristine", 0) == math.floor(8 * 5 * 3 * 1.5), "value = base x size x material x quality")
+	check(Finds.Value("bottle_cap", "Tiny", "None", "Damaged", 0) == math.max(1, math.floor(8 * 0.5 * 0.6)), "small values floor, at least 1")
+	check(Finds.Value("sun_compass", "Normal", "None", "Good", 0) == 1800, "Relic = 1800 s of income at layer 1")
+	check(Finds.Value("sun_compass", "Normal", "None", "Good", Config.Layers[5].DepthStart) == 1800 * Config.Layers[5].RewardScale, "Relic value scales with deepest layer")
+	check(Finds.Key("seashell", "Large", "Crystal", "Good") == "seashell|Large|Crystal|Good", "find key format")
+	check(select(1, Finds.ParseKey("seashell|Large|Crystal|Good")) == "seashell" and Finds.ParseKey("nope|Large|Crystal|Good") == nil, "find keys parse / reject")
+	check(Finds.TotalValue({ ["bottle_cap|Normal|None|Good"] = 3, ["junk"] = 5 }, 0) == 24, "TotalValue ignores junk keys")
+	-- tiers
+	check(Finds.Tier("Common", "Normal", "None") == "Pop" and Finds.Tier("Common", "Giant", "None") == "Beam", "Pop, Giant bumps to Beam")
+	check(Finds.Tier("Uncommon", "Normal", "Golden") == "Beam" and Finds.Tier("Rare") == "Beam", "material bumps to Beam; Rare = Beam")
+	check(Finds.Tier("Legendary") == "Card" and Finds.Tier("Mythic") == "Server" and Finds.Tier("Relic") == "Spectacle", "Card / Server / Spectacle tiers")
+	check(Finds.Signal("Common") == "White" and Finds.Signal("Epic") == "Gold" and Finds.Signal("Relic") == "Purple", "detector signal colours")
+	-- detector math
+	check(Finds.Band(3) == 1 and Finds.Band(10) == 2 and Finds.Band(17) == 3 and Finds.Band(23) == 4 and Finds.Band(30) == 0, "distance bands")
+	check(Finds.Sector(0, 5) == 0 and Finds.Sector(5, 0) == 2 and Finds.Sector(0, -5) == 4 and Finds.Sector(-5, 0) == 6, "compass sectors")
+	local dir = Finds.SectorDirection(2)
+	check(math.abs(dir.X - 1) < 1e-6 and math.abs(dir.Z) < 1e-6, "SectorDirection inverts Sector")
+
+	-- seeding: density, cap, positions -------------------------------------------------------------
+	local digZone = World.GetDigZone()
+	local zc, zs = digZone.CFrame.Position, digZone.Size
+	local function inZone(p)
+		return math.abs(p.X - zc.X) <= zs.X / 2 and math.abs(p.Z - zc.Z) <= zs.Z / 2 and p.Y <= S - D.MIN_DEPTH + 1e-6 and p.Y >= S - zs.Y
+	end
+	local counts, ok, n = {}, true, 0
+	for i = 0, 9 do
+		local probe = Vector3.new(zc.X - zs.X / 2 + 16 + i * 32, S - 16, zc.Z - zs.Z / 2 + 16)
+		local c = Discovery.Seed(probe)
+		table.insert(counts, c)
+		check(c <= D.CHUNK_CAP, "chunk deposits <= CHUNK_CAP")
+		for _, dep in Discovery.DepositsNear(probe, 30) do
+			n += 1
+			ok = ok and inZone(dep.Position) and Config.GetTreasure(dep.TreasureId) ~= nil
+		end
+	end
+	local sum = 0
+	for _, c in counts do
+		sum += c
+	end
+	check(ok and n > 0, "deposits sit inside the zone, >= MIN_DEPTH down, with real treasures")
+	check(sum / #counts >= 5 and sum / #counts <= 11, "layer-1 chunks hold ~DENSITY deposits (avg " .. sum / #counts .. ")")
+	-- server cap: seed the whole zone
+	for cy = 0, math.ceil(zs.Y / D.CHUNK_Y) - 1 do
+		for cx = 0, math.ceil(zs.X / D.CHUNK) - 1 do
+			for cz = 0, math.ceil(zs.Z / D.CHUNK) - 1 do
+				Discovery.Seed(Vector3.new(zc.X - zs.X / 2 + cx * D.CHUNK + 1, S - cy * D.CHUNK_Y - 4, zc.Z - zs.Z / 2 + cz * D.CHUNK + 1))
+			end
+		end
+	end
+	check(Discovery.CountDeposits() <= D.SERVER_CAP, "never more than SERVER_CAP deposits (" .. Discovery.CountDeposits() .. ")")
+	-- eviction: chunks nobody is near are forgotten after EVICT_SECONDS
+	local chunksBefore = Discovery.ChunkCount()
+	Discovery.Maintain(Mock.Env.os.clock() + D.EVICT_SECONDS + 1)
+	check(Discovery.ChunkCount() < chunksBefore, "untouched chunks are evicted (" .. chunksBefore .. " -> " .. Discovery.ChunkCount() .. ")")
+
+	-- uncover via dig + ownership ---------------------------------------------------------------------
+	local p1 = Mock.AddPlayer(6101, "Digger")
+	local p2 = Mock.AddPlayer(6102, "Watcher")
+	Mock.Advance(0.5)
+	local X, Z = -250, zc.Z
+	Mock.SpawnCharacter(p1, Vector3.new(X, S + 3, Z))
+	Mock.SpawnCharacter(p2, Vector3.new(X + 4, S + 3, Z))
+	Mock.Advance(2)
+	p1.Character:PivotTo(CFrame.new(X, S + 3, Z)) -- characters spawn on the boardwalk
+	p2.Character:PivotTo(CFrame.new(X + 4, S + 3, Z))
+	local d1, d2 = DataService.Get(p1), DataService.Get(p2)
+	check(d1 ~= nil and d2 ~= nil and type(d1.Finds) == "table" and type(d1.FindVariants) == "table", "new saves have Finds + FindVariants")
+	d1.Settings.FTUE_FirstDig = true
+	d1.Index = { bottle_cap = true } -- not a brand-new player (no FTUE find)
+	d2.Index = { bottle_cap = true }
+	local function clearAround(x, z)
+		for _, dep in Discovery.DepositsNear(Vector3.new(x, S - 8, z), 14) do
+			Discovery.Uncover(p2, dep) -- remove stray seeded deposits
+			local ex = Discovery.GetExcavation(p2)
+			if ex then
+				Discovery.Resolve(p2, ex.Id, nil)
+			end
+		end
+	end
+	local function dig(p, x, z)
+		DataService.Get(p).Sand = 0
+		local y = Mock.TerrainSurfaceBelow(x, z, S + 8) or S
+		Mock.FireServer("Dig", p, Vector3.new(x, y, z))
+		Mock.Advance(Config.Shovels[1].Cooldown + 0.05)
+	end
+	clearAround(X, Z)
+	local before = #Mock.Remote.ToClient
+	local deposit = Discovery.AddDeposit(Vector3.new(X, S - 5, Z), "cool_sunglasses")
+	check(deposit ~= nil, "deposit added")
+	dig(p1, X, Z)
+	local start = lastToClient(p1, "ExcavationStart")
+	check(countToClient(p1, "ExcavationStart", before) == 1 and start ~= nil, "a dig within UNCOVER_RADIUS uncovers the deposit")
+	local info = start and start[1]
+	check(info and type(info.Id) == "string" and info.Position ~= nil and info.Rings == D.RINGS and info.Timeout == D.EXCAVATION_TIMEOUT, "ExcavationStart info")
+	check(info and info.Signal == "Gold", "Rare find signals gold")
+	check(#Discovery.DepositsNear(Vector3.new(X, S - 5, Z), 1) == 0, "uncovered deposit leaves the hash")
+	local ex = Discovery.GetExcavation(p1)
+	check(ex ~= nil and ex.Player == p1 and ex.TreasureId == "cool_sunglasses", "the digger owns the excavation")
+	local model
+	for _, m in Mock.Tagged("DiscoveryFind") do
+		if m:GetAttribute("FindId") == (info and info.Id) then
+			model = m
+		end
+	end
+	check(model ~= nil and model:GetAttribute("OwnerId") == p1.UserId and model:GetAttribute("Stage") == "Excavating", "find model spawned for everyone, owned by the digger")
+	check(model ~= nil and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "normal finds stream atomically")
+	-- p2 digs right there: nothing to uncover (owned), no excavation for p2
+	local b2 = #Mock.Remote.ToClient
+	dig(p2, X + 2, Z)
+	check(countToClient(p2, "ExcavationStart", b2) == 0 and Discovery.GetExcavation(p2) == nil, "others can't take an uncovered find")
+	-- one excavation at a time: another deposit stays buried while p1 is excavating
+	local second = Discovery.AddDeposit(Vector3.new(X - 3, S - 5, Z), "bottle_cap")
+	local b3 = #Mock.Remote.ToClient
+	dig(p1, X - 3, Z)
+	check(countToClient(p1, "ExcavationStart", b3) == 0 and #Discovery.DepositsNear(second.Position, 0.5) == 1, "a second deposit waits while excavating")
+
+	-- excavation scoring ------------------------------------------------------------------------------
+	Mock.FireServer("Excavate", p1, "wrongid", { 0, 0, 0 })
+	Mock.Advance(0.2)
+	check(Discovery.GetExcavation(p1) ~= nil, "answers for another id are ignored")
+	Mock.FireServer("Excavate", p2, info.Id, { 0, 0, 0 })
+	Mock.Advance(0.2)
+	check(Discovery.GetExcavation(p1) ~= nil, "other players can't answer your excavation")
+	Mock.Advance(2)
+	local r0 = #Mock.Remote.ToClient
+	Mock.FireServer("Excavate", p1, info.Id, { 0.01, 0.03, 0.0 })
+	Mock.Advance(0.3)
+	local revealed = lastToClient(p1, "FindRevealed")
+	local fi = revealed and revealed[1]
+	check(countToClient(p1, "FindRevealed", r0) == 1 and fi ~= nil, "FindRevealed sent to the owner")
+	check(fi and fi.Quality == "Pristine" and fi.Perfect == true, "three Perfect rings: Pristine + Perfect")
+	check(fi and fi.Value == Finds.Value("cool_sunglasses", fi.Size, fi.Material, "Pristine", d1.MaxDepth), "revealed value = Finds.Value")
+	check(fi and fi.Tier == Finds.Tier("Rare", fi.Size, fi.Material) and fi.IsNew == true, "tier + NEW flag")
+	local key = fi and Finds.Key("cool_sunglasses", fi.Size, fi.Material, "Pristine")
+	check(key and d1.Finds[key] == 1, "find stored in PlayerData.Finds")
+	check(d1.Index.cool_sunglasses == true, "Index records the base item")
+	check(fi and d1.FindVariants["cool_sunglasses/" .. fi.Size] and d1.FindVariants["cool_sunglasses/" .. fi.Material], "Index records the variants")
+	check(fi and #fi.NewVariants == 2, "both variants new on the first find")
+	check(model:GetAttribute("Stage") == "Revealed" and model:GetAttribute("Quality") == "Pristine", "model revealed for everyone")
+	check(d1.Settings.FTUE_FirstFind and d1.Settings.FTUE_FirstRareFind and d1.Settings.FTUE_FirstPerfectExcavation, "FirstFind / FirstRareFind / FirstPerfectExcavation funnel steps")
+	local findEvents = 0
+	for _, e in Mock.Analytics do
+		if e.Kind == "FunnelStep" and e.Player == p1 and e.Funnel == "Find" then
+			findEvents += 1
+			check(e.Fields.CustomField01 == "Rare" and string.find(e.Fields.CustomField02, "/", 1, true) ~= nil, "Find event: rarity + size/material")
+		end
+	end
+	check(findEvents == 1, "one Find custom event")
+	Mock.Advance(D.REVEAL_SECONDS + 0.5)
+	check(model.Parent == nil, "find model cleaned up after the reveal")
+	-- clamping: an impossibly fast perfect answer is capped at Good
+	dig(p1, X - 3, Z)
+	local fast = lastToClient(p1, "ExcavationStart")[1]
+	check(fast.Id ~= info.Id and Discovery.GetExcavation(p1) ~= nil, "the waiting deposit is uncovered by the next dig")
+	Mock.FireServer("Excavate", p1, fast.Id, { 0, 0, 0 })
+	Mock.Advance(0.2)
+	check(lastToClient(p1, "FindRevealed")[1].Quality == "Good", "too-fast answer: quality capped at Good")
+	-- junk answers: never an error, scored as misses; timeout resolves as Damaged, never lost
+	local third = Discovery.AddDeposit(Vector3.new(X + 6, S - 5, Z), "bottle_cap")
+	Discovery.Uncover(p1, third)
+	local tid = Discovery.GetExcavation(p1).Id
+	Mock.FireServer("Excavate", p1, tid, "nope")
+	Mock.FireServer("Excavate", p1, 123, {})
+	Mock.FireServer("Excavate", p1, string.rep("x", 400), {})
+	Mock.Advance(0.2)
+	check(Discovery.GetExcavation(p1) ~= nil, "malformed answers are ignored")
+	local finds0 = Finds.Count(d1.Finds)
+	Mock.Advance(D.EXCAVATION_TIMEOUT + 0.5)
+	check(Discovery.GetExcavation(p1) == nil and lastToClient(p1, "FindRevealed")[1].Quality == "Damaged", "no answer: resolved as Damaged")
+	check(Finds.Count(d1.Finds) == finds0 + 1, "a timed-out find is still kept")
+
+	-- selling uses value x size x material x quality ---------------------------------------------------
+	local EconomyService = Mock.Require(byPath["ServerScriptService/Server/Services/EconomyService"])
+	d1.Sand = 0
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local MultiplierService = Mock.Require(byPath["ServerScriptService/Server/Services/MultiplierService"])
+	local expect = math.floor(Finds.TotalValue(d1.Finds, d1.MaxDepth) * Stats.GetCoinMultiplier(MultiplierService.GetContext(p1)))
+	local coins0 = d1.Coins
+	EconomyService.Sell(p1, "Zone")
+	Mock.Advance(0.2)
+	check(d1.Coins - coins0 == expect and next(d1.Finds) == nil, "sell pays Finds.TotalValue and empties Finds (" .. (d1.Coins - coins0) .. " vs " .. expect .. ")")
+	check(d1.Index.cool_sunglasses == true and next(d1.FindVariants) ~= nil, "Index + variants survive selling")
+
+	-- Mythic / Relic: persistent model, server announcement ------------------------------------------
+	local a0 = #Mock.Remote.ToClient
+	local relic = Discovery.AddDeposit(Vector3.new(X + 9, S - 5, Z), "sun_compass")
+	Discovery.Uncover(p1, relic)
+	local rx = Discovery.GetExcavation(p1)
+	local relicModel
+	for _, m in Mock.Tagged("DiscoveryFind") do
+		if m:GetAttribute("FindId") == rx.Id then
+			relicModel = m
+		end
+	end
+	check(relicModel and relicModel.ModelStreamingMode == Enum.ModelStreamingMode.Persistent, "Relic model is streaming-persistent (beam for everyone)")
+	check(lastToClient(p1, "ExcavationStart")[1].Signal == "Purple", "Relic signals purple")
+	Mock.Advance(2)
+	Mock.FireServer("Excavate", p1, rx.Id, { 0.1, 0.1, 0.5 })
+	Mock.Advance(0.3)
+	local announced = false
+	for i = a0 + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		if e.Name == "Notify" and e.Player == p2 and e.Args[1] == "Announce" and string.find(e.Args[2], "RELIC", 1, true) then
+			announced = true
+		end
+	end
+	check(announced, "Relic finds are announced to the whole server")
+	check(lastToClient(p1, "FindRevealed")[1].Tier == "Spectacle", "Relic tier = Spectacle")
+
+	-- companion / bot digs never find anything (pets, ride, /stress bots: Silent or companion source)
+	do
+		local DigService = Mock.Require(byPath["ServerScriptService/Server/Services/DigService"])
+		check(Discovery.GetExcavation(p1) == nil, "no excavation before the companion check")
+		p1.Character:PivotTo(CFrame.new(X + 60, S + 3, Z))
+		Mock.Advance(0.1)
+		local c0 = #Mock.Remote.ToClient
+		for i, source in { "Pet", "Ride", "Digger" } do
+			local at = Vector3.new(X + 60 + (i - 2) * 5, S, Z)
+			Discovery.AddDeposit(at - Vector3.new(0, 4, 0), "bottle_cap")
+			d1.Sand = 0
+			DigService.DigAt(p1, at, { Power = 99, Radius = 4, SandMultiplier = 1, Source = source, Silent = source ~= "Ride", Origin = at })
+			Mock.Advance(0.1)
+		end
+		check(countToClient(p1, "ExcavationStart", c0) == 0 and countToClient(p1, "FindRevealed", c0) == 0, "pet / ride / bot digs never uncover finds or pop UI")
+		check(Discovery.GetExcavation(p1) == nil, "no excavation from companion digs")
+	end
+
+	-- detector: coarse pings only ----------------------------------------------------------------------
+	clearAround(X + 30, Z)
+	p1.Character:PivotTo(CFrame.new(X + 30, S + 3, Z))
+	Mock.Advance(0.2)
+	Discovery.AddDeposit(Vector3.new(X + 30 + 8, S - 2, Z), "seashell")
+	local s0 = #Mock.Remote.ToClient
+	Mock.FireServer("Scan", p1)
+	Mock.Advance(0.1)
+	local ping = lastToClient(p1, "DetectorPing")
+	local pg = ping and ping[1]
+	check(countToClient(p1, "DetectorPing", s0) == 1 and pg ~= nil, "Scan pings at once")
+	check(pg and pg.Band == 2 and pg.Sector == 2 and pg.Vertical == "Down" and pg.Signal == "White", "ping: band / sector / vertical / signal (" .. tostring(pg and pg.Band) .. "," .. tostring(pg and pg.Sector) .. ")")
+	local keys = 0
+	for k, v in pg or {} do
+		keys += 1
+		check(typeof(v) ~= "Vector3", "ping field " .. k .. " is not a position")
+	end
+	check(keys == 5, "ping has exactly Band/Sector/Vertical/Signal/Remaining")
+	Mock.Advance(1.2)
+	check(countToClient(p1, "DetectorPing", s0) >= 3, "pings repeat during the scan")
+	local s1 = #Mock.Remote.ToClient
+	Mock.FireServer("Scan", p1)
+	Mock.Advance(0.05)
+	local n1 = countToClient(p1, "DetectorPing", s1)
+	check(n1 <= 1, "Scan during cooldown does not start a new scan")
+	Mock.Advance(D.SCAN_SECONDS + 1)
+	local s2 = #Mock.Remote.ToClient
+	Mock.Advance(2)
+	check(countToClient(p1, "DetectorPing", s2) == 0, "pings stop after the scan")
+	p1.Character:PivotTo(CFrame.new(0, S + 3, 40)) -- hub: nothing in range
+	Mock.Advance(D.SCAN_COOLDOWN)
+	Mock.FireServer("Scan", p1)
+	Mock.Advance(0.1)
+	check(lastToClient(p1, "DetectorPing")[1].Band == 0, "no deposits in range at the hub: band 0")
+
+	-- FTUE: a brand-new player's early digs always produce a find --------------------------------------
+	local p3 = Mock.AddPlayer(6103, "Newbie")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(p3, Vector3.new(X - 60, S + 3, Z))
+	Mock.Advance(2)
+	p3.Character:PivotTo(CFrame.new(X - 60, S + 3, Z))
+	local f0 = #Mock.Remote.ToClient
+	for i = 1, D.FTUE_FIND_DIG do
+		dig(p3, X - 60 + (i % 2) * 2, Z)
+	end
+	check(countToClient(p3, "ExcavationStart", f0) >= 1, "brand-new player: a find by dig " .. D.FTUE_FIND_DIG)
+
+	-- find rate: standing still digging with the starter shovel finds something within ~45 s --------
+	-- (8 fresh spots, 90 digs = 45 s each; the design target is one find per 30-60 s early on)
+	local p4 = Mock.AddPlayer(6104, "Rate")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(p4, Vector3.new(X + 120, S + 3, Z))
+	Mock.Advance(2)
+	DataService.Get(p4).Index = { bottle_cap = true }
+	local found, spotsWithFind = 0, 0
+	for spot = 1, 8 do
+		local RX = X + 100 + spot * 40
+		p4.Character:PivotTo(CFrame.new(RX, S + 3, Z))
+		local here = 0
+		for i = 1, 90 do
+			local ox = ((i * 7) % 9) - 4
+			local oz = ((i * 5) % 7) - 3
+			dig(p4, RX + ox, Z + oz)
+			local ex4 = Discovery.GetExcavation(p4)
+			if ex4 then
+				here += 1
+				Discovery.Resolve(p4, ex4.Id, { 0.1, 0.1, 0.1 })
+			end
+		end
+		found += here
+		spotsWithFind += if here > 0 then 1 else 0
+	end
+	print(string.format("   find rate: %d finds in 8 x 45 s of digging (%d/8 spots found something)", found, spotsWithFind))
+	check(found >= 6 and spotsWithFind >= 4, "starter shovel, standing still: ~1 find per 30-60 s (" .. found .. " / 6 min)")
+
+	-- migration v2 -> v3 ----------------------------------------------------------------------------------
+	local old = { Treasures = { bottle_cap = 3, nope = 2, seashell = 0 }, Index = { bottle_cap = true, x = true } }
+	DataService._MigrateTreasuresToFinds(old)
+	check(old.Finds["bottle_cap|Normal|None|Good"] == 3 and next(old.Treasures) == nil, "migration: unsold treasures -> plain finds")
+	check(old.Finds["nope|Normal|None|Good"] == nil and old.Finds["seashell|Normal|None|Good"] == nil, "migration drops unknown / empty")
+	check(old.FindVariants["bottle_cap/Normal"] and old.FindVariants["bottle_cap/None"] and not old.FindVariants["x/Normal"], "migration ticks default variants for Index items")
+	check(Finds.TotalValue(old.Finds, 0) == 3 * 8, "migrated finds sell for exactly the old value")
+	check(Config.DATA_VERSION == 3, "DATA_VERSION 3")
+
+	for _, p in { p1, p2, p3, p4 } do
+		Mock.RemovePlayer(p)
+	end
+	Mock.Advance(1)
+	check(#Mock.Errors == e0, "no errors in discovery")
 end)
 
 section("shutdown")

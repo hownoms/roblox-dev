@@ -39,6 +39,10 @@ Remotes.Events = table.freeze({
 	"Track",
 	-- v2.2 rebirth perks: (perkId: string) buy the next level with Rebirth Tokens (RebirthService)
 	"BuyRebirthPerk",
+	-- v3 discovery (DiscoveryService): () start a detector scan; (id: string, errors: {number})
+	-- answer an excavation with per-ring timing errors in seconds (-1 = no tap)
+	"Scan",
+	"Excavate",
 	-- server -> client
 	"DataChanged",
 	"Notify",
@@ -54,6 +58,10 @@ Remotes.Events = table.freeze({
 	"PetDug",
 	"Scoop", -- server -> other clients: (player: Player) a successful shovel dig (scoop animation)
 	"RideDug", -- server -> all clients: (player: Player, position: Vector3, success: boolean, layerIndex: number)
+	-- v3 discovery, server -> owner: Types.DetectorPing / Types.ExcavationInfo / Types.FindInfo
+	"DetectorPing",
+	"ExcavationStart",
+	"FindRevealed",
 })
 
 Remotes.Functions = table.freeze({

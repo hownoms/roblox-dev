@@ -3,7 +3,8 @@
 	EggPanel — egg list (left) + selected egg detail (right): spinning egg preview, price,
 	full odds table (every pet with % chance, rarity colour, bonus — required odds disclosure),
 	Hatch x1 / Hatch x3 buttons. x3 needs the Triple Hatch pass (prompts it if configured).
-	Robux eggs prompt their developer product (disabled while its id is 0).
+	Robux eggs would prompt their developer product (dormant since v2.3: no egg is sold for Robux,
+	Config asserts it; the Golden Egg costs Rebirth Tokens).
 	Panel.Open("Eggs", { EggId = "pirate_egg" }) focuses a specific egg (map pedestals).
 
 	v2.1: Construction Crates (EggDef.Kind == "Crate") are listed here too, drawn as crates, with
@@ -15,12 +16,11 @@
 	from Stats.GetHatchOddsList(egg, Stats.GetLuck(State.GetStatsContext()), Pity[egg]), the same
 	function the server rolls with (PetService -> Stats.RollHatch). It refreshes when passes,
 	boosts, events or the pity counter change, and every second while open (boost expiry). A note
-	under the title lists the active luck modifiers ("Includes your luck x4: Lucky Shovel x2, ...").
+	under the title lists the active luck modifiers ("Includes your luck x4: 2x Luck x2, ...").
 	PITY: each egg card says "Rare+ in N" and the detail says "Rare+ guaranteed in N hatches". On the
 	guaranteed hatch the odds rows show the Rare+-only distribution.
-	POLICY: Robux eggs whose products are PaidRandom are hidden while State.IsPaidRandomRestricted().
+	POLICY: (dormant) Robux eggs whose products are PaidRandom are hidden while restricted.
 ]]
-local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -42,6 +42,7 @@ local HatchAnimation = require(script.Parent.Parent.HatchAnimation)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 local PurchaseController = require(script.Parent.Parent.Parent.Controllers.PurchaseController)
 local ModelFactory = require(script.Parent.Parent.Parent.Util.ModelFactory)
+local Tagged = require(script.Parent.Parent.Parent.Util.Tagged)
 
 local EggPanel = {}
 
@@ -632,44 +633,12 @@ local function refreshTiles()
 end
 
 -- Crate yard pallets (World/Hub: tag "CrateShop", attribute EggId, "Open" prompt).
-local hookedPrompts: { [ProximityPrompt]: boolean } = {}
-
-local function hookCratePrompt(inst: Instance, prompt: ProximityPrompt)
-	if hookedPrompts[prompt] then
-		return
-	end
-	hookedPrompts[prompt] = true
-	prompt.Triggered:Connect(function()
+-- v2.3 streaming-safe (Util/Tagged): late stream-in, stream-out cleanup.
+local function hookCrateYard()
+	Tagged.WatchPrompts("CrateShop", function(inst: Instance, prompt: ProximityPrompt)
 		local id = prompt:GetAttribute("EggId") or inst:GetAttribute("EggId")
 		Panel.Open("Eggs", { EggId = if typeof(id) == "string" then id else nil })
 	end)
-	prompt.Destroying:Connect(function()
-		hookedPrompts[prompt] = nil
-	end)
-end
-
-local function hookCrate(inst: Instance)
-	if inst:IsA("ProximityPrompt") then
-		hookCratePrompt(inst, inst)
-		return
-	end
-	for _, d in inst:GetDescendants() do
-		if d:IsA("ProximityPrompt") then
-			hookCratePrompt(inst, d)
-		end
-	end
-	inst.DescendantAdded:Connect(function(d: Instance)
-		if d:IsA("ProximityPrompt") then
-			hookCratePrompt(inst, d)
-		end
-	end)
-end
-
-local function hookCrateYard()
-	for _, inst in CollectionService:GetTagged("CrateShop") do
-		task.spawn(hookCrate, inst)
-	end
-	CollectionService:GetInstanceAddedSignal("CrateShop"):Connect(hookCrate)
 end
 
 function EggPanel.Init()

@@ -5,6 +5,10 @@
 	On a completed pass purchase we mark it owned locally and re-sync with GetOwnedPasses.
 	v2.2: never prompts a PaidRandom item while the player is policy-restricted (State.CanBuy);
 	the server's MonetizationService refuses those prompts too.
+	v2.3: GetPrice(kind, key) returns the live Robux price from MarketplaceService:GetProductInfo
+	(fetched once per configured Id, in the background) and falls back to the config suggestion
+	(Config.Monetization *.Price) while the Id is 0, the lookup is pending or failed, or the item
+	is off sale. PriceChanged fires when a live price arrives so the store can re-render.
 ]]
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -18,6 +22,50 @@ local Track = require(script.Parent.Parent.Util.Track)
 local PurchaseController = {}
 
 PurchaseController.PassPurchased = Signal.new() -- (key)
+PurchaseController.PriceChanged = Signal.new() -- (kind, key)
+
+local livePrices: { [string]: number } = {} -- "GamePass:VIP" -> Robux
+local priceRequested: { [string]: boolean } = {}
+
+local function fetchPrice(kind: string, key: string, id: number)
+	local ok, info = pcall(function(): any
+		local infoType = if kind == "GamePass" then Enum.InfoType.GamePass else Enum.InfoType.Product
+		return MarketplaceService:GetProductInfo(id, infoType)
+	end)
+	local price = if ok and type(info) == "table" then (info :: any).PriceInRobux else nil
+	if type(price) == "number" and price > 0 then
+		livePrices[kind .. ":" .. key] = price
+		PurchaseController.PriceChanged:Fire(kind, key)
+	end
+end
+
+-- Robux price to show: live Creator Hub price when known, else the config suggestion.
+function PurchaseController.GetPrice(kind: string, key: string): number
+	local id, price
+	if kind == "GamePass" then
+		local pass = Config.Monetization.GamePasses[key]
+		if not pass then
+			return 0
+		end
+		id, price = pass.Id, pass.Price
+	else
+		local product = Config.Monetization.Products[key]
+		if not product then
+			return 0
+		end
+		id, price = product.Id, product.Price
+	end
+	local cacheKey = kind .. ":" .. key
+	local live = livePrices[cacheKey]
+	if live then
+		return live
+	end
+	if id ~= 0 and not priceRequested[cacheKey] then
+		priceRequested[cacheKey] = true
+		task.spawn(fetchPrice, kind, key, id)
+	end
+	return price
+end
 
 -- "Configured" = has a real id AND may be offered to this player (v2.2 policy: PaidRandom items
 -- are unavailable while State.IsPaidRandomRestricted()), so UI that hides unconfigured items

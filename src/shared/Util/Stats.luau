@@ -18,8 +18,9 @@
 	Sand per dig = layer.SandValue x shovel x rebirth x pets x passes x premium x group x friends
 	               x index x Sand boosts x Sand events
 	Capacity     = backpack.Capacity x rebirth x pass CapacityMultiplier (Mega Backpack) x Deep Pockets perk
-	Luck         = pass LuckMultiplier (VIP, Lucky) x Luck boosts x Luck events
-	Coins (sell) = Golden Touch perk x Coins boosts x Coins events
+	Luck         = Luck boosts x Luck events (v2.3: no pass sells luck; LuckMultiplier stays
+	               supported but Config rejects it on passes)
+	Coins (sell) = Golden Touch perk x pass CoinMultiplier (VIP, v2.3) x Coins boosts x Coins events
 	(v2.2 Rebirth perks, Config.RebirthPerks: Pet Den adds pet slots, Lucky Digger multiplies the
 	treasure chance only.)
 	Speed        = pass SpeedMultiplier x Speed boosts x Speed events (cooldown is divided by it)
@@ -36,6 +37,7 @@
 local Shared = script.Parent.Parent
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
+local Finds = require(script.Parent.Finds) -- v3 discovery slice
 local Weighted = require(script.Parent.Weighted)
 
 export type Context = {
@@ -370,6 +372,7 @@ function Stats.GetCoinFactors(ctx: Context): { Factor }
 	if touch ~= 1 then
 		table.insert(factors, { Name = "Golden Touch", Value = touch })
 	end
+	addPasses(ctx, "CoinMultiplier", factors) -- v2.3: VIP +10% sell coins
 	addTimed(ctx, "Coins", factors)
 	return factors
 end
@@ -390,7 +393,8 @@ function Stats.GetCooldown(ctx: Context): number
 	return Stats.GetShovel(ctx.Data).Cooldown / Stats.GetSpeedMultiplier(ctx)
 end
 
--- Coins a full sell would pay right now (sand + unsold treasures, coin multipliers applied).
+-- Coins a full sell would pay right now (sand + unsold treasures + v3 finds, coin multipliers
+-- applied). Finds: Util/Finds.TotalValue (base x size x material x quality).
 function Stats.GetSellValue(ctx: Context): number
 	local data = ctx.Data
 	local total = math.max(data.Sand, 0) * Config.SELL_RATE
@@ -400,6 +404,7 @@ function Stats.GetSellValue(ctx: Context): number
 			total += def.SellValue * count
 		end
 	end
+	total += Finds.TotalValue(data.Finds, data.MaxDepth)
 	return math.floor(total * Stats.GetCoinMultiplier(ctx))
 end
 

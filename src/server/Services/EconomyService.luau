@@ -7,7 +7,8 @@
 	    checked against the part so spoofed touches from far away are ignored),
 	  - SetSetting("SellNow", true) — the Sell Anywhere pass OR the Sell Anywhere rebirth perk
 	    (v2.2, Config.RebirthPerks; EconomyService.CanSellAnywhere).
-	Coins = floor((Sand * SELL_RATE + sum(treasure SellValue * count)) * coin multiplier)
+	Coins = floor((Sand * SELL_RATE + sum(treasure SellValue * count) + v3 finds value) * coin multiplier)
+	(finds: Util/Finds.TotalValue = base x size x material x quality, see docs/design/Discovery.md)
 	(coin multiplier = CoinBoost x Golden Hour, see Stats.GetCoinMultiplier).
 	Client feedback: Notify("Sell", "+1.2K Coins!") + DataChanged.
 
@@ -58,16 +59,23 @@ function EconomyService.Sell(player: Player, source: string): number
 			break
 		end
 	end
+	for _, count in data.Finds do -- v3 discovery finds
+		if count > 0 then
+			hasTreasure = true
+			break
+		end
+	end
 	if data.Sand <= 0 and not hasTreasure then
 		return 0
 	end
 
 	local coins = Stats.GetSellValue(ctx)
 	local sand = data.Sand
-	DataService.Mutate(player, { "Coins", "Sand", "Treasures" }, function(d)
+	DataService.Mutate(player, { "Coins", "Sand", "Treasures", "Finds" }, function(d)
 		d.Coins += coins
 		d.Sand = 0
 		d.Treasures = {}
+		d.Finds = {}
 	end)
 
 	Net.Notify(player, "Sell", "+" .. Format.Abbreviate(coins) .. " Coins!")

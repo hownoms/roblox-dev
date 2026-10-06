@@ -4,6 +4,10 @@
 	complete). Right: that layer's treasures; discovered ones show a 3D preview, rarity and how
 	many you hold, undiscovered ones are black silhouettes named "???". Header shows the
 	collection bonus: +Config.INDEX_LAYER_BONUS sand per completed layer.
+	v3 discovery: each discovered card shows variant pills (sizes XS/M/L/XL, materials
+	Gold/Fos/Cry) lit once found (PlayerData.FindVariants), and the header shows the TRUE variant
+	odds with your current luck (Util/Finds.VariantOdds, the same function the server rolls
+	with). Relics are listed in their layer but do not count towards layer completion.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -21,6 +25,8 @@ local Viewport = require(Components.Viewport)
 local Icons = require(script.Parent.Parent.Icons)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 local ModelFactory = require(script.Parent.Parent.Parent.Util.ModelFactory)
+local Finds = require(Shared:WaitForChild("Util"):WaitForChild("Finds"))
+local Stats = require(Shared:WaitForChild("Util"):WaitForChild("Stats"))
 
 local IndexPanel = {}
 
@@ -33,6 +39,7 @@ local layerButtons: { Button.Button } = {}
 local grid: ScrollingFrame
 local titleLabel: TextLabel
 local bonusLabel: TextLabel
+local oddsLabel: TextLabel
 
 local byLayer: { [number]: { Types.TreasureDef } } = {}
 for _, treasure in Config.Treasures do
@@ -56,12 +63,74 @@ local EMPTY: { Types.TreasureDef } = {}
 local function found(layerIndex: number): (number, number)
 	local list: { Types.TreasureDef } = byLayer[layerIndex] or EMPTY
 	local count = 0
+	local total = 0
 	for _, treasure in list do
-		if State.Data.Index[treasure.Id] then
-			count += 1
+		if treasure.Rarity ~= "Relic" then
+			total += 1
+			if State.Data.Index[treasure.Id] then
+				count += 1
+			end
 		end
 	end
-	return count, #list
+	return count, total
+end
+
+-- How many of this treasure you hold unsold (v3 Finds of every variant + legacy Treasures).
+function IndexPanel.Held(treasureId: string): number
+	local legacy: { [string]: number } = State.Data.Treasures or {}
+	local finds: { [string]: number } = State.Data.Finds or {}
+	local held = legacy[treasureId] or 0
+	for key, count in finds do
+		if type(key) == "string" and string.sub(key, 1, #treasureId + 1) == treasureId .. "|" then
+			held += count
+		end
+	end
+	return held
+end
+
+-- Variant pills: { {Id, Short, Found, Color} } sizes then materials (the default material "None"
+-- is not a pill).
+function IndexPanel.VariantPills(treasureId: string): { { Id: string, Short: string, Found: boolean, Color: Color3 } }
+	local list = {}
+	local seen: { [string]: boolean } = State.Data.FindVariants or {}
+	for _, group in { Config.Discovery.SIZES, Config.Discovery.MATERIALS } do
+		for _, v in group do
+			if v.Id ~= "None" then
+				table.insert(list, {
+					Id = v.Id,
+					Short = v.Short,
+					Found = seen[Finds.VariantKey(treasureId, v.Id)] == true,
+					Color = v.Color,
+				})
+			end
+		end
+	end
+	return list
+end
+
+-- "Tiny 20% · Large 14% ..." true odds at the player's current luck.
+function IndexPanel.OddsText(): string
+	local ok, luck = pcall(function(): number
+		return Stats.GetLuck(State.GetStatsContext())
+	end)
+	local l = if ok and type(luck) == "number" then luck else 1
+	local parts = {}
+	for _, group in { "Size", "Material" } do
+		for _, o in Finds.VariantOdds(group, l) do
+			if o.Id ~= "Normal" and o.Id ~= "None" then
+				local pct = o.Chance * 100
+				table.insert(
+					parts,
+					o.Id .. " " .. (if pct >= 10 then string.format("%.0f", pct) else string.format("%.1f", pct)) .. "%"
+				)
+			end
+		end
+	end
+	local text = "Find odds: " .. table.concat(parts, "  ")
+	if l > 1.001 then
+		text ..= string.format("  (luck x%.2g)", l)
+	end
+	return text
 end
 
 local function renderLayer()
@@ -103,7 +172,7 @@ local function renderLayer()
 			ZIndex = 8,
 			Parent = card.Face,
 		})
-		local held = State.Data.Treasures[treasure.Id] or 0
+		local held = IndexPanel.Held(treasure.Id)
 		Style.Label({
 			Text = if discovered
 				then treasure.Rarity .. (if held > 0 then "  ·  x" .. held else "")
@@ -117,6 +186,36 @@ local function renderLayer()
 			Parent = card.Face,
 		})
 		if discovered then
+			local pills = Instance.new("Frame")
+			pills.Name = "Variants"
+			pills.BackgroundTransparency = 1
+			pills.Size = UDim2.new(1, -10, 0, 34)
+			pills.Position = UDim2.fromOffset(5, 166)
+			pills.ZIndex = 8
+			pills.Parent = card.Face
+			local pillGrid = Instance.new("UIGridLayout")
+			pillGrid.CellSize = UDim2.fromOffset(32, 15)
+			pillGrid.CellPadding = UDim2.fromOffset(3, 3)
+			pillGrid.SortOrder = Enum.SortOrder.LayoutOrder
+			pillGrid.Parent = pills
+			for j, pill in IndexPanel.VariantPills(treasure.Id) do
+				local label = Style.Label({
+					Name = pill.Id,
+					Text = pill.Short,
+					Size = UDim2.fromOffset(32, 15),
+					Font = Style.Fonts.Body,
+					TextColor = if pill.Found then C.TextDark else Color3.fromRGB(140, 150, 170),
+					Stroke = false,
+					MaxTextSize = 11,
+					ZIndex = 9,
+					Parent = pills,
+				})
+				label.LayoutOrder = j
+				label.BackgroundTransparency = 0
+				label.BackgroundColor3 = if pill.Found then pill.Color else C.NavyDark
+				label:SetAttribute("Found", pill.Found)
+				Style.Corner(label, Style.Theme.CornerPill)
+			end
 			Style.Label({
 				Text = Format.Abbreviate(treasure.SellValue) .. " coins",
 				Size = UDim2.new(1, -10, 0, 18),
@@ -139,6 +238,7 @@ local function refresh()
 		return
 	end
 	local completed = Config.CountCompletedIndexLayers(State.Data.Index)
+	oddsLabel.Text = IndexPanel.OddsText()
 	bonusLabel.Text = "Collection bonus: +"
 		.. math.floor(completed * Config.INDEX_LAYER_BONUS * 100 + 0.5)
 		.. "% sand  ("
@@ -206,9 +306,22 @@ local function build()
 		ZIndex = 6,
 		Parent = body,
 	})
-	grid = Panel.Scroller(body, UDim2.new(1, -244, 1, -60), UDim2.fromOffset(244, 60))
+	oddsLabel = Style.Label({
+		Name = "Odds",
+		Text = "",
+		Size = UDim2.new(1, -244, 0, 18),
+		Position = UDim2.fromOffset(244, 56),
+		TextColor = C.Sky,
+		Font = Style.Fonts.Body,
+		StrokeThickness = 2,
+		MaxTextSize = 14,
+		XAlign = Enum.TextXAlignment.Left,
+		ZIndex = 6,
+		Parent = body,
+	})
+	grid = Panel.Scroller(body, UDim2.new(1, -244, 1, -80), UDim2.fromOffset(244, 80))
 	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(150, 172)
+	layout.CellSize = UDim2.fromOffset(150, 204)
 	layout.CellPadding = UDim2.fromOffset(10, 10)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = grid
@@ -227,7 +340,7 @@ function IndexPanel.Init()
 		selectedLayer = Config.GetLayerIndexAtDepth(State.Data.MaxDepth)
 		refresh()
 	end)
-	State.ObserveMany({ "Index", "Treasures", "MaxDepth" }, function()
+	State.ObserveMany({ "Index", "Treasures", "Finds", "FindVariants", "MaxDepth", "Passes", "Boosts" }, function()
 		if built and panel.IsOpen then
 			refresh()
 		end

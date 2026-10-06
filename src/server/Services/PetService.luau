@@ -5,7 +5,7 @@
 	HatchEgg(eggId, count): count 1, or Config.TRIPLE_HATCH_COUNT with the TripleHatch pass.
 	Coins/Tokens eggs only (Robux eggs are granted through their developer product; asking to
 	hatch one prompts the product). Egg must be unlocked (Config.IsEggUnlocked by MaxDepth),
-	inventory must have room (Config.PET_INVENTORY_LIMIT). Luck (Lucky pass, VIP, LuckBoost,
+	inventory must have room (Config.PET_INVENTORY_LIMIT). Luck (LuckBoost,
 	High Tide) multiplies the weight of non-Common pets. New pets auto-equip while slots are free.
 	Fires EggHatched({petId...}) to the hatcher; Legendary/Mythic hatches are announced.
 

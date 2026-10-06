@@ -1,5 +1,9 @@
 # Game Design Document — Dig to the Core! Beach Simulator
 
+> **v3 slice update:** treasures no longer roll on every dig. They come from buried deposits
+> found with a detector and dug out in a short excavation minigame, with size/material variants
+> and quality. See `docs/design/Discovery.md`; it supersedes the per-dig treasure roll in §2.
+
 > **v2 update:** plots were replaced by one shared beach, and heat/shade/snacks and digger companions were added. See `docs/V2.md`, `docs/design/Survival.md` and `docs/design/Companions.md`; where they differ, those docs win.
 
 
@@ -111,7 +115,7 @@ Shovels 10–14 and backpacks 10–13 require rebirths, so rebirthing is the onl
 pass). Example: three 1.5x pets = 2.5x. Additive keeps the late game sane and makes every
 extra pet slot feel valuable. Egg unlocks are gated on depth (Tide Pool @ Shell Bed, Pirate @
 Pirate Cove, Fossil @ Fossil Bed, Crystal @ Crystal Caverns, Magma @ Magma Chamber, Cosmic @
-Alien Hive). Rebirth Egg costs Rebirth Tokens. Golden Egg is Robux only (Epic+ guaranteed, but its
+Alien Hive). Rebirth Egg costs Rebirth Tokens. Golden Egg costs 10 Rebirth Tokens since v2.3 (Epic+ guaranteed, but its
 best pet ≈ a mid-game Crystal Legendary — strong early, outgrown later).
 
 **Rebirth (v2.2, see `docs/design/Rebirth.md`):** cost 500K, 2.8M, 15M, 85M, then the old
@@ -202,6 +206,10 @@ Tuning knobs, in order of preference: `Rebirths.BaseCost / CostGrowth`, shovel/b
 
 ## 7. Monetization (fair: passes = comfort/speed, never the only way)
 
+> **Superseded in v2.3:** the current passes, products and prices are in `README.md` and
+> `docs/CHANGELOG.md` (v2.3). The Lucky pass, 2x Luck and Golden Egg products were removed, and VIP lost its luck.
+> The table below is the original design.
+
 **Game passes** (suggested Robux):
 
 | Key | Name | Price | Effect |
@@ -242,7 +250,7 @@ drive products.
 6. **egg** — at 100 coins, arrow to Egg shop; hatch animation; auto-equip the pet.
 Then the tutorial hides; contextual hints remain ("Too hard! Get a Metal Spade" with shop arrow,
 "Backpack full — sell!", "New layer: Pirate Cove!" banner with flavor text).
-Analytics funnel steps: see `docs/ANALYTICS.md` (18 steps since v2.2). Menu buttons unlock progressively: `docs/design/Onboarding.md`.
+Analytics funnel steps: see `docs/ANALYTICS.md` (21 steps since v3). Menu buttons unlock progressively: `docs/design/Onboarding.md`.
 
 ---
 

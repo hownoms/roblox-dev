@@ -35,6 +35,11 @@ local Sounds: { [string]: Types.SoundDef } = {
 	Rebirth = sound("rbxasset://sounds/electronicpingshort.wav", 1, 0.5),
 	Splash = sound("rbxasset://sounds/impact_water.mp3", 0.7, 1),
 	Teleport = sound("rbxasset://sounds/action_jump.mp3", 0.6, 1.4),
+	-- v3 discovery (detector beep, excavation taps, find stings)
+	DetectorBeep = sound("rbxasset://sounds/electronicpingshort.wav", 0.35, 2.2),
+	ExcavateHit = sound("rbxasset://sounds/clickfast.wav", 0.7, 1.3),
+	ExcavatePerfect = sound("rbxasset://sounds/electronicpingshort.wav", 0.7, 1.8),
+	FindEmerge = sound("rbxasset://sounds/action_footsteps_plastic.mp3", 0.9, 0.55),
 	-- Placeholders: paste licensed rbxassetid:// ids (music is not shipped as a built-in).
 	MusicBeach = sound("", 0.3, 1, true),
 	MusicDeep = sound("", 0.3, 1, true),

@@ -455,6 +455,51 @@ function Treasures.Build(treasureId: string): Model
 	return build(treasureId, FALLBACK, "Common")
 end
 
+-- v3 discovery: size + material variants of a built treasure (Config.Discovery). Scales about
+-- the pivot and re-skins every visible part: Golden = gold metal, Fossilized = stone,
+-- Crystal = tinted glass with a soft glow. Returns the same model.
+local VARIANT_SKINS: { [string]: { Color: Color3, Material: Enum.Material, Transparency: number } } = {
+	Golden = { Color = Color3.fromRGB(255, 200, 45), Material = Enum.Material.Metal, Transparency = 0 },
+	Fossilized = { Color = Color3.fromRGB(150, 128, 104), Material = Enum.Material.Slate, Transparency = 0 },
+	Crystal = { Color = Color3.fromRGB(130, 225, 255), Material = Enum.Material.Glass, Transparency = 0.25 },
+}
+
+function Treasures.ApplyVariant(model: Model, size: string?, material: string?): Model
+	local sizeDef = nil
+	for _, v in Config.Discovery.SIZES do
+		if v.Id == size then
+			sizeDef = v
+		end
+	end
+	local scale = if sizeDef and sizeDef.Scale then sizeDef.Scale else 1
+	Build.scale(model, model:GetPivot(), scale)
+	local skin = if material then VARIANT_SKINS[material] else nil
+	if skin then
+		local root = model.PrimaryPart
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d ~= root and d.Transparency < 1 then
+				local keepNeon = d.Material == NEON
+				d.Color = if keepNeon
+					then Build.neonSafe(Build.lighten(skin.Color, 0.2))
+					else skin.Color:Lerp(d.Color, 0.15)
+				if not keepNeon then
+					d.Material = skin.Material
+					d.Transparency = math.max(d.Transparency, skin.Transparency)
+				end
+			end
+		end
+		if material == "Crystal" or material == "Golden" then
+			local main = root or model:FindFirstChildWhichIsA("BasePart")
+			if main then
+				Build.sparkle(main, skin.Color, 4)
+			end
+		end
+	end
+	model:SetAttribute("Size", size or "Normal")
+	model:SetAttribute("Material", material or "None")
+	return model
+end
+
 function Treasures.FromLook(name: string, look: Types.TreasureLook, rarity: Types.Rarity?): Model
 	return build(name, look, rarity or "Common")
 end

@@ -6,8 +6,10 @@
 	items with Robux, or with anything bought with Robux. In this game Coins and Rebirth Tokens can
 	be bought with Robux, so every egg and crate counts. For these players we hide and refuse every
 	item marked PaidRandom in Config.Monetization:
-	  CoinsSmall..CoinsHuge, GoldenEgg, GoldenEgg3, LuckBoost15, SkipRebirth (it grants Rebirth
-	  Tokens) and the Lucky pass.
+	  CoinsSmall..CoinsHuge and SkipRebirth (it grants Rebirth Tokens, which buy the Rebirth and
+	  Golden Eggs). v2.3: no Robux item sells a random outcome or luck directly any more (the
+	  Golden Egg products, 2x Luck and the Lucky pass were removed), so these currency items are
+	  the only paid random items left, and only indirectly.
 	Coin eggs stay playable with coins earned in game. Purchases that already completed are always
 	honoured in ProcessReceipt, because the player has already paid.
 	We never branch on country or locale. Only the policy flags are read.

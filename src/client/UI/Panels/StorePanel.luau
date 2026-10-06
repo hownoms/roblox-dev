@@ -3,7 +3,9 @@
 	StorePanel — Robux store from Config.Monetization. Tabs: Game Passes / Boosts & Coins.
 	Items with Id 0 are shown greyed out as "Soon" (never prompted). Owned passes show ✅.
 	Coin packs show the live amount for your deepest layer (Config.ResolveCoins).
-	v2.2 policy: items marked PaidRandom (coins, golden eggs, luck, skip rebirth, Lucky pass) are
+	v2.3: prices come from PurchaseController.GetPrice (live Creator Hub price via GetProductInfo
+	once an Id is set, else the config suggestion) and refresh when a live price arrives.
+	v2.2 policy: items marked PaidRandom (coin packs, skip rebirth: currency that buys eggs) are
 	hidden entirely while State.IsPaidRandomRestricted() (server PolicyService attribute). The grid
 	re-flows, and an empty tab says so instead of showing a blank page. The Cooler Pack is gone.
 ]]
@@ -28,26 +30,23 @@ local StorePanel = {}
 local C = Style.Colors
 
 local PASS_ORDER =
-	{ "DoubleSand", "VIP", "SellAnywhere", "AutoDig", "Lucky", "MegaBackpack", "ExtraPets", "TripleHatch" }
+	{ "DoubleSand", "VIP", "SellAnywhere", "AutoDig", "FastDig", "MegaBackpack", "ExtraPets", "TripleHatch" }
 local PASS_ICONS: { [string]: string } = {
 	VIP = "trophy|👑",
 	DoubleSand = "boost_sand",
 	SellAnywhere = "Sell",
 	AutoDig = "AutoDig",
-	Lucky = "boost_luck",
+	FastDig = "boost_speed",
 	TripleHatch = "egg_hatch",
 	ExtraPets = "Pets",
 	MegaBackpack = "Backpack",
 }
 local PRODUCT_ORDER = {
 	"SandBoost15",
-	"LuckBoost15",
 	"CoinsSmall",
 	"CoinsMedium",
 	"CoinsLarge",
 	"CoinsHuge",
-	"GoldenEgg",
-	"GoldenEgg3",
 	"SkipRebirth",
 }
 
@@ -85,7 +84,7 @@ local function refresh()
 			else
 				item.Button:SetEnabled(true)
 				item.Button:SetColor(C.Robux)
-				item.Button:SetText("R$ " .. pass.Price)
+				item.Button:SetText("R$ " .. PurchaseController.GetPrice("GamePass", item.Key))
 			end
 		else
 			local product = Config.Monetization.Products[item.Key]
@@ -95,7 +94,7 @@ local function refresh()
 				item.Button:SetText("Soon")
 			else
 				item.Button:SetEnabled(true)
-				item.Button:SetText("R$ " .. product.Price)
+				item.Button:SetText("R$ " .. PurchaseController.GetPrice("Product", item.Key))
 			end
 		end
 	end
@@ -266,6 +265,7 @@ function StorePanel.Init()
 		refresh()
 	end)
 	State.ObserveMany({ "Passes", "MaxDepth", "PaidRandomRestricted" }, refresh)
+	PurchaseController.PriceChanged:Connect(refresh)
 end
 
 return StorePanel

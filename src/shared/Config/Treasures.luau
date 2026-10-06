@@ -471,6 +471,28 @@ local Treasures: { Types.TreasureDef } = {
 		FlavorText = "The FIRST beach ball. Every beach began with this.",
 		Look = { Color = rgb(255, 255, 255), Shape = "Orb", Material = Enum.Material.Neon, Glow = true },
 	},
+	-- v3 discovery slice: Relics (rarity "Relic"). Not in any LootTable: any deposit of layer >=
+	-- Layer has Config.Discovery.RELIC_CHANCE to hold one. Value = ScaledValue seconds of income.
+	{
+		Id = "sun_compass",
+		Name = "A.D.'s Sun Compass",
+		Layer = 1,
+		Rarity = "Relic",
+		SellValue = 0,
+		ScaledValue = 1800,
+		FlavorText = "Signed 'A.D.' on the back. The needle doesn't point north. It points DOWN.",
+		Look = { Color = rgb(255, 215, 90), Shape = "Coin", Material = Enum.Material.Neon, Glow = true },
+	},
+	{
+		Id = "tide_heart",
+		Name = "Heart of the Tide",
+		Layer = 3,
+		Rarity = "Relic",
+		SellValue = 0,
+		ScaledValue = 2400,
+		FlavorText = "A shell that beats like a heart. Hold it to your ear: the Core is calling.",
+		Look = { Color = rgb(120, 255, 230), Shape = "Orb", Material = Enum.Material.Neon, Glow = true },
+	},
 }
 
 return Treasures

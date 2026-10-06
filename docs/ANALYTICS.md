@@ -22,7 +22,7 @@ Roblox limits field cardinality.
 
 | # | Goal | Dashboard (Creator Hub → Analytics) | Events that feed it | Read it as |
 |---|---|---|---|---|
-| 1 | **FTUE completion** | Onboarding funnel | Funnel steps 1–18 | The biggest drop between two steps is the next fix. Target: FirstSell > 90% of Joined; any step losing more than 15% is a bug or a design problem |
+| 1 | **FTUE completion** | Onboarding funnel | Funnel steps 1–21 | The biggest drop between two steps is the next fix. Target: FirstSell > 90% of Joined; any step losing more than 15% is a bug or a design problem |
 | 2 | **D1 retention** | Retention (D1), split by funnel step reached | Funnel + engagement | Do players who reach FirstEgg / Layer3 come back more? Pull those steps earlier |
 | 3 | **Session length** | Engagement (session time) + Progression | Layers, MenuUnlocked, PanelOpened | Which layer or menu unlock players stop at; long sessions with no Layer3 point to a depth wall |
 | 4 | **D7 retention** | Retention (D7) + Progression "Rebirth" | Rebirth progression, FirstRebirth, FirstQuestClaim | Rebirth reach rate and time to the first rebirth |
@@ -59,6 +59,9 @@ counts unique players per step, so a value above the previous step's is expected
 | 16 | FirstPetDig | A pet dug for the player | `Dug` with source "Pet" |
 | 17 | Layer5 | Max depth enters layer 5 | `DepthReached` |
 | 18 | FirstRebirth | First rebirth | RebirthService + `Rebirthed` |
+| 19 | FirstFind | First buried / ambient find revealed (v3 discovery) | DiscoveryService |
+| 20 | FirstRareFind | First Rare-or-better find | DiscoveryService |
+| 21 | FirstPerfectExcavation | First excavation with every ring Perfect | DiscoveryService |
 
 The tutorial (`Config.TUTORIAL_STEPS`) covers steps 2–6 and 10. The rest are the "first hour" milestones.
 
@@ -105,6 +108,7 @@ balance of 0 even when HeadStart adds coins.
 | `PurchaseCompleted` | Robux purchase confirmed by the server | `Pass:<key>` / `Product:<key>` | | |
 | `Sunburnt` | Player attribute `Sunburnt` turns true | layer index at that moment | | |
 | `RideStarted` | Player attribute `Riding` set (RideService) | pet id | | |
+| `Find` | Every find revealed (DiscoveryService, v3) | rarity | `Size/Material` (e.g. `Giant/Golden`) | quality |
 
 `tide_refill_caught` (optional in the brief) is not implemented.
 
