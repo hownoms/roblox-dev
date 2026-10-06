@@ -124,7 +124,31 @@ end
 -- voxels). Horizontally centred on the target, going down from the target voxel. Clamped to
 -- voxels fully inside the dig zone so its walls and the floor never break. A dig whose top
 -- reaches the surface also clears the voxel above it (the partially filled surface voxel).
+-- Hand-spade tiers (Radius <= DENT_MAX_RADIUS) carve a rounded dent instead of a whole voxel:
+-- terrain voxels are 4 studs, so anything "smaller than a block" has to come from lowering
+-- voxel occupancy with a ball. Playtest asked for ~2x2x2 scoops at the start.
+local DENT_MAX_RADIUS = 2.2
+local DENT_BALL_RADIUS = 2.6
+local DENT_RISE = 1.5 -- ball centre sits this far above the resolved target (≈1.5 under the surface)
+
+local function carveDent(target: Vector3): (Vector3, Vector3)
+	local r = DENT_BALL_RADIUS
+	local margin = r + 0.5
+	local center = Vector3.new(
+		math.clamp(target.X, ZONE_CENTER.X - ZONE_HALF_X + margin, ZONE_CENTER.X + ZONE_HALF_X - margin),
+		math.max(target.Y + DENT_RISE, S - TOTAL_DEPTH + BOTTOM_FLOOR + margin),
+		math.clamp(target.Z, ZONE_CENTER.Z - ZONE_HALF_Z + margin, ZONE_CENTER.Z + ZONE_HALF_Z - margin)
+	)
+	terrain:FillBall(center, r, Enum.Material.Air)
+	local half = Vector3.new(r, r, r)
+	local max = center + half
+	return center - half, Vector3.new(max.X, math.min(max.Y, S), max.Z)
+end
+
 local function carve(target: Vector3, radius: number): (Vector3, Vector3)
+	if radius <= DENT_MAX_RADIUS then
+		return carveDent(target)
+	end
 	local cells = math.max(1, math.floor(radius * 2 / VOXEL + 0.5))
 	local function axisStart(value: number, minEdge: number, maxEdge: number): number
 		local lo = math.ceil(minEdge / VOXEL)

@@ -296,10 +296,13 @@ local function buildEggs(parent: Instance)
 	for i, egg in Config.Eggs do
 		local t = if n > 1 then (i - 1) / (n - 1) else 0.5
 		local a = math.rad(-arc / 2 + arc * t)
-		local pos = arcPoint(a, Layout.EGG_ARC_RADIUS)
-		local out = (pos - center).Unit
+		-- +2: smooth terrain's visible surface sits ~2 studs above the voxel grid, so pedestals
+		-- placed at the grid height looked sunk and their labels ended up in the sand.
+		local pos = arcPoint(a, Layout.EGG_ARC_RADIUS) + Vector3.new(0, 2, 0)
+		local out = (pos - center) * Vector3.new(1, 0, 1)
+		out = out.Unit
 
-		local pedestal = Util.Cylinder(m, "EggPedestal_" .. egg.Id, pos + Vector3.new(0, 1.5, 0), 3, 4.4, MARBLE)
+		local pedestal = Util.Cylinder(m, "EggPedestal_" .. egg.Id, pos + Vector3.new(0, 0.5, 0), 5, 4.4, MARBLE) -- 2 studs sunk into the sand
 		pedestal:SetAttribute("EggId", egg.Id)
 		Util.Tag(pedestal, "EggShop")
 		local prompt = Util.Prompt(pedestal, "Hatch", egg.Name, 8)
@@ -329,9 +332,9 @@ local function buildEggs(parent: Instance)
 
 		local bb = Instance.new("BillboardGui")
 		bb.Name = "EggInfo"
-		bb.Size = UDim2.fromScale(7, 2.8)
-		bb.StudsOffsetWorldSpace = Vector3.new(0, 7.5, 0)
-		bb.MaxDistance = 70
+		bb.Size = UDim2.fromScale(6, 2.4)
+		bb.StudsOffsetWorldSpace = Vector3.new(0, 8.5, 0)
+		bb.MaxDistance = 40
 		bb.LightInfluence = 0
 		bb.Parent = pedestal
 		Util.Label(bb, egg.Name, egg.Look.ShellColor:Lerp(WHITE, 0.25), UDim2.fromScale(0, 0), UDim2.fromScale(1, 0.45))

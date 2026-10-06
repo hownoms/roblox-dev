@@ -4,6 +4,7 @@
 	"" means "not set yet": skip playing it. To upgrade, upload or pick licensed audio from the
 	Creator Store and paste "rbxassetid://<id>" here. Never paste ids we don't have rights to.
 	Built-ins below exist in the client content folder; verify by ear in Studio.
+	(swoosh.wav was removed: Studio reports it "not approved for the requester".)
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -27,13 +28,13 @@ local Sounds: { [string]: Types.SoundDef } = {
 	Purchase = sound("rbxasset://sounds/electronicpingshort.wav", 0.8, 1.4),
 	Error = sound("rbxasset://sounds/clickfast.wav", 0.6, 0.5),
 	Click = sound("rbxasset://sounds/clickfast.wav", 0.5, 1),
-	Whoosh = sound("rbxasset://sounds/swoosh.wav", 0.6, 1),
+	Whoosh = sound("rbxasset://sounds/action_jump.mp3", 0.5, 1.2),
 	EggShake = sound("rbxasset://sounds/clickfast.wav", 0.5, 0.8),
-	Hatch = sound("rbxasset://sounds/swoosh.wav", 0.8, 0.8),
+	Hatch = sound("rbxasset://sounds/electronicpingshort.wav", 0.8, 0.8),
 	NewLayer = sound("rbxasset://sounds/electronicpingshort.wav", 0.9, 0.6),
-	Rebirth = sound("rbxasset://sounds/swoosh.wav", 1, 0.5),
+	Rebirth = sound("rbxasset://sounds/electronicpingshort.wav", 1, 0.5),
 	Splash = sound("rbxasset://sounds/impact_water.mp3", 0.7, 1),
-	Teleport = sound("rbxasset://sounds/swoosh.wav", 0.7, 1.3),
+	Teleport = sound("rbxasset://sounds/action_jump.mp3", 0.6, 1.4),
 	-- Placeholders: paste licensed rbxassetid:// ids (music is not shipped as a built-in).
 	MusicBeach = sound("", 0.3, 1, true),
 	MusicDeep = sound("", 0.3, 1, true),

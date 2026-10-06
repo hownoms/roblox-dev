@@ -2,6 +2,7 @@
 -- Shared styling helpers: theme access, instance property application, corners, strokes,
 -- gradients, chunky text and bouncy tweens. Every component builds on these.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -140,6 +141,58 @@ Root.ScaleChanged:Connect(function(scale: number)
 	end
 end)
 
+-- Emoji-safe sizing ------------------------------------------------------------------------
+-- Playtest: every label containing an emoji ("⛏️ 0m", menu icons) rendered at a fraction of its
+-- box, while plain-text labels were fine. TextScaled sizes by the font's line metrics and the
+-- emoji fallback font reports a very tall line, so the whole label shrinks. Labels whose text
+-- contains a multi-byte symbol therefore use an explicit TextSize computed from the box
+-- (height, then shrunk to fit the measured width) instead of TextScaled.
+local FIT_HEIGHT = 0.8
+local FIT_WIDTH = 0.96
+
+local function hasSymbol(text: string): boolean
+	-- 3- and 4-byte UTF-8 sequences: emoji and pictographic symbols (☀ ⛏ 🏝 ...).
+	return string.find(text, "[\226-\244]") ~= nil
+end
+
+local function fitLabel(label: TextLabel, constraint: UITextSizeConstraint)
+	local text = label.Text
+	if not hasSymbol(text) then
+		label.TextScaled = true
+		constraint.Parent = label
+		return
+	end
+	constraint.Parent = nil -- caps are applied by hand below
+	label.TextScaled = false
+	local box = label.AbsoluteSize
+	if box.X < 1 or box.Y < 1 then
+		return
+	end
+	local scale = if Root.Scale > 0 then Root.Scale else 1
+	local px = box.Y * FIT_HEIGHT
+	local ok, bounds = pcall(function()
+		return TextService:GetTextSize(text, math.max(1, math.floor(px)), label.Font, Vector2.new(1e5, 1e5))
+	end)
+	if ok and bounds.X > box.X * FIT_WIDTH then
+		px *= box.X * FIT_WIDTH / bounds.X
+	end
+	-- TextSize is in canvas units; the canvas UIScale multiplies it back up to screen pixels.
+	label.TextSize = math.clamp(math.floor(px / scale), MIN_READABLE, 100)
+end
+
+local function autoFit(label: TextLabel, constraint: UITextSizeConstraint)
+	local function refit()
+		fitLabel(label, constraint)
+	end
+	label:GetPropertyChangedSignal("Text"):Connect(refit)
+	label:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
+	local scaleConn = Root.ScaleChanged:Connect(refit)
+	label.Destroying:Connect(function()
+		scaleConn:Disconnect()
+	end)
+	refit()
+end
+
 export type LabelProps = {
 	Name: string?,
 	Text: string?,
@@ -183,6 +236,7 @@ function Style.Label(props: LabelProps): TextLabel
 	local constraint = Instance.new("UITextSizeConstraint")
 	Style.TrackTextSize(constraint, props.MaxTextSize or 28, props.MinTextSize)
 	constraint.Parent = label
+	autoFit(label, constraint)
 	if props.Stroke ~= false then
 		Style.Stroke(label, props.StrokeColor, props.StrokeThickness or 2, false)
 	end
