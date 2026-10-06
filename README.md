@@ -10,7 +10,10 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
 | Doc | What it covers |
 |---|---|
-| [`docs/GDD.md`](docs/GDD.md) | Game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **Start here:** what changed in each version, playtest fixes, decisions and standing rules |
+| [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |
+| [`docs/UI_STYLE.md`](docs/UI_STYLE.md) | UI style guide and layout map |
+| [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Code layout, remotes, data schema, module ownership |
 | [`docs/MAP.md`](docs/MAP.md) | Map layout, coordinates, thumbnail camera positions |
 | [`marketing/STORE_PAGE.md`](marketing/STORE_PAGE.md) | Store description, keywords, badges, launch marketing plan |
