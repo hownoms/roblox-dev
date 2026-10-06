@@ -1856,6 +1856,37 @@ classMethods.Humanoid = {
 	ApplyDescription = function() end,
 }
 
+-- Seats (RideService): Seat:Sit(humanoid) sets Seat.Occupant + Humanoid.Sit/SeatPart (ReadOnly
+-- props written internally). Mock.LeaveSeat(humanoid) is the jump-out.
+local function setSeat(seatNode, humanoidNode, sitting)
+	if seatNode then
+		seatNode.props.Occupant = if sitting and humanoidNode then humanoidNode.proxy else nil
+		fireChanged(seatNode, "Occupant")
+	end
+	if humanoidNode then
+		humanoidNode.props.Sit = sitting
+		fireChanged(humanoidNode, "Sit")
+		humanoidNode.props.SeatPart = if sitting and seatNode then seatNode.proxy else nil
+		fireChanged(humanoidNode, "SeatPart")
+	end
+end
+classMethods.Seat = {
+	Sit = function(seat, humanoid)
+		local h = instances[humanoid]
+		assert(h and isA(h.className, "Humanoid"), "Seat:Sit expects a Humanoid")
+		local previous = h.props.SeatPart
+		if previous and previous ~= seat and instances[previous] then
+			setSeat(instances[previous], nil, false)
+		end
+		setSeat(instances[seat], h, true)
+	end,
+}
+function Mock.LeaveSeat(humanoid)
+	local h = instances[humanoid]
+	local seat = h.props.SeatPart
+	setSeat(seat and instances[seat], h, false)
+end
+
 -- Tool equip: Roblox builds the RightGrip weld from Handle + Grip; validate the tool shape.
 Mock.ToolProblems = {}
 function Mock.OnToolEquipped(tool, _character)
@@ -2619,6 +2650,72 @@ function Mock.SpawnCharacter(player, position)
 	setParent(instances[character], getService("Workspace"))
 	getEventSignal(p, "CharacterAdded"):_fire(character)
 	return character
+end
+
+-- Adds an R15 body (default block proportions: parts, Motor6D joints with the engine's rig
+-- attachment C0/C1 values, grip attachments) to a character made by SpawnCharacter.
+-- Returns { [jointName] = Motor6D, [partName] = BasePart }.
+function Mock.MakeR15(character)
+	local rig = {}
+	local humanoid = methods.FindFirstChildOfClass(character, "Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15
+	local root = methods.FindFirstChild(character, "HumanoidRootPart")
+	rig.HumanoidRootPart = root
+	local function limb(name, size)
+		local p = methods.FindFirstChild(character, name)
+		if not p then
+			p = newInstance("Part")
+			instances[p].props.Name = name
+			setParent(instances[p], character)
+		end
+		instances[p].props.Size = size
+		instances[p].props.CanCollide = false
+		rig[name] = p
+		return p
+	end
+	local function joint(name, part0, part1, c0, c1)
+		local m = newInstance("Motor6D")
+		local props = instances[m].props
+		props.Name = name
+		props.Part0 = part0
+		props.Part1 = part1
+		props.C0 = c0
+		props.C1 = c1
+		setParent(instances[m], part1)
+		rig[name] = m
+		-- place Part1 in its rest pose
+		instances[part1].props.CFrame = instances[part0].props.CFrame * c0 * c1:Inverse()
+		return m
+	end
+	local function attachment(parentPart, name, cframe)
+		local a = newInstance("Attachment")
+		local props = instances[a].props
+		props.Name = name
+		props.CFrame = cframe
+		props.Position = cframe.Position
+		setParent(instances[a], parentPart)
+		rig[name] = a
+		return a
+	end
+	local lower = limb("LowerTorso", v3(2, 0.4, 1))
+	local upper = limb("UpperTorso", v3(2, 1.6, 1))
+	local head = limb("Head", v3(2, 1, 1))
+	joint("Root", root, lower, CFrame.new(0, -1, 0), CFrame.new(0, -0.2, 0))
+	joint("Waist", lower, upper, CFrame.new(0, 0.2, 0), CFrame.new(0, -0.8, 0))
+	joint("Neck", upper, head, CFrame.new(0, 0.8, 0), CFrame.new(0, -0.5, 0))
+	for _, side in { { "Right", 1 }, { "Left", -1 } } do
+		local s, x = side[1], side[2]
+		local ua = limb(s .. "UpperArm", v3(1, 1.169, 1))
+		local la = limb(s .. "LowerArm", v3(1, 1.052, 1))
+		local hand = limb(s .. "Hand", v3(1, 0.3, 1))
+		joint(s .. "Shoulder", upper, ua, CFrame.new(x, 0.563, 0), CFrame.new(-0.5 * x, 0.394, 0))
+		joint(s .. "Elbow", ua, la, CFrame.new(0, -0.334, 0), CFrame.new(0, 0.259, 0))
+		joint(s .. "Wrist", la, hand, CFrame.new(0, -0.501, 0), CFrame.new(0, 0.125, 0))
+		attachment(hand, s .. "GripAttachment", CFrame.new(0, -0.15, 0) * CFrame.Angles(-math.pi / 2, 0, 0))
+		local ul = limb(s .. "UpperLeg", v3(1, 1.217, 1))
+		joint(s .. "Hip", lower, ul, CFrame.new(0.5 * x, -0.2, 0), CFrame.new(0, 0.42, 0))
+	end
+	return rig
 end
 
 function Mock.AddPlayer(userId, name)

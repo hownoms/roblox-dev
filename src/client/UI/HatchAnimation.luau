@@ -4,6 +4,8 @@
 	harder and harder (EggShake sounds), flash, egg pops, a spinning star-burst in the
 	pet's rarity colour, pet springs out (ViewportFrame + Models.Pet) with name, rarity and
 	bonus. Legendary/Mythic add confetti + a big flash. Tap to skip; hatches are queued.
+	v2.1: Construction Crates (EggDef.Kind == "Crate") don't crack: their lid (sub-Model "Lid" of
+	Models.Egg) pops off and flips away before the vehicle springs out. Digging pets show a ⛏ line.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -62,6 +64,29 @@ local function resolvePetId(value: any): string?
 		return instance.Id
 	end
 	return nil
+end
+
+-- Crate reveal: the lid flies up and tumbles off (runs in its own thread).
+local function popLid(view: Viewport.Viewport)
+	local model = view.Model
+	local lid = if model then model:FindFirstChild("Lid") else nil
+	if not lid or not lid:IsA("Model") then
+		return
+	end
+	local lidModel = lid :: Model
+	local start = lidModel:GetPivot()
+	task.spawn(function()
+		local t0 = os.clock()
+		while lidModel.Parent do
+			local t = math.min((os.clock() - t0) / 0.45, 1)
+			local up = 3.2 * t - 1.2 * t * t
+			lidModel:PivotTo(start * CFrame.new(0.8 * t, up, 0) * CFrame.Angles(0, 0, -1.6 * t))
+			if t >= 1 then
+				break
+			end
+			task.wait(1 / 30)
+		end
+	end)
 end
 
 local function starburst(parent: Instance, color: Color3, z: number): Frame
@@ -130,6 +155,7 @@ local function play(petIds: { string })
 	local slotWidth = 230
 	local slots: { Frame } = {}
 	local eggViews: { Viewport.Viewport } = {}
+	local eggIds: { string } = {}
 	for i, petId in petIds do
 		local slot = Instance.new("Frame")
 		slot.Name = "Slot" .. i
@@ -148,7 +174,9 @@ local function play(petIds: { string })
 			Pitch = 8,
 			Parent = slot,
 		})
-		egg:SetModel(ModelFactory.Egg(eggFor(petId)))
+		local eggId = eggFor(petId)
+		eggIds[i] = eggId
+		egg:SetModel(ModelFactory.Egg(eggId))
 		Style.PopIn(egg.Frame, 0.4)
 		table.insert(slots, slot)
 		table.insert(eggViews, egg)
@@ -189,10 +217,21 @@ local function play(petIds: { string })
 		local slot = slots[i]
 		local egg = eggViews[i]
 		egg.Frame.Rotation = 0
-		Style.Tween(egg.Frame, 0.2, { Size = UDim2.fromOffset(240, 240), ImageTransparency = 1 })
-		task.delay(0.2, function()
-			egg.Frame.Visible = false
-		end)
+		if Config.IsCrate(eggIds[i]) then
+			-- crates open: the lid pops off, then the crate fades
+			popLid(egg)
+			task.delay(0.25, function()
+				Style.Tween(egg.Frame, 0.25, { ImageTransparency = 1 })
+			end)
+			task.delay(0.5, function()
+				egg.Frame.Visible = false
+			end)
+		else
+			Style.Tween(egg.Frame, 0.2, { Size = UDim2.fromOffset(240, 240), ImageTransparency = 1 })
+			task.delay(0.2, function()
+				egg.Frame.Visible = false
+			end)
+		end
 
 		local def = Config.GetPet(petId)
 		local rarity = if def then Config.GetRarity(def.Rarity) else nil
@@ -228,7 +267,11 @@ local function play(petIds: { string })
 			Parent = slot,
 		})
 		local info = Style.Label({
-			Text = (if def then def.Rarity .. "  ·  x" .. string.format("%.2f", def.Multiplier) .. " sand" else ""),
+			Text = (if def
+				then def.Rarity .. "  ·  x" .. string.format("%.2f", def.Multiplier) .. " sand" .. (if def.Dig
+					then "  ·  ⛏️ digs"
+					else "") .. (if def.Rideable then "  ·  🚜 ride" else "")
+				else ""),
 			Size = UDim2.new(1, 0, 0, 24),
 			Position = UDim2.new(0.5, 0, 1, -28),
 			AnchorPoint = Vector2.new(0.5, 0),

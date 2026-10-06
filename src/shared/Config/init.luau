@@ -36,7 +36,7 @@ local Theme = require(script.Theme)
 local Heat = require(script.Heat)
 local Shades = require(script.Shades)
 local Consumables = require(script.Consumables)
-local Diggers = require(script.Diggers)
+local Ride = require(script.Ride) -- v2.1 ride-on excavator tuning (Ride agent)
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
 
@@ -62,7 +62,7 @@ local Config = {
 	Heat = Heat,
 	Shades = Shades,
 	Consumables = Consumables,
-	Diggers = Diggers,
+	Ride = Ride,
 
 	-- World --------------------------------------------------------------------------------
 	-- One shared dig zone along the shoreline (World.GetDigZone); no plots.
@@ -87,16 +87,11 @@ local Config = {
 	INDEX_LAYER_BONUS = 0.02,
 
 	-- Pets ---------------------------------------------------------------------------------
-	MAX_EQUIPPED_PETS = 3, -- base equip slots (PlayerData.PetSlots default); ExtraPets pass adds 2
+	-- Base equip slots (PlayerData.PetSlots default). Passes add GamePasses[*].ExtraPetSlots:
+	-- ExtraPets +2, AutoDig +1 (Stats.GetPetSlots).
+	MAX_EQUIPPED_PETS = 3,
 	PET_INVENTORY_LIMIT = 200,
 	TRIPLE_HATCH_COUNT = 3,
-
-	-- Diggers (v2, Diggers agent; see docs/design/Diggers.md) ------------------------------
-	DIGGER_BASE_SLOTS = 1, -- equip slots everyone has
-	DIGGER_PASS_SLOTS = 1, -- extra slots from the AutoDig game pass
-	DIGGER_REBIRTH_SLOTS = { 2, 5 }, -- +1 slot at each of these rebirth counts
-	DIGGER_LEVEL_SPEED = 0.94, -- Interval x this per level above 1 (compounding)
-	DIGGER_LEVEL_SAND = 0.15, -- SandMultiplier +15% of base per level above 1
 
 	-- Social -------------------------------------------------------------------------------
 	GROUP_ID = 0, -- OWNER: paste the Roblox group id; members get GROUP_SAND_MULTIPLIER
@@ -114,7 +109,7 @@ local Config = {
 	DATASTORE_NAME = "PlayerData_v1",
 	LEADERBOARD_COINS_STORE = "Leaderboard_Coins",
 	LEADERBOARD_DEPTH_STORE = "Leaderboard_Depth",
-	DATA_VERSION = 1,
+	DATA_VERSION = 2, -- 2: v2.1 converts data.Diggers into vehicle pets (DataService migration)
 	AUTOSAVE_SECONDS = 120,
 	SESSION_LOCK_SECONDS = 1800,
 
@@ -174,9 +169,6 @@ local eventById = indexById(Events, function(e: Types.EventDef)
 end)
 local codeByCode = indexById(Codes, function(c: Types.CodeDef)
 	return string.upper(c.Code)
-end)
-local diggerById, diggerIndex = indexById(Diggers, function(d: Types.DiggerDef)
-	return d.Id
 end)
 
 -- Helpers ------------------------------------------------------------------------------------
@@ -361,47 +353,48 @@ function Config.GetProductKeyById(id: number): string?
 	return nil
 end
 
--- Diggers (v2) ---------------------------------------------------------------------------------
+-- Companions (v2.1) ---------------------------------------------------------------------------
 
-function Config.GetDigger(id: string): Types.DiggerDef?
-	return diggerById[id]
+-- Construction Crates are eggs with Kind = "Crate" (they hatch vehicle pets).
+function Config.IsCrate(eggId: string): boolean
+	local egg = eggById[eggId]
+	return egg ~= nil and egg.Kind == "Crate"
 end
 
-function Config.GetDiggerIndex(id: string): number?
-	return diggerIndex[id]
+-- The pet's dig ability (vehicles from crates, a few creatures), or nil.
+function Config.GetPetDig(petId: string): Types.PetDigDef?
+	local pet = petById[petId]
+	return if pet then pet.Dig else nil
 end
 
--- Effective stats at `level` (clamped to 1..MaxLevel). Power and Radius do not change with level.
-function Config.GetDiggerStats(def: Types.DiggerDef, level: number): Types.DiggerStats
-	local l = math.clamp(math.floor(level), 1, def.MaxLevel)
-	return {
-		Power = def.Power,
-		Interval = def.Interval * Config.DIGGER_LEVEL_SPEED ^ (l - 1),
-		Radius = def.Radius,
-		SandMultiplier = def.SandMultiplier * (1 + Config.DIGGER_LEVEL_SAND * (l - 1)),
-	}
-end
+-- Ride (v2.1, Ride agent) ----------------------------------------------------------------------
 
--- Coins to upgrade from `level` to level + 1, or nil at max level.
-function Config.GetDiggerUpgradeCost(def: Types.DiggerDef, level: number): number?
-	if level >= def.MaxLevel then
+-- The best rideable pet (PetDef.Rideable) among an inventory (PlayerData.Pets), or nil. Scans
+-- Config.Pets (not the id map) so every def counts. Best = highest Dig.Power, then SandMultiplier.
+function Config.FindRideablePet(pets: { [string]: Types.PetInstance }?): Types.PetDef?
+	if not pets then
 		return nil
 	end
-	return def.UpgradeCosts[math.max(math.floor(level), 1)]
-end
-
--- Digger equip slots: base + AutoDig pass + rebirth milestones.
-function Config.GetDiggerSlots(rebirths: number, hasAutoDigPass: boolean): number
-	local slots = Config.DIGGER_BASE_SLOTS
-	if hasAutoDigPass then
-		slots += Config.DIGGER_PASS_SLOTS
-	end
-	for _, needed in Config.DIGGER_REBIRTH_SLOTS do
-		if rebirths >= needed then
-			slots += 1
+	local owned: { [string]: boolean } = {}
+	for _, pet in pets :: { [string]: Types.PetInstance } do
+		if type(pet) == "table" and type(pet.Id) == "string" then
+			owned[pet.Id] = true
 		end
 	end
-	return slots
+	local best: Types.PetDef? = nil
+	for _, def in Pets do
+		if def.Rideable == true and owned[def.Id] then
+			local current = best
+			local power = if def.Dig then def.Dig.Power else 0
+			local sand = if def.Dig then def.Dig.SandMultiplier else 0
+			local bestPower = if current and current.Dig then current.Dig.Power else -1
+			local bestSand = if current and current.Dig then current.Dig.SandMultiplier else -1
+			if current == nil or power > bestPower or (power == bestPower and sand > bestSand) then
+				best = def
+			end
+		end
+	end
+	return best
 end
 
 -- Survival (v2) ---------------------------------------------------------------------------------
@@ -499,6 +492,19 @@ do
 	end
 	for _, treasure in Treasures do
 		assert(rarityByName[treasure.Rarity], "Config: unknown rarity on " .. treasure.Id)
+	end
+	for _, pet in Pets do
+		local dig = pet.Dig
+		if dig then
+			assert(dig.Power > 0 and dig.Interval > 0 and dig.Radius > 0, "Config: bad Dig stats on " .. pet.Id)
+		end
+	end
+	for _, egg in Eggs do
+		if egg.Kind == "Crate" then
+			for _, entry in egg.Pets do
+				assert(petById[entry.PetId].Dig, "Config: crate pet without Dig " .. entry.PetId)
+			end
+		end
 	end
 end
 

@@ -5,7 +5,13 @@
 	Hatch x1 / Hatch x3 buttons. x3 needs the Triple Hatch pass (prompts it if configured).
 	Robux eggs prompt their developer product (disabled while its id is 0).
 	Panel.Open("Eggs", { EggId = "pirate_egg" }) focuses a specific egg (map pedestals).
+
+	v2.1: Construction Crates (EggDef.Kind == "Crate") are listed here too, drawn as crates, with
+	"Open" buttons, a "Construction Crate" tag and odds rows that show each vehicle's dig stats
+	("⛏ digs Pirate Cove · every 3.0s") and a 🚜 badge on rideable pets. The crate yard pallets
+	(tag "CrateShop", attribute EggId, "Open" prompt) are hooked here and focus their crate.
 ]]
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -39,11 +45,22 @@ local detail: {
 	Name: TextLabel,
 	Price: TextLabel,
 	Odds: ScrollingFrame,
+	Kind: TextLabel,
 	Hatch1: Button.Button,
 	Hatch3: Button.Button,
 }? =
 	nil
 local shownEgg: string? = nil
+
+local function isCrate(egg: Types.EggDef): boolean
+	return egg.Kind == "Crate"
+end
+
+-- "⛏ digs Pirate Cove · every 3.0s" for a digging pet.
+local function digText(dig: Types.PetDigDef): string
+	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(dig.Power)]
+	return string.format("%s digs %s · every %.1fs", Icons.Dig, layer.Name, dig.Interval)
+end
 
 local function currencyIcon(egg: Types.EggDef): string
 	return if egg.Currency == "Tokens" then Icons.Tokens elseif egg.Currency == "Robux" then Icons.Robux else Icons.Coins
@@ -119,6 +136,7 @@ local function updateButtons()
 	local dd = d :: any
 	local hatch1: Button.Button = dd.Hatch1
 	local hatch3: Button.Button = dd.Hatch3
+	local verb = if isCrate(egg) then "Open" else "Hatch"
 	local unlocked = Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth)
 	local full = petCount() >= Config.PET_INVENTORY_LIMIT
 	if egg.Currency == "Robux" then
@@ -152,18 +170,18 @@ local function updateButtons()
 		return
 	end
 	hatch1:SetEnabled(have >= egg.Price)
-	hatch1:SetText("Hatch 1  " .. priceText(egg, 1))
+	hatch1:SetText(verb .. " 1  " .. priceText(egg, 1))
 	local owns3 = State.OwnsPass("TripleHatch")
 	local passOk = PurchaseController.IsPassConfigured("TripleHatch")
 	hatch3:SetVisible(owns3 or passOk)
 	if owns3 then
 		hatch3:SetEnabled(have >= egg.Price * Config.TRIPLE_HATCH_COUNT)
 		hatch3:SetColor(C.Purple)
-		hatch3:SetText("Hatch 3  " .. priceText(egg, Config.TRIPLE_HATCH_COUNT))
+		hatch3:SetText(verb .. " 3  " .. priceText(egg, Config.TRIPLE_HATCH_COUNT))
 	else
 		hatch3:SetEnabled(true)
 		hatch3:SetColor(C.Robux)
-		hatch3:SetText(Icons.Lock .. " Hatch 3 (pass)")
+		hatch3:SetText(Icons.Lock .. " " .. verb .. " 3 (pass)")
 	end
 end
 
@@ -183,7 +201,10 @@ local function showEgg(eggId: string)
 		shownEgg = eggId;
 		(dd.View :: Viewport.Viewport):SetModel(ModelFactory.Egg(eggId))
 		Style.Pop((dd.View :: Viewport.Viewport).Frame, 0.15);
-		(dd.Name :: TextLabel).Text = egg.Name
+		(dd.Name :: TextLabel).Text = egg.Name;
+		(dd.Kind :: TextLabel).Text = if isCrate(egg)
+			then Icons.Crate .. " Construction Crate: pets that DIG for you! Chances:"
+			else "Chances (before luck boosts):"
 		local odds: ScrollingFrame = dd.Odds
 		for _, child in odds:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -198,9 +219,10 @@ local function showEgg(eggId: string)
 			local pet = Config.GetPet(entry.PetId)
 			if pet then
 				local rarity = Config.GetRarity(pet.Rarity)
+				local dig = pet.Dig
 				local row = Card.new({
 					Name = pet.Id,
-					Size = UDim2.new(1, -8, 0, 46),
+					Size = UDim2.new(1, -8, 0, if dig then 58 else 46),
 					LayoutOrder = i,
 					Gradient = if rarity then rarity.Gradient else nil,
 					GradientRotation = 0,
@@ -208,15 +230,31 @@ local function showEgg(eggId: string)
 					Parent = odds,
 				})
 				Style.Label({
-					Text = Icons.PetShape(pet.Look.Shape) .. " " .. pet.Name,
-					Size = UDim2.new(0.55, 0, 0.8, 0),
-					Position = UDim2.new(0, 10, 0.5, 0),
+					Text = Icons.Pet(pet.Look.Shape, pet.VehicleKind) .. " " .. pet.Name .. (if pet.Rideable
+						then " " .. Icons.Ride
+						else ""),
+					Size = UDim2.new(0.55, 0, if dig then 0.5 else 0.8, 0),
+					Position = UDim2.new(0, 10, if dig then 0.3 else 0.5, 0),
 					AnchorPoint = Vector2.new(0, 0.5),
 					MaxTextSize = 18,
 					XAlign = Enum.TextXAlignment.Left,
 					ZIndex = 8,
 					Parent = row.Face,
 				})
+				if dig then
+					local digLabel = Style.Label({
+						Text = digText(dig) .. (if pet.Rideable then "  ·  Rideable!" else ""),
+						Size = UDim2.new(0.56, 0, 0.34, 0),
+						Position = UDim2.new(0, 10, 0.76, 0),
+						AnchorPoint = Vector2.new(0, 0.5),
+						Font = Style.Fonts.Body,
+						MaxTextSize = 13,
+						XAlign = Enum.TextXAlignment.Left,
+						ZIndex = 8,
+						Parent = row.Face,
+					})
+					digLabel.Name = "Dig"
+				end
 				Style.Label({
 					Text = "x" .. string.format("%.2f", pet.Multiplier),
 					Size = UDim2.new(0.2, 0, 0.7, 0),
@@ -267,9 +305,32 @@ local function build()
 		swatch.BackgroundColor3 = egg.Look.ShellColor
 		swatch.ZIndex = 8
 		swatch.Parent = card.Face
-		Style.Corner(swatch, UDim.new(0.5, 0))
 		Style.Stroke(swatch, C.Stroke, 2)
-		Style.Gradient(swatch, { Color3.new(1, 1, 1), egg.Look.SpotColor:Lerp(Color3.new(1, 1, 1), 0.4) }, 90)
+		if isCrate(egg) then
+			-- a little crate: square wooden block with a hazard band
+			swatch.Size = UDim2.fromOffset(44, 44)
+			Style.Corner(swatch, UDim.new(0, 6))
+			local band = Instance.new("Frame")
+			band.Name = "Tape"
+			band.BorderSizePixel = 0
+			band.BackgroundColor3 = egg.Look.SpotColor
+			band.Size = UDim2.new(1, 0, 0.26, 0)
+			band.Position = UDim2.fromScale(0, 0.37)
+			band.ZIndex = 9
+			band.Parent = swatch
+			Style.Label({
+				Text = Icons.Crate,
+				Size = UDim2.fromScale(0.8, 0.8),
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Stroke = false,
+				ZIndex = 10,
+				Parent = swatch,
+			})
+		else
+			Style.Corner(swatch, UDim.new(0.5, 0))
+			Style.Gradient(swatch, { Color3.new(1, 1, 1), egg.Look.SpotColor:Lerp(Color3.new(1, 1, 1), 0.4) }, 90)
+		end
 		Style.Label({
 			Text = egg.Name,
 			Size = UDim2.new(1, -66, 0, 26),
@@ -282,7 +343,7 @@ local function build()
 			Parent = card.Face,
 		})
 		local price = Style.Label({
-			Text = priceText(egg, 1),
+			Text = priceText(egg, 1) .. (if isCrate(egg) then "  ·  Crate" else ""),
 			Size = UDim2.new(1, -66, 0, 22),
 			Position = UDim2.fromOffset(58, 32),
 			TextColor = C.SandDark,
@@ -364,7 +425,7 @@ local function build()
 		ZIndex = 6,
 		Parent = right,
 	})
-	Style.Label({
+	local kind = Style.Label({
 		Text = "Chances (before luck boosts):",
 		Size = UDim2.new(1, -200, 0, 20),
 		Position = UDim2.fromOffset(200, 72),
@@ -417,7 +478,8 @@ local function build()
 	local odds = Panel.Scroller(right, UDim2.new(1, -200, 1, -96), UDim2.fromOffset(200, 96))
 	Style.List(odds, Enum.FillDirection.Vertical, 6)
 
-	detail = { View = view, Name = name, Price = price, Odds = odds, Hatch1 = hatch1, Hatch3 = hatch3 }
+	kind.Name = "Kind"
+	detail = { View = view, Name = name, Price = price, Odds = odds, Kind = kind, Hatch1 = hatch1, Hatch3 = hatch3 }
 end
 
 local function refreshTiles()
@@ -434,6 +496,47 @@ local function refreshTiles()
 	updateButtons()
 end
 
+-- Crate yard pallets (World/Hub: tag "CrateShop", attribute EggId, "Open" prompt).
+local hookedPrompts: { [ProximityPrompt]: boolean } = {}
+
+local function hookCratePrompt(inst: Instance, prompt: ProximityPrompt)
+	if hookedPrompts[prompt] then
+		return
+	end
+	hookedPrompts[prompt] = true
+	prompt.Triggered:Connect(function()
+		local id = prompt:GetAttribute("EggId") or inst:GetAttribute("EggId")
+		Panel.Open("Eggs", { EggId = if typeof(id) == "string" then id else nil })
+	end)
+	prompt.Destroying:Connect(function()
+		hookedPrompts[prompt] = nil
+	end)
+end
+
+local function hookCrate(inst: Instance)
+	if inst:IsA("ProximityPrompt") then
+		hookCratePrompt(inst, inst)
+		return
+	end
+	for _, d in inst:GetDescendants() do
+		if d:IsA("ProximityPrompt") then
+			hookCratePrompt(inst, d)
+		end
+	end
+	inst.DescendantAdded:Connect(function(d: Instance)
+		if d:IsA("ProximityPrompt") then
+			hookCratePrompt(inst, d)
+		end
+	end)
+end
+
+local function hookCrateYard()
+	for _, inst in CollectionService:GetTagged("CrateShop") do
+		task.spawn(hookCrate, inst)
+	end
+	CollectionService:GetInstanceAddedSignal("CrateShop"):Connect(hookCrate)
+end
+
 function EggPanel.Init()
 	panel =
 		Panel.new({ Name = "Eggs", Title = "Eggs", Icon = Icons.Eggs, Color = C.Sunset, Size = Vector2.new(800, 480) })
@@ -441,9 +544,13 @@ function EggPanel.Init()
 		build()
 		local target = if typeof(args) == "table" and typeof(args.EggId) == "string" then args.EggId else nil
 		if not target then
-			-- default: best unlocked coin egg
+			-- default: best unlocked coin egg (crates only when asked for)
 			for _, egg in Config.Eggs do
-				if egg.Currency == "Coins" and Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth) then
+				if
+					egg.Currency == "Coins"
+					and not isCrate(egg)
+					and Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth)
+				then
 					target = egg.Id
 				end
 			end
@@ -456,6 +563,7 @@ function EggPanel.Init()
 			refreshTiles()
 		end
 	end)
+	hookCrateYard()
 end
 
 return EggPanel

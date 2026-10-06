@@ -5,8 +5,8 @@
 	- Raycasts from the camera through the pointer, filtered to Workspace.Terrain only.
 	- Local pre-checks (reach, inside the dig zone, cooldown, full backpack) avoid pointless
 	  remote spam; the server stays authoritative and answers with DigResult.
-	- Instant predicted feedback: shovel swing (default Animate "Slash" toolanim + Tool.Grip
-	  tween), layer-coloured sand burst + chunks, dig sound, tiny camera shake.
+	- Instant predicted feedback: scoop animation (ShovelPoseController.PlayScoop), layer-coloured
+	  sand burst + chunks, dig sound, tiny camera shake.
 	- DigResult: "+12 Sand" float text, new-layer banner, contextual hints for failures
 	  ("Too hard! Get a better shovel" + guide beam to the ShovelShop, "Backpack full" + beam to
 	  the SellZone). The server sends no Notify for dig failures, so each hint shows once.
@@ -16,7 +16,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
@@ -29,6 +28,7 @@ local Format = require(Shared:WaitForChild("Util"):WaitForChild("Format"))
 local State = require(script.Parent.State)
 local SoundController = require(script.Parent.SoundController)
 local EffectsController = require(script.Parent.EffectsController)
+local ShovelPoseController = require(script.Parent.ShovelPoseController)
 local LayerController = require(script.Parent.LayerController)
 local GuideController = require(script.Parent.GuideController)
 local Signal = require(script.Parent.Parent.Util.Signal)
@@ -51,7 +51,6 @@ local touchStart = Vector2.zero
 local hintTimes: { [string]: number } = {}
 local hintCallback: ((string, string) -> ())? = nil
 local cursor: Part? = nil
-local swingingTools: { [Tool]: CFrame } = {}
 
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Include
@@ -102,40 +101,9 @@ local function ensureToolEquipped()
 	end
 end
 
-local function swing()
-	local tool = Character.GetTool()
-	if not tool then
-		return
-	end
-	local equipped = tool :: Tool
-	-- Default Animate script plays its built-in slash animation when it sees this value.
-	local anim = Instance.new("StringValue")
-	anim.Name = "toolanim"
-	anim.Value = "Slash"
-	anim.Parent = equipped
-	-- Extra punch: tip the shovel head forward and spring back (local visual only).
-	if swingingTools[equipped] then
-		return
-	end
-	local base = equipped.Grip
-	swingingTools[equipped] = base
-	local down = TweenService:Create(
-		equipped,
-		TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Grip = base * CFrame.Angles(math.rad(30), 0, 0) }
-	)
-	down.Completed:Once(function()
-		local up = TweenService:Create(
-			equipped,
-			TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-			{ Grip = base }
-		)
-		up.Completed:Once(function()
-			swingingTools[equipped] = nil
-		end)
-		up:Play()
-	end)
-	down:Play()
+-- Scoop animation (ShovelPoseController): plays immediately on the click, no server round trip.
+local function swing(color: Color3?)
+	ShovelPoseController.PlayScoop(nil, State.GetCooldown(), color)
 end
 
 local function getPointer(): (Vector2?, boolean)
@@ -198,9 +166,8 @@ function DigController.TryDigAt(position: Vector3): boolean
 
 	lastDig = now
 	ensureToolEquipped()
-	swing()
-
 	local layer = layerAt(position)
+	swing(layer.Color)
 	if State.GetShovel().Power < layer.Hardness then
 		SoundController.Play("DigBlocked", 0.9 + math.random() * 0.2)
 		EffectsController.FloatText(position, "Clank! 💢", Config.Theme.Colors.Danger, 0.9)

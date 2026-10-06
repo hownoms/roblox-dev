@@ -54,8 +54,9 @@ local Monetization: Types.MonetizationConfig = {
 			Id = 0,
 			Name = "Auto Dig",
 			Price = 199,
-			Description = "+1 Digger slot & auto-swing: your character keeps digging by itself.",
+			Description = "+1 Pet slot & auto-swing: your character keeps digging by itself.",
 			Color = rgb(60, 170, 255),
+			ExtraPetSlots = 1, -- v2.1: was +1 digger slot (diggers are pets now)
 		},
 		Lucky = {
 			Id = 0,

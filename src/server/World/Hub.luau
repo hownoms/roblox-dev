@@ -2,13 +2,14 @@
 --[[
 	Hub — the plaza inland of the boardwalk: spawns (on the boardwalk deck), Sell stand,
 	Shovel & Backpack huts, Egg incubator, Rebirth shrine, two leaderboards, the free Water
-	Fountain, the Digger Garage and the Beach Shop stall. Hero structures are built from Parts in
-	a local frame whose -Z (front) faces the boardwalk spawns.
+	Fountain, the Construction Crate yard (v2.1, where the Garage stood) and the Beach Shop stall.
+	Hero structures are built from Parts in a local frame whose -Z (front) faces the boardwalk spawns.
 
 	Tags placed: SpawnLocation, SellZone, ShovelShop, BackpackShop, EggShop (one per egg, with
-	attribute EggId on the part and on its ProximityPrompt), RebirthStatue, LeaderboardCoins,
-	LeaderboardDepth, WaterFountain (prompt "Drink"), Garage (prompt "Garage"), BeachShop
-	(prompt "Shop"). Survival / Diggers clients handle those three prompts.
+	attribute EggId on the part and on its ProximityPrompt), CrateShop (one per Construction Crate,
+	same EggId attribute; EggPanel hooks its "Open" prompt), RebirthStatue, LeaderboardCoins,
+	LeaderboardDepth, WaterFountain (prompt "Drink"), BeachShop (prompt "Shop"). Survival /
+	Companions clients handle those prompts.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -291,9 +292,15 @@ local function buildEggs(parent: Instance)
 	local function arcPoint(a: number, r: number): Vector3
 		return center + (right * math.sin(a) + dir * math.cos(a)) * r
 	end
-	local n = #Config.Eggs
+	local eggs: { Types.EggDef } = {}
+	for _, egg in Config.Eggs do
+		if egg.Kind ~= "Crate" then -- crates get their own yard (buildCrateYard)
+			table.insert(eggs, egg)
+		end
+	end
+	local n = #eggs
 	local arc = Layout.EGG_ARC_DEGREES
-	for i, egg in Config.Eggs do
+	for i, egg in eggs do
 		local t = if n > 1 then (i - 1) / (n - 1) else 0.5
 		local a = math.rad(-arc / 2 + arc * t)
 		-- +2: smooth terrain's visible surface sits ~2 studs above the voxel grid, so pedestals
@@ -486,79 +493,138 @@ local function buildFountain(parent: Instance)
 	end
 end
 
--- Digger garage (Diggers agent opens its panel from the "Garage" prompt) ---------------------
+-- Construction Crate yard (v2.1, Companions): where the Digger Garage stood --------------------
+-- A small arc of wooden pallets, one per Config.Eggs entry with Kind = "Crate", facing the plaza.
+-- Each pallet: tag "CrateShop", attribute EggId (part + prompt), "Open" prompt -> EggPanel.
 
-local function buildGarage(parent: Instance)
-	local m = Util.Model("Garage", parent)
-	local base = hubFacing(Layout.GARAGE)
-	local wall = rgb(236, 226, 206)
-	local trim = C.Gold
-	local roof = rgb(96, 104, 124)
+local CRATE_YARD = Layout.GARAGE
+local CRATE_ARC_RADIUS = 16
+local CRATE_ARC_DEGREES = 80
 
-	lp(m, base, "Floor", Vector3.new(24, 1, 20), Vector3.new(0, 0.5, 0), rgb(150, 150, 160), Enum.Material.Concrete)
-	lp(m, base, "BackWall", Vector3.new(24, 14, 1), Vector3.new(0, 7.5, 9.5), wall)
-	for _, x in { -11.5, 11.5 } do
-		lp(m, base, "SideWall", Vector3.new(1, 14, 20), Vector3.new(x, 7.5, 0), wall)
+local function buildCrateYard(parent: Instance)
+	local crates: { Types.EggDef } = {}
+	for _, egg in Config.Eggs do
+		if egg.Kind == "Crate" then
+			table.insert(crates, egg)
+		end
 	end
-	-- Front: two pillars and a lintel around the big open door
-	for _, x in { -10, 10 } do
-		lp(m, base, "Pillar", Vector3.new(3, 14, 1.2), Vector3.new(x, 7.5, -9.6), trim)
+	if #crates == 0 then
+		return
 	end
-	lp(m, base, "Lintel", Vector3.new(24, 3, 1.2), Vector3.new(0, 13, -9.6), trim)
-	-- Rolled-up striped door
-	for k = 0, 2 do
-		lp(
+	local m = Util.Model("CrateYard", parent)
+	local toHub = Layout.HUB_CENTER - CRATE_YARD
+	local dir = Vector3.new(toHub.X, 0, toHub.Z).Unit
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	local center = CRATE_YARD - dir * 10
+	local function arcPoint(a: number, r: number): Vector3
+		return center + (right * math.sin(a) + dir * math.cos(a)) * r
+	end
+	local hazard = rgb(255, 200, 40)
+	local black = rgb(40, 40, 46)
+	local n = #crates
+	for i, egg in crates do
+		local t = if n > 1 then (i - 1) / (n - 1) else 0.5
+		local a = math.rad(-CRATE_ARC_DEGREES / 2 + CRATE_ARC_DEGREES * t)
+		-- +2: smooth terrain's visible surface sits ~2 studs above the voxel grid (see buildEggs)
+		local pos = arcPoint(a, CRATE_ARC_RADIUS) + Vector3.new(0, 2, 0)
+		local out = ((pos - center) * Vector3.new(1, 0, 1)).Unit
+		local base = CFrame.lookAt(pos, pos + out)
+
+		-- pallet (2 studs sunk into the sand, top at pos.Y + 1)
+		local pallet = lp(
 			m,
 			base,
-			"DoorRoll",
-			Vector3.new(17, 0.7, 1.4),
-			Vector3.new(0, 10.9 - k * 0.7, -9),
-			if k % 2 == 0 then C.Coral else WHITE,
-			nil,
-			true
+			"CratePallet_" .. egg.Id,
+			Vector3.new(6, 3, 6),
+			Vector3.new(0, -0.5, 0),
+			WOOD,
+			Enum.Material.WoodPlanks
 		)
+		pallet:SetAttribute("EggId", egg.Id)
+		Util.Tag(pallet, "CrateShop")
+		local prompt = Util.Prompt(pallet, "Open", egg.Name, 8)
+		prompt:SetAttribute("EggId", egg.Id)
+		for k = -1, 1 do
+			lp(
+				m,
+				base,
+				"PalletSlat",
+				Vector3.new(6.2, 0.3, 1.2),
+				Vector3.new(0, 1.1, k * 2.3),
+				WOOD_DARK,
+				Enum.Material.Wood,
+				true
+			).Parent =
+				pallet
+		end
+		-- hazard stripes around the pallet edge
+		for k = 0, 5 do
+			local color = if k % 2 == 0 then hazard else black
+			lp(m, base, "HazardStripe", Vector3.new(1, 0.5, 0.2), Vector3.new(-2.5 + k, 0.4, -3.05), color, nil, true).Parent =
+				pallet
+		end
+
+		local ok, result = pcall(Models.Egg, egg.Id)
+		if ok and typeof(result) == "Instance" and result:IsA("Model") then
+			local crateModel = result :: Model
+			Util.Finish(crateModel, true)
+			Util.Ground(crateModel, CFrame.lookAt(pos + Vector3.new(0, 1.3, 0), pos + Vector3.new(0, 1.3, 0) + out))
+			crateModel.Parent = pallet
+		else
+			warn("[World] Models.Egg failed for", egg.Id, result)
+		end
+
+		local bb = Instance.new("BillboardGui")
+		bb.Name = "CrateInfo"
+		bb.Size = UDim2.fromScale(6, 2.4)
+		bb.StudsOffsetWorldSpace = Vector3.new(0, 7.5, 0)
+		bb.MaxDistance = 40
+		bb.LightInfluence = 0
+		bb.Parent = pallet
+		Util.Label(bb, egg.Name, egg.Look.SpotColor:Lerp(WHITE, 0.2), UDim2.fromScale(0, 0), UDim2.fromScale(1, 0.45))
+		local price = Util.Label(
+			bb,
+			priceText(egg),
+			C.Gold,
+			UDim2.fromScale(0.1, 0.45),
+			UDim2.fromScale(0.8, 0.3),
+			Theme.Fonts.Number
+		)
+		price.Name = "Price"
+		local layer = Config.Layers[egg.UnlockLayer]
+		if layer and layer.DepthStart > 0 then
+			local unlock = Util.Label(
+				bb,
+				"Unlocks at " .. Format.Depth(layer.DepthStart),
+				WHITE,
+				UDim2.fromScale(0.15, 0.76),
+				UDim2.fromScale(0.7, 0.22),
+				Theme.Fonts.Body
+			)
+			unlock.Name = "Unlock"
+		end
 	end
-	lp(m, base, "Roof", Vector3.new(26, 1.2, 22), Vector3.new(0, 15.1, 0), roof, Enum.Material.Metal)
-	lp(m, base, "RoofTrim", Vector3.new(26.4, 0.6, 22.4), Vector3.new(0, 14.4, 0), trim, nil, true)
-	Util.Sign(m, "GARAGE", Vector3.new(16, 3.4, 0.6), base * CFrame.new(0, 17.6, -9.6), {
-		Name = "GarageSign",
-		BoardColor = C.Coral,
-		SubText = "DIGGERS",
+
+	-- Sign behind the arc, facing the plaza
+	local signPos = center - dir * 1
+	local base = Util.Facing(signPos, signPos + dir)
+	for _, x in { -8, 8 } do
+		lp(m, base, "SignPost", Vector3.new(0.9, 13, 0.9), Vector3.new(x, 6.5, 0.6), black, Enum.Material.Metal)
+	end
+	Util.Sign(m, "CONSTRUCTION CRATES", Vector3.new(19, 4.6, 0.8), base * CFrame.new(0, 11, 0), {
+		Name = "CrateSign",
+		BoardColor = rgb(240, 160, 30),
+		SubText = "Pets that DIG for you!",
 	})
-
-	-- Workbench just inside the door carries the tag + prompt
-	local bench = lp(m, base, "Workbench", Vector3.new(10, 3.4, 3), Vector3.new(0, 2.7, -5), C.Ocean)
-	lp(m, base, "BenchTop", Vector3.new(10.6, 0.5, 3.4), Vector3.new(0, 4.6, -5), WOOD, Enum.Material.WoodPlanks)
-	Util.Tag(bench, "Garage")
-	Util.Prompt(bench, "Garage", "Diggers", 14)
-
-	-- Toy digger on display (pure decor)
-	local yellow = rgb(255, 196, 40)
-	local dark = rgb(60, 64, 76)
-	lp(m, base, "DiggerTracks", Vector3.new(6, 1.4, 4.4), Vector3.new(0, 1.7, 3.5), dark, nil, true)
-	lp(m, base, "DiggerBody", Vector3.new(5, 2.4, 4), Vector3.new(0, 3.6, 3.5), yellow, nil, true)
-	lp(
-		m,
-		base,
-		"DiggerCab",
-		Vector3.new(2.6, 2.4, 2.6),
-		Vector3.new(-1, 6, 3.8),
-		rgb(140, 210, 245),
-		Enum.Material.Glass,
-		true
-	)
-	local arm = lp(m, base, "DiggerArm", Vector3.new(0.8, 0.8, 5), Vector3.new(1.6, 6, 0.8), yellow, nil, true)
-	arm.CFrame = base * CFrame.new(1.6, 6, 0.8) * CFrame.Angles(math.rad(-25), 0, 0)
-	lp(
-		m,
-		base,
-		"DiggerBucket",
-		Vector3.new(2.2, 1.6, 1.4),
-		Vector3.new(1.6, 3.6, -1.6),
-		dark,
-		Enum.Material.Metal,
-		true
-	)
+	-- Traffic cones at the arc ends (decor)
+	for _, sx in { -1, 1 } do
+		local p = arcPoint(math.rad(sx * (CRATE_ARC_DEGREES / 2 + 16)), CRATE_ARC_RADIUS)
+		local y = Util.SurfaceY(p + Vector3.new(0, 2, 0))
+		local coneBase = CFrame.new(p.X, y, p.Z)
+		lp(m, coneBase, "ConeBase", Vector3.new(2.4, 0.3, 2.4), Vector3.new(0, 0.15, 0), rgb(255, 120, 30), nil, true)
+		Util.Cylinder(m, "Cone", (coneBase * CFrame.new(0, 1.4, 0)).Position, 2.4, 1.4, rgb(255, 120, 30), nil, true)
+		Util.Cylinder(m, "ConeStripe", (coneBase * CFrame.new(0, 1.6, 0)).Position, 0.4, 1.45, WHITE, nil, true)
+	end
 end
 
 -- Beach shop stall: shade + snacks (Survival opens its panel from the "Shop" prompt) ----------
@@ -626,7 +692,7 @@ function Hub.Build(parent: Instance)
 	buildRebirth(parent)
 
 	buildFountain(parent)
-	buildGarage(parent)
+	buildCrateYard(parent)
 	buildBeachShop(parent)
 
 	-- Bunting flag poles around the plaza

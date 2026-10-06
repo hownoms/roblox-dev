@@ -18,6 +18,9 @@ Icons.Store = "💎"
 Icons.Settings = "⚙️"
 Icons.Beach = "⛱️"
 Icons.Garage = "🚜"
+Icons.Dig = "⛏️" -- v2.1: digging pet badge
+Icons.Ride = "🚜" -- v2.1: rideable pet badge
+Icons.Crate = "📦" -- v2.1: Construction Crate
 Icons.Surface = "⬆️"
 Icons.Sell = "💸"
 Icons.AutoDig = "🤖"
@@ -64,6 +67,22 @@ Icons.PetShapes = {
 	Dragon = "🐉",
 	Golem = "🗿",
 	Seal = "🐳",
+} :: { [string]: string }
+
+-- v2.1 vehicle pets (PetDef.VehicleKind)
+Icons.VehicleKinds = {
+	ToyTruck = "🚚",
+	DumpTruck = "🚛",
+	Excavator = "🚜",
+	SkidSteer = "🚜",
+	Bulldozer = "🚜",
+	Backhoe = "🚜",
+	DrillRig = "🏗️",
+	MiningDrill = "⛏️",
+	TunnelBorer = "🏗️",
+	Mole = "🤖",
+	LavaDrill = "🌋",
+	CoreDriller = "🏗️",
 } :: { [string]: string }
 
 Icons.BackpackShapes = {
@@ -113,6 +132,14 @@ end
 
 function Icons.PetShape(shape: string): string
 	return Icons.PetShapes[shape] or "🐾"
+end
+
+-- Pet icon: the vehicle icon for vehicle pets, else the creature shape icon.
+function Icons.Pet(shape: string, vehicleKind: string?): string
+	if vehicleKind then
+		return Icons.VehicleKinds[vehicleKind] or "🚜"
+	end
+	return Icons.PetShape(shape)
 end
 
 function Icons.Event(id: string, kind: string?): string

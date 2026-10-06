@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 
 local ServerSignals = {
-	-- player, dig depth (studs), sand gained, source ("Shovel" | "Auto" | "Digger")
+	-- player, dig depth (studs), sand gained, source ("Shovel" | "Auto" | "Digger" | "Pet" | "Ride")
 	Dug = Signal.new() :: Signal.Signal<Player, number, number, string>,
 	-- player, coins earned, sand sold
 	Sold = Signal.new() :: Signal.Signal<Player, number, number>,

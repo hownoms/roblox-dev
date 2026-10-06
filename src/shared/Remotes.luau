@@ -30,11 +30,9 @@ Remotes.Events = table.freeze({
 	"BuyConsumable", -- (id: string, count: number)
 	"UseConsumable", -- (id: string)
 	"DrinkFountain",
-	-- v2 diggers
-	"BuyDigger",
-	"EquipDigger",
-	"UnequipDigger",
-	"UpgradeDigger",
+	-- v2.1 ride-on excavator (RideService)
+	"ToggleRide", -- () spawn + sit in your rideable pet, or get out
+	"RideDig", -- () scoop in front of your vehicle (server picks the point)
 	-- server -> client
 	"DataChanged",
 	"Notify",
@@ -42,7 +40,12 @@ Remotes.Events = table.freeze({
 	"TreasureFound",
 	"EggHatched",
 	"EventChanged",
-	"DiggerDug", -- server -> all clients: (player: Player, diggerId: string, position: Vector3)
+	-- v2.1 companions: a digging pet dug. server -> all clients:
+	-- (player: Player, slot: number, petId: string, position: Vector3, sandGained: number)
+	-- slot = 1-based index into the owner's "EquippedPets" attribute list.
+	"PetDug",
+	"Scoop", -- server -> other clients: (player: Player) a successful shovel dig (scoop animation)
+	"RideDug", -- server -> all clients: (player: Player, position: Vector3, success: boolean, layerIndex: number)
 })
 
 Remotes.Functions = table.freeze({

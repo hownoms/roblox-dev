@@ -3,14 +3,15 @@
 	DigService — every terrain dig goes through DigService.DigAt (docs/V2.md).
 
 	DigAt(player, position, opts) — opts = Types.DigOptions { Power, Radius, SandMultiplier,
-	Source = "Shovel" | "Digger" | "Auto", Silent? }. Validation, in order (first failure ->
+	Source = "Shovel" | "Digger" | "Pet" | "Ride" | "Auto", Silent? }. Validation, in order (first failure ->
 	DigResult{Success=false,Reason}):
 	  Cooldown     Shovel/Auto only: shovel cooldown / speed (x COOLDOWN_LENIENCY for Shovel)
 	               x Config.Heat.SunburntCooldownMultiplier while the player is "Sunburnt"
 	  OutOfZone    point is not inside the dig zone (World.GetDigZone)
 	  Bottom       point is at the very bottom of the world (The Core floor is indestructible)
 	  TooFar       Shovel: further than Config.REACH (+ slack) from HumanoidRootPart;
-	               Digger: further than DIGGER_RANGE from the owner (Auto: never)
+	               Digger/Pet: further than DIGGER_RANGE from the owner (Auto: never);
+	               Ride: further than RIDE_RANGE from opts.Origin (the vehicle, RideService)
 	  TooHard      opts.Power < Hardness of the layer at that depth
 	  BackpackFull Sand >= effective capacity
 	Points with no solid terrain near them are ignored silently (no result).
@@ -60,7 +61,11 @@ local World = require(script.Parent.Parent.World)
 
 local REACH_SLACK = 2 -- studs of latency slack on top of Config.REACH
 local DIGGER_RANGE = 16 -- Digger digs must be this close to the owner's character
+-- v2.1: pet ("Pet") and ride-on ("Ride") digs follow the "Digger" rules (own stats, no shovel
+-- cooldown, DIGGER_RANGE instead of REACH, no failure DigResult).
+local COMPANION_SOURCES: { [string]: boolean } = { Digger = true, Pet = true, Ride = true }
 local DIGGER_SLACK = 2
+local RIDE_RANGE = 64 -- "Ride": max studs from the vehicle (opts.Origin) to the dig point
 local SURFACE_SLACK = 4 -- how far above the surface a dig point may be
 local BOTTOM_FLOOR = 2 -- studs of indestructible floor kept at the bottom of the world
 local EDGE_SLACK = 1 -- dig points may be this far outside the footprint (surface rounding)
@@ -268,7 +273,7 @@ local function fail(
 	result.Reason = reason
 	-- No Notify here: the client turns the DigResult into one hint. Throttle failure replies so
 	-- spamming the remote can't flood the client back.
-	if opts.Silent or opts.Source == "Digger" or (opts.Source == "Auto" and reason == "Cooldown") then
+	if opts.Silent or COMPANION_SOURCES[opts.Source] or (opts.Source == "Auto" and reason == "Cooldown") then
 		return result
 	end
 	local interval = if opts.Source == "Auto" then AUTO_FAIL_INTERVAL else FAIL_RESULT_INTERVAL
@@ -314,10 +319,11 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	assert(data) -- refine for the type checker (guarded above)
 	assert(ctx) -- refine for the type checker (guarded above)
 	local source = opts.Source
+	local companion = COMPANION_SOURCES[source] == true
 	local result = baseResult(position)
 	local now = os.clock()
 
-	if source ~= "Digger" then
+	if not companion then
 		local cooldown = cooldownFor(player, ctx, source)
 		local last = lastDig[player]
 		if last and now - last < cooldown then
@@ -342,7 +348,13 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 		if not root or (root.Position - position).Magnitude > Config.REACH + REACH_SLACK then
 			return fail(player, result, "TooFar", opts)
 		end
-	elseif source == "Digger" then
+	elseif source == "Ride" then
+		-- Ride: measured from the vehicle (opts.Origin, server-side; the rider sits in its cab).
+		local origin = opts.Origin or (if root then root.Position else nil)
+		if not root or not origin or (origin - position).Magnitude > RIDE_RANGE then
+			return fail(player, result, "TooFar", opts)
+		end
+	elseif companion then
 		if not root or (root.Position - position).Magnitude > DIGGER_RANGE + DIGGER_SLACK then
 			return fail(player, result, "TooFar", opts)
 		end
@@ -380,7 +392,7 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	end
 
 	-- Success ------------------------------------------------------------------------------------
-	if source ~= "Digger" then
+	if not companion then
 		lastDig[player] = now
 	end
 	sessionDigs[player] = (sessionDigs[player] or 0) + 1

@@ -25,6 +25,7 @@ local Props = require(script.Props)
 local Shades = require(script.Shades)
 local Consumables = require(script.Consumables)
 local Diggers = require(script.Diggers)
+local Rides = require(script.Rides)
 
 local Models = {}
 
@@ -57,7 +58,8 @@ function Models.ListProps(): { string }
 	return Props.List()
 end
 
--- v2 (Survival agent: Shade, Consumable; Diggers agent: Digger)
+-- v2 (Survival agent: Shade, Consumable). Models.Digger(id): a vehicle pet id (or vehicle Kind)
+-- at full vehicle size (scale 1); Models.Pet(id) draws the same vehicle at pet scale.
 function Models.Shade(shadeId: string): Model
 	return Shades.Build(shadeId)
 end
@@ -66,8 +68,13 @@ function Models.Consumable(consumableId: string): Model
 	return Consumables.Build(consumableId)
 end
 
-function Models.Digger(diggerId: string): Model
-	return Diggers.Build(diggerId)
+function Models.Digger(id: string, scale: number?): Model
+	return Diggers.Build(id, scale)
+end
+
+-- v2.1 (Ride agent): full-size ride-on vehicle for a rideable pet (unanchor-ready, see Rides.luau)
+function Models.RideVehicle(petId: string): Model
+	return Rides.Build(petId)
 end
 
 return Models

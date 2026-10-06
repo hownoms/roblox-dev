@@ -128,6 +128,7 @@ export type PetShape =
 	| "Dragon"
 	| "Golem"
 	| "Seal"
+	| "Vehicle" -- v2.1: vehicle pet, drawn by Models/Diggers (PetDef.VehicleKind)
 
 export type PetLook = {
 	BodyColor: Color3,
@@ -458,33 +459,9 @@ export type ConsumableDef = {
 	Look: { [string]: any },
 }
 
--- v2: digger companions -------------------------------------------------------------------------
--- Owned by the Diggers agent; may add fields, must keep these.
-
-export type DiggerDef = {
-	Id: string,
-	Name: string,
-	Price: number,
-	RebirthsRequired: number?,
-	Power: number, -- can dig layers with Hardness <= Power
-	Interval: number, -- seconds between digs
-	Radius: number, -- dig size, same scale as shovel Radius
-	SandMultiplier: number,
-	MaxLevel: number,
-	Look: { [string]: any },
-	-- Diggers agent additions:
-	UpgradeCosts: { number }, -- [L] = coins to go from level L to L + 1 (length MaxLevel - 1)
-	Description: string,
-}
-
--- Effective stats of a digger at a level (Config.GetDiggerStats).
-export type DiggerStats = {
-	Power: number,
-	Interval: number,
-	Radius: number,
-	SandMultiplier: number,
-}
-
+-- v2 digger companions were folded into pets in v2.1 (vehicle pets from Construction Crates).
+-- DiggerInstance stays only so old saves' PlayerData.Diggers can be read by the DataService
+-- migration (v1 -> v2), which converts them to pets and leaves the table empty.
 export type DiggerInstance = {
 	Level: number,
 	Equipped: boolean,
@@ -513,14 +490,14 @@ export type PlayerData = {
 	Boosts: { [string]: number }, -- boostId -> expires unix
 	Consumables: { [string]: number }, -- v2: consumable id -> count
 	OwnedShades: { [string]: boolean }, -- v2
-	Diggers: { [string]: DiggerInstance }, -- v2: digger id -> instance
+	Diggers: { [string]: DiggerInstance }, -- v2 (legacy): emptied by the v2.1 migration, never written
 	PlayTime: number, -- seconds
 	FirstJoin: number, -- unix
 	Version: number,
 }
 
 -- v2 (Beach): DigService.DigAt(player, position, opts). Shovel/Auto digs use the equipped
--- shovel's stats; Digger digs pass their own.
+-- shovel's stats; Digger / Pet (PetDigService) / Ride digs pass their own.
 export type DigSource = "Shovel" | "Digger" | "Auto" | "Pet" | "Ride"
 
 export type DigOptions = {
@@ -529,6 +506,7 @@ export type DigOptions = {
 	SandMultiplier: number, -- replaces the shovel's SandMultiplier in Stats
 	Source: DigSource,
 	Silent: boolean?, -- true: no DigResult is sent to the player
+	Origin: Vector3?, -- "Ride": server-side vehicle position the range check measures from
 }
 
 export type DigFailReason = "Cooldown" | "TooHard" | "BackpackFull" | "OutOfZone" | "TooFar" | "Bottom"

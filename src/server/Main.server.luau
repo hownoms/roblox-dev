@@ -50,7 +50,8 @@ local LeaderboardService = require(Services.LeaderboardService)
 local BadgeAwardService = require(Services.BadgeAwardService)
 local DevCommands = require(Services.DevCommands)
 local SurvivalService = require(Services.SurvivalService)
-local DiggerService = require(Services.DiggerService)
+local PetDigService = require(Services.PetDigService)
+local RideService = require(Services.RideService)
 local Net = require(Services.Net)
 
 type Service = {
@@ -77,7 +78,8 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },
 	{ Name = "BadgeAwardService", Module = BadgeAwardService :: any },
 	{ Name = "SurvivalService", Module = SurvivalService :: any },
-	{ Name = "DiggerService", Module = DiggerService :: any },
+	{ Name = "PetDigService", Module = PetDigService :: any },
+	{ Name = "RideService", Module = RideService :: any },
 	{ Name = "DevCommands", Module = DevCommands :: any },
 }
 

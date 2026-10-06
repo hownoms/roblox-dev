@@ -1,7 +1,16 @@
 --!strict
 --[[
 	Diggers — chunky cartoon construction vehicles from primitives (no asset ids), one builder per
-	Config.Diggers[id].Look.Kind. Roughly 3-6 studs long.
+	vehicle Kind. Roughly 3-6 studs long at scale 1.
+
+	v2.1: the Garage diggers became vehicle PETS (Config/Pets.luau, PetDef.VehicleKind = the Kind
+	here, colours from PetDef.Look). Models.Pet(id) draws vehicle pets through Diggers.Build(id,
+	Look.Size). The Ride agent may reuse these builders read-only (Diggers.FromLook / Kinds).
+
+	API:
+	  Diggers.Build(id, scale?)               id = a vehicle pet id (or a Kind name); scale default 1
+	  Diggers.FromLook(name, look, scale?)    look = { Kind, Body: Color3, Accent: Color3, Glow }
+	  Diggers.Kinds(): { string }             every Kind with a dedicated builder
 
 	Conventions (Models/Build.luau):
 	- PrimaryPart = invisible "Root" at the bottom-centre (pivot on the ground), front = -Z.
@@ -17,7 +26,7 @@
 	      Amount  number   radians (Swing / Tip) or radians per second (Spin / Drill)
 	      Plunge  number?  studs (Drill)
 	  Names: "Arm", "Loader", "Bed", "Blade", "Drill", "Cutter".
-	- Model attribute "Kind" = Look.Kind.
+	- Model attributes "Kind" = Look.Kind and "Scale" = the build scale (Plunge is pre-scaled).
 ]]
 
 local Config = require(script.Parent.Parent.Config)
@@ -489,28 +498,41 @@ kinds.CoreDriller = function(c)
 	return body
 end
 
-local FALLBACK_LOOK: { [string]: any } =
+export type VehicleLook = {
+	Kind: string,
+	Body: Color3,
+	Accent: Color3,
+	Glow: boolean,
+}
+
+local FALLBACK_LOOK: VehicleLook =
 	{ Kind = "ToyTruck", Body = Color3.fromRGB(255, 210, 50), Accent = Color3.fromRGB(240, 70, 70), Glow = false }
 
 -- Builder -----------------------------------------------------------------------------------
 
-function Diggers.Build(id: string): Model
-	local def = Config.GetDigger(id)
-	local look = if def then def.Look else FALLBACK_LOOK
-	local kind = if typeof(look.Kind) == "string" then look.Kind else "ToyTruck"
-	local body = if typeof(look.Body) == "Color3" then look.Body else FALLBACK_LOOK.Body
-	local accent = if typeof(look.Accent) == "Color3" then look.Accent else FALLBACK_LOOK.Accent
+function Diggers.FromLook(name: string, look: VehicleLook, scale: number?): Model
+	local kind = look.Kind
 	local glow = look.Glow == true
+	local s = math.clamp(scale or 1, 0.2, 5)
 
-	local m = Build.model(id)
+	local m = Build.model(name)
 	m:SetAttribute("Kind", kind)
+	m:SetAttribute("Scale", s)
 	local root = Build.root(m, CFrame.identity, V(1, 0.1, 1))
-	local ctx: Ctx = { m = m, B = body, A = accent, am = if glow then NEON else SMOOTH, glow = glow }
+	local ctx: Ctx = { m = m, B = look.Body, A = look.Accent, am = if glow then NEON else SMOOTH, glow = glow }
 	local builder = kinds[kind] or kinds.ToyTruck
 	local main = builder(ctx)
 	if glow then
-		Build.glow(main, accent, 1, 9)
-		Build.sparkle(main, accent, 2)
+		Build.glow(main, look.Accent, 1, 9)
+		Build.sparkle(main, look.Accent, 2)
+	end
+	if math.abs(s - 1) > 1e-4 then
+		Build.scale(m, CFrame.identity, s)
+		for _, d in m:GetDescendants() do
+			if d:IsA("Model") and typeof(d:GetAttribute("Plunge")) == "number" then
+				d:SetAttribute("Plunge", (d:GetAttribute("Plunge") :: number) * s)
+			end
+		end
 	end
 
 	-- Weld static parts only: hinge assemblies are re-posed by the client every frame.
@@ -523,6 +545,23 @@ function Diggers.Build(id: string): Model
 		end
 	end
 	return m
+end
+
+-- `id` = a vehicle pet id (Config.GetPet(id).VehicleKind, colours from its Look), or a Kind name.
+function Diggers.Build(id: string, scale: number?): Model
+	local pet = Config.GetPet(id)
+	local look: VehicleLook = FALLBACK_LOOK
+	if pet and pet.VehicleKind then
+		look = {
+			Kind = pet.VehicleKind :: string,
+			Body = pet.Look.BodyColor,
+			Accent = pet.Look.AccentColor,
+			Glow = pet.Look.Glow,
+		}
+	elseif kinds[id] then
+		look = { Kind = id, Body = FALLBACK_LOOK.Body, Accent = FALLBACK_LOOK.Accent, Glow = false }
+	end
+	return Diggers.FromLook(id, look, scale)
 end
 
 -- Ids with a dedicated builder (QA / tests).

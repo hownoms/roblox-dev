@@ -7,11 +7,16 @@
 	All parts Anchored, CanCollide/CanQuery false, welded to Root (client may unanchor).
 	Glow -> Neon accents + PointLight. Legendary/Mythic -> "Sparkles" emitter on "Body";
 	Mythic also gets a floating halo of neon orbs (parts named "Halo").
+
+	v2.1: vehicle pets (PetDef.VehicleKind) are drawn by Models/Diggers at scale Look.Size
+	(~3-5 studs long), with their animated sub-Models ("Arm", "Drill", ... with a "Motion"
+	attribute) intact, so the client can play the dig animation. Model attribute "Vehicle" = true.
 ]]
 
 local Types = require(script.Parent.Parent.Types)
 local Config = require(script.Parent.Parent.Config)
 local Build = require(script.Parent.Build)
+local Diggers = require(script.Parent.Diggers)
 
 local Pets = {}
 
@@ -410,8 +415,23 @@ local function build(id: string, look: Types.PetLook, rarity: Types.Rarity): Mod
 	return m
 end
 
+local function buildVehicle(def: Types.PetDef): Model
+	local m = Diggers.Build(def.Id, def.Look.Size)
+	m:SetAttribute("Vehicle", true)
+	if def.Rarity == "Legendary" or def.Rarity == "Mythic" then
+		local body = m:FindFirstChild("Body")
+		if body and body:IsA("BasePart") then
+			Build.sparkle(body, def.Look.AccentColor, if def.Rarity == "Mythic" then 8 else 4)
+		end
+	end
+	return m
+end
+
 function Pets.Build(petId: string): Model
 	local def = Config.GetPet(petId)
+	if def and def.VehicleKind then
+		return buildVehicle(def)
+	end
 	if def then
 		return build(petId, def.Look, def.Rarity)
 	end

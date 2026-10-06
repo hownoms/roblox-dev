@@ -11,13 +11,15 @@
 	becomes "Handle", every part is unanchored, non-colliding, massless and welded to the handle.
 	If the model carries a CFrame attribute "Grip" it is used as Tool.Grip. The tool is re-given on
 	every respawn (no StarterGear needed) and the old one is removed on equip. Tools carry the
-	attribute "ShovelId".
+	attributes "ShovelId" and "TwoHanded" (full-size shovel, posed with both hands on clients).
+	Every successful Shovel/Auto dig fires "Scoop"(player) to the other clients (animation only).
 
 	Public API:
 		ShopService.GiveShovelTool(player)
 		ShopService.Buy(player, kind, id) / ShopService.Equip(player, kind, id)  (kind = "Shovel" | "Backpack")
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
@@ -108,6 +110,8 @@ local function buildTool(shovelId: string): Tool?
 	if typeof(grip) == "CFrame" then
 		tool.Grip = grip
 	end
+	-- Full-size shovels are posed with both hands by the client ShovelPoseController.
+	tool:SetAttribute("TwoHanded", handlePart:GetAttribute("TwoHanded") == true)
 
 	handlePart.Name = "Handle"
 	handlePart.Parent = tool
@@ -269,6 +273,19 @@ function ShopService.Start()
 	DataService.PlayerLoaded:Connect(function(player: Player)
 		if player.Character then
 			ShopService.GiveShovelTool(player)
+		end
+	end)
+	-- Scoop broadcast: every successful shovel dig plays the scoop animation on that character
+	-- for everyone else (the digger's own client already played it on click). Server AutoDig
+	-- digs have no click, so those go to the digger too. Pet/digger/ride digs never scoop.
+	ServerSignals.Dug:Connect(function(player: Player, _depth: number, _gained: number, source: string)
+		if source ~= "Shovel" and source ~= "Auto" then
+			return
+		end
+		for _, other in Players:GetPlayers() do
+			if other ~= player or source == "Auto" then
+				Net.FireClient("Scoop", other, player)
+			end
 		end
 	end)
 end

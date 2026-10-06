@@ -5,6 +5,11 @@
 	Rebirth Egg costs Rebirth Tokens. Golden Egg is Robux-only: one hatch = one purchase of
 	Config.Monetization.Products[ProductKey] (Price here is the Robux suggestion).
 	Luck boosts multiply the weight of non-Common pets; Triple Hatch pass hatches 3 at once.
+
+	v2.1: Construction Crates (Kind = "Crate") are eggs that hatch digging vehicle pets (see
+	Config/Pets.luau and docs/design/Companions.md). Same hatch flow, prices and unlocks; the world
+	builds them in a small crate yard next to the plaza and the UI draws them as crates. The top
+	crate hides the rideable Mythic "mega_excavator" (0.5%).
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -143,6 +148,64 @@ local Eggs: { Types.EggDef } = {
 			{ PetId = "sun_dragon", Weight = 3 },
 		},
 		Look = { ShellColor = rgb(255, 210, 50), SpotColor = rgb(255, 255, 255), Glow = true },
+	},
+	-- v2.1 Construction Crates ------------------------------------------------------------------
+	{
+		Id = "sandbox_crate",
+		Name = "Sandbox Crate",
+		Kind = "Crate",
+		Currency = "Coins",
+		Price = 1000,
+		UnlockLayer = 3,
+		Pets = {
+			{ PetId = "toy_truck", Weight = 65 },
+			{ PetId = "dump_truck", Weight = 28 },
+			{ PetId = "mini_excavator", Weight = 7 },
+		},
+		Look = { ShellColor = rgb(214, 160, 96), SpotColor = rgb(255, 200, 40), Glow = false },
+	},
+	{
+		Id = "quarry_crate",
+		Name = "Quarry Crate",
+		Kind = "Crate",
+		Currency = "Coins",
+		Price = 75000,
+		UnlockLayer = 6,
+		Pets = {
+			{ PetId = "skid_steer", Weight = 65 },
+			{ PetId = "bulldozer", Weight = 28 },
+			{ PetId = "backhoe", Weight = 7 },
+		},
+		Look = { ShellColor = rgb(150, 156, 168), SpotColor = rgb(255, 170, 30), Glow = false },
+	},
+	{
+		Id = "mine_crate",
+		Name = "Deep Mine Crate",
+		Kind = "Crate",
+		Currency = "Coins",
+		Price = 6000000,
+		UnlockLayer = 10,
+		Pets = {
+			{ PetId = "drill_rig", Weight = 65 },
+			{ PetId = "mining_drill", Weight = 28 },
+			{ PetId = "tunnel_borer", Weight = 7 },
+		},
+		Look = { ShellColor = rgb(110, 80, 60), SpotColor = rgb(255, 120, 30), Glow = false },
+	},
+	{
+		Id = "core_crate",
+		Name = "Core Crate",
+		Kind = "Crate",
+		Currency = "Coins",
+		Price = 1500000000,
+		UnlockLayer = 14,
+		Pets = {
+			{ PetId = "mole_machine", Weight = 62 },
+			{ PetId = "lava_drill", Weight = 30 },
+			{ PetId = "core_driller", Weight = 7.5 },
+			{ PetId = "mega_excavator", Weight = 0.5 },
+		},
+		Look = { ShellColor = rgb(60, 60, 72), SpotColor = rgb(255, 210, 60), Glow = true },
 	},
 }
 

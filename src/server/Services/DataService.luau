@@ -80,10 +80,62 @@ local releasing: { [number]: boolean } = {} -- userId -> final save in flight
 local activeSaves = 0
 local shuttingDown = false
 
+-- v1 -> v2 (v2.1 companions merge): every owned Garage digger becomes ONE vehicle pet with the
+-- same id (Config/Pets.luau keeps the old digger ids). Upgrade levels do not carry over (pets have
+-- no levels). A digger that was equipped is equipped as a pet while the save's base PetSlots
+-- allow (pass slots are unknown at load; PetService trims/fills later). Converted pets may push
+-- the inventory over PET_INVENTORY_LIMIT: nothing a player bought is lost. data.Diggers is
+-- emptied (the field stays so old code paths and Reconcile see a table).
+local function migrateDiggersToPets(data: { [string]: any })
+	local diggers = data.Diggers
+	if type(diggers) ~= "table" then
+		data.Diggers = {}
+		return
+	end
+	if type(data.Pets) ~= "table" then
+		data.Pets = {}
+	end
+	local pets = data.Pets :: { [string]: any }
+	local slots = if type(data.PetSlots) == "number" then data.PetSlots else Config.MAX_EQUIPPED_PETS
+	local equipped = 0
+	for _, pet in pets do
+		if type(pet) == "table" and pet.Equipped == true then
+			equipped += 1
+		end
+	end
+	-- most valuable first (Config order = crate order = old Garage price order), so the best
+	-- converted vehicles get the free equip slots
+	local ids = {}
+	for id in diggers do
+		if type(id) == "string" and Config.GetPet(id) and Config.GetPetDig(id) then
+			table.insert(ids, id)
+		end
+	end
+	local order: { [string]: number } = {}
+	for i, def in Config.Pets do
+		order[def.Id] = i
+	end
+	table.sort(ids, function(a: string, b: string): boolean
+		return order[a] > order[b]
+	end)
+	for _, id in ids do
+		local inst = diggers[id]
+		local wasEquipped = type(inst) == "table" and inst.Equipped == true
+		local equip = wasEquipped and equipped < slots
+		if equip then
+			equipped += 1
+		end
+		pets[HttpService:GenerateGUID(false)] = { Id = id, Equipped = equip }
+	end
+	data.Diggers = {}
+end
+
 -- Migrations: MIGRATIONS[v] upgrades a save from version v to v + 1.
 local MIGRATIONS: { [number]: (data: { [string]: any }) -> ...any } = {
-	-- [1] = function(data) data.NewField = data.OldField; data.OldField = nil end,
+	[1] = migrateDiggersToPets,
 }
+
+DataService._MigrateDiggersToPets = migrateDiggersToPets -- tests
 
 local dataChanged: RemoteEvent
 local getDataFunction: RemoteFunction

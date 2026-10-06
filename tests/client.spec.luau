@@ -695,6 +695,173 @@ do
 	check(#Mock.Errors == e0, "survival client flow without errors")
 end
 
+-- Shovel pose: two-handed IK hold, scoop on click / remote, one-handed scoop, R6 skip -------------
+section("shovel pose")
+do
+	local Models = Mock.Require(byPath["ReplicatedStorage/Shared/Models"])
+	local Pose = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/ShovelPoseController"])
+	local e0 = #Mock.Errors
+	local Instance = Mock.Env.Instance
+
+	-- the Tool exactly like ShopService builds it
+	local function makeTool(id)
+		local model = Models.Shovel(id)
+		local handle = model.PrimaryPart
+		local tool = Instance.new("Tool")
+		tool.Name = id
+		tool:SetAttribute("ShovelId", id)
+		tool.Grip = handle:GetAttribute("GripOffset")
+		tool:SetAttribute("TwoHanded", handle:GetAttribute("TwoHanded") == true)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Anchored = false
+			end
+		end
+		handle.Name = "Handle"
+		handle.Parent = tool
+		model.PrimaryPart = nil
+		model.Parent = tool
+		return tool
+	end
+
+	-- model attributes
+	local hand, full = Config.Shovels[1], Config.Shovels[3]
+	check(hand.Look.Size == "Hand" and full.Look.Size == nil, "tier 1 is a hand tool, tier 3 is full size")
+	for _, def in Config.Shovels do
+		local h = Models.Shovel(def.Id).PrimaryPart
+		local two = h:GetAttribute("TwoHanded")
+		check(
+			Mock.typeof(h:GetAttribute("GripOffset")) == "CFrame"
+				and Mock.typeof(h:GetAttribute("ShaftAxis")) == "Vector3"
+				and Mock.typeof(h:GetAttribute("CupAxis")) == "Vector3"
+				and Mock.typeof(h:GetAttribute("BladePoint")) == "Vector3"
+				and two == (def.Look.Size ~= "Hand")
+				and (Mock.typeof(h:GetAttribute("LeftHand")) == "Vector3") == two,
+			"shovel model pose attributes: " .. def.Id
+		)
+	end
+
+	-- forward kinematics of the mock rig (UpperTorso space), like the engine solves Motor6Ds
+	local function chain(rig, s)
+		local sh, el, wr = rig[s .. "Shoulder"], rig[s .. "Elbow"], rig[s .. "Wrist"]
+		local a1 = sh.C0 * sh.Transform * sh.C1:Inverse()
+		local a2 = a1 * el.C0 * el.Transform * el.C1:Inverse()
+		local a3 = a2 * wr.C0 * wr.Transform * wr.C1:Inverse()
+		return a3, { sh, el, wr }
+	end
+	local function poseReport(rig, tool)
+		local r = {}
+		local rightHand, rightJoints = chain(rig, "Right")
+		local leftHand, leftJoints = chain(rig, "Left")
+		local handle = rightHand * rig.RightGripAttachment.CFrame * tool.Grip:Inverse()
+		local h = tool.Handle
+		local palm = handle * tool.Grip.Position
+		local axis = handle:VectorToWorldSpace(h:GetAttribute("ShaftAxis"))
+		local leftPalm = leftHand * rig.LeftGripAttachment.Position
+		local rel = leftPalm - palm
+		r.LeftOffShaft = (rel - axis * rel:Dot(axis)).Magnitude
+		r.LeftAlong = rel:Dot(axis)
+		r.MaxJointSlip = 0
+		for _, m in { rightJoints[1], rightJoints[2], rightJoints[3], leftJoints[1], leftJoints[2], leftJoints[3] } do
+			r.MaxJointSlip = math.max(r.MaxJointSlip, m.Transform.Position.Magnitude)
+		end
+		r.ElbowHinge = rig.RightElbow.Transform.RightVector:Dot(Vector3.xAxis)
+		r.Blade = handle * h:GetAttribute("BladePoint")
+		r.Palm = palm
+		r.Shoulder = rig.RightShoulder.C0.Position
+		return r
+	end
+
+	-- two-handed hold on the local R15 character
+	local char = player.Character
+	local rig = Mock.MakeR15(char)
+	local tool = makeTool(full.Id)
+	tool.Parent = char
+	Mock.Advance(0.5)
+	local dbg = Pose.GetDebug(char)
+	check(dbg ~= nil and dbg.Posed and dbg.TwoHanded and dbg.Weight == 1, "two-handed shovel posed on an R15 character")
+	local r = poseReport(rig, tool)
+	check(r.LeftOffShaft < 0.05, "left palm grips the shaft (" .. r.LeftOffShaft .. " studs off)")
+	check(r.LeftAlong > 0.4 and r.LeftAlong < 1.6, "left hand below the right on the shaft (" .. r.LeftAlong .. ")")
+	check(r.MaxJointSlip < 1e-3, "arm joints stay connected (" .. r.MaxJointSlip .. ")")
+	check(r.ElbowHinge > 0.999, "right elbow bends as a hinge about its X axis")
+	check(r.Blade.Y < r.Palm.Y - 1 and r.Blade.Z < r.Palm.Z - 1, "blade rests down and in front of the hands")
+	check(rig.Waist.Transform ~= CFrame.identity, "waist twists into the digging stance")
+	check(not Pose.IsScooping(char), "no scoop at rest")
+
+	-- the scoop plays on click, before any server reply
+	local c = zone.CFrame.Position
+	char:PivotTo(CFrame.new(c + Vector3.new(0, 3, 6)))
+	local cam = Mock.Service("Workspace").CurrentCamera
+	cam.CFrame = CFrame.lookAt(c + Vector3.new(0, 14, 16), c)
+	Mock.Advance(1)
+	local rest = rig.RightShoulder.Transform
+	local restBlade = r.Blade
+	local s0 = #Mock.Remote.ToServer
+	local UIS = Mock.Service("UserInputService")
+	local click = Mock.Input(Enum.UserInputType.MouseButton1)
+	Mock.FireEvent(UIS, "InputBegan", click, false)
+	Mock.FireEvent(UIS, "InputEnded", click, false)
+	check(#sent("Dig", s0) == 1, "click digs")
+	check(Pose.IsScooping(char), "scoop starts on the click")
+	local lowest, highest, clump, moved = math.huge, -math.huge, false, false
+	for _ = 1, 14 do
+		Mock.Advance(1 / 30)
+		local rr = poseReport(rig, tool)
+		lowest = math.min(lowest, rr.Blade.Y)
+		highest = math.max(highest, rr.Blade.Y)
+		check(rr.LeftOffShaft < 0.05 and rr.MaxJointSlip < 1e-3, "hands stay on the shaft during the scoop")
+		local fx = Mock.Service("Workspace"):FindFirstChild("ShovelEffects")
+		clump = clump or (fx ~= nil and fx:FindFirstChild("SandClump") ~= nil)
+		moved = moved or rig.RightShoulder.Transform ~= rest
+	end
+	check(lowest < restBlade.Y - 0.3, "scoop thrusts the blade down (" .. lowest - restBlade.Y .. ")")
+	check(highest > restBlade.Y + 0.5, "scoop lifts the blade up (" .. highest - restBlade.Y .. ")")
+	check(clump, "a sand clump rides the blade")
+	check(moved, "arms move during the scoop")
+	Mock.Advance(1)
+	check(not Pose.IsScooping(char), "scoop finishes")
+	-- remote scoop (server AutoDig digs come back to the digger too)
+	Mock.FireClientEvent("Scoop", player)
+	Mock.Advance(0.05)
+	check(Pose.IsScooping(char), "Scoop remote plays the scoop")
+	Mock.FireClientEvent("Scoop", "junk")
+	Mock.Advance(1)
+
+	-- another player: one-handed hand spade, scoop broadcast from the server
+	local other = Mock.AddPlayer(2002, "Other")
+	local otherChar = Mock.SpawnCharacter(other, c + Vector3.new(6, 3, 6))
+	local otherRig = Mock.MakeR15(otherChar)
+	local spade = makeTool(hand.Id)
+	spade.Parent = otherChar
+	Mock.Advance(0.3)
+	check(not Pose.GetDebug(otherChar).Posed, "hand spade at rest keeps the hold animation")
+	Mock.FireClientEvent("Scoop", other)
+	Mock.Advance(0.2)
+	local od = Pose.GetDebug(otherChar)
+	check(od.Scooping and od.Posed and not od.TwoHanded, "other player's one-handed scoop plays")
+	check(otherRig.LeftShoulder.Transform == CFrame.identity, "one-handed scoop leaves the left arm alone")
+	Mock.Advance(1)
+	check(not Pose.GetDebug(otherChar).Posed, "one-handed scoop blends back out")
+	check(otherRig.RightShoulder.Transform == CFrame.identity, "joints reset after the scoop")
+
+	-- R6 characters are skipped
+	otherChar:FindFirstChildOfClass("Humanoid").RigType = Enum.HumanoidRigType.R6
+	Mock.SpawnCharacter(other, c + Vector3.new(6, 3, 6))
+	makeTool(full.Id).Parent = other.Character
+	Mock.Advance(1.5)
+	check(Pose.PlayScoop(other.Character) == false, "R6 rig: no procedural scoop")
+	check(not Pose.GetDebug(other.Character) or not Pose.GetDebug(other.Character).Posed, "R6 rig is not posed")
+
+	-- unequip resets the local rig
+	tool.Parent = player:FindFirstChildOfClass("Backpack")
+	Mock.Advance(0.2)
+	check(rig.RightShoulder.Transform == CFrame.identity and rig.Waist.Transform == CFrame.identity, "unequip resets joints")
+	check(#Mock.Errors == e0, "shovel pose without errors")
+	Mock.RemovePlayer(other)
+	Mock.Advance(0.5)
+end
+
 -- Report ------------------------------------------------------------------------------------------
 section("report")
 check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")

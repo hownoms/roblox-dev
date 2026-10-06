@@ -376,7 +376,7 @@ function SurvivalService.Start()
 	ServerSignals.Dug:Connect(function(player: Player, _depth: number, _gained: number, source: string?)
 		local state = states[player]
 		-- Diggers dig while their owner stands still: only the player's own swings heat them up.
-		if state and source ~= "Digger" then
+		if state and source ~= "Digger" and source ~= "Pet" and source ~= "Ride" then
 			state.PendingDig += Heat.DigRisePerDig
 		end
 	end)

@@ -4,6 +4,17 @@
 	total = 1 + sum(Multiplier - 1) over equipped pets (Config.PetMultiplier).
 	So three 1.5x pets = 2.5x, not 3.375x. Keeps late game from exploding.
 	Exclusive pets are not in any egg (daily streak / codes / events).
+
+	v2.1 companions (docs/design/Companions.md):
+	- Dig = Types.PetDigDef: the pet also digs its own spot on a ring around the owner
+	  (Services/PetDigService). Power gates layers like a shovel, SandMultiplier replaces the
+	  shovel factor for that dig (every other multiplier still applies), Interval = seconds per dig.
+	  Each digging pet makes ~8-20% of the active sand/second of the shovel with the same Power, so
+	  even 6 slots of the best diggers stay under active shovel digging.
+	- Vehicle pets (VehicleKind = a Models/Diggers builder) hatch from Construction Crates
+	  (Config/Eggs.luau, Kind = "Crate"). Their sand Multiplier is smaller than creature pets of
+	  the same tier: you trade multiplier for digging.
+	- Rideable = true: the player can ride it (Ride agent, Services/RideService).
 ]]
 
 local Types = require(script.Parent.Parent.Types)
@@ -16,6 +27,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Sandy Crab",
 		Rarity = "Common",
 		Multiplier = 1.05,
+		Dig = { Power = 4, Interval = 4, Radius = 2, SandMultiplier = 1 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(255, 110, 80),
@@ -170,6 +182,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Pirate Crab",
 		Rarity = "Uncommon",
 		Multiplier = 1.4,
+		Dig = { Power = 25, Interval = 3.5, Radius = 2.2, SandMultiplier = 3 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(200, 50, 40),
@@ -226,6 +239,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Mole",
 		Rarity = "Common",
 		Multiplier = 1.5,
+		Dig = { Power = 45, Interval = 3, Radius = 2.2, SandMultiplier = 4.2 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(110, 80, 70),
@@ -268,6 +282,7 @@ local Pets: { Types.PetDef } = {
 		Name = "T-Rex",
 		Rarity = "Epic",
 		Multiplier = 2.2,
+		Dig = { Power = 80, Interval = 2.8, Radius = 2.4, SandMultiplier = 7.2 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(70, 140, 70),
@@ -324,6 +339,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Crystal Golem",
 		Rarity = "Rare",
 		Multiplier = 2.5,
+		Dig = { Power = 140, Interval = 3, Radius = 2.4, SandMultiplier = 12 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(180, 110, 255),
@@ -366,6 +382,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Lava Salamander",
 		Rarity = "Common",
 		Multiplier = 2.5,
+		Dig = { Power = 800, Interval = 3, Radius = 2.4, SandMultiplier = 34 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(255, 110, 30),
@@ -478,6 +495,7 @@ local Pets: { Types.PetDef } = {
 		Name = "Star Golem",
 		Rarity = "Epic",
 		Multiplier = 7,
+		Dig = { Power = 2500, Interval = 2.8, Radius = 2.6, SandMultiplier = 104 },
 		Exclusive = false,
 		Look = {
 			BodyColor = rgb(30, 30, 70),
@@ -610,6 +628,218 @@ local Pets: { Types.PetDef } = {
 			AccentColor = rgb(255, 230, 60),
 			Shape = "Crab",
 			Size = 1,
+			Glow = true,
+		},
+	},
+
+	-- v2.1 vehicle pets (Construction Crates). Dig % = share of the same-Power shovel's active
+	-- sand/second (see docs/design/Companions.md). Ex-Garage diggers keep their ids (save migration).
+	{
+		Id = "toy_truck",
+		Name = "Toy Sand Truck",
+		Rarity = "Common",
+		Multiplier = 1.05,
+		Exclusive = false,
+		VehicleKind = "ToyTruck",
+		Dig = { Power = 15, Interval = 3, Radius = 2.2, SandMultiplier = 2.25 },
+		Look = {
+			BodyColor = rgb(255, 210, 50),
+			AccentColor = rgb(240, 70, 70),
+			Shape = "Vehicle",
+			Size = 0.95,
+			Glow = false,
+		},
+	},
+	{
+		Id = "dump_truck",
+		Name = "Little Dump Truck",
+		Rarity = "Uncommon",
+		Multiplier = 1.08,
+		Exclusive = false,
+		VehicleKind = "DumpTruck",
+		Dig = { Power = 25, Interval = 2.8, Radius = 2.2, SandMultiplier = 3.6 },
+		Look = {
+			BodyColor = rgb(255, 150, 40),
+			AccentColor = rgb(70, 80, 95),
+			Shape = "Vehicle",
+			Size = 0.85,
+			Glow = false,
+		},
+	},
+	{
+		Id = "mini_excavator",
+		Name = "Mini Excavator",
+		Rarity = "Rare",
+		Multiplier = 1.12,
+		Exclusive = false,
+		VehicleKind = "Excavator",
+		Dig = { Power = 45, Interval = 2.6, Radius = 2.4, SandMultiplier = 6.4 },
+		Look = {
+			BodyColor = rgb(255, 200, 30),
+			AccentColor = rgb(55, 55, 65),
+			Shape = "Vehicle",
+			Size = 0.85,
+			Glow = false,
+		},
+	},
+	{
+		Id = "skid_steer",
+		Name = "Skid Steer",
+		Rarity = "Common",
+		Multiplier = 1.15,
+		Exclusive = false,
+		VehicleKind = "SkidSteer",
+		Dig = { Power = 80, Interval = 2.4, Radius = 2.4, SandMultiplier = 6.2 },
+		Look = {
+			BodyColor = rgb(80, 200, 90),
+			AccentColor = rgb(45, 50, 60),
+			Shape = "Vehicle",
+			Size = 0.85,
+			Glow = false,
+		},
+	},
+	{
+		Id = "bulldozer",
+		Name = "Bulldozer",
+		Rarity = "Uncommon",
+		Multiplier = 1.2,
+		Exclusive = false,
+		VehicleKind = "Bulldozer",
+		Dig = { Power = 140, Interval = 2.3, Radius = 2.6, SandMultiplier = 10.8 },
+		Look = {
+			BodyColor = rgb(255, 185, 20),
+			AccentColor = rgb(60, 60, 70),
+			Shape = "Vehicle",
+			Size = 0.8,
+			Glow = false,
+		},
+	},
+	{
+		Id = "backhoe",
+		Name = "Backhoe Loader",
+		Rarity = "Rare",
+		Multiplier = 1.3,
+		Exclusive = false,
+		VehicleKind = "Backhoe",
+		Dig = { Power = 250, Interval = 2.2, Radius = 2.6, SandMultiplier = 18.5 },
+		Look = {
+			BodyColor = rgb(90, 170, 255),
+			AccentColor = rgb(40, 60, 110),
+			Shape = "Vehicle",
+			Size = 0.8,
+			Glow = false,
+		},
+	},
+	{
+		Id = "drill_rig",
+		Name = "Drill Rig",
+		Rarity = "Common",
+		Multiplier = 1.4,
+		Exclusive = false,
+		VehicleKind = "DrillRig",
+		Dig = { Power = 450, Interval = 2, Radius = 2.8, SandMultiplier = 18 },
+		Look = {
+			BodyColor = rgb(230, 60, 60),
+			AccentColor = rgb(200, 205, 215),
+			Shape = "Vehicle",
+			Size = 0.8,
+			Glow = false,
+		},
+	},
+	{
+		Id = "mining_drill",
+		Name = "Mining Cart Drill",
+		Rarity = "Uncommon",
+		Multiplier = 1.55,
+		Exclusive = false,
+		VehicleKind = "MiningDrill",
+		Dig = { Power = 800, Interval = 1.9, Radius = 2.8, SandMultiplier = 32 },
+		Look = {
+			BodyColor = rgb(150, 100, 60),
+			AccentColor = rgb(255, 120, 30),
+			Shape = "Vehicle",
+			Size = 0.8,
+			Glow = false,
+		},
+	},
+	{
+		Id = "tunnel_borer",
+		Name = "Tunnel Borer",
+		Rarity = "Rare",
+		Multiplier = 1.75,
+		Exclusive = false,
+		VehicleKind = "TunnelBorer",
+		Dig = { Power = 1400, Interval = 1.8, Radius = 2.8, SandMultiplier = 56 },
+		Look = {
+			BodyColor = rgb(120, 70, 200),
+			AccentColor = rgb(60, 40, 90),
+			Shape = "Vehicle",
+			Size = 0.75,
+			Glow = true,
+		},
+	},
+	{
+		Id = "mole_machine",
+		Name = "Mole Machine",
+		Rarity = "Common",
+		Multiplier = 2,
+		Exclusive = false,
+		VehicleKind = "Mole",
+		Dig = { Power = 2500, Interval = 1.7, Radius = 2.8, SandMultiplier = 63 },
+		Look = {
+			BodyColor = rgb(140, 110, 95),
+			AccentColor = rgb(90, 255, 140),
+			Shape = "Vehicle",
+			Size = 0.75,
+			Glow = true,
+		},
+	},
+	{
+		Id = "lava_drill",
+		Name = "Lava Drill",
+		Rarity = "Rare",
+		Multiplier = 2.4,
+		Exclusive = false,
+		VehicleKind = "LavaDrill",
+		Dig = { Power = 2500, Interval = 1.6, Radius = 2.8, SandMultiplier = 77 },
+		Look = {
+			BodyColor = rgb(50, 35, 35),
+			AccentColor = rgb(255, 100, 20),
+			Shape = "Vehicle",
+			Size = 0.75,
+			Glow = true,
+		},
+	},
+	{
+		Id = "core_driller",
+		Name = "Core Driller",
+		Rarity = "Legendary",
+		Multiplier = 3,
+		Exclusive = false,
+		VehicleKind = "CoreDriller",
+		Dig = { Power = 4500, Interval = 1.5, Radius = 3.2, SandMultiplier = 140 },
+		Look = {
+			BodyColor = rgb(255, 210, 60),
+			AccentColor = rgb(255, 120, 40),
+			Shape = "Vehicle",
+			Size = 0.75,
+			Glow = true,
+		},
+	},
+	{
+		Id = "mega_excavator",
+		Name = "Mega Excavator",
+		Rarity = "Mythic",
+		Multiplier = 4,
+		Exclusive = false,
+		VehicleKind = "Excavator",
+		Dig = { Power = 4500, Interval = 1.4, Radius = 3.6, SandMultiplier = 140 },
+		Rideable = true,
+		Look = {
+			BodyColor = rgb(255, 190, 20),
+			AccentColor = rgb(255, 90, 160),
+			Shape = "Vehicle",
+			Size = 1.25,
 			Glow = true,
 		},
 	},

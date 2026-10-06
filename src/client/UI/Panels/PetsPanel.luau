@@ -4,6 +4,9 @@
 	equipped), sorted by multiplier (or rarity), header with "Equipped 2/3" + total pet bonus,
 	"Equip Best" and sort toggle. Selecting a pet shows a spinning 3D preview with
 	Equip/Unequip and Delete (tap twice to confirm).
+	v2.1: digging pets show a ⛏ badge (top-left of the tile) and their dig stats in the detail
+	("⛏ digs to Pirate Cove · every 3.0s · x2.25 sand"); rideable pets a 🚜 "Rideable" badge (the
+	Ride agent adds the actual ride button). Vehicle pets use vehicle icons.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -42,6 +45,7 @@ local sortButton: Button.Button
 local view: Viewport.Viewport
 local nameLabel: TextLabel
 local infoLabel: TextLabel
+local digLabel: TextLabel
 local equipButton: Button.Button
 local deleteButton: Button.Button
 local emptyLabel: TextLabel
@@ -50,6 +54,23 @@ local shownModelFor: string? = nil
 local function rarityOrder(def: Types.PetDef): number
 	local rarity = Config.GetRarity(def.Rarity)
 	return if rarity then rarity.Order else 0
+end
+
+-- "⛏ digs to Pirate Cove · every 3.0s · x2.25 sand" (nil for pets that don't dig)
+local function digInfo(def: Types.PetDef): string?
+	local dig = def.Dig
+	if not dig then
+		return nil
+	end
+	assert(dig) -- refine for the type checker (guarded above)
+	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(dig.Power)]
+	return string.format(
+		"%s digs to %s · every %.1fs · x%g sand",
+		Icons.Dig,
+		layer.Name,
+		dig.Interval,
+		dig.SandMultiplier
+	)
 end
 
 local function entries(): { Entry }
@@ -115,6 +136,7 @@ local function refreshDetail()
 		shownModelFor = nil
 		nameLabel.Text = "Pick a pet!"
 		infoLabel.Text = "Tap a pet to see it here."
+		digLabel.Text = ""
 		equipButton:SetVisible(false)
 		deleteButton:SetVisible(false)
 		return
@@ -129,7 +151,12 @@ local function refreshDetail()
 	local rarity = Config.GetRarity(d.Rarity)
 	nameLabel.Text = d.Name
 	nameLabel.TextColor3 = if rarity then rarity.Color else C.TextDark
-	infoLabel.Text = d.Rarity .. "  ·  x" .. string.format("%.2f", d.Multiplier) .. " sand"
+	infoLabel.Text = d.Rarity
+		.. "  ·  x"
+		.. string.format("%.2f", d.Multiplier)
+		.. " sand"
+		.. (if d.Rideable then "  ·  " .. Icons.Ride .. " Rideable" else "")
+	digLabel.Text = digInfo(d) or ""
 	equipButton:SetVisible(true)
 	deleteButton:SetVisible(true)
 	if p.Equipped then
@@ -172,7 +199,7 @@ local function refreshGrid()
 			card:SetHighlight(C.Gold)
 		end
 		Style.Icon({
-			Text = Icons.PetShape(entry.Def.Look.Shape),
+			Text = Icons.Pet(entry.Def.Look.Shape, entry.Def.VehicleKind),
 			Size = UDim2.new(1, -10, 0.6, 0),
 			Position = UDim2.new(0.5, 0, 0, 4),
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -189,6 +216,19 @@ local function refreshGrid()
 			ZIndex = 8,
 			Parent = card.Face,
 		})
+		-- ⛏ digging pet / 🚜 rideable badges, top-left
+		local badges = (if entry.Def.Dig then Icons.Dig else "") .. (if entry.Def.Rideable then Icons.Ride else "")
+		if badges ~= "" then
+			local badge = Style.Label({
+				Text = badges,
+				Size = UDim2.fromOffset(if entry.Def.Rideable and entry.Def.Dig then 44 else 24, 24),
+				Position = UDim2.fromOffset(2, 2),
+				Stroke = false,
+				ZIndex = 9,
+				Parent = card.Face,
+			})
+			badge.Name = "Badges"
+		end
 		if entry.Pet.Equipped then
 			Style.Label({
 				Text = "✅",
@@ -326,7 +366,7 @@ local function build()
 		Parent = body,
 	})
 	local stage = Instance.new("Frame")
-	stage.Size = UDim2.new(1, -20, 0, 150)
+	stage.Size = UDim2.new(1, -20, 0, 130)
 	stage.Position = UDim2.fromOffset(10, 10)
 	stage.ZIndex = 7
 	stage.Parent = side.Face
@@ -336,15 +376,15 @@ local function build()
 	nameLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, -16, 0, 30),
-		Position = UDim2.fromOffset(8, 164),
+		Position = UDim2.fromOffset(8, 144),
 		MaxTextSize = 24,
 		ZIndex = 7,
 		Parent = side.Face,
 	})
 	infoLabel = Style.Label({
 		Text = "",
-		Size = UDim2.new(1, -16, 0, 22),
-		Position = UDim2.fromOffset(8, 194),
+		Size = UDim2.new(1, -16, 0, 20),
+		Position = UDim2.fromOffset(8, 174),
 		TextColor = C.TextDark,
 		Font = Style.Fonts.Body,
 		Stroke = false,
@@ -352,6 +392,18 @@ local function build()
 		ZIndex = 7,
 		Parent = side.Face,
 	})
+	digLabel = Style.Label({
+		Text = "",
+		Size = UDim2.new(1, -16, 0, 20),
+		Position = UDim2.fromOffset(8, 196),
+		TextColor = C.SandDark,
+		Font = Style.Fonts.Body,
+		Stroke = false,
+		MaxTextSize = 14,
+		ZIndex = 7,
+		Parent = side.Face,
+	})
+	digLabel.Name = "DigInfo"
 	equipButton = Button.new({
 		Text = "Equip",
 		Size = UDim2.new(1, -20, 0, 50),

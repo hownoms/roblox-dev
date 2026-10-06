@@ -4,9 +4,10 @@
 	design px, a 1080p PC ~1420 x 760):
 	  top-left      Coins / Rebirth tokens / rebirth multiplier pills (count-up + pop)
 	                x 18..268, y 10..154
-	  left          4x3 menu (11 buttons): Shop, Beach, Garage, Eggs / Pets, Index, Quests,
-	                Daily / Rebirth, Store, Settings (red "!" badges when claimable)
-	                x 14..328, y 162..414. Hidden while a panel is open on small screens.
+	  left          5x2 menu (10 buttons): Shop, Beach, Eggs, Pets, Index / Quests, Daily,
+	                Rebirth, Store, Settings (red "!" badges when claimable)
+	                x 14..408, y 162..328. Hidden while a panel is open on small screens.
+	                (v2.1: the Garage button is gone; vehicles are pets from crates.)
 	  top-centre    active boosts + events chips with live timers (or "High Tide in 4:21")
 	                centred, y 8..48 (toasts sit below at y 104+, banners at 30% height)
 	  top-right     compact depth meter: depth, layer, record, progress bar, next layer
@@ -146,7 +147,6 @@ end
 local MENU = {
 	{ Name = "Shop", Icon = Icons.Shop, Color = C.Palm, Panel = "Shop" },
 	{ Name = "Beach", Icon = Icons.Beach, Color = C.Ocean, Panel = "BeachShop" }, -- Survival's panel
-	{ Name = "Garage", Icon = Icons.Garage, Color = C.SandDark, Panel = "Garage" }, -- Diggers' panel
 	{ Name = "Eggs", Icon = Icons.Eggs, Color = C.Sand, Panel = "Eggs" },
 	{ Name = "Pets", Icon = Icons.Pets, Color = C.Coral, Panel = "Pets" },
 	{ Name = "Index", Icon = Icons.Index, Color = C.OceanDark, Panel = "Index" },
@@ -157,7 +157,7 @@ local MENU = {
 	{ Name = "Settings", Icon = Icons.Settings, Color = C.Disabled, Panel = "Settings" },
 }
 
-local MENU_COLUMNS = 4
+local MENU_COLUMNS = 5
 local MENU_CELL = Vector2.new(74, 80) -- face 74 x 75 design px -> >= 44 real px on phones
 local MENU_GAP = 6
 

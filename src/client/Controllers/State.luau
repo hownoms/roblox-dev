@@ -213,10 +213,14 @@ function State.GetEquippedPetIds(): { string }
 	return ids
 end
 
+-- Base PetSlots + every owned pass's ExtraPetSlots (ExtraPets +2, AutoDig +1), like Stats.GetPetSlots.
 function State.GetPetSlots(): number
-	local extra = if State.OwnsPass("ExtraPets")
-		then (Config.Monetization.GamePasses.ExtraPets.ExtraPetSlots or 2)
-		else 0
+	local extra = 0
+	for key, pass in Config.Monetization.GamePasses do
+		if pass.ExtraPetSlots and State.OwnsPass(key) then
+			extra += pass.ExtraPetSlots
+		end
+	end
 	return (State.Data.PetSlots or Config.MAX_EQUIPPED_PETS) + extra
 end
 

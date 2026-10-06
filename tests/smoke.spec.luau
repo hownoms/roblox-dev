@@ -119,13 +119,14 @@ for _, t in
 		"LeaderboardDepth",
 		"SpawnLocation",
 		"WaterFountain",
-		"Garage",
+		"CrateShop",
 		"BeachShop",
 	}
 do
 	check(#Mock.Tagged(t) > 0, "map places tag " .. t)
 end
-for t, action in { WaterFountain = "Drink", Garage = "Garage", BeachShop = "Shop" } do
+check(#Mock.Tagged("Garage") == 0, "the Garage is gone (v2.1: vehicles are pets from crates)")
+for t, action in { WaterFountain = "Drink", CrateShop = "Open", BeachShop = "Shop" } do
 	local part = Mock.Tagged(t)[1]
 	local prompt = part and part:FindFirstChildWhichIsA("ProximityPrompt", true)
 	check(prompt ~= nil and prompt.ActionText == action, t .. " has a '" .. action .. "' ProximityPrompt")
@@ -133,6 +134,22 @@ end
 for _, egg in Mock.Tagged("EggShop") do
 	check(type(egg:GetAttribute("EggId")) == "string", "EggShop part has EggId attribute")
 	check(egg:FindFirstChildWhichIsA("ProximityPrompt", true) ~= nil, "EggShop part has a ProximityPrompt")
+end
+do
+	local crateCount, pedestals = 0, 0
+	for _, e in Config.Eggs do
+		if e.Kind == "Crate" then
+			crateCount += 1
+		end
+	end
+	for _, pallet in Mock.Tagged("CrateShop") do
+		local id = pallet:GetAttribute("EggId")
+		if type(id) == "string" and Config.IsCrate(id) and pallet:FindFirstChildWhichIsA("ProximityPrompt", true) then
+			pedestals += 1
+		end
+	end
+	check(pedestals == crateCount, "one crate pallet (EggId + prompt) per Construction Crate")
+	check(#Mock.Tagged("EggShop") + pedestals == #Config.Eggs, "every egg and crate has a pedestal")
 end
 for _, t in { "ShovelShop", "BackpackShop", "RebirthStatue" } do
 	local part = Mock.Tagged(t)[1]
@@ -769,136 +786,292 @@ step("beach", function()
 	Mock.Advance(0.5)
 end)
 
--- Diggers (Diggers agent) ---------------------------------------------------------------------------
-section("diggers")
-step("diggers", function()
-	local DiggerService = Mock.Require(byPath["ServerScriptService/Server/Services/DiggerService"])
-	local digPlayer = Mock.AddPlayer(3001, "DiggerTester")
+-- Companions (v2.1): Construction Crates, digging pets, digger save migration -------------------------
+section("companions")
+step("companions", function()
+	local PetDigService = Mock.Require(byPath["ServerScriptService/Server/Services/PetDigService"])
+	local PetService = Mock.Require(byPath["ServerScriptService/Server/Services/PetService"])
+	local Remotes = Mock.Require(byPath["ReplicatedStorage/Shared/Remotes"])
+
+	-- Config: crates, vehicle pets, the rideable Mythic, economy bounds
+	check(Config.Diggers == nil and Config.GetDigger == nil, "Config.Diggers folded into Config.Pets")
+	local crates = {}
+	for _, e in Config.Eggs do
+		if e.Kind == "Crate" then
+			table.insert(crates, e)
+		end
+	end
+	check(#crates >= 3 and #crates <= 4, "3-4 Construction Crates (" .. #crates .. ")")
+	for i, c in crates do
+		check(c.Currency == "Coins", c.Id .. " costs coins")
+		if i > 1 then
+			check(c.Price > crates[i - 1].Price and c.UnlockLayer > crates[i - 1].UnlockLayer, c.Id .. " later + pricier")
+		end
+		for _, entry in c.Pets do
+			local pet = Config.GetPet(entry.PetId)
+			check(pet ~= nil and pet.VehicleKind ~= nil and pet.Dig ~= nil, entry.PetId .. " is a digging vehicle pet")
+		end
+	end
+	local mega = Config.GetPet("mega_excavator")
+	check(
+		mega ~= nil and mega.Rideable == true and mega.Rarity == "Mythic" and mega.VehicleKind == "Excavator" and mega.Dig ~= nil,
+		"mega_excavator: Mythic, Rideable, Excavator, digs"
+	)
+	local top = crates[#crates]
+	local total, megaWeight = 0, 0
+	for _, entry in top.Pets do
+		total += entry.Weight
+		if entry.PetId == "mega_excavator" then
+			megaWeight = entry.Weight
+		end
+	end
+	check(megaWeight / total > 0.004 and megaWeight / total < 0.006, "mega_excavator ~0.5% of the top crate")
+	local creatureDiggers = 0
+	local worst = 0
+	for _, pet in Config.Pets do
+		local dig = pet.Dig
+		if dig then
+			if not pet.VehicleKind then
+				creatureDiggers += 1
+			end
+			-- compare with the best shovel whose Power <= the pet's Power
+			local shovel = Config.Shovels[1]
+			for _, sh in Config.Shovels do
+				if sh.Power <= dig.Power then
+					shovel = sh
+				end
+			end
+			local ratio = (dig.SandMultiplier / dig.Interval) / (shovel.SandMultiplier / shovel.Cooldown)
+			worst = math.max(worst, ratio)
+			check(ratio <= 0.25, string.format("%s digs %.0f%% of the same-power shovel (<= 25%%)", pet.Id, ratio * 100))
+		end
+	end
+	check(creatureDiggers >= 4, "some creature pets dig too (" .. creatureDiggers .. ")")
+	check(worst * 6 < 1, "6 slots of the best digging pets stay under active shovel digging")
+	check(Config.Monetization.GamePasses.AutoDig.ExtraPetSlots == 1, "AutoDig pass = +1 pet slot")
+	check(not table.find(Remotes.Events, "BuyDigger") and not table.find(Remotes.Events, "EquipDigger"), "digger remotes removed")
+	check(
+		not table.find(Remotes.Events, "UpgradeDigger") and not table.find(Remotes.Events, "UnequipDigger"),
+		"digger upgrade / unequip remotes removed"
+	)
+	check(table.find(Remotes.Events, "PetDug") ~= nil and not table.find(Remotes.Events, "DiggerDug"), "DiggerDug -> PetDug")
+
+	-- Crate hatch gives a vehicle pet
+	local cp = Mock.AddPlayer(3001, "PetDigTester")
 	Mock.Advance(0.5)
 	local zone = World.GetDigZone()
 	local zc = zone.CFrame.Position
+	local S = Config.SURFACE_Y
 	local function surfaceAt(x, z)
-		return Mock.TerrainSurfaceBelow(x, z, Config.SURFACE_Y + 8) or Config.SURFACE_Y
+		return Mock.TerrainSurfaceBelow(x, z, S + 8) or S
 	end
-	local function standOnSand(dx, dz)
+	local function standOnSand(who, dx, dz)
 		local x, z = zc.X + dx, zc.Z + dz
-		digPlayer.Character:PivotTo(CFrame.new(x, surfaceAt(x, z) + 3, z))
+		who.Character:PivotTo(CFrame.new(x, surfaceAt(x, z) + 3, z))
 	end
-	Mock.SpawnCharacter(digPlayer)
+	Mock.SpawnCharacter(cp)
 	Mock.Advance(2)
-	local d = DataService.Get(digPlayer)
-	check(d ~= nil and type(d.Diggers) == "table", "digger player data loaded with Diggers table")
-	check(digPlayer:GetAttribute("EquippedDiggers") == "", "EquippedDiggers empty for a new player")
-	check(digPlayer:GetAttribute("DiggerSlots") == 1, "1 digger slot by default")
-
-	local first, second = Config.Diggers[1], Config.Diggers[2]
-	-- buy: not enough coins, then OK (auto-equips into the free slot)
-	DataService.Set(digPlayer, "Coins", 0)
-	Mock.FireServer("BuyDigger", digPlayer, first.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[first.Id] == nil, "BuyDigger refused without coins")
-	DataService.Set(digPlayer, "Coins", 1e12)
-	Mock.Advance(0.1)
-	Mock.FireServer("BuyDigger", digPlayer, first.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[first.Id] ~= nil and d.Diggers[first.Id].Equipped == true, "bought + auto-equipped digger 1")
-	check(d.Coins == 1e12 - first.Price, "digger price charged")
-	check(digPlayer:GetAttribute("EquippedDiggers") == first.Id .. ":1", "EquippedDiggers = id:level")
-	Mock.FireServer("BuyDigger", digPlayer, first.Id)
-	Mock.FireServer("BuyDigger", digPlayer, "nope")
-	Mock.FireServer("BuyDigger", digPlayer, 42)
-	Mock.Advance(0.3)
-	check(d.Coins == 1e12 - first.Price, "buying an owned / unknown digger costs nothing")
-	-- slot limit
-	Mock.FireServer("BuyDigger", digPlayer, second.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[second.Id] ~= nil and d.Diggers[second.Id].Equipped == false, "2nd digger owned, not equipped (1 slot)")
-	Mock.FireServer("EquipDigger", digPlayer, second.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[second.Id].Equipped == false, "equip refused when slots are full")
-	Mock.FireServer("UnequipDigger", digPlayer, first.Id)
-	Mock.Advance(0.3)
-	Mock.FireServer("EquipDigger", digPlayer, second.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[second.Id].Equipped and not d.Diggers[first.Id].Equipped, "swap equipped digger")
-	check(digPlayer:GetAttribute("EquippedDiggers") == second.Id .. ":1", "EquippedDiggers follows equip")
-	-- upgrades
-	local coins0 = d.Coins
-	Mock.FireServer("UpgradeDigger", digPlayer, second.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[second.Id].Level == 2, "upgrade to level 2")
-	check(d.Coins == coins0 - Config.GetDiggerUpgradeCost(second, 1), "upgrade cost charged")
-	check(digPlayer:GetAttribute("EquippedDiggers") == second.Id .. ":2", "EquippedDiggers carries the level")
-	for _ = 1, second.MaxLevel + 2 do
-		Mock.FireServer("UpgradeDigger", digPlayer, second.Id)
-		Mock.Advance(0.3)
-	end
-	check(d.Diggers[second.Id].Level == second.MaxLevel, "upgrades stop at MaxLevel")
-	local s1 = Config.GetDiggerStats(second, 1)
-	local sMax = Config.GetDiggerStats(second, second.MaxLevel)
-	check(sMax.Interval < s1.Interval and sMax.SandMultiplier > s1.SandMultiplier, "levels improve speed + sand")
-	-- rebirth gate + rebirth slot milestone
-	local last = Config.Diggers[#Config.Diggers]
-	Mock.FireServer("BuyDigger", digPlayer, last.Id)
-	Mock.Advance(0.3)
-	check(d.Diggers[last.Id] == nil, "rebirth-locked digger refused")
-	DataService.Set(digPlayer, "Rebirths", Config.DIGGER_REBIRTH_SLOTS[1])
+	local d = DataService.Get(cp)
+	check(d ~= nil and type(d.Diggers) == "table" and next(d.Diggers) == nil, "new save: empty legacy Diggers")
+	DataService.Set(cp, "Coins", 1e13)
+	DataService.Set(cp, "MaxDepth", 0)
+	Mock.Advance(0.2)
+	local crate = crates[1]
+	Mock.FireServer("HatchEgg", cp, crate.Id, 1)
 	Mock.Advance(0.5)
-	check(digPlayer:GetAttribute("DiggerSlots") == 2, "+1 digger slot at rebirth " .. Config.DIGGER_REBIRTH_SLOTS[1])
-	Mock.FireServer("EquipDigger", digPlayer, first.Id)
-	Mock.Advance(0.3)
-	check(
-		digPlayer:GetAttribute("EquippedDiggers") == first.Id .. ":1," .. second.Id .. ":" .. second.MaxLevel,
-		"two diggers equipped with 2 slots (" .. tostring(digPlayer:GetAttribute("EquippedDiggers")) .. ")"
-	)
-	check(Config.GetDiggerSlots(5, true) == 4, "slot helper: 1 base + pass + rebirth 2 + rebirth 5")
+	check(next(d.Pets) == nil, "locked crate refused")
+	DataService.Set(cp, "MaxDepth", Config.Layers[top.UnlockLayer].DepthStart + 1)
+	Mock.Advance(0.2)
+	local h0 = #Mock.Remote.ToClient
+	Mock.FireServer("HatchEgg", cp, crate.Id, 1)
+	Mock.Advance(0.5)
+	local hatchedId
+	for _, pet in d.Pets do
+		hatchedId = pet.Id
+	end
+	local hatchedDef = hatchedId and Config.GetPet(hatchedId)
+	check(hatchedDef ~= nil and hatchedDef.VehicleKind ~= nil and hatchedDef.Dig ~= nil, "crate hatch gives a digging vehicle pet (" .. tostring(hatchedId) .. ")")
+	check(countToClient(cp, "EggHatched", h0) == 1, "crate hatch fires EggHatched")
+	check(d.Coins == 1e13 - crate.Price, "crate price charged")
 
-	-- dig loop: owner on the sand -> diggers dig near them and fill the backpack
+	-- Digging pets dig their own spots on a ring around the owner, never under them
+	for uid in d.Pets do
+		d.Pets[uid] = nil
+	end
+	DataService.MarkDirty(cp, "Pets")
+	Mock.Advance(0.2)
+	for _, id in { "mini_excavator", "bulldozer", "core_driller" } do
+		PetService.GrantPet(cp, id)
+	end
+	Mock.Advance(0.3)
+	check(#PetDigService.GetDiggers(cp) == 3, "3 equipped digging pets")
 	Mock.ServerTerrainRaycast = true
-	standOnSand(-20, 0)
+	standOnSand(cp, -60, 0)
 	d.Sand = 0
+	local root = cp.Character.HumanoidRootPart
+	local owner = root.Position
 	local since = #Mock.Remote.ToClient
-	Mock.Advance(8)
-	local dugEvents = 0
-	local dugPos
+	local sandTotal = 0
+	for _ = 1, 20 do
+		Mock.Advance(0.5)
+		sandTotal += d.Sand
+		d.Sand = 0 -- keep the starter bucket empty so the pets never stop
+	end
+	local events, slots, minDist = 0, {}, math.huge
 	for i = since + 1, #Mock.Remote.ToClient do
 		local e = Mock.Remote.ToClient[i]
-		if e.Name == "DiggerDug" and e.Player == digPlayer then
-			dugEvents += 1
-			dugPos = e.Args[3]
-			check(e.Args[1] == digPlayer and type(e.Args[2]) == "string", "DiggerDug(player, diggerId, position)")
+		if e.Name == "PetDug" and e.Player == cp then
+			events += 1
+			local a = e.Args
+			if events == 1 then
+				check(
+					a[1] == cp and type(a[2]) == "number" and type(a[3]) == "string" and a[4] ~= nil and a[4].X ~= nil,
+					"PetDug(player, slot, petId, position, sand)"
+				)
+			end
+			slots[a[2]] = true
+			local pos = a[4]
+			minDist = math.min(minDist, (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(owner.X, 0, owner.Z)).Magnitude)
 		end
 	end
-	check(dugEvents >= 2, "diggers dig on their own (" .. dugEvents .. " DiggerDug events)")
-	check(d.Sand > 0, "digger digs put sand in the backpack (" .. tostring(d.Sand) .. ")")
-	if dugPos then
-		local feet = digPlayer.Character.HumanoidRootPart.Position
-		check((Vector3.new(dugPos.X, feet.Y, dugPos.Z) - feet).Magnitude < 8, "digger digs near its owner")
+	local slotCount = 0
+	for _ in slots do
+		slotCount += 1
 	end
-	-- full backpack: diggers rest, one gentle notice per fill
-	d.Sand = 0
-	Mock.Advance(0.3)
-	d.Sand = digPlayer:GetAttribute("Capacity") or 1e9
+	check(events >= 4, "digging pets dig on their own (" .. events .. " PetDug events)")
+	check(slotCount >= 2, "several pets dig (" .. slotCount .. " slots)")
+	check(minDist >= 5, string.format("pets never dig under the owner (closest dig %.1f studs >= 5)", minDist))
+	check(sandTotal > 0, "pet digs put sand in the backpack")
+	local underFeet = true
+	for _, o in { Vector3.new(0, 0, 0), Vector3.new(1.5, 0, 0), Vector3.new(-1.5, 0, 0), Vector3.new(0, 0, 1.5), Vector3.new(0, 0, -1.5) } do
+		local v = Mock.GetVoxel(Vector3.new(owner.X + o.X, surfaceAt(owner.X, owner.Z) - 2, owner.Z + o.Z))
+		if not (v and v.Occupancy > 0) then
+			underFeet = false
+		end
+	end
+	check(underFeet, "the sand under the owner's feet is untouched")
+	local spot1 = PetDigService.GetSpot(cp, 1)
+	check(spot1 ~= nil, "pet 1 has its own spot")
+
+	-- another player nearby: pets keep 5 studs away from them
+	local other = Mock.AddPlayer(3003, "Neighbour")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(other)
+	Mock.Advance(1)
+	standOnSand(other, -51, 0)
+	local otherPos = other.Character.HumanoidRootPart.Position
+	local n0 = #Mock.Remote.ToClient
+	for _ = 1, 16 do
+		Mock.Advance(0.5)
+		d.Sand = 0
+	end
+	local nearOther = math.huge
+	for i = n0 + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		if e.Name == "PetDug" and e.Player == cp then
+			local pos = e.Args[4]
+			nearOther = math.min(nearOther, (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(otherPos.X, 0, otherPos.Z)).Magnitude)
+		end
+	end
+	check(nearOther >= 5, string.format("pets keep >= 5 studs from other players (%.1f)", nearOther))
+	Mock.RemovePlayer(other)
+	Mock.Advance(1)
+
+	-- full backpack: pets rest, one gentle notice per fill
+	d.Sand = cp:GetAttribute("Capacity") or 1e9
 	local full0 = #Mock.Remote.ToClient
 	Mock.Advance(5)
-	check(countToClient(digPlayer, "DiggerDug", full0) == 0, "diggers stop when the backpack is full")
+	check(countToClient(cp, "PetDug", full0) == 0, "pets stop digging when the backpack is full")
 	local resting = 0
-	for _, n in notifies(digPlayer, full0) do
-		if string.find(n, "resting", 1, true) then
+	for _, n in notifies(cp, full0) do
+		if string.find(n, "stopped digging", 1, true) then
 			resting += 1
 		end
 	end
-	check(resting == 1, "one 'diggers resting' notice per full backpack (" .. resting .. ")")
+	check(resting == 1, "one 'pets stopped digging' notice per full backpack (" .. resting .. ")")
 	-- outside the dig zone (hub / boardwalk): idle
 	d.Sand = 0
-	digPlayer.Character:PivotTo(World.GetSurfacePoint(zc))
+	cp.Character:PivotTo(World.GetSurfacePoint(zc))
 	local hub0 = #Mock.Remote.ToClient
 	Mock.Advance(5)
-	check(countToClient(digPlayer, "DiggerDug", hub0) == 0, "diggers idle outside the dig zone")
+	check(countToClient(cp, "PetDug", hub0) == 0, "pets idle outside the dig zone")
+	-- unequipped pets don't dig
+	for _, pet in d.Pets do
+		pet.Equipped = false
+	end
+	DataService.MarkDirty(cp, "Pets")
+	Mock.Advance(0.3)
+	check(#PetDigService.GetDiggers(cp) == 0 and cp:GetAttribute("EquippedPets") == "", "unequipped pets stop digging")
 	Mock.ServerTerrainRaycast = false
-	check(DiggerService.GetSlots(digPlayer) == 2, "DiggerService.GetSlots")
-	Mock.RemovePlayer(digPlayer)
+	Mock.RemovePlayer(cp)
 	Mock.Advance(3)
+
+	-- Save migration: data.Diggers -> vehicle pets (one per owned digger), then emptied
+	local migrate = DataService._MigrateDiggersToPets
+	local raw = {
+		Version = 1,
+		PetSlots = 3,
+		Pets = { crab = { Id = "sandy_crab", Equipped = true } },
+		Diggers = {
+			toy_truck = { Level = 5, Equipped = true },
+			dump_truck = { Level = 1, Equipped = true },
+			mini_excavator = { Level = 3, Equipped = false },
+			gone_digger = { Level = 1, Equipped = true },
+		},
+	}
+	migrate(raw)
+	local byId, equippedIds = {}, {}
+	local count = 0
+	for _, pet in raw.Pets do
+		count += 1
+		byId[pet.Id] = (byId[pet.Id] or 0) + 1
+		if pet.Equipped then
+			table.insert(equippedIds, pet.Id)
+		end
+	end
+	check(count == 4 and byId.toy_truck == 1 and byId.dump_truck == 1 and byId.mini_excavator == 1, "one pet per owned digger")
+	check(next(raw.Diggers) == nil, "data.Diggers emptied")
+	check(#equippedIds == 3 and table.find(equippedIds, "dump_truck") and table.find(equippedIds, "toy_truck"), "equipped diggers stay equipped (slots allow)")
+	local tight = {
+		PetSlots = 2,
+		Pets = { crab = { Id = "sandy_crab", Equipped = true } },
+		Diggers = { toy_truck = { Level = 1, Equipped = true }, dump_truck = { Level = 1, Equipped = true } },
+	}
+	migrate(tight)
+	local eq = {}
+	for _, pet in tight.Pets do
+		if pet.Equipped then
+			eq[pet.Id] = true
+		end
+	end
+	check(eq.dump_truck and not eq.toy_truck, "slot-limited migration equips the most valuable vehicle")
+	if not STUDIO_NO_API then
+		Mock.DataStores[Config.DATASTORE_NAME] = Mock.DataStores[Config.DATASTORE_NAME] or {}
+		Mock.DataStores[Config.DATASTORE_NAME]["Player_3002"] = {
+			Data = {
+				Version = 1,
+				Coins = 77,
+				Pets = {},
+				PetSlots = 3,
+				Diggers = { bulldozer = { Level = 2, Equipped = true }, skid_steer = { Level = 1, Equipped = false } },
+			},
+			SavedAt = 0,
+		}
+		local old = Mock.AddPlayer(3002, "OldSave")
+		Mock.Advance(2)
+		local od = DataService.Get(old)
+		local vehicles = {}
+		if od then
+			for _, pet in od.Pets do
+				vehicles[pet.Id] = pet.Equipped
+			end
+		end
+		check(od ~= nil and od.Coins == 77 and od.Version == Config.DATA_VERSION, "old v2 save loads at the new version")
+		check(vehicles.bulldozer == true and vehicles.skid_steer == false, "old Garage diggers arrive as vehicle pets")
+		check(od ~= nil and next(od.Diggers) == nil, "old save's Diggers emptied")
+		Mock.RemovePlayer(old)
+		Mock.Advance(3)
+	end
 end)
 
 -- Survival (Survival agent): heat, shade, snacks -------------------------------------------------------
@@ -957,8 +1130,9 @@ step("survival", function()
 	-- digs add capped heat
 	local ServerSignals = Mock.Require(byPath["ServerScriptService/Server/Services/ServerSignals"])
 	local before = SurvivalService.GetHeat(sp)
-	for _ = 1, 30 do
-		ServerSignals.Dug:Fire(sp, 1, 1, "Digger") -- diggers never heat their owner
+	for i = 1, 30 do
+		-- digger / pet / ride-on digs never heat their owner
+		ServerSignals.Dug:Fire(sp, 1, 1, ({ "Digger", "Pet", "Ride" })[i % 3 + 1])
 	end
 	Mock.Advance(1)
 	check(SurvivalService.GetHeat(sp) - before < Heat.SunRisePerSecond * 2, "digger digs add no heat")
@@ -1146,6 +1320,226 @@ step("survival", function()
 	Mock.RemovePlayer(sp)
 	Mock.Advance(3)
 	check(#Mock.Tagged("PlacedShade") == 0, "shades despawn when the owner leaves")
+end)
+
+-- Ride-on excavator (Ride agent) -------------------------------------------------------------------
+section("ride")
+step("ride", function()
+	local S = Config.SURFACE_Y
+	local R = Config.Ride
+	local zc = World.GetDigZone().CFrame.Position
+	local Color3 = Mock.Env.Color3
+	local rp = Mock.AddPlayer(4001, "RideTester")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(rp)
+	Mock.Advance(2)
+	local d = DataService.Get(rp)
+	local hum = rp.Character:FindFirstChildOfClass("Humanoid")
+	local function vehicle()
+		local f = workspace:FindFirstChild("Rides")
+		return f and f:FindFirstChild("Ride_4001")
+	end
+	local function solid(x, y, z)
+		local v = Mock.GetVoxel(Vector3.new(x, y, z))
+		return v ~= nil and v.Occupancy > 0
+	end
+	local function rideDugSince(since)
+		local list = {}
+		for i = since + 1, #Mock.Remote.ToClient do
+			local e = Mock.Remote.ToClient[i]
+			if e.Name == "RideDug" and e.Player == rp and e.Args[1] == rp then
+				table.insert(list, e.Args)
+			end
+		end
+		return list
+	end
+	local function toggle()
+		Mock.Advance(1) -- toggle debounce
+		Mock.FireServer("ToggleRide", rp)
+		Mock.Advance(0.5)
+	end
+	local x0 = 100
+	rp.Character:PivotTo(CFrame.new(x0, S + 3, zc.Z))
+	Mock.Advance(0.2)
+
+	-- no rideable pet: nothing spawns
+	toggle()
+	check(vehicle() == nil, "ToggleRide without a rideable pet spawns nothing")
+
+	-- a rideable pet ("mega_excavator" from Companions; a test def until it exists)
+	local def
+	for _, p in Config.Pets do
+		if p.Rideable == true and p.Dig then
+			def = p
+			break
+		end
+	end
+	local injected = false
+	if not def then
+		def = {
+			Id = "test_ride_excavator",
+			Name = "Test Excavator",
+			Rarity = "Mythic",
+			Multiplier = 1,
+			Exclusive = true,
+			VehicleKind = "Excavator",
+			Rideable = true,
+			Dig = { Power = 1e6, Interval = 0.8, Radius = 6, SandMultiplier = 50 },
+			Look = {
+				BodyColor = Color3.fromRGB(255, 190, 20),
+				AccentColor = Color3.fromRGB(255, 90, 160),
+				Shape = "Blob",
+				Size = 1,
+				Glow = false,
+			},
+		}
+		table.insert(Config.Pets, def)
+		injected = true
+	end
+	check(Config.FindRideablePet({ a = { Id = def.Id, Equipped = false } }) == def, "Config.FindRideablePet finds it")
+	check(Config.FindRideablePet({ a = { Id = Config.Pets[1].Id, Equipped = true } }) == nil, "non-rideable pets don't count")
+	d.Pets["ride_uid"] = { Id = def.Id, Equipped = false }
+
+	-- too far from the beach (hub plaza): refused
+	rp.Character:PivotTo(CFrame.new(x0, S + 3, 80))
+	toggle()
+	check(vehicle() == nil, "ToggleRide far from the beach spawns nothing")
+	rp.Character:PivotTo(CFrame.new(x0, S + 3, zc.Z))
+	Mock.Advance(0.2)
+
+	-- spawn + seat
+	toggle()
+	local v = vehicle()
+	if not check(v ~= nil, "ToggleRide with a rideable pet spawns the vehicle") then
+		return
+	end
+	local seat = v:FindFirstChild("RideSeat")
+	check(seat ~= nil and seat:IsA("Seat") and seat.Occupant == hum, "rider seated (Seat:Sit)")
+	check(hum.SeatPart == seat, "Humanoid.SeatPart is the ride seat")
+	check(v:GetAttribute("OwnerUserId") == 4001 and v:GetAttribute("PetId") == def.Id, "vehicle attributes")
+	check(rp:GetAttribute("Riding") == def.Id, "Riding attribute set")
+	local pivot = v:GetPivot()
+	check(
+		math.abs(pivot.Position.X - x0) < 1 and math.abs(pivot.Position.Z - zc.Z) < 1,
+		"vehicle spawns where the player stands on the sand"
+	)
+	check(math.abs(pivot.Position.Y - (S + R.HoverHeight)) < 0.5, "vehicle sits on the surface (" .. pivot.Position.Y .. ")")
+	local colliders, anchored, extent = {}, 0, v:GetExtentsSize()
+	for _, part in v:GetDescendants() do
+		if part:IsA("BasePart") then
+			if part.CanCollide then
+				table.insert(colliders, part.Name)
+			end
+			if part.Anchored then
+				anchored += 1
+			end
+		end
+	end
+	check(#colliders == 1 and colliders[1] == "Chassis", "only the Chassis collides (" .. table.concat(colliders, ",") .. ")")
+	check(anchored == 0, "vehicle is an unanchored assembly")
+	check(seat.CanTouch == false, "seat never seats passers-by")
+	check(math.max(extent.X, extent.Z) >= 10 and math.max(extent.X, extent.Z) <= 22, "full-size vehicle (" .. tostring(extent) .. ")")
+	local ap = v.PrimaryPart:FindFirstChild("RideAlignPosition")
+	local ao = v.PrimaryPart:FindFirstChild("RideAlignOrientation")
+	check(ap ~= nil and ao ~= nil and ap.Attachment0 ~= nil, "AlignPosition / AlignOrientation drive constraints")
+	for _, name in { "BoomMotor", "StickMotor", "BucketMotor" } do
+		check(v:FindFirstChild(name, true) ~= nil, "arm joint " .. name)
+	end
+	check(#workspace.Rides:GetChildren() == 1, "one vehicle")
+
+	-- RideDig: scoops in front of the vehicle, server-chosen point
+	Mock.ServerTerrainRaycast = true
+	d.Sand = 0
+	local look = pivot.LookVector
+	local since = #Mock.Remote.ToClient
+	Mock.FireServer("RideDig", rp)
+	Mock.Advance(0.3)
+	local dug = rideDugSince(since)
+	check(#dug == 1 and dug[1][3] == true, "RideDig digs (RideDug broadcast, success)")
+	check(d.Sand > 0, "ride digs fill the backpack (" .. tostring(d.Sand) .. ")")
+	if dug[1] then
+		local p = dug[1][2]
+		local rel = Vector3.new(p.X - pivot.Position.X, 0, p.Z - pivot.Position.Z)
+		check(math.abs(rel.Magnitude - R.DigAhead) < 1.5 and rel.Unit:Dot(look) > 0.9, "dig point is in front of the vehicle")
+		check(not solid(p.X, S - 2, p.Z) and not solid(p.X, S - 10, p.Z), "a big chunk is carved (12-stud cube)")
+	end
+	check(countToClient(rp, "DigResult", since) == 1, "ride dig sends a DigResult (+sand float text)")
+	-- rate limit: Dig.Interval
+	local s1 = #Mock.Remote.ToClient
+	for _ = 1, 5 do
+		Mock.FireServer("RideDig", rp)
+	end
+	Mock.Advance(0.1)
+	check(#rideDugSince(s1) == 0, "RideDig is rate-limited to the pet's Dig.Interval")
+	Mock.Advance(def.Dig.Interval)
+	Mock.FireServer("RideDig", rp)
+	Mock.Advance(0.2)
+	check(#rideDugSince(s1) == 1, "RideDig works again after the interval")
+	-- capacity
+	local capacity = rp:GetAttribute("Capacity")
+	d.Sand = capacity
+	Mock.Advance(def.Dig.Interval)
+	local s2 = #Mock.Remote.ToClient
+	Mock.FireServer("RideDig", rp)
+	Mock.Advance(0.2)
+	local full = rideDugSince(s2)
+	check(#full == 1 and full[1][3] == false and d.Sand == capacity, "full backpack: no sand, failed scoop")
+	local fullNotes = 0
+	for _, n in notifies(rp, s2) do
+		if string.find(n, "Backpack full", 1, true) then
+			fullNotes += 1
+		end
+	end
+	check(fullNotes == 1, "gentle 'backpack full' notify (" .. table.concat(notifies(rp, s2), " / ") .. ")")
+	d.Sand = 0
+
+	-- anti-teleport: impossible speed / outside the area -> put back; repeated -> parked
+	local good = v:GetPivot()
+	v:PivotTo(good + Vector3.new(200, 0, 0))
+	Mock.Advance(R.ValidateInterval + 0.1)
+	check(vehicle() == v and (v:GetPivot().Position - good.Position).Magnitude < 2, "teleported vehicle is put back")
+	Mock.Advance(R.ValidateInterval + 0.1) -- a valid sample clears the strikes
+	v:PivotTo(CFrame.new(x0, S, 90))
+	Mock.Advance(R.ValidateInterval + 0.1)
+	check(vehicle() == v and v:GetPivot().Position.Z < 10, "vehicle outside the ride area is put back")
+	Mock.Advance(R.ValidateInterval + 0.1)
+	v:PivotTo(good + Vector3.new(0, -40, 0))
+	Mock.Advance(R.ValidateInterval + 0.1)
+	check(vehicle() == v and v:GetPivot().Position.Y > S - 2, "vehicle sunk into a hole is put back")
+	for _ = 1, R.MaxStrikes do
+		v:PivotTo(CFrame.new(x0, S, 90))
+		Mock.Advance(R.ValidateInterval + 0.05)
+	end
+	check(vehicle() == nil, "repeated invalid positions despawn the vehicle")
+	check(rp:GetAttribute("Riding") == nil, "Riding attribute cleared")
+	Mock.FireServer("RideDig", rp)
+	Mock.Advance(0.2)
+
+	-- despawn paths: ToggleRide again, jump out, death, leave
+	rp.Character:PivotTo(CFrame.new(x0, S + 3, zc.Z))
+	toggle()
+	check(vehicle() ~= nil, "respawned")
+	toggle()
+	check(vehicle() == nil, "ToggleRide again despawns")
+	toggle()
+	check(vehicle() ~= nil, "respawned")
+	Mock.LeaveSeat(hum)
+	Mock.Advance(0.2)
+	check(vehicle() == nil, "jumping out despawns")
+	toggle()
+	check(vehicle() ~= nil, "respawned")
+	Mock.FireEvent(hum, "Died")
+	Mock.Advance(0.2)
+	check(vehicle() == nil, "death despawns")
+	toggle()
+	check(vehicle() ~= nil, "respawned")
+	Mock.ServerTerrainRaycast = false
+	Mock.RemovePlayer(rp)
+	Mock.Advance(1)
+	check(vehicle() == nil, "leaving despawns")
+	if injected then
+		table.remove(Config.Pets, table.find(Config.Pets, def))
+	end
 end)
 
 section("shutdown")
