@@ -151,7 +151,7 @@ function DevCommands.Start()
 			task.spawn(handler, player, args) -- errors print to Output with a stack trace
 		end)
 	end
-	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface /tide /pet /tide")
+	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface /tide /pet")
 end
 
 return DevCommands
