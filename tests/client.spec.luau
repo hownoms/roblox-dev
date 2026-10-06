@@ -307,8 +307,13 @@ do
 	local loadingFallback = loadingIcon.Frame:FindFirstChild("Emoji")
 	check(loadingImage ~= nil and loadingFallback ~= nil, "configured atlas retains a loading fallback")
 	check(loadingFallback ~= nil and loadingFallback.Visible, "unavailable atlas leaves the control icon readable")
+	check(loadingImage ~= nil and loadingImage.Visible, "loading atlas image stays renderable to start the texture request")
+	Mock.LoadImage(loadingImage)
+	Mock.Advance(0.3)
+	check(loadingFallback ~= nil and not loadingFallback.Visible, "cached image completion clears fallback without a property signal")
 	loadingIcon:Set("🛰️")
 	check(loadingImage ~= nil and not loadingImage.Visible, "switching to a raw icon hides the atlas image")
+	check(loadingFallback ~= nil and loadingFallback.Visible, "switching away from a loaded atlas restores the raw icon")
 	loadingIcon.Frame:Destroy()
 	local icons = 0
 	for _, d in hudCanvas:GetDescendants() do

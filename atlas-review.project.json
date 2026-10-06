@@ -1,0 +1,12 @@
+{
+  "name": "DigToTheCoreAtlasReview",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": { "Shared": { "$path": "src/shared" } },
+    "StarterPlayer": { "StarterPlayerScripts": {
+      "UI": { "$path": "src/client/UI" },
+      "Util": { "$path": "src/client/Util" },
+      "AtlasReview": { "$path": "tools/icons/AtlasReview.client.luau" }
+    } }
+  }
+}

@@ -3085,6 +3085,13 @@ function Mock.FireEvent(inst, eventName, ...)
 	getEventSignal(instances[inst], eventName):_fire(...)
 end
 
+-- Engine texture completion may not emit a property-change event for cached images.
+function Mock.LoadImage(inst)
+	local node = instances[inst]
+	assert(isA(node.className, "ImageLabel") or isA(node.className, "ImageButton"))
+	node.props.IsLoaded = true
+end
+
 local function setupClient(workspace)
 	local camera = newInstance("Camera")
 	local cam = instances[camera]
