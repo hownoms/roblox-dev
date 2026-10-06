@@ -1363,6 +1363,55 @@ do
 		Mock.Advance(0.2)
 	end
 
+	-- Avatar Joint Upgrade (playtest: the owner's R15 avatar had AnimationConstraints, no
+	-- Motor6Ds, and Output said every joint was missing). Same rig, joints converted.
+	do
+		local up = Mock.AddPlayer(2004, "Upgraded")
+		local upChar = Mock.SpawnCharacter(up, c + Vector3.new(-10, 3, 6))
+		Mock.MakeR15(upChar)
+		local joints = {}
+		for _, d in upChar:GetDescendants() do
+			if d:IsA("Motor6D") then
+				table.insert(joints, d)
+			end
+		end
+		local ac = {}
+		for _, m in joints do
+			local a0 = Instance.new("Attachment")
+			a0.Name = m.Name .. "RigAttachment"
+			a0.CFrame = m.C0
+			a0.Parent = m.Part0
+			local a1 = Instance.new("Attachment")
+			a1.Name = m.Name .. "RigAttachment"
+			a1.CFrame = m.C1
+			a1.Parent = m.Part1
+			local con = Instance.new("AnimationConstraint")
+			con.Name = m.Name
+			con.Attachment0 = a0
+			con.Attachment1 = a1
+			con.Parent = m.Part1
+			ac[m.Name] = con
+			m:Destroy()
+		end
+		check(ac.RightShoulder ~= nil and ac.RightElbow ~= nil and ac.Waist ~= nil, "test rig converted to AnimationConstraints")
+		local upSpade = makeTool(hand.Id)
+		upSpade.Parent = upChar
+		Mock.Advance(1.5)
+		local ud = Pose.GetDebug(upChar)
+		check(ud ~= nil and ud.Posed and not ud.TwoHanded, "spade is posed on an Avatar Joint Upgrade rig")
+		local function link(j)
+			return j.Attachment0.CFrame * j.Transform * j.Attachment1.CFrame:Inverse()
+		end
+		local handCF = link(ac.RightShoulder) * link(ac.RightElbow) * link(ac.RightWrist)
+		local palmY = (handCF * upChar.RightHand.RightGripAttachment.Position).Y
+		check(palmY < ac.RightShoulder.Attachment0.CFrame.Position.Y - 1.2, "upgraded rig: spade arm hangs at the side (" .. palmY .. ")")
+		upSpade.Parent = nil
+		Mock.Advance(0.2)
+		check(ac.RightShoulder.Transform == CFrame.identity, "upgraded rig: putting the spade away resets the arm")
+		Mock.RemovePlayer(up)
+		Mock.Advance(0.2)
+	end
+
 	-- unequip resets the local rig
 	tool.Parent = player:FindFirstChildOfClass("Backpack")
 	Mock.Advance(0.2)
