@@ -1,6 +1,6 @@
 # Game Design Document — Dig to the Core! Beach Simulator
 
-> **v2 update:** plots were replaced by one shared beach, and heat/shade/snacks and digger companions were added. See `docs/V2.md`, `docs/design/Survival.md` and `docs/design/Diggers.md`; where they differ, those docs win.
+> **v2 update:** plots were replaced by one shared beach, and heat/shade/snacks and digger companions were added. See `docs/V2.md`, `docs/design/Survival.md` and `docs/design/Companions.md`; where they differ, those docs win.
 
 
 Owner: Game design. The binding technical contract is `docs/ARCHITECTURE.md`; all numbers here

@@ -325,11 +325,12 @@ function PetDigService.Step(player: Player)
 	end
 	state.FullNotified = false
 
+	local riding = player:GetAttribute("Riding") -- RideService: id of the pet being ridden
 	for _, a in diggers do
 		local def = Config.GetPet(a.Id)
 		local dig = Config.GetPetDig(a.Id)
-		if not def or not dig then
-			continue
+		if not def or not dig or a.Id == riding then
+			continue -- the ridden pet digs through RideService instead
 		end
 		assert(def) -- refine for the type checker (guarded above)
 		assert(dig) -- refine for the type checker (guarded above)
