@@ -32,6 +32,7 @@ local EffectsController = require(script.Parent.Parent.Controllers.EffectsContro
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 local DiscoveryController = require(script.Parent.Parent.Controllers.DiscoveryController)
 local ModelFactory = require(script.Parent.Parent.Util.ModelFactory)
+local State = require(script.Parent.Parent.Controllers.State)
 
 local FindReveal = {}
 
@@ -68,6 +69,9 @@ function FindReveal.Presentation(info: Types.FindInfo): Presentation
 end
 
 local function cameraMoment(strength: number)
+	if State.GetSetting("ReducedMotion", false) == true then
+		return
+	end
 	EffectsController.Shake(0.35 * strength, 0.35)
 	local camera = Workspace.CurrentCamera
 	if not camera then

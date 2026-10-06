@@ -26,7 +26,7 @@
 	While ASSET_ID is "" the UI should keep using the emoji icons (UI/Icons.luau).
 ]]
 
-local ASSET_ID = ""
+local ASSET_ID = "rbxassetid://97869519007106"
 
 local Icons: { [string]: Vector2 } = {
 	coins = Vector2.new(0, 0),

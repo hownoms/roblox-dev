@@ -10,6 +10,7 @@
 
 local Layout = require(script.Parent.Layout)
 local Util = require(script.Parent.Util)
+local Vistas = require(script.Parent.Vistas)
 
 local S = Layout.SURFACE_Y
 
@@ -26,6 +27,7 @@ local function beachPoint(rng: Random, zMin: number, zMax: number): Vector3
 end
 
 function Decor.Build(parent: Instance, rng: Random)
+	Vistas.Build(parent)
 	local prop = function(name: string, pos: Vector3, yaw: number, scale: number?)
 		Util.Prop(name, parent, pos, yaw, scale)
 	end

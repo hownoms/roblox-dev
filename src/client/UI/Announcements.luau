@@ -56,7 +56,8 @@ function Announcements.Parse(text: string): Parsed?
 	if not Config.GetRarity(name) then
 		return nil
 	end
-	return { Player = w, Verb = v, Rarity = name, Item = i }
+	local parsed: Parsed = { Player = w, Verb = v, Rarity = name, Item = i }
+	return parsed
 end
 
 local function build(text: string): Frame

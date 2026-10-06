@@ -302,6 +302,14 @@ do
 	check(shellEmoji == "🐚", "AtlasIcon resolves grouped keys")
 	local _, rawEmoji = AtlasIcon.Resolve("🛒")
 	check(rawEmoji == "🛒", "AtlasIcon keeps raw emoji")
+	local loadingIcon = AtlasIcon.new({ Icon = "Coins", Parent = hudCanvas })
+	local loadingImage = loadingIcon.Frame:FindFirstChild("Image")
+	local loadingFallback = loadingIcon.Frame:FindFirstChild("Emoji")
+	check(loadingImage ~= nil and loadingFallback ~= nil, "configured atlas retains a loading fallback")
+	check(loadingFallback ~= nil and loadingFallback.Visible, "unavailable atlas leaves the control icon readable")
+	loadingIcon:Set("🛰️")
+	check(loadingImage ~= nil and not loadingImage.Visible, "switching to a raw icon hides the atlas image")
+	loadingIcon.Frame:Destroy()
 	local icons = 0
 	for _, d in hudCanvas:GetDescendants() do
 		if d:IsA("Frame") and d:GetAttribute("Icon") ~= nil then

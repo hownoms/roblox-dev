@@ -24,6 +24,7 @@
 	  The frame refits itself when its AbsoluteSize (aspect ratio) changes.
 ]]
 local RunService = game:GetService("RunService")
+local State = require(script.Parent.Parent.Parent.Controllers.State)
 
 local Viewport = {}
 
@@ -184,7 +185,17 @@ function Viewport.new(props: ViewportProps): Viewport
 		spinConnection = RunService.RenderStepped:Connect(function(dt: number)
 			local model = vp.Model
 			if model and frame.Parent then
-				if frame.Visible then
+				local visible = frame.Visible and State.GetSetting("ReducedMotion", false) ~= true
+				local ancestor: Instance? = frame.Parent
+				while visible and ancestor do
+					if ancestor:IsA("GuiObject") and not ancestor.Visible then
+						visible = false
+					elseif ancestor:IsA("ScreenGui") and not ancestor.Enabled then
+						visible = false
+					end
+					ancestor = ancestor.Parent
+				end
+				if visible then
 					angle += dt * (props.SpinSpeed or 1.2)
 					model:PivotTo(CFrame.Angles(0, angle, 0) * center)
 				end

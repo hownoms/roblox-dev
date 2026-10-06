@@ -117,9 +117,9 @@ builders.BeachTowel = function(m, v)
 		{ rgb(90, 210, 120), rgb(255, 250, 240) },
 		{ rgb(255, 160, 50), rgb(140, 90, 230) },
 	}, v)
-	Build.part(m, "Towel", V(3, 0.06, 5.6), CF(0, 0.03, 0), cols[1], M.Fabric)
+	Build.part(m, "Towel", V(3, 0.1, 5.6), CF(0, 0.14, 0), cols[1], M.Fabric)
 	for _, z in { -1.6, 0, 1.6 } do
-		Build.part(m, "Stripe", V(3.02, 0.07, 0.5), CF(0, 0.035, z), cols[2], M.Fabric)
+		Build.part(m, "Stripe", V(2.98, 0.025, 0.5), CF(0, 0.205, z), cols[2], M.Fabric)
 	end
 	Build.cylBetween(m, "Pillow", V(-1.3, 0.3, -2.45), V(1.3, 0.3, -2.45), 0.6, cols[2], M.Fabric)
 end
