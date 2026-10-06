@@ -1,12 +1,14 @@
 --!strict
 --[[
 	Shovels — ordered by price. Shovel N+1 always unlocks the next layer (Power == that layer's
-	Hardness), so depth == progress. The toy shovel (Power 2) digs Dry + Wet Sand.
+	Hardness), so depth == progress. The starter Hand Spade (Power 2) digs Dry + Wet Sand.
 	Cooldown 0.5s -> 0.12s, SandMultiplier 1x -> 75x.
 	Radius = half the edge of the voxel-aligned cube a dig removes (DigService rounds the edge
 	Radius * 2 to whole 4-stud voxels): 2-2.8 -> 4x4x4 (starters), 3.2-4.4 -> 8x8x8,
 	5-6.6 -> 12x12x12, 7.2-8 -> 16x16x16 (Core Breaker).
 	Late shovels need rebirths so rebirthing is the only way to reach the Core.
+	Look.Size: the first two tiers (Hand Spade, Garden Trowel) are small one-handed hand tools
+	("Hand"); from the Metal Spade on every shovel is a full-size tool held with both hands.
 	Balance sheet: docs/GDD.md "Economy sanity check".
 ]]
 
@@ -16,21 +18,22 @@ local rgb = Color3.fromRGB
 
 local Shovels: { Types.ShovelDef } = {
 	{
-		Id = "toy_shovel",
-		Name = "Plastic Toy Shovel",
+		Id = "toy_shovel", -- id kept from v1 ("Plastic Toy Shovel") so saves keep working
+		Name = "Hand Spade",
 		Price = 0,
 		Power = 2,
 		Cooldown = 0.5,
 		Radius = 2,
 		SandMultiplier = 1,
 		RebirthsRequired = 0,
-		Description = "Everyone starts somewhere. Digs Dry and Wet Sand.",
+		Description = "A little plastic beach spade. Everyone starts somewhere! Digs Dry and Wet Sand.",
 		Look = {
 			HeadColor = rgb(255, 70, 70),
 			HandleColor = rgb(255, 210, 50),
 			HeadShape = "Scoop",
 			Material = Enum.Material.SmoothPlastic,
 			Glow = false,
+			Size = "Hand",
 		},
 	},
 	{
@@ -49,6 +52,7 @@ local Shovels: { Types.ShovelDef } = {
 			HeadShape = "Trowel",
 			Material = Enum.Material.Metal,
 			Glow = false,
+			Size = "Hand",
 		},
 	},
 	{

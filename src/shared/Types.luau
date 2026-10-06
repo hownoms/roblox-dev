@@ -67,12 +67,17 @@ export type LayerDef = {
 
 export type ShovelShape = "Scoop" | "Trowel" | "Spade" | "Pick" | "Claw" | "Trident" | "Drill"
 
+-- "Hand": small one-handed hand tool (~2 studs). "Full" (default when nil): full-size tool held
+-- with both hands (client ShovelPoseController).
+export type ShovelSize = "Hand" | "Full"
+
 export type ShovelLook = {
 	HeadColor: Color3,
 	HandleColor: Color3,
 	HeadShape: ShovelShape,
 	Material: Enum.Material, -- Part material for the head
 	Glow: boolean, -- add PointLight / Neon accents
+	Size: ShovelSize?, -- nil = "Full"
 }
 
 export type ShovelDef = {
