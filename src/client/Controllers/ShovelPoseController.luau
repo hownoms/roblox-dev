@@ -26,6 +26,11 @@
 	    release). R6 + full-size shovels keep the plain grip; a local scoop there falls back to
 	    the default Animate "Slash" tool animation.
 
+	Joints: classic Motor6Ds, or AnimationConstraints when Roblox's Avatar Joint Upgrade
+	(StarterPlayer.AvatarJointUpgrade) builds the character. v2.2 playtest: the owner's Studio
+	used the upgrade, every Motor6D was "missing" and the spade kept the default hold. Both are
+	wrapped as a Joint (C0/C1 = Attachment0/1.CFrame for a constraint; same Transform rule).
+
 	R15 joint math (all in UPPERTORSO space, U = identity):
 	  A Motor6D places Part1 = Part0 * C0 * Transform * C1:Inverse(). C0.Position is the joint in
 	  Part0 space, C1.Position is the same joint in Part1 space. So to put a limb at a wanted
@@ -215,17 +220,29 @@ local CLUMP_LIFETIME = 1
 
 -- =============================================================================================
 
+-- A Motor6D or an AnimationConstraint, read and written through the same fields:
+-- Part1 = Part0 * C0 * Transform * C1:Inverse() for both.
+type Joint = {
+	Inst: Instance,
+	C0: CFrame,
+	C1: CFrame,
+	Part0: BasePart?,
+	Part1: BasePart?,
+	Transform: CFrame,
+	Parent: Instance?,
+}
+
 type Rig = {
 	Humanoid: Humanoid,
 	UpperTorso: BasePart,
-	RightShoulder: Motor6D,
-	RightElbow: Motor6D,
-	RightWrist: Motor6D,
-	LeftShoulder: Motor6D,
-	LeftElbow: Motor6D,
-	LeftWrist: Motor6D,
-	Waist: Motor6D,
-	Neck: Motor6D?,
+	RightShoulder: Joint,
+	RightElbow: Joint,
+	RightWrist: Joint,
+	LeftShoulder: Joint,
+	LeftElbow: Joint,
+	LeftWrist: Joint,
+	Waist: Joint,
+	Neck: Joint?,
 	RightHand: BasePart,
 	LeftHand: BasePart,
 }
@@ -233,7 +250,7 @@ type Rig = {
 type R6Rig = {
 	Humanoid: Humanoid,
 	Torso: BasePart,
-	RightShoulder: Motor6D,
+	RightShoulder: Joint,
 	RightArm: BasePart,
 }
 
@@ -263,7 +280,7 @@ type CharState = {
 	RigCheckedAt: number,
 	Info: ToolInfo?,
 	Weight: number,
-	Touched: { Motor6D },
+	Touched: { Joint },
 	Pose: Pose?,
 	Scoop: Scoop?,
 	Clump: BasePart?,
@@ -325,15 +342,69 @@ end
 
 -- Rig / tool lookup -------------------------------------------------------------------------------
 
--- The joint `name`, normally a child of `parent`; falls back to a search of the whole character
--- (some avatar packages parent their joints differently).
-local function motor(character: Model, parent: Instance?, name: string): Motor6D?
-	local m = if parent then parent:FindFirstChild(name) else nil
-	if not (m and m:IsA("Motor6D")) then
-		m = character:FindFirstChild(name, true)
+local jointProxies: { [Instance]: Joint } = setmetatable({}, { __mode = "k" }) :: any
+
+local function attachmentParent(a: any): BasePart?
+	local p = if a then a.Parent else nil
+	return if p and p:IsA("BasePart") then p else nil
+end
+
+-- One stable proxy per joint instance (state.Touched compares them by identity).
+local function wrapJoint(inst: Instance): Joint
+	local cached = jointProxies[inst]
+	if cached then
+		return cached
 	end
-	if m and m:IsA("Motor6D") and m.Part0 and m.Part1 then
-		return m
+	local raw = inst :: any
+	local isMotor = inst:IsA("Motor6D")
+	local proxy = setmetatable({ Inst = inst }, {
+		__index = function(_, key: string): any
+			if isMotor then
+				return raw[key]
+			elseif key == "C0" then
+				local a = raw.Attachment0
+				return if a then a.CFrame else CFrame.identity
+			elseif key == "C1" then
+				local a = raw.Attachment1
+				return if a then a.CFrame else CFrame.identity
+			elseif key == "Part0" then
+				return attachmentParent(raw.Attachment0)
+			elseif key == "Part1" then
+				return attachmentParent(raw.Attachment1)
+			end
+			return raw[key] -- Transform, Parent
+		end,
+		__newindex = function(_, key: string, value: any)
+			raw[key] = value -- only Transform is ever written
+		end,
+	})
+	local joint = proxy :: any
+	jointProxies[inst] = joint
+	return joint
+end
+
+local function isJoint(inst: Instance?): boolean
+	return inst ~= nil and (inst:IsA("Motor6D") or inst:IsA("AnimationConstraint"))
+end
+
+-- The joint called `name` between parts `part0` and `part1`: first by name anywhere in the
+-- character, then any Motor6D / AnimationConstraint that connects those two parts.
+local function findJoint(character: Model, name: string, part0: string, part1: string): Joint?
+	local named = character:FindFirstChild(name, true)
+	if named and isJoint(named) then
+		local j = wrapJoint(named)
+		if j.Part0 and j.Part1 then
+			return j
+		end
+	end
+	for _, d in character:GetDescendants() do
+		if isJoint(d) then
+			local j = wrapJoint(d)
+			local p0, p1 = j.Part0, j.Part1
+			if p0 and p1 and p0.Name == part0 and p1.Name == part1 then
+				return j
+			end
+		end
 	end
 	return nil
 end
@@ -354,16 +425,16 @@ local function resolveRig(character: Model): (Rig?, string?)
 	local upper = part(character, "UpperTorso")
 	local rightHand = part(character, "RightHand")
 	local leftHand = part(character, "LeftHand")
-	local rs = motor(character, character:FindFirstChild("RightUpperArm"), "RightShoulder")
-	local re = motor(character, character:FindFirstChild("RightLowerArm"), "RightElbow")
-	local rw = motor(character, rightHand, "RightWrist")
-	local ls = motor(character, character:FindFirstChild("LeftUpperArm"), "LeftShoulder")
-	local le = motor(character, character:FindFirstChild("LeftLowerArm"), "LeftElbow")
-	local lw = motor(character, leftHand, "LeftWrist")
-	local waist = motor(character, upper, "Waist")
+	local rs = findJoint(character, "RightShoulder", "UpperTorso", "RightUpperArm")
+	local re = findJoint(character, "RightElbow", "RightUpperArm", "RightLowerArm")
+	local rw = findJoint(character, "RightWrist", "RightLowerArm", "RightHand")
+	local ls = findJoint(character, "LeftShoulder", "UpperTorso", "LeftUpperArm")
+	local le = findJoint(character, "LeftElbow", "LeftUpperArm", "LeftLowerArm")
+	local lw = findJoint(character, "LeftWrist", "LeftLowerArm", "LeftHand")
+	local waist = findJoint(character, "Waist", "LowerTorso", "UpperTorso")
 	if not (upper and rightHand and leftHand and rs and re and rw and ls and le and lw and waist) then
 		local missing = {}
-		local function need(name: string, found: Instance?)
+		local function need(name: string, found: any)
 			if found == nil then
 				table.insert(missing, name)
 			end
@@ -392,14 +463,14 @@ local function resolveRig(character: Model): (Rig?, string?)
 	return {
 		Humanoid = humanoid :: Humanoid,
 		UpperTorso = upper :: BasePart,
-		RightShoulder = rs :: Motor6D,
-		RightElbow = re :: Motor6D,
-		RightWrist = rw :: Motor6D,
-		LeftShoulder = ls :: Motor6D,
-		LeftElbow = le :: Motor6D,
-		LeftWrist = lw :: Motor6D,
-		Waist = waist :: Motor6D,
-		Neck = motor(character, character:FindFirstChild("Head"), "Neck"),
+		RightShoulder = rs :: Joint,
+		RightElbow = re :: Joint,
+		RightWrist = rw :: Joint,
+		LeftShoulder = ls :: Joint,
+		LeftElbow = le :: Joint,
+		LeftWrist = lw :: Joint,
+		Waist = waist :: Joint,
+		Neck = findJoint(character, "Neck", "UpperTorso", "Head"),
 		RightHand = rightHand :: BasePart,
 		LeftHand = leftHand :: BasePart,
 	}
@@ -412,21 +483,21 @@ local function resolveR6(character: Model): R6Rig?
 	end
 	local torso = part(character, "Torso")
 	local arm = part(character, "Right Arm")
-	local rs = motor(character, torso, "Right Shoulder")
+	local rs = findJoint(character, "Right Shoulder", "Torso", "Right Arm")
 	if not (torso and arm and rs) or rs.Part0 ~= torso or rs.Part1 ~= arm then
 		return nil
 	end
 	return {
 		Humanoid = humanoid :: Humanoid,
 		Torso = torso :: BasePart,
-		RightShoulder = rs :: Motor6D,
+		RightShoulder = rs :: Joint,
 		RightArm = arm :: BasePart,
 	}
 end
 
 -- Every joint still in the character and connected. Avatar appearance loading can replace
 -- limbs/joints after spawn; a stale joint must trigger a re-resolve, not silent writes to it.
-local function jointAlive(m: Motor6D?): boolean
+local function jointAlive(m: Joint?): boolean
 	return m ~= nil and m.Parent ~= nil and m.Part0 ~= nil and m.Part1 ~= nil
 end
 
@@ -513,7 +584,7 @@ end
 
 -- Writing Transforms --------------------------------------------------------------------------
 
-local function write(state: CharState, m: Motor6D, target: CFrame, weight: number)
+local function write(state: CharState, m: Joint, target: CFrame, weight: number)
 	if not table.find(state.Touched, m) then
 		table.insert(state.Touched, m)
 	end
@@ -548,7 +619,7 @@ type ArmSolve = { Upper: CFrame, Lower: CFrame, Wrist: Vector3 }
 -- J's YZ plane, the plane Rx rotates). That gives theta in closed form for a wanted distance.
 type ArmGeometry = { A: Vector3, U: Vector3, Ryz: number, Delta: number }
 
-local function armGeometry(sh: Motor6D, el: Motor6D, endLocal: Vector3): ArmGeometry
+local function armGeometry(sh: Joint, el: Joint, endLocal: Vector3): ArmGeometry
 	local u = el.C1:Inverse() * endLocal
 	local a = el.C0:PointToObjectSpace(sh.C1.Position)
 	return {
@@ -595,7 +666,7 @@ end
 -- shoulder->end vector points at the target, choosing the twist that turns the back of the
 -- upper arm (+Z, where the elbow tip points) towards `pole`. Out of reach: the arm straightens
 -- and the reached end point is returned.
-local function solveArm(sh: Motor6D, el: Motor6D, endLocal: Vector3, target: Vector3, pole: Vector3): ArmSolve
+local function solveArm(sh: Joint, el: Joint, endLocal: Vector3, target: Vector3, pole: Vector3): ArmSolve
 	local geo = armGeometry(sh, el, endLocal)
 	local s = sh.C0.Position -- shoulder joint, U space
 	local sUpper = sh.C1.Position -- shoulder joint, UpperArm space
@@ -611,13 +682,13 @@ local function solveArm(sh: Motor6D, el: Motor6D, endLocal: Vector3, target: Vec
 	return { Upper = upper, Lower = lower, Wrist = s + dir * v.Magnitude }
 end
 
-local function applyArm(state: CharState, sh: Motor6D, el: Motor6D, wr: Motor6D, arm: ArmSolve, hand: CFrame, w: number)
+local function applyArm(state: CharState, sh: Joint, el: Joint, wr: Joint, arm: ArmSolve, hand: CFrame, w: number)
 	write(state, sh, sh.C0:Inverse() * arm.Upper * sh.C1, w)
 	write(state, el, el.C0:Inverse() * arm.Upper:Inverse() * arm.Lower * el.C1, w)
 	write(state, wr, wr.C0:Inverse() * arm.Lower:Inverse() * hand * wr.C1, w)
 end
 
-local function armLength(sh: Motor6D, el: Motor6D, wr: Motor6D, palm: Vector3): number
+local function armLength(sh: Joint, el: Joint, wr: Joint, palm: Vector3): number
 	return (el.C0.Position - sh.C1.Position).Magnitude
 		+ (wr.C0.Position - el.C1.Position).Magnitude
 		+ (palm - wr.C1.Position).Magnitude
