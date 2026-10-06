@@ -1,5 +1,7 @@
 --!strict
--- Card — rounded tile with chunky drop shadow, optional gradient (e.g. rarity colours).
+-- Card — rounded tile with a chunky dark base and outline. Default colour is the lighter
+-- navy used for inner cards on the ocean-navy panel bodies (docs/UI_STYLE.md); optional
+-- gradient (e.g. rarity colours). SetHighlight(Gold) = selected/current (3-4 px gold outline).
 local Style = require(script.Parent.Style)
 
 local Card = {}
@@ -32,7 +34,7 @@ export type Card = {
 }
 
 function Card.new(props: CardProps): Card
-	local color = props.Color or Style.Colors.Panel
+	local color = props.Color or Style.Colors.NavyCard
 	local corner = props.Corner or Style.Theme.CornerMedium
 	local z = props.ZIndex or 1
 
@@ -50,7 +52,7 @@ function Card.new(props: CardProps): Card
 	shadow.Size = UDim2.new(1, 0, 1, -SHADOW)
 	shadow.Position = UDim2.fromOffset(0, SHADOW)
 	shadow.BackgroundColor3 = Style.Colors.Stroke
-	shadow.BackgroundTransparency = 0.55
+	shadow.BackgroundTransparency = 0.2
 	shadow.BorderSizePixel = 0
 	shadow.ZIndex = z
 	shadow.Parent = holder
@@ -97,7 +99,7 @@ function Card.new(props: CardProps): Card
 		end,
 		SetHighlight = function(self: Card, highlight: Color3?)
 			self.Stroke.Color = highlight or props.StrokeColor or Style.Colors.Stroke
-			self.Stroke.Thickness = if highlight then 5 else 3
+			self.Stroke.Thickness = if highlight then 4 else 3
 		end,
 	}
 

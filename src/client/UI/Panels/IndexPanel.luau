@@ -72,8 +72,8 @@ local function renderLayer()
 	end
 	local layer = Config.Layers[selectedLayer]
 	local have, total = found(selectedLayer)
-	titleLabel.Text = Icons.Layer(layer.Id) .. " " .. layer.Name .. "  —  " .. have .. "/" .. total .. " found"
-	titleLabel.TextColor3 = Style.Darken(layer.Color, 0.45)
+	titleLabel.Text = layer.Name .. "  —  " .. have .. "/" .. total .. " found"
+	titleLabel.TextColor3 = Color3.new(1, 1, 1):Lerp(layer.Color, 0.5)
 	local reached = State.Data.MaxDepth >= layer.DepthStart
 	local treasures: { Types.TreasureDef } = byLayer[selectedLayer] or EMPTY
 	for i, treasure in treasures do
@@ -82,7 +82,7 @@ local function renderLayer()
 		local card = Card.new({
 			Name = treasure.Id,
 			LayoutOrder = i,
-			Gradient = if discovered and rarity then rarity.Gradient else { C.PanelAlt, C.SandDark },
+			Gradient = if discovered and rarity then rarity.Gradient else { C.NavyCard, C.NavyDark },
 			ZIndex = 6,
 			Parent = grid,
 		})
@@ -108,7 +108,7 @@ local function renderLayer()
 			Text = if discovered
 				then treasure.Rarity .. (if held > 0 then "  ·  x" .. held else "")
 				elseif reached then treasure.Rarity .. " · keep digging!"
-				else Icons.Lock .. " Reach " .. Format.Depth(layer.DepthStart),
+				else "Reach " .. Format.Depth(layer.DepthStart),
 			Size = UDim2.new(1, -10, 0, 18),
 			Position = UDim2.fromOffset(5, 128),
 			Font = Style.Fonts.Body,
@@ -118,11 +118,11 @@ local function renderLayer()
 		})
 		if discovered then
 			Style.Label({
-				Text = Icons.Coins .. " " .. Format.Abbreviate(treasure.SellValue),
+				Text = Format.Abbreviate(treasure.SellValue) .. " coins",
 				Size = UDim2.new(1, -10, 0, 18),
 				Position = UDim2.fromOffset(5, 146),
 				Font = Style.Fonts.Number,
-				TextColor = C.Gold,
+				TextColor = C.Money,
 				MaxTextSize = 14,
 				ZIndex = 8,
 				Parent = card.Face,
@@ -130,7 +130,7 @@ local function renderLayer()
 		end
 	end
 	for i, button in layerButtons do
-		button:SetColor(if i == selectedLayer then C.Sunset else C.SandDark)
+		button:SetColor(if i == selectedLayer then C.Sunset else C.NavyCard)
 	end
 end
 
@@ -139,7 +139,7 @@ local function refresh()
 		return
 	end
 	local completed = Config.CountCompletedIndexLayers(State.Data.Index)
-	bonusLabel.Text = "📖 Collection bonus: +"
+	bonusLabel.Text = "Collection bonus: +"
 		.. math.floor(completed * Config.INDEX_LAYER_BONUS * 100 + 0.5)
 		.. "% sand  ("
 		.. completed
@@ -153,7 +153,7 @@ local function refresh()
 		local have, total = found(i)
 		local reached = State.Data.MaxDepth >= layer.DepthStart
 		button:SetIcon(
-			if have == total and total > 0 then "✅" elseif reached then Icons.Layer(layer.Id) else Icons.Lock
+			if have == total and total > 0 then "Check" elseif reached then "Layers." .. layer.Id else "Lock"
 		)
 		button:SetText(layer.Name .. " " .. have .. "/" .. total)
 	end
@@ -171,9 +171,9 @@ local function build()
 	for i, layer in Config.Layers do
 		layerButtons[i] = Button.new({
 			Text = layer.Name,
-			Icon = Icons.Layer(layer.Id),
-			Size = UDim2.new(1, -14, 0, 50),
-			Color = C.SandDark,
+			Icon = "Layers." .. layer.Id,
+			Size = UDim2.new(1, -14, 0, 56),
+			Color = C.NavyCard,
 			MaxTextSize = 16,
 			LayoutOrder = i,
 			ZIndex = 6,
@@ -188,7 +188,7 @@ local function build()
 		Text = "",
 		Size = UDim2.new(1, -244, 0, 30),
 		Position = UDim2.fromOffset(244, 0),
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 26,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,
@@ -200,7 +200,7 @@ local function build()
 		Position = UDim2.fromOffset(244, 32),
 		TextColor = C.Palm,
 		Font = Style.Fonts.Body,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 16,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,

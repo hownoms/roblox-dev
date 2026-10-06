@@ -83,6 +83,45 @@ function Style.Shine(parent: Instance): UIGradient
 	return Style.Gradient(parent, { Color3.new(1, 1, 1), Color3.fromRGB(215, 215, 215) }, 90)
 end
 
+-- Toy-button gloss (docs/UI_STYLE.md): a soft white strip across the top third of a face,
+-- inset from the outline. Returns the strip so callers can hide it (e.g. disabled buttons).
+function Style.Gloss(parent: GuiObject, corner: UDim?, zIndex: number?): Frame
+	local gloss = Instance.new("Frame")
+	gloss.Name = "Gloss"
+	gloss.BackgroundColor3 = Color3.new(1, 1, 1)
+	gloss.BackgroundTransparency = 0.72
+	gloss.BorderSizePixel = 0
+	gloss.Size = UDim2.new(1, -8, 0.36, -2)
+	gloss.Position = UDim2.fromOffset(4, 3)
+	gloss.ZIndex = zIndex or parent.ZIndex
+	gloss.Active = false
+	gloss.Parent = parent
+	Style.Corner(gloss, corner or Style.Theme.CornerSmall)
+	local fade = Instance.new("UIGradient")
+	fade.Rotation = 90
+	fade.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(1, 0.55),
+	})
+	fade.Parent = gloss
+	return gloss
+end
+
+-- Ocean-navy panel/card body gradient (Navy -> NavyDark).
+function Style.NavyBody(parent: GuiObject): UIGradient
+	parent.BackgroundColor3 = Color3.new(1, 1, 1)
+	return Style.Gradient(parent, { Style.Colors.Navy, Style.Colors.NavyDark }, 90)
+end
+
+-- Small dark rounded "pill" backdrop for HUD readouts / toasts / the objective banner.
+function Style.Pill(parent: GuiObject, transparency: number?)
+	parent.BackgroundColor3 = Style.Colors.NavyDark
+	parent.BackgroundTransparency = transparency or 0.08
+	parent.BorderSizePixel = 0
+	Style.Corner(parent, Style.Theme.CornerPill)
+	Style.Stroke(parent, Style.Colors.Stroke, 3)
+end
+
 function Style.Padding(parent: Instance, px: number, horizontal: number?): UIPadding
 	local padding = Instance.new("UIPadding")
 	local h = UDim.new(0, horizontal or px)

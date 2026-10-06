@@ -1,7 +1,9 @@
 --!strict
 --[[
-	Toasts — notification queue (top-centre, under the event banners). Server Notify(kind, text)
-	lands here; clients call Toasts.Show(text, kind). Max 3 on screen.
+	Toasts — notification queue: short dark pills (kind-coloured outline, atlas icon overlapping
+	the left end, outlined text) stacked under the top-centre objective banner and boost chips
+	(UI/Layout "Toasts" region). Server Notify(kind, text) lands here; clients call
+	Toasts.Show(text, kind). Max 3 on screen.
 	Dedupe: the same message (case/punctuation/emoji-insensitive, and also when one text is just
 	a longer version of the other, e.g. the server's "Backpack full! Go sell!" and the client's
 	"Backpack full! Go SELL your sand") arriving within DEDUPE_WINDOW seconds of the last one is
@@ -14,6 +16,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
+local AtlasIcon = require(script.Parent.Components.AtlasIcon)
+local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 
 local Toasts = {}
@@ -27,15 +31,15 @@ type KindStyle = { Color: Color3, Icon: string, Sound: string? }
 
 local C = Style.Colors
 local KINDS: { [string]: KindStyle } = {
-	success = { Color = C.Success, Icon = "✅", Sound = "Coin" },
+	success = { Color = C.Success, Icon = "Check", Sound = "Coin" },
 	error = { Color = C.Danger, Icon = "❌", Sound = "Error" },
-	info = { Color = C.Ocean, Icon = "💬" },
+	info = { Color = C.Ocean, Icon = "info" },
 	warning = { Color = C.Warning, Icon = "⚠️", Sound = "DigBlocked" },
-	reward = { Color = C.Gold, Icon = "🎁", Sound = "Purchase" },
-	announce = { Color = C.Purple, Icon = "📣", Sound = "RareTreasure" },
-	purchase = { Color = C.Robux, Icon = "💎", Sound = "Purchase" },
-	sell = { Color = C.Gold, Icon = "💰" }, -- the HUD already plays the sell sound + coin rain
-	event = { Color = C.Sunset, Icon = "🎉", Sound = "RareTreasure" },
+	reward = { Color = C.Gold, Icon = "gift", Sound = "Purchase" },
+	announce = { Color = C.Purple, Icon = "notify", Sound = "RareTreasure" },
+	purchase = { Color = C.Robux, Icon = "Store", Sound = "Purchase" },
+	sell = { Color = C.Gold, Icon = "Coins" }, -- the HUD already plays the sell sound + coin rain
+	event = { Color = C.Sunset, Icon = "star", Sound = "RareTreasure" },
 }
 
 type Entry = { Text: string, Kind: string, Duration: number }
@@ -99,10 +103,11 @@ local function getContainer(): Frame
 	local frame = Instance.new("Frame")
 	frame.Name = "Toasts"
 	frame.BackgroundTransparency = 1
-	frame.Size = UDim2.fromOffset(520, 200)
-	frame.AnchorPoint = Vector2.new(0.5, 0)
-	frame.Position = UDim2.new(0.5, 0, 0, 104)
 	frame.Parent = Root.Get("Toasts")
+	Layout.Observe(function(regions: Layout.Regions)
+		frame.Position = Layout.Position(regions.Toasts)
+		frame.Size = Layout.SizeOf(regions.Toasts)
+	end)
 	Style.List(frame, Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
 	container = frame
 	return frame
@@ -128,37 +133,32 @@ local function display(entry: Entry)
 	order += 1
 	local frame = Instance.new("Frame")
 	frame.Name = "Toast"
-	frame.Size = UDim2.fromOffset(500, 50)
-	frame.BackgroundColor3 = Style.Colors.Panel
+	frame.Size = UDim2.new(1, -12, 0, 40)
 	frame.LayoutOrder = order
 	frame.Parent = getContainer()
-	Style.Corner(frame, Style.Theme.CornerPill)
-	Style.Stroke(frame, Style.Colors.Stroke, 3)
+	Style.Pill(frame, 0.1)
+	local ring = frame:FindFirstChildOfClass("UIStroke")
+	if ring then
+		ring.Color = Style.Darken(kind.Color, 0.15)
+	end
 
-	local stripe = Instance.new("Frame")
-	stripe.Name = "IconBg"
-	stripe.Size = UDim2.new(0, 50, 1, 0)
-	stripe.BackgroundColor3 = kind.Color
-	stripe.ZIndex = 2
-	stripe.Parent = frame
-	Style.Corner(stripe, Style.Theme.CornerPill)
-	Style.Shine(stripe)
-	Style.Icon({
-		Text = kind.Icon,
-		Size = UDim2.fromScale(0.74, 0.74),
+	AtlasIcon.new({
+		Name = "IconBg",
+		Icon = kind.Icon,
+		Size = UDim2.fromOffset(46, 46),
+		Position = UDim2.new(0, -10, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
 		ZIndex = 3,
-		Parent = stripe,
+		Parent = frame,
 	})
 
 	local label = Style.Label({
 		Text = entry.Text,
-		Size = UDim2.new(1, -70, 0.78, 0),
-		Position = UDim2.new(0, 60, 0.5, 0),
+		Size = UDim2.new(1, -54, 0.84, 0),
+		Position = UDim2.new(0, 42, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
-		TextColor = Style.Colors.TextDark,
-		Stroke = false,
 		Font = Style.Fonts.Title,
-		MaxTextSize = 22,
+		MaxTextSize = 19,
 		XAlign = Enum.TextXAlignment.Left,
 		Wrapped = true,
 		ZIndex = 2,

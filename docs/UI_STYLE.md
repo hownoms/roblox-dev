@@ -81,3 +81,24 @@ style in our beach palette.
 - No emoji inside `TextScaled` labels. Use the icon atlas, or emoji through `Style.Icon`, which
   has the fixed sizing.
 - No Robux logo art. Show Robux prices as "R$ 99" text only.
+
+## As built (v3 restyle)
+- **Regions** are computed in one place, `src/client/UI/Layout.luau` (design px, recomputed on
+  resize; `tests/client.spec.luau` checks that none overlap at phone, tablet and PC sizes and
+  that the phone thumbstick and jump zones stay clear).
+  - TopRight: the currency cluster, x W-400..W-12, y 8..108.
+  - Menu: 2×4 cells of 74 px, x 14..168, from y 4 on short screens.
+  - Depth meter: moved out of the top-right corner. It sits **top-centre-right** (just left of the
+    currency cluster) when the canvas is at least 1184 design px wide, which covers every
+    landscape phone. On narrower canvases (4:3 tablets, small PC windows) it sits **under** the
+    currency cluster on the right edge.
+  - Top-centre column: up to 380 px wide, between the menu and the depth/currency block. The
+    objective pill is at y 8, the boost/event chips at y 60, and toasts from y 102.
+  - SurvivalHUD: right edge, under the cluster/depth meter, 218 × 184 px.
+  - Bottom bar: centred, 420 × 180. The Ride button sits beside it (to the right; to the left
+    only when the right side would meet the SurvivalHUD).
+- **Icons**: `Components/AtlasIcon.luau` everywhere. Pasting the uploaded image id into
+  `Config/IconAtlas.luau` switches every icon from emoji to the atlas.
+- **Components**: `Button` (toy button), `Panel` (navy body, header bar, red ✕),
+  `UpgradeRow` (shop rows), `IconLabel` (currency pill), `UI/Reveal.luau` (hatch, treasure and
+  shovel popup), and `UI/ObjectiveBanner.luau` (tutorial pill).

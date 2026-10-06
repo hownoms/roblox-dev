@@ -4,11 +4,12 @@
 	Open with Panel.Open("BeachShop", { Tab = "Shade" | "Snacks" }) (HUD "Beach" button, the
 	BeachShop stand's ProximityPrompt, empty quick-slots).
 
-	Shade cards: big Models.Shade preview, radius / cooling stats and one state button:
-	  Buy <price> / <price> (can't afford) / 🔒 Rebirth N / Place (owned) — plus Pick Up when
-	  that shade is out on the beach. Buying starts placement right away.
-	Snack cards: big Models.Consumable preview, cooling + boost, "You have N", Buy 1 / Buy 5.
-	Water is free at the fountain (card explains, no buy button).
+	Shade: UPGRADE ROWS (Components/UpgradeRow, v3 restyle): Models.Shade preview, your best
+	shade ➜ this one ("Shade 6 ➜ Shade 8 studs", cooling), and one state button:
+	  <coins price> (green / grey) / Rebirth N (locked) / Place or Move (owned) — plus Pick Up
+	  when that shade is out on the beach. Buying starts placement right away.
+	Snack cards (navy cards): big Models.Consumable preview, cooling + boost, "xN" owned,
+	Buy 1 / Buy 5. Water is free at the fountain (card explains, no buy button).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
@@ -25,6 +26,7 @@ local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
+local UpgradeRow = require(Components.UpgradeRow)
 local Viewport = require(Components.Viewport)
 local Icons = require(script.Parent.Parent.Icons)
 local UIEffects = require(script.Parent.Parent.UIEffects)
@@ -37,8 +39,8 @@ local BeachShopPanel = {}
 
 local C = Style.Colors
 
-local CARD_SIZE = Vector2.new(184, 262)
-local PREVIEW_HEIGHT = 132
+local CARD_SIZE = Vector2.new(184, 290)
+local PREVIEW_HEIGHT = 128
 
 type Tab = string -- "Shade" | "Snacks"
 
@@ -77,6 +79,8 @@ local function preview(face: Frame, colors: { Color3 }, model: Model?, pitch: nu
 	frame.ZIndex = 3
 	frame.Parent = face
 	Style.Corner(frame, Style.Theme.CornerSmall)
+	Style.Stroke(frame, C.Stroke, 3)
+	frame.BackgroundColor3 = Color3.new(1, 1, 1)
 	Style.Gradient(frame, colors, 90)
 	if model then
 		-- Fill the frame: the viewport is the whole preview, the camera hugs the bounding box.
@@ -98,9 +102,8 @@ local function nameLabel(face: Frame, text: string)
 		Text = text,
 		Size = UDim2.new(1, -12, 0, 24),
 		Position = UDim2.fromOffset(6, PREVIEW_HEIGHT + 8),
-		TextColor = C.TextDark,
-		Stroke = false,
-		MaxTextSize = 19,
+		MaxTextSize = 20,
+		StrokeThickness = 2.5,
 		ZIndex = 3,
 		Parent = face,
 	})
@@ -112,8 +115,8 @@ local function statsLabel(face: Frame): TextLabel
 		Text = "",
 		Size = UDim2.new(1, -12, 0, 44),
 		Position = UDim2.fromOffset(6, PREVIEW_HEIGHT + 32),
-		TextColor = C.TextDark,
-		Stroke = false,
+		TextColor = C.Sky,
+		StrokeThickness = 1.5,
 		Font = Style.Fonts.Body,
 		MaxTextSize = 13,
 		Wrapped = true,
@@ -129,30 +132,35 @@ local function isPlaced(shadeId: string): boolean
 	return SurvivalController.IsShadePlaced(shadeId)
 end
 
-local function makeShadeCard(def: Types.ShadeDef, order: number, parent: Instance): ItemCard
-	local card = Card.new({ Name = def.Id, LayoutOrder = order, Color = C.PanelAlt, Parent = parent })
-	local face = card.Face
-	preview(face, { C.Sky, Style.Lighten(C.Sand, 0.1) }, safeModel(Models.Shade, def.Id), 14, 0.86)
-	nameLabel(face, def.Name)
-	local stats = statsLabel(face)
-	stats.Text = string.format(
-		"⛱️ Shade size <b>%d</b>   ❄️ Cools <b>x%s</b>\n%s",
-		def.Radius,
-		Format.Abbreviate(def.Cooling),
-		def.Description
-	)
-	local rebirths = def.RebirthsRequired or 0
+local function shadeStat(def: Types.ShadeDef): UpgradeRow.Stat
+	return { Main = "Shade " .. def.Radius .. " studs", Sub = "cools x" .. Format.Abbreviate(def.Cooling) }
+end
 
-	local main = Button.new({
-		Name = "Action",
-		Text = "Buy",
-		Size = UDim2.new(1, -14, 0, 42),
-		Position = UDim2.new(0.5, 0, 1, -6),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Color = C.Success,
-		MaxTextSize = 19,
-		ZIndex = 4,
-		Parent = face,
+-- Biggest shade you own (the "current" box of every row).
+local function bestOwnedShade(): Types.ShadeDef?
+	local best: Types.ShadeDef? = nil
+	for id, owned in State.Data.OwnedShades or ({} :: { [string]: boolean }) do
+		local def = if owned then Config.GetShade(id) else nil
+		if def and (not best or def.Radius > (best :: Types.ShadeDef).Radius) then
+			best = def
+		end
+	end
+	return best
+end
+
+local function makeShadeCard(def: Types.ShadeDef, order: number, parent: Instance): ItemCard
+	local rebirths = def.RebirthsRequired or 0
+	local row = UpgradeRow.new({
+		Name = def.Id,
+		Title = def.Name,
+		LayoutOrder = order,
+		Parent = parent,
+		Model = safeModel(Models.Shade, def.Id),
+		Pitch = 14,
+		Fill = 0.86,
+		Yaw = 25,
+		StageColors = { C.Sky, Style.Lighten(C.Sand, 0.1) },
+		ActionWidth = 230,
 		OnClick = function()
 			local owned = (State.Data.OwnedShades or ({} :: { [string]: boolean }))[def.Id] == true
 			if owned then
@@ -164,16 +172,16 @@ local function makeShadeCard(def: Types.ShadeDef, order: number, parent: Instanc
 			end
 		end,
 	})
+	local main = row.Button
 	local pickUp = Button.new({
 		Name = "PickUp",
 		Text = "Pick Up",
-		Size = UDim2.new(0.5, -10, 0, 42),
-		Position = UDim2.new(1, -6, 1, -6),
-		AnchorPoint = Vector2.new(1, 1),
+		Size = UDim2.new(0, 104, 0, 80),
 		Color = C.Coral,
-		MaxTextSize = 17,
-		ZIndex = 4,
-		Parent = face,
+		MaxTextSize = 20,
+		LayoutOrder = 20,
+		ZIndex = 5,
+		Parent = row.Actions,
 		OnClick = function()
 			Remotes.Get("PickUpShade"):FireServer(def.Id)
 		end,
@@ -185,26 +193,29 @@ local function makeShadeCard(def: Types.ShadeDef, order: number, parent: Instanc
 			local data = State.Data
 			local owned = (data.OwnedShades or ({} :: { [string]: boolean }))[def.Id] == true
 			local placed = owned and isPlaced(def.Id)
+			local best = bestOwnedShade()
+			row:SetStats(if best and best ~= def and not owned then shadeStat(best) else nil, shadeStat(def))
 			pickUp:SetVisible(placed)
-			main.Holder.Size = if placed then UDim2.new(0.5, -10, 0, 42) else UDim2.new(1, -14, 0, 42)
-			main.Holder.Position = if placed then UDim2.new(0, 6, 1, -6) else UDim2.new(0.5, 0, 1, -6)
-			main.Holder.AnchorPoint = if placed then Vector2.new(0, 1) else Vector2.new(0.5, 1)
+			main.Holder.Size = if placed then UDim2.new(0, 118, 0, 80) else UDim2.new(1, 0, 0, 80)
+			local locked = not owned and data.Rebirths < rebirths
+			row:SetLocked(locked)
 			if owned then
 				main:SetEnabled(true)
 				main:SetColor(C.Ocean)
-				main:SetText(if placed then "Move" else "⛱️ Place")
-			elseif data.Rebirths < rebirths then
+				main:SetIcon("place_shade|⛱️")
+				main:SetText(if placed then "Move" else "Place")
+			elseif locked then
 				main:SetEnabled(false)
-				main:SetText(Icons.Lock .. " Rebirth " .. rebirths)
-			elseif data.Coins < def.Price then
-				main:SetEnabled(false)
-				main:SetText(Icons.Coins .. " " .. Format.Abbreviate(def.Price))
+				main:SetIcon("Lock")
+				main:SetText("Rebirth " .. rebirths)
 			else
-				main:SetEnabled(true)
+				main:SetIcon("Coins")
+				main:SetText(Format.Abbreviate(def.Price))
+				main:SetEnabled(data.Coins >= def.Price)
 				main:SetColor(C.Success)
-				main:SetText("Buy " .. Icons.Coins .. " " .. Format.Abbreviate(def.Price))
 			end
-			card:SetHighlight(if placed then C.Palm elseif owned then C.Ocean else nil)
+			row:SetTag(if placed then "ON BEACH" elseif owned then "OWNED" else nil, if placed then C.Palm else C.Ocean)
+			row.Card:SetHighlight(if placed then C.Gold else nil)
 		end,
 	}
 end
@@ -212,37 +223,39 @@ end
 -- Snack cards ---------------------------------------------------------------------------------------
 
 local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: Instance): ItemCard
-	local card = Card.new({ Name = def.Id, LayoutOrder = order, Color = C.PanelAlt, Parent = parent })
+	local card = Card.new({ Name = def.Id, LayoutOrder = order, Parent = parent })
 	local face = card.Face
 	preview(face, { Style.Lighten(C.Ocean, 0.35), C.Sky }, safeModel(Models.Consumable, def.Id), 18, 0.8)
-	nameLabel(face, def.Icon .. " " .. def.Name)
+	nameLabel(face, def.Name)
 	local stats = statsLabel(face)
 	local boost = if def.Boost then Config.GetBoost(def.Boost) else nil
 	local boostText = if boost and def.BoostSeconds
-		then string.format("\n⚡ %s %ds", boost.Name, def.BoostSeconds)
+		then string.format("\n+ %s %ds", boost.Name, def.BoostSeconds)
 		else "\n" .. def.Description
 	local isFree = def.Price <= 0
 
 	local have: TextLabel = Style.Label({
 		Name = "Have",
 		Text = "",
-		Size = UDim2.fromOffset(70, 24),
+		Size = UDim2.fromOffset(60, 28),
 		Position = UDim2.fromOffset(10, 10),
-		MaxTextSize = 16,
+		MaxTextSize = 18,
 		ZIndex = 6,
 		Parent = face,
 	})
 	have.BackgroundTransparency = 0
-	have.BackgroundColor3 = C.Stroke
+	have.BackgroundColor3 = C.NavyDark
 	Style.Corner(have, Style.Theme.CornerPill)
+	Style.Stroke(have, C.Stroke, 2)
 
 	local buyOne: Button.Button? = nil
 	local buyFive: Button.Button? = nil
 	if isFree then
 		local info = Button.new({
 			Name = "Free",
-			Text = "💧 At the fountain",
-			Size = UDim2.new(1, -14, 0, 42),
+			Text = "At the fountain",
+			Icon = "water",
+			Size = UDim2.new(1, -14, 0, 74),
 			Position = UDim2.new(0.5, 0, 1, -6),
 			AnchorPoint = Vector2.new(0.5, 1),
 			Color = C.Ocean,
@@ -255,7 +268,8 @@ local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: In
 		buyOne = Button.new({
 			Name = "Buy1",
 			Text = "Buy",
-			Size = UDim2.new(0.55, -9, 0, 42),
+			Icon = "Coins",
+			Size = UDim2.new(0.6, -9, 0, 74),
 			Position = UDim2.new(0, 6, 1, -6),
 			AnchorPoint = Vector2.new(0, 1),
 			Color = C.Success,
@@ -269,7 +283,7 @@ local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: In
 		buyFive = Button.new({
 			Name = "Buy5",
 			Text = "x5",
-			Size = UDim2.new(0.45, -9, 0, 42),
+			Size = UDim2.new(0.4, -9, 0, 74),
 			Position = UDim2.new(1, -6, 1, -6),
 			AnchorPoint = Vector2.new(1, 1),
 			Color = C.Sunset,
@@ -285,7 +299,7 @@ local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: In
 	return {
 		Id = def.Id,
 		Update = function()
-			stats.Text = string.format("❄️ Cools <b>-%d</b> heat%s", def.Cooling, boostText)
+			stats.Text = string.format("Cools <b>-%d</b> heat%s", def.Cooling, boostText)
 			local count = (State.Data.Consumables or ({} :: { [string]: number }))[def.Id] or 0
 			have.Visible = not isFree and count > 0
 			have.Text = "x" .. tostring(count)
@@ -293,14 +307,14 @@ local function makeSnackCard(def: Types.ConsumableDef, order: number, parent: In
 			local one = buyOne
 			if one then
 				one:SetEnabled(coins >= def.Price)
-				one:SetText(Icons.Coins .. " " .. Format.Abbreviate(def.Price))
+				one:SetText(Format.Abbreviate(def.Price))
 			end
 			local five = buyFive
 			if five then
 				five:SetEnabled(coins >= def.Price * 5)
 				five:SetText("x5")
 			end
-			card:SetHighlight(if count > 0 then C.Ocean else nil)
+			card:SetHighlight(if count > 0 then C.Gold else nil)
 		end,
 	}
 end
@@ -319,7 +333,7 @@ end
 local function selectTab(tab: Tab)
 	currentTab = tab
 	for k, button in tabs do
-		button:SetColor(if k == tab then C.Sunset else C.SandDark)
+		button:SetColor(if k == tab then C.Sunset else C.NavyCard)
 		scrollers[k].Visible = k == tab
 	end
 end
@@ -333,16 +347,16 @@ local function build()
 	local tabRow = Instance.new("Frame")
 	tabRow.Name = "Tabs"
 	tabRow.BackgroundTransparency = 1
-	tabRow.Size = UDim2.new(1, 0, 0, 50)
+	tabRow.Size = UDim2.new(1, 0, 0, 58)
 	tabRow.ZIndex = 5
 	tabRow.Parent = body
 	Style.List(tabRow, Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Left)
 	for i, tab in { "Shade", "Snacks" } do
 		tabs[tab] = Button.new({
 			Text = tab,
-			Icon = if tab == "Shade" then "⛱️" else "🍉",
-			Size = UDim2.fromOffset(190, 48),
-			Color = C.SandDark,
+			Icon = if tab == "Shade" then "shade" else "watermelon_slice",
+			Size = UDim2.fromOffset(190, 56),
+			Color = C.NavyCard,
 			LayoutOrder = i,
 			ZIndex = 5,
 			Parent = tabRow,
@@ -350,14 +364,18 @@ local function build()
 				selectTab(tab)
 			end,
 		})
-		local scroller = Panel.Scroller(body, UDim2.new(1, 0, 1, -58), UDim2.fromOffset(0, 58))
+		local scroller = Panel.Scroller(body, UDim2.new(1, 0, 1, -64), UDim2.fromOffset(0, 64))
 		scroller.Name = tab
-		local grid = Instance.new("UIGridLayout")
-		grid.CellSize = UDim2.fromOffset(CARD_SIZE.X, CARD_SIZE.Y)
-		grid.CellPadding = UDim2.fromOffset(10, 12)
-		grid.SortOrder = Enum.SortOrder.LayoutOrder
-		grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		grid.Parent = scroller
+		if tab == "Shade" then
+			Style.List(scroller, Enum.FillDirection.Vertical, 10)
+		else
+			local grid = Instance.new("UIGridLayout")
+			grid.CellSize = UDim2.fromOffset(CARD_SIZE.X, CARD_SIZE.Y)
+			grid.CellPadding = UDim2.fromOffset(10, 12)
+			grid.SortOrder = Enum.SortOrder.LayoutOrder
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.Parent = scroller
+		end
 		scrollers[tab] = scroller
 		if tab == "Shade" then
 			for order, def in Config.Shades do
@@ -372,14 +390,14 @@ local function build()
 	-- hint line: how heat works (top right of the tab row)
 	Style.Label({
 		Name = "Hint",
-		Text = "☀️ Sun heats you up. ⛱️ Shade, 🕳️ digging deep and 🍉 snacks cool you down!",
+		Text = "Sun heats you up. Shade, digging deep and snacks cool you down!",
 		Size = UDim2.new(1, -410, 0, 44),
 		Position = UDim2.new(1, 0, 0, 2),
 		AnchorPoint = Vector2.new(1, 0),
-		TextColor = C.TextDark,
-		Stroke = false,
+		TextColor = C.Sky,
+		StrokeThickness = 1.5,
 		Font = Style.Fonts.Body,
-		MaxTextSize = 14,
+		MaxTextSize = 15,
 		Wrapped = true,
 		ZIndex = 5,
 		Parent = body,

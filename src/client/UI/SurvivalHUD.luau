@@ -1,14 +1,16 @@
 --!strict
 --[[
 	SurvivalHUD — heat meter, shade indicator, snack quick-slots and the shade placement bar
-	(owner: Survival). Lives in its own ScreenGui "Dig_Survival" (same responsive scale as the
-	main HUD) on the RIGHT-CENTRE screen edge, which the main HUD leaves free (docs/V2.md).
+	(owner: Survival; v3 restyle). Lives in its own ScreenGui "Dig_Survival" (same responsive
+	scale as the main HUD) on the right edge, in the UI/Layout "Survival" region (218 x 184
+	under the top-right cluster / depth meter, clear of the phone jump button).
 
 	- Thermometer: fill + colour follow the Heat attribute; above it a zone chip
 	  (☀️ Sun / ⛱️ Shade / 🕳️ Underground / 🌴 Cool, 🧴 while the new-player grace lasts).
 	  Sunburnt: the bulb pulses red, a "SUNBURNT!" tag shows and a toast explains the fix.
-	- Quick-slots (1/2/3): the best owned snacks with counts; empty slot -> opens the Snacks tab.
-	  A ⛱️ button starts placing your best shade (F); without one it opens the Beach Shop.
+	- Quick-slots (1/2/3) in a 2x2 grid of 74 px toy buttons with the shade button (F): the best
+	  owned snacks with counts; empty slot -> opens the Snacks tab. The shade button starts
+	  placing your best shade (F); without one it opens the Beach Shop.
 	- Placement bar (Rotate / Place / Cancel) while PlacementController is active (mobile-friendly).
 	- Screen warmth: a client-only ColorCorrectionEffect "HeatTint" in Lighting plus a soft warm
 	  edge glow that shimmers when hot. Never touches the World* lighting effects or DepthTint.
@@ -23,6 +25,8 @@ local Config = require(Shared:WaitForChild("Config"))
 local Components = script.Parent.Components
 local Style = require(Components.Style)
 local Button = require(Components.Button)
+local AtlasIcon = require(Components.AtlasIcon)
+local Layout = require(script.Parent.Layout)
 local Panel = require(Components.Panel)
 local Root = require(script.Parent.Root)
 local Toasts = require(script.Parent.Toasts)
@@ -36,21 +40,22 @@ local C = Style.Colors
 local Heat = Config.Heat
 
 local ZONES: { [string]: { Icon: string, Text: string, Color: Color3 } } = {
-	Sun = { Icon = "☀️", Text = "SUN", Color = Color3.fromRGB(255, 170, 40) },
-	Shade = { Icon = "⛱️", Text = "SHADE", Color = Color3.fromRGB(60, 170, 255) },
-	Underground = { Icon = "🕳️", Text = "COOL", Color = Color3.fromRGB(120, 110, 200) },
-	Cool = { Icon = "🌴", Text = "COOL", Color = Color3.fromRGB(70, 200, 120) },
+	Sun = { Icon = "sun", Text = "SUN", Color = Color3.fromRGB(255, 170, 40) },
+	Shade = { Icon = "shade", Text = "SHADE", Color = Color3.fromRGB(60, 170, 255) },
+	Underground = { Icon = "depth|🕳️", Text = "COOL", Color = Color3.fromRGB(120, 110, 200) },
+	Cool = { Icon = "water|🌴", Text = "COOL", Color = Color3.fromRGB(70, 200, 120) },
 }
-local GRACE = { Icon = "🧴", Text = "SAFE", Color = Color3.fromRGB(90, 210, 200) }
-local BURNT_ZONE = { Icon = "🥵", Text = "BURNT!", Color = Color3.fromRGB(240, 50, 50) }
+local GRACE = { Icon = "shade|🧴", Text = "SAFE", Color = Color3.fromRGB(90, 210, 200) }
+local BURNT_ZONE = { Icon = "heat|🥵", Text = "BURNT!", Color = Color3.fromRGB(240, 50, 50) }
 
 local COLD = Color3.fromRGB(80, 190, 255)
 local WARM = Color3.fromRGB(255, 205, 60)
 local HOT = Color3.fromRGB(255, 120, 40)
 local BURNT = Color3.fromRGB(240, 50, 50)
 
-local TUBE_HEIGHT = 108
-local HUD_HEIGHT = 206 -- fits the free region: y 180 .. bottom-150 at 540 design px
+local TUBE_HEIGHT = 84
+local HUD_HEIGHT = 184 -- Layout.SURVIVAL.Y
+local SLOT = 74 -- >= Theme.MinTouchSize
 
 type Slot = { Button: Button.Button, Count: TextLabel, Key: TextLabel }
 
@@ -60,7 +65,7 @@ local fill: Frame
 local bulb: Frame
 local bulbLabel: TextLabel
 local zoneChip: Frame
-local zoneIcon: TextLabel
+local zoneIcon: AtlasIcon.AtlasIcon
 local zoneText: TextLabel
 local glow: Frame
 local glowGradient: UIGradient
@@ -171,7 +176,7 @@ local function buildMeter(holder: Frame)
 
 	zoneChip = Instance.new("Frame")
 	zoneChip.Name = "Zone"
-	zoneChip.Size = UDim2.fromOffset(50, 50)
+	zoneChip.Size = UDim2.fromOffset(54, 54)
 	zoneChip.Position = UDim2.new(0.5, 0, 0, 0)
 	zoneChip.AnchorPoint = Vector2.new(0.5, 0)
 	zoneChip.BackgroundColor3 = ZONES.Cool.Color
@@ -179,14 +184,13 @@ local function buildMeter(holder: Frame)
 	zoneChip.Parent = column
 	Style.Corner(zoneChip, Style.Theme.CornerPill)
 	Style.Stroke(zoneChip, C.Stroke, 3)
-	zoneIcon = Style.Label({
+	Style.Gloss(zoneChip, Style.Theme.CornerPill, 2)
+	zoneIcon = AtlasIcon.new({
 		Name = "Icon",
-		Text = ZONES.Cool.Icon,
-		Size = UDim2.new(1, -10, 0.62, 0),
-		Position = UDim2.new(0.5, 0, 0, 4),
+		Icon = ZONES.Cool.Icon,
+		Size = UDim2.new(1, -8, 0.66, 0),
+		Position = UDim2.new(0.5, 0, 0, 2),
 		AnchorPoint = Vector2.new(0.5, 0),
-		MaxTextSize = 30,
-		Stroke = false,
 		ZIndex = 3,
 		Parent = zoneChip,
 	})
@@ -196,17 +200,17 @@ local function buildMeter(holder: Frame)
 		Size = UDim2.new(1, -6, 0.3, 0),
 		Position = UDim2.new(0.5, 0, 1, -4),
 		AnchorPoint = Vector2.new(0.5, 1),
-		MaxTextSize = 13,
-		ZIndex = 3,
+		MaxTextSize = 14,
+		ZIndex = 4,
 		Parent = zoneChip,
 	})
 
 	local tube = Instance.new("Frame")
 	tube.Name = "Tube"
 	tube.Size = UDim2.fromOffset(26, TUBE_HEIGHT)
-	tube.Position = UDim2.new(0.5, 0, 0, 56)
+	tube.Position = UDim2.new(0.5, 0, 0, 58)
 	tube.AnchorPoint = Vector2.new(0.5, 0)
-	tube.BackgroundColor3 = Color3.fromRGB(245, 245, 250)
+	tube.BackgroundColor3 = C.NavyDark
 	tube.ClipsDescendants = true
 	tube.ZIndex = 2
 	tube.Parent = column
@@ -240,7 +244,7 @@ local function buildMeter(holder: Frame)
 	bulb = Instance.new("Frame")
 	bulb.Name = "Bulb"
 	bulb.Size = UDim2.fromOffset(48, 48)
-	bulb.Position = UDim2.new(0.5, 0, 0, 56 + TUBE_HEIGHT - 10)
+	bulb.Position = UDim2.new(0.5, 0, 0, 58 + TUBE_HEIGHT - 10)
 	bulb.AnchorPoint = Vector2.new(0.5, 0)
 	bulb.BackgroundColor3 = COLD
 	bulb.ZIndex = 4
@@ -264,20 +268,24 @@ local function buildSlots(holder: Frame)
 	local column = Instance.new("Frame")
 	column.Name = "QuickSlots"
 	column.BackgroundTransparency = 1
-	column.Size = UDim2.fromOffset(52, HUD_HEIGHT)
-	column.Position = UDim2.new(1, -62, 0, 0)
-	column.AnchorPoint = Vector2.new(1, 0)
+	column.Size = UDim2.fromOffset(SLOT * 2 + 6, SLOT * 2 + 6)
+	column.Position = UDim2.new(0, 0, 1, 0)
+	column.AnchorPoint = Vector2.new(0, 1)
 	column.Parent = holder
-	Style.List(column, Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom)
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(SLOT, SLOT)
+	grid.CellPadding = UDim2.fromOffset(6, 6)
+	grid.FillDirectionMaxCells = 2
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = column
 
 	shadeButton = Button.new({
 		Name = "PlaceShade",
-		Icon = "⛱️",
+		Icon = "place_shade|⛱️",
 		Text = "F",
 		Vertical = true,
-		Size = UDim2.fromOffset(48, 48),
 		Color = C.Sunset,
-		MaxTextSize = 14,
+		MaxTextSize = 16,
 		LayoutOrder = 0,
 		ZIndex = 3,
 		Parent = column,
@@ -296,7 +304,6 @@ local function buildSlots(holder: Frame)
 			Icon = "➕",
 			Text = "",
 			Vertical = true,
-			Size = UDim2.fromOffset(48, 48),
 			Color = C.Ocean,
 			MaxTextSize = 14,
 			LayoutOrder = i,
@@ -309,25 +316,27 @@ local function buildSlots(holder: Frame)
 		local count = Style.Label({
 			Name = "Count",
 			Text = "",
-			Size = UDim2.fromOffset(34, 22),
-			Position = UDim2.new(1, 4, 1, -2),
+			Size = UDim2.fromOffset(40, 24),
+			Position = UDim2.new(1, 2, 1, -4),
 			AnchorPoint = Vector2.new(1, 1),
-			MaxTextSize = 16,
+			MaxTextSize = 20,
+			StrokeThickness = 3,
 			ZIndex = 8,
 			Parent = button.Holder,
 		})
 		local key = Style.Label({
 			Name = "Key",
 			Text = tostring(i),
-			Size = UDim2.fromOffset(20, 20),
+			Size = UDim2.fromOffset(22, 22),
 			Position = UDim2.fromOffset(-4, -4),
-			MaxTextSize = 14,
+			MaxTextSize = 15,
 			ZIndex = 8,
 			Parent = button.Holder,
 		})
 		key.BackgroundTransparency = 0
-		key.BackgroundColor3 = C.Stroke
+		key.BackgroundColor3 = C.NavyDark
 		Style.Corner(key, Style.Theme.CornerPill)
+		Style.Stroke(key, C.Stroke, 2)
 		table.insert(slots, { Button = button, Count = count, Key = key })
 	end
 end
@@ -336,8 +345,8 @@ local function buildPlaceBar()
 	placeBar = Instance.new("Frame")
 	placeBar.Name = "PlacementBar"
 	placeBar.BackgroundTransparency = 1
-	placeBar.Size = UDim2.fromOffset(420, 110)
-	placeBar.Position = UDim2.new(0.5, 0, 1, -175)
+	placeBar.Size = UDim2.fromOffset(440, 120)
+	placeBar.Position = UDim2.new(0.5, 0, 1, -196) -- just above the bottom bar (Layout.Bottom)
 	placeBar.AnchorPoint = Vector2.new(0.5, 1)
 	placeBar.Visible = false
 	placeBar.ZIndex = 5
@@ -353,7 +362,7 @@ local function buildPlaceBar()
 	local row = Instance.new("Frame")
 	row.Name = "Row"
 	row.BackgroundTransparency = 1
-	row.Size = UDim2.new(1, 0, 0, 66)
+	row.Size = UDim2.new(1, 0, 0, 80)
 	row.Position = UDim2.fromOffset(0, 40)
 	row.Parent = placeBar
 	Style.List(row, Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Center)
@@ -361,7 +370,7 @@ local function buildPlaceBar()
 		Name = "Rotate",
 		Icon = "🔄",
 		Text = "Turn",
-		Size = UDim2.fromOffset(120, 60),
+		Size = UDim2.fromOffset(124, 76),
 		Color = C.Ocean,
 		LayoutOrder = 1,
 		ZIndex = 6,
@@ -372,9 +381,9 @@ local function buildPlaceBar()
 	})
 	Button.new({
 		Name = "Place",
-		Icon = "✅",
+		Icon = "Check",
 		Text = "Place",
-		Size = UDim2.fromOffset(140, 60),
+		Size = UDim2.fromOffset(144, 76),
 		Color = C.Success,
 		LayoutOrder = 2,
 		ZIndex = 6,
@@ -385,9 +394,9 @@ local function buildPlaceBar()
 	})
 	Button.new({
 		Name = "Cancel",
-		Icon = "✖",
+		Icon = "Close",
 		Text = "Cancel",
-		Size = UDim2.fromOffset(130, 60),
+		Size = UDim2.fromOffset(136, 76),
 		Color = C.Danger,
 		LayoutOrder = 3,
 		ZIndex = 6,
@@ -407,7 +416,7 @@ local function refreshSlots()
 		local id = ids[i]
 		local def = if id then Config.GetConsumable(id) else nil
 		if def then
-			slot.Button:SetIcon(def.Icon)
+			slot.Button:SetIcon(AtlasIcon.Item(def.Id, def.Icon))
 			slot.Button:SetColor(C.Ocean)
 			slot.Count.Text = "x" .. tostring(counts[def.Id] or 0)
 			slot.Count.Visible = true
@@ -444,7 +453,7 @@ local function refreshHeat()
 		elseif SurvivalController.InGrace() and SurvivalController.GetZone() == "Sun" then GRACE
 		else ZONES[SurvivalController.GetZone()] or ZONES.Cool
 	zoneChip.BackgroundColor3 = zone.Color
-	zoneIcon.Text = zone.Icon
+	zoneIcon:Set(zone.Icon)
 	zoneText.Text = zone.Text
 
 	-- Sunburnt state + toasts
@@ -504,11 +513,12 @@ function SurvivalHUD.Init()
 	local holder = Instance.new("Frame")
 	holder.Name = "SurvivalHUD"
 	holder.BackgroundTransparency = 1
-	holder.Size = UDim2.fromOffset(120, HUD_HEIGHT)
-	holder.Position = UDim2.new(1, -8, 0, 180)
-	holder.AnchorPoint = Vector2.new(1, 0)
 	holder.ZIndex = 2
 	holder.Parent = canvas
+	Layout.Observe(function(regions: Layout.Regions)
+		holder.Position = Layout.Position(regions.Survival)
+		holder.Size = Layout.SizeOf(regions.Survival)
+	end)
 	buildMeter(holder)
 	buildSlots(holder)
 	buildPlaceBar()

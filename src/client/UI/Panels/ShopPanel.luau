@@ -1,10 +1,13 @@
 --!strict
 --[[
-	ShopPanel — Shovels & Backpacks tabs. Cards show a ViewportFrame preview (Models.Shovel)
-	or a backpack emoji, stats, price and a state button:
-	  Equipped (grey) / Equip (blue) / Buy <price> (green) / <price> (can't afford, disabled)
-	  / 🔒 Rebirth N (locked). The cheapest useful upgrade gets a "⭐ NEXT" tag (also used by the
-	tutorial's shop step). Buying auto-equips the new item once the server confirms ownership.
+	ShopPanel — Shovels & Backpacks tabs as UPGRADE ROWS (docs/UI_STYLE.md, UpgradeRow):
+	  [3D model] name / tag  [ equipped stat ] ➜ [ this item's stat (orange) ]  [ price button ]
+	e.g. "Dig 4×4 ➜ Dig 8×8" (+ the deepest layer it digs), "Holds 50 ➜ Holds 120".
+	Button states: Equipped (grey) / Equip (blue) / <coins price> (green, affordable) /
+	<coins price> (grey, can't afford) / Rebirth N (locked, row dimmed with a lock icon).
+	The cheapest useful upgrade gets a "NEXT" tag (also used by the tutorial's shop step and the
+	HUD Shop "!" badge via ShopPanel.NextUpgrade). Buying auto-equips the new item once the
+	server confirms ownership; a new shovel gets the Reveal popup.
 	Open with Panel.Open("Shop", { Tab = "Shovels" | "Backpacks" }).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,15 +15,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Types = require(Shared:WaitForChild("Types"))
 local Format = require(Shared:WaitForChild("Util"):WaitForChild("Format"))
 
 local Components = script.Parent.Parent.Components
 local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
-local Card = require(Components.Card)
-local Viewport = require(Components.Viewport)
+local UpgradeRow = require(Components.UpgradeRow)
 local Icons = require(script.Parent.Parent.Icons)
+local ItemStats = require(script.Parent.Parent.ItemStats)
+local Reveal = require(script.Parent.Parent.Reveal)
 local UIEffects = require(script.Parent.Parent.UIEffects)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 local SoundController = require(script.Parent.Parent.Parent.Controllers.SoundController)
@@ -35,10 +40,7 @@ type Kind = string -- "Shovels" | "Backpacks"
 type ItemCard = {
 	Id: string,
 	Kind: Kind,
-	Card: Card.Card,
-	Button: Button.Button,
-	Tag: TextLabel,
-	Stats: TextLabel,
+	Row: UpgradeRow.UpgradeRow,
 	Update: () -> (),
 }
 
@@ -49,10 +51,22 @@ local cards: { ItemCard } = {}
 local built = false
 local currentTab: Kind = "Shovels"
 local pendingEquip: { [string]: Kind } = {}
+local revealShovel: (id: string) -> ()
 
-local function digsTo(power: number): string
-	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(power)]
-	return Icons.Layer(layer.Id) .. " " .. layer.Name
+local function shovelStat(def: Types.ShovelDef): UpgradeRow.Stat
+	return {
+		Main = "Dig " .. ItemStats.DigSize(def.Radius),
+		Sub = ItemStats.DigsTo(def.Power) .. " · " .. ItemStats.SandMult(def.SandMultiplier) .. " sand",
+	}
+end
+
+local function capacityOf(def: Types.BackpackDef): number
+	local mega = if State.OwnsPass("MegaBackpack") then 2 else 1
+	return def.Capacity * Config.RebirthMultiplier(State.Data.Rebirths) * mega
+end
+
+local function backpackStat(def: Types.BackpackDef): UpgradeRow.Stat
+	return { Main = "Holds " .. Format.Abbreviate(capacityOf(def)), Sub = "sand" }
 end
 
 -- Cheapest item (of a kind) that is not owned and not locked: the "next upgrade".
@@ -92,88 +106,16 @@ local function makeCard(kind: Kind, id: string, order: number, parent: Instance)
 	local price = if shovel then shovel.Price elseif backpack then backpack.Price else 0
 	local rebirths = if shovel then shovel.RebirthsRequired elseif backpack then backpack.RebirthsRequired else 0
 
-	local card = Card.new({ Name = id, LayoutOrder = order, Color = C.PanelAlt, Parent = parent })
-	local face = card.Face
-
-	local preview = Instance.new("Frame")
-	preview.Name = "Preview"
-	preview.Size = UDim2.new(1, -16, 0, 92)
-	preview.Position = UDim2.fromOffset(8, 8)
-	preview.BackgroundColor3 = C.Sky
-	preview.ZIndex = 3
-	preview.Parent = face
-	Style.Corner(preview, Style.Theme.CornerSmall)
-	Style.Gradient(preview, { C.Sky, C.Ocean }, 90)
-	if shovel then
-		-- Tilted diagonally so the long tool fills the wide preview instead of a thin stripe.
-		local vp = Viewport.new({
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 4,
-			Pitch = 10,
-			Yaw = 15,
-			Rotation = CFrame.Angles(0, 0, math.rad(-50)),
-			Parent = preview,
-		})
-		vp:SetModel(ModelFactory.Shovel(id))
-	elseif backpack then
-		-- 3D model like the shovels (the old emoji looked tiny). Packs are worn on the back and
-		-- extend towards +Z, so the camera looks at them from behind-right (Yaw 205).
-		local vp = Viewport.new({ Size = UDim2.fromScale(1, 1), ZIndex = 4, Pitch = 18, Yaw = 205, Parent = preview })
-		vp:SetModel(ModelFactory.Backpack(id))
-	end
-
-	local tag = Style.Label({
-		Name = "Tag",
-		Text = "⭐ NEXT",
-		Size = UDim2.fromOffset(84, 24),
-		Position = UDim2.fromOffset(4, 4),
-		MaxTextSize = 16,
-		ZIndex = 6,
-		Parent = face,
-	})
-	tag.BackgroundTransparency = 0
-	tag.BackgroundColor3 = C.Coral
-	tag.Visible = false
-	Style.Corner(tag, Style.Theme.CornerPill)
-	Style.Stroke(tag, C.Stroke, 2)
-
-	Style.Label({
-		Name = "ItemName",
-		Text = name,
-		Size = UDim2.new(1, -12, 0, 24),
-		Position = UDim2.fromOffset(6, 102),
-		TextColor = C.TextDark,
-		Stroke = false,
-		MaxTextSize = 19,
-		ZIndex = 3,
-		Parent = face,
-	})
-	local stats = Style.Label({
-		Name = "Stats",
-		Text = "",
-		Size = UDim2.new(1, -12, 0, 54),
-		Position = UDim2.fromOffset(6, 126),
-		TextColor = C.TextDark,
-		Stroke = false,
-		Font = Style.Fonts.Body,
-		MaxTextSize = 13,
-		Wrapped = true,
-		RichText = true,
-		ZIndex = 3,
-		Parent = face,
-	})
-
-	local item: ItemCard
-	local button = Button.new({
-		Name = "Action",
-		Text = "Buy",
-		Size = UDim2.new(1, -14, 0, 44),
-		Position = UDim2.new(0.5, 0, 1, -6),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Color = C.Success,
-		MaxTextSize = 20,
-		ZIndex = 4,
-		Parent = face,
+	local row = UpgradeRow.new({
+		Name = id,
+		Title = name,
+		LayoutOrder = order,
+		Parent = parent,
+		-- shovels tilted diagonally so the long tool fills the square; packs from behind-right
+		Model = if shovel then ModelFactory.Shovel(id) else ModelFactory.Backpack(id),
+		Pitch = if shovel then 10 else 18,
+		Yaw = if shovel then 15 else 205,
+		Rotation = if shovel then CFrame.Angles(0, 0, math.rad(-50)) else nil,
 		OnClick = function()
 			local data = State.Data
 			local owned = if isShovel then data.OwnedShovels[id] else data.OwnedBackpacks[id]
@@ -185,56 +127,53 @@ local function makeCard(kind: Kind, id: string, order: number, parent: Instance)
 			end
 		end,
 	})
+	local button = row.Button
 
-	item = {
+	return {
 		Id = id,
 		Kind = kind,
-		Card = card,
-		Button = button,
-		Tag = tag,
-		Stats = stats,
+		Row = row,
 		Update = function()
 			local data = State.Data
 			local owned = if isShovel then data.OwnedShovels[id] == true else data.OwnedBackpacks[id] == true
 			local equipped = if isShovel then data.Shovel == id else data.Backpack == id
+			local current: UpgradeRow.Stat?
+			local mine: UpgradeRow.Stat
 			if shovel then
-				local rate = 1 / shovel.Cooldown
-				stats.Text = string.format(
-					"💪 Power <b>%d</b>   ⚡ <b>%.1f</b>/s\n📏 Size <b>%d</b>   ✖️ Sand <b>x%s</b>\n⛏️ Digs to %s",
-					shovel.Power,
-					rate,
-					shovel.Radius,
-					Format.Abbreviate(shovel.SandMultiplier),
-					digsTo(shovel.Power)
-				)
+				mine = shovelStat(shovel)
+				current = if equipped then nil else shovelStat(State.GetShovel())
 			elseif backpack then
-				local mega = if State.OwnsPass("MegaBackpack") then 2 else 1
-				local capacity = backpack.Capacity * Config.RebirthMultiplier(data.Rebirths) * mega
-				stats.Text = "🎒 Holds <b>" .. Format.Abbreviate(capacity) .. "</b> sand\n" .. backpack.Description
+				mine = backpackStat(backpack)
+				current = if equipped then nil else backpackStat(State.GetBackpack())
+			else
+				mine = { Main = name }
 			end
+			row:SetStats(current, mine)
+			local locked = not owned and data.Rebirths < rebirths
+			row:SetLocked(locked)
 			if equipped then
 				button:SetEnabled(true)
 				button:SetColor(C.Disabled)
-				button:SetText("Equipped ✅")
+				button:SetIcon("Check")
+				button:SetText("Equipped")
 			elseif owned then
 				button:SetEnabled(true)
 				button:SetColor(C.Ocean)
+				button:SetIcon(if isShovel then "shovel" else "Backpack")
 				button:SetText("Equip")
-			elseif data.Rebirths < rebirths then
+			elseif locked then
 				button:SetEnabled(false)
-				button:SetText(Icons.Lock .. " Rebirth " .. rebirths)
-			elseif data.Coins < price then
-				button:SetEnabled(false)
-				button:SetText(Icons.Coins .. " " .. Format.Abbreviate(price))
+				button:SetIcon("Lock")
+				button:SetText("Rebirth " .. rebirths)
 			else
-				button:SetEnabled(true)
+				button:SetIcon("Coins")
+				button:SetText(Format.Abbreviate(price))
+				button:SetEnabled(data.Coins >= price)
 				button:SetColor(C.Success)
-				button:SetText("Buy " .. Icons.Coins .. " " .. Format.Abbreviate(price))
 			end
-			card:SetHighlight(if equipped then C.Palm else nil)
+			row.Card:SetHighlight(if equipped then C.Gold else nil)
 		end,
 	}
-	return item
 end
 
 local function refresh()
@@ -244,18 +183,22 @@ local function refresh()
 	local nextIds = { Shovels = nextUpgrade("Shovels"), Backpacks = nextUpgrade("Backpacks") }
 	for _, item in cards do
 		item.Update()
-		local isNext = nextIds[item.Kind] == item.Id
-		if isNext and not item.Tag.Visible then
-			Style.PopIn(item.Tag)
+		local data = State.Data
+		local equipped = if item.Kind == "Shovels" then data.Shovel == item.Id else data.Backpack == item.Id
+		if nextIds[item.Kind] == item.Id then
+			item.Row:SetTag("NEXT!", C.Coral)
+		elseif equipped then
+			item.Row:SetTag("EQUIPPED", C.Palm)
+		else
+			item.Row:SetTag(nil)
 		end
-		item.Tag.Visible = isNext
 	end
 end
 
 local function selectTab(kind: Kind)
 	currentTab = kind
 	for k, button in tabs do
-		button:SetColor(if k == kind then C.Sunset else C.SandDark)
+		button:SetColor(if k == kind then C.Sunset else C.NavyCard)
 		scrollers[k].Visible = k == kind
 	end
 end
@@ -269,16 +212,16 @@ local function build()
 	local tabRow = Instance.new("Frame")
 	tabRow.Name = "Tabs"
 	tabRow.BackgroundTransparency = 1
-	tabRow.Size = UDim2.new(1, 0, 0, 50)
+	tabRow.Size = UDim2.new(1, 0, 0, 58)
 	tabRow.ZIndex = 5
 	tabRow.Parent = body
 	Style.List(tabRow, Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Left)
 	for i, kind in { "Shovels", "Backpacks" } do
 		tabs[kind] = Button.new({
 			Text = kind,
-			Icon = if kind == "Shovels" then "⛏️" else Icons.Backpack,
-			Size = UDim2.fromOffset(190, 48),
-			Color = C.SandDark,
+			Icon = if kind == "Shovels" then "shovel" else "Backpack",
+			Size = UDim2.fromOffset(200, 56),
+			Color = C.NavyCard,
 			LayoutOrder = i,
 			ZIndex = 5,
 			Parent = tabRow,
@@ -286,14 +229,9 @@ local function build()
 				selectTab(kind)
 			end,
 		})
-		local scroller = Panel.Scroller(body, UDim2.new(1, 0, 1, -58), UDim2.fromOffset(0, 58))
+		local scroller = Panel.Scroller(body, UDim2.new(1, 0, 1, -64), UDim2.fromOffset(0, 64))
 		scroller.Name = kind
-		local grid = Instance.new("UIGridLayout")
-		grid.CellSize = UDim2.fromOffset(172, 236)
-		grid.CellPadding = UDim2.fromOffset(10, 12)
-		grid.SortOrder = Enum.SortOrder.LayoutOrder
-		grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		grid.Parent = scroller
+		Style.List(scroller, Enum.FillDirection.Vertical, 10)
 		scrollers[kind] = scroller
 		local list = if kind == "Shovels" then Config.Shovels else Config.Backpacks
 		for order, def in list :: { any } do
@@ -314,19 +252,56 @@ local function scrollToNext()
 	for _, item in cards do
 		if item.Id == id and item.Kind == currentTab then
 			task.defer(function()
-				local offset = item.Card.Holder.AbsolutePosition.Y
+				local offset = item.Row.Card.Holder.AbsolutePosition.Y
 					- scroller.AbsolutePosition.Y
 					+ scroller.CanvasPosition.Y
 				scroller.CanvasPosition = Vector2.new(0, math.max(0, offset - 20))
-				Style.Pop(item.Card.Holder, 0.08)
+				Style.Pop(item.Row.Card.Holder, 0.08)
 			end)
 		end
 	end
 end
 
+-- New shovel: the shared Reveal popup with its dig stats.
+revealShovel = function(id: string)
+	local found = Config.GetShovel(id)
+	if not found then
+		return
+	end
+	local def = found :: Types.ShovelDef
+	Reveal.Show({
+		Headline = "NEW SHOVEL!",
+		Color = C.Gold,
+		Items = {
+			{
+				Name = def.Name,
+				NameColor = C.Gold,
+				Model = ModelFactory.Shovel(id),
+				Pitch = 10,
+				Yaw = 15,
+				Rotation = CFrame.Angles(0, 0, math.rad(-50)),
+				Rows = {
+					{ Label = "DIG SIZE", Value = ItemStats.DigSize(def.Radius), Color = C.Highlight },
+					{ Label = "DIGS", Value = ItemStats.DigsTo(def.Power), Color = C.Time },
+					{ Label = "SAND BONUS", Value = ItemStats.SandMult(def.SandMultiplier), Color = C.Money },
+					{ Label = "SPEED", Value = ItemStats.Rate(def), Color = C.Time },
+				},
+			},
+		},
+		Sound = "",
+		Confetti = true,
+		Hold = 3.5,
+	})
+end
+
 function ShopPanel.Init()
-	panel =
-		Panel.new({ Name = "Shop", Title = "Shop", Icon = Icons.Shop, Color = C.Palm, Size = Vector2.new(780, 480) })
+	panel = Panel.new({
+		Name = "Shop",
+		Title = "Shovel Shop",
+		Icon = Icons.Shop,
+		Color = C.Palm,
+		Size = Vector2.new(800, 490),
+	})
 	panel.Opened:Connect(function(args: any)
 		build()
 		if typeof(args) == "table" and (args.Tab == "Shovels" or args.Tab == "Backpacks") then
@@ -348,7 +323,11 @@ function ShopPanel.Init()
 				if k == kind and owned[id] and not (typeof(old) == "table" and old[id]) then
 					pendingEquip[id] = nil
 					SoundController.Play("Purchase")
-					UIEffects.Confetti(30)
+					if kind == "Shovels" then
+						revealShovel(id)
+					else
+						UIEffects.Confetti(30)
+					end
 					local equipped = if kind == "Shovels" then State.Data.Shovel else State.Data.Backpack
 					if equipped ~= id then
 						Remotes.Get(if kind == "Shovels" then "EquipShovel" else "EquipBackpack"):FireServer(id)

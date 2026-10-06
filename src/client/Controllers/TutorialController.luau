@@ -3,8 +3,9 @@
 	TutorialController — first-time user experience driven by Config.TUTORIAL_STEPS.
 
 	Progress = number of completed steps, persisted with SetSetting("Tutorial", n) and read
-	back from data.Settings.Tutorial (veterans without the key skip it). Each step shows a
-	big hint bar above the backpack bar, a guide Beam + bouncing marker to its Target
+	back from data.Settings.Tutorial (veterans without the key skip it). Each step shows the
+	slim top-centre objective pill (UI/ObjectiveBanner: icon, short line, step n/6, arrow),
+	a guide Beam + bouncing marker to its Target
 	("Sand" = the nearest point of the shared dig zone, otherwise the nearest part with that
 	CollectionService tag), and completes on its Complete event:
 	  AtSand        standing on the dig-zone sand   Dig        first successful dig
@@ -21,8 +22,7 @@ local GuideController = require(script.Parent.GuideController)
 local DigController = require(script.Parent.DigController)
 local SoundController = require(script.Parent.SoundController)
 local Character = require(script.Parent.Parent.Util.Character)
-local Root = require(script.Parent.Parent.UI.Root)
-local Style = require(script.Parent.Parent.UI.Components.Style)
+local ObjectiveBanner = require(script.Parent.Parent.UI.ObjectiveBanner)
 local HUD = require(script.Parent.Parent.UI.HUD)
 local Toasts = require(script.Parent.Parent.UI.Toasts)
 local UIEffects = require(script.Parent.Parent.UI.UIEffects)
@@ -40,10 +40,17 @@ local fullFlag = false
 local soldFlag = false
 local hatchedFlag = false
 
-local bar: Frame? = nil
-local barLabel: TextLabel? = nil
-local stepLabel: TextLabel? = nil
-local handLabel: TextLabel? = nil
+local built = false
+
+-- Banner icon per step (atlas key, emoji fallback).
+local STEP_ICONS: { [string]: string } = {
+	AtSand = "sand",
+	Dig = "Hand",
+	BackpackFull = "Backpack",
+	Sell = "Sell",
+	BuyShovel = "Shop",
+	HatchEgg = "Eggs",
+}
 
 local function count(t: { [string]: any }?): number
 	local n = 0
@@ -56,72 +63,7 @@ local function count(t: { [string]: any }?): number
 end
 
 local function buildBar()
-	if bar then
-		return
-	end
-	local frame = Instance.new("Frame")
-	frame.Name = "Tutorial"
-	frame.AnchorPoint = Vector2.new(0.5, 1)
-	frame.Position = UDim2.new(0.5, 0, 1, -172)
-	frame.Size = UDim2.fromOffset(560, 64)
-	frame.BackgroundColor3 = Style.Colors.Panel
-	frame.Visible = false
-	frame.Parent = Root.Get("HUD")
-	Style.Corner(frame, Style.Theme.CornerLarge)
-	Style.Stroke(frame, Style.Colors.Stroke, 4)
-	Style.Gradient(frame, { Color3.new(1, 1, 1), Style.Colors.PanelAlt }, 90)
-
-	handLabel = Style.Label({
-		Text = "👉",
-		Size = UDim2.fromOffset(56, 56),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Stroke = false,
-		MaxTextSize = 44,
-		ZIndex = 2,
-		Parent = frame,
-	})
-	barLabel = Style.Label({
-		Text = "",
-		Size = UDim2.new(1, -150, 0.8, 0),
-		Position = UDim2.new(0, 66, 0.5, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		TextColor = Style.Colors.TextDark,
-		Stroke = false,
-		Wrapped = true,
-		MaxTextSize = 26,
-		XAlign = Enum.TextXAlignment.Left,
-		ZIndex = 2,
-		Parent = frame,
-	})
-	stepLabel = Style.Label({
-		Text = "",
-		Size = UDim2.fromOffset(70, 30),
-		Position = UDim2.new(1, -10, 0.5, 0),
-		AnchorPoint = Vector2.new(1, 0.5),
-		TextColor = Style.Colors.Text,
-		Font = Style.Fonts.Number,
-		MaxTextSize = 18,
-		ZIndex = 3,
-		Parent = frame,
-	})
-	if stepLabel then
-		stepLabel.BackgroundTransparency = 0
-		stepLabel.BackgroundColor3 = Style.Colors.Coral
-		Style.Corner(stepLabel, Style.Theme.CornerPill)
-	end
-	bar = frame
-	if handLabel then
-		Style.Tween(
-			handLabel,
-			0.45,
-			{ Position = UDim2.new(0, 14, 0.5, 0) },
-			Enum.EasingStyle.Sine,
-			Enum.EasingDirection.InOut,
-			-1,
-			true
-		)
-	end
+	built = true
 end
 
 local function currentStep(): Types.TutorialStep?
@@ -187,20 +129,14 @@ end
 
 local function showStep()
 	local step = currentStep()
-	local maybeFrame = bar
-	if not step or not maybeFrame then
+	if not step or not built then
 		return
 	end
 	local s = step :: Types.TutorialStep
-	local frame = maybeFrame :: Frame
-	if barLabel then
-		barLabel.Text = s.Text
-	end
-	if stepLabel then
-		stepLabel.Text = (completed + 1) .. "/" .. #STEPS
-	end
-	frame.Visible = true
-	Style.PopIn(frame, 0.4)
+	ObjectiveBanner.Show(s.Text, STEP_ICONS[s.Complete] or "Star", {
+		Step = (completed + 1) .. "/" .. #STEPS,
+		Arrow = s.Target ~= nil,
+	})
 	HUD.SetBackpackHighlight(s.Complete == "BackpackFull")
 	if s.Complete == "BuyShovel" then
 		HUD.Flash("Shop", 6)
@@ -214,14 +150,7 @@ local function finish()
 	running = false
 	GuideController.Clear(GUIDE_KEY)
 	HUD.SetBackpackHighlight(false)
-	local frame = bar
-	if frame then
-		local scale = Style.GetPopScale(frame)
-		Style.Tween(scale, 0.25, { Scale = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed
-			:Once(function()
-				frame.Visible = false
-			end)
-	end
+	ObjectiveBanner.Hide()
 	Toasts.Show("Tutorial complete! Now dig to the CORE! 🌟", "Success", 5)
 	UIEffects.Confetti(50)
 end

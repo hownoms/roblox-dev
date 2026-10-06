@@ -40,13 +40,8 @@ local function refresh()
 	local n = data.Rebirths
 	local cost = Config.RebirthCost(n)
 	multLabel.Text = string.format("x%.1f  ➜  x%.1f", Config.RebirthMultiplier(n), Config.RebirthMultiplier(n + 1))
-	tokensLabel.Text = "+"
-		.. Config.RebirthTokens(n)
-		.. " "
-		.. Icons.Tokens
-		.. " Rebirth Token(s)   ·   Rebirths: "
-		.. n
-	bar:Set(data.Coins / cost, Icons.Coins .. " " .. Format.Abbreviate(data.Coins) .. " / " .. Format.Abbreviate(cost))
+	tokensLabel.Text = "+" .. Config.RebirthTokens(n) .. " Rebirth Token(s)   ·   Rebirths: " .. n
+	bar:Set(data.Coins / cost, Format.Abbreviate(data.Coins) .. " / " .. Format.Abbreviate(cost) .. " coins")
 	bar:SetColor(if data.Coins >= cost then C.Success else C.Gold)
 	local can = data.Coins >= cost
 	rebirthButton:SetEnabled(can)
@@ -63,7 +58,7 @@ local function listCard(parent: Instance, title: string, lines: string, color: C
 	local card = Card.new({
 		Size = UDim2.new(0.5, -8, 0, 120),
 		Position = UDim2.new(x, if x > 0 then 8 else 0, 0, 120),
-		Color = color,
+		Color = Style.Darken(color, 0.35),
 		ZIndex = 6,
 		Parent = parent,
 	})
@@ -97,8 +92,8 @@ local function build()
 	multLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, 0, 0, 50),
-		TextColor = C.Purple,
-		StrokeColor = C.Stroke,
+		TextColor = C.Time,
+		StrokeThickness = 3,
 		MaxTextSize = 44,
 		ZIndex = 6,
 		Parent = body,
@@ -107,9 +102,8 @@ local function build()
 		Text = "",
 		Size = UDim2.new(1, 0, 0, 22),
 		Position = UDim2.fromOffset(0, 50),
-		TextColor = C.TextDark,
 		Font = Style.Fonts.Body,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 17,
 		ZIndex = 6,
 		Parent = body,
@@ -122,16 +116,10 @@ local function build()
 		ZIndex = 6,
 		Parent = body,
 	})
+	listCard(body, "Resets", "Coins, sand, shovels, backpacks and unsold treasures. Your hole is refilled.", C.Coral, 0)
 	listCard(
 		body,
-		"🔄 Resets",
-		"Coins, sand, shovels, backpacks and unsold treasures. Your hole is refilled.",
-		C.Coral,
-		0
-	)
-	listCard(
-		body,
-		"💖 You keep",
+		"You keep",
 		"Pets, Index, depth record, quests, boosts, tokens — and +"
 			.. Config.Rebirths.MultiplierPerRebirth
 			.. "x sand & backpack space FOREVER!",
@@ -141,7 +129,7 @@ local function build()
 	rebirthButton = Button.new({
 		Text = "Rebirth!",
 		Icon = Icons.Rebirth,
-		Size = UDim2.fromOffset(330, 64),
+		Size = UDim2.fromOffset(330, 80),
 		Position = UDim2.new(0.5, -90, 1, -4),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Color = C.Purple,
@@ -164,7 +152,7 @@ local function build()
 	})
 	skipButton = Button.new({
 		Text = "Skip R$ " .. Config.Monetization.Products.SkipRebirth.Price,
-		Size = UDim2.fromOffset(170, 64),
+		Size = UDim2.fromOffset(170, 80),
 		Position = UDim2.new(1, -10, 1, -4),
 		AnchorPoint = Vector2.new(1, 1),
 		Color = C.Robux,
@@ -195,7 +183,8 @@ function RebirthPanel.Init()
 		if typeof(new) == "number" and typeof(old) == "number" and new > old then
 			panel:Close()
 			Banner.Show({
-				Title = "REBIRTH " .. new .. "! ♻️",
+				Title = "REBIRTH " .. new .. "!",
+				Icon = "Rebirth",
 				Subtitle = string.format(
 					"Everything is now x%.1f — dig back down, faster!",
 					Config.RebirthMultiplier(new)

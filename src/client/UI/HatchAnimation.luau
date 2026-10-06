@@ -1,9 +1,10 @@
 --!strict
 --[[
-	HatchAnimation — EggHatched({petIds}) reveal: dim overlay, 1-3 eggs side by side wobble
-	harder and harder (EggShake sounds), flash, egg pops, a spinning star-burst in the
-	pet's rarity colour, pet springs out (ViewportFrame + Models.Pet) with name, rarity and
-	bonus. Legendary/Mythic add confetti + a big flash. Tap to skip; hatches are queued.
+	HatchAnimation — EggHatched({petIds}): dim overlay, 1-3 eggs side by side wobble harder and
+	harder (EggShake sounds), flash, eggs pop — then the shared Reveal popup (UI/Reveal: huge
+	outlined rarity word, card per pet with its spinning model and RARITY / SAND BONUS / DIGS /
+	RIDEABLE rows, sparkles, tap to close). Legendary/Mythic add confetti + a big flash. Tap
+	skips the wobble; hatches are queued.
 	v2.1: Construction Crates (EggDef.Kind == "Crate") don't crack: their lid (sub-Model "Lid" of
 	Models.Egg) pops off and flips away before the vehicle springs out. Digging pets show a ⛏ line.
 ]]
@@ -12,10 +13,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Types = require(Shared:WaitForChild("Types"))
 
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
 local Viewport = require(script.Parent.Components.Viewport)
+local Reveal = require(script.Parent.Reveal)
+local ItemStats = require(script.Parent.ItemStats)
 local UIEffects = require(script.Parent.UIEffects)
 local State = require(script.Parent.Parent.Controllers.State)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
@@ -89,46 +93,36 @@ local function popLid(view: Viewport.Viewport)
 	end)
 end
 
-local function starburst(parent: Instance, color: Color3, z: number): Frame
-	local burst = Instance.new("Frame")
-	burst.Name = "Burst"
-	burst.BackgroundTransparency = 1
-	burst.AnchorPoint = Vector2.new(0.5, 0.5)
-	burst.Position = UDim2.fromScale(0.5, 0.42)
-	burst.Size = UDim2.fromOffset(0, 0)
-	burst.ZIndex = z
-	burst.Parent = parent
-	for i = 0, 7 do
-		local ray = Instance.new("Frame")
-		ray.Name = "Ray"
-		ray.AnchorPoint = Vector2.new(0.5, 0.5)
-		ray.Position = UDim2.fromScale(0.5, 0.5)
-		ray.Size = UDim2.new(1, 0, 0.12, 0)
-		ray.Rotation = i * 22.5
-		ray.BackgroundColor3 = color
-		ray.BorderSizePixel = 0
-		ray.ZIndex = z
-		ray.Parent = burst
-		local gradient = Instance.new("UIGradient")
-		gradient.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.5, 0.05),
-			NumberSequenceKeypoint.new(1, 1),
+-- Reveal card for one hatched pet.
+local function revealItem(petId: string): Reveal.Item
+	local def = Config.GetPet(petId)
+	local rarity = if def then Config.GetRarity(def.Rarity) else nil
+	local color = if rarity then rarity.Color else C.Text
+	local rows: { Reveal.Row } = {}
+	if def then
+		local dig = def.Dig
+		table.insert(rows, { Label = "RARITY", Value = def.Rarity :: string, Color = color })
+		table.insert(
+			rows,
+			{ Label = "SAND BONUS", Value = "x" .. string.format("%.2f", def.Multiplier), Color = C.Money }
+		)
+		table.insert(rows, {
+			Label = "DIGS",
+			Value = if dig then ItemStats.DigsTo(dig.Power) else "No",
+			Color = if dig then C.Time else C.Disabled,
 		})
-		gradient.Parent = ray
+		table.insert(rows, {
+			Label = "RIDEABLE",
+			Value = if def.Rideable then "YES!" else "No",
+			Color = if def.Rideable then C.Gold else C.Disabled,
+		})
 	end
-	local glow = Instance.new("Frame")
-	glow.Name = "Glow"
-	glow.AnchorPoint = Vector2.new(0.5, 0.5)
-	glow.Position = UDim2.fromScale(0.5, 0.5)
-	glow.Size = UDim2.fromScale(0.5, 0.5)
-	glow.BackgroundColor3 = Style.Lighten(color, 0.4)
-	glow.BackgroundTransparency = 0.3
-	glow.ZIndex = z
-	glow.Parent = burst
-	Style.Corner(glow, Style.Theme.CornerPill)
-	Style.Tween(burst, 6, { Rotation = 360 }, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
-	return burst
+	return {
+		Name = if def then def.Name else petId,
+		NameColor = color,
+		Model = ModelFactory.Pet(petId),
+		Rows = rows,
+	}
 end
 
 local function play(petIds: { string })
@@ -213,8 +207,7 @@ local function play(petIds: { string })
 		best = math.max(best, if rarity then rarity.Order else 1)
 	end
 	UIEffects.Flash(Color3.new(1, 1, 1), if best >= 5 then 0.95 else 0.7)
-	for i, petId in petIds do
-		local slot = slots[i]
+	for i in petIds do
 		local egg = eggViews[i]
 		egg.Frame.Rotation = 0
 		if Config.IsCrate(eggIds[i]) then
@@ -232,76 +225,41 @@ local function play(petIds: { string })
 				egg.Frame.Visible = false
 			end)
 		end
+	end
 
+	-- hand over to the shared Reveal popup (it has its own dim + tap to close)
+	task.wait(0.4)
+	Style.Tween(overlay, 0.2, { BackgroundTransparency = 1 })
+	task.wait(0.2)
+	overlay:Destroy()
+	local bestRarity: Types.RarityDef? = nil
+	local items: { Reveal.Item } = {}
+	for _, petId in petIds do
+		table.insert(items, revealItem(petId))
 		local def = Config.GetPet(petId)
 		local rarity = if def then Config.GetRarity(def.Rarity) else nil
-		local color = if rarity then rarity.Color else C.Text
-		local burst = starburst(slot, color, 32)
-		Style.Tween(burst, 0.5, { Size = UDim2.fromOffset(300, 300) }, Enum.EasingStyle.Back)
-
-		local pet = Viewport.new({
-			Name = "Pet",
-			Size = UDim2.fromOffset(190, 190),
-			Position = UDim2.fromScale(0.5, 0.42),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			ZIndex = 35,
-			Spin = true,
-			SpinSpeed = 1.5,
-			Pitch = 12,
-			Parent = slot,
-		})
-		pet:SetModel(ModelFactory.Pet(petId))
-		local scale = Style.GetPopScale(pet.Frame)
-		scale.Scale = 0
-		Style.Tween(scale, 0.7, { Scale = 1 }, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
-
-		local name = Style.Label({
-			Text = if def then def.Name else petId,
-			Size = UDim2.new(1, 0, 0, 36),
-			Position = UDim2.new(0.5, 0, 1, -64),
-			AnchorPoint = Vector2.new(0.5, 0),
-			TextColor = color,
-			StrokeThickness = 3,
-			MaxTextSize = 32,
-			ZIndex = 36,
-			Parent = slot,
-		})
-		local info = Style.Label({
-			Text = (if def
-				then def.Rarity .. "  ·  x" .. string.format("%.2f", def.Multiplier) .. " sand" .. (if def.Dig
-					then "  ·  ⛏️ digs"
-					else "") .. (if def.Rideable then "  ·  🚜 ride" else "")
-				else ""),
-			Size = UDim2.new(1, 0, 0, 24),
-			Position = UDim2.new(0.5, 0, 1, -28),
-			AnchorPoint = Vector2.new(0.5, 0),
-			Font = Style.Fonts.Body,
-			MaxTextSize = 20,
-			ZIndex = 36,
-			Parent = slot,
-		})
-		Style.PopIn(name, 0.4)
-		Style.PopIn(info, 0.5)
+		if rarity and (not bestRarity or rarity.Order > (bestRarity :: Types.RarityDef).Order) then
+			bestRarity = rarity
+		end
 	end
-	if best >= 5 then
-		SoundController.Play("RareTreasure")
-		UIEffects.Confetti(60)
-	elseif best >= 4 then
-		UIEffects.Confetti(30)
+	local top = bestRarity
+	local done = false
+	Reveal.Show({
+		Headline = if top then string.upper(top.Name) .. "!" else "HATCHED!",
+		Color = if top then top.Color else C.Gold,
+		Gradient = if top then top.Gradient else nil,
+		Caption = if #petIds > 1 then "You hatched " .. #petIds .. " pets!" else nil,
+		Items = items,
+		Sound = if best >= 5 then "RareTreasure" else "",
+		Confetti = best >= 4,
+		Hold = 4,
+		OnClosed = function()
+			done = true
+		end,
+	})
+	while not done do
+		task.wait(0.1)
 	end
-
-	local start = os.clock()
-	skip = false
-	while os.clock() - start < 2.6 and not skip do
-		task.wait(0.05)
-	end
-	Style.Tween(overlay, 0.25, { BackgroundTransparency = 1 })
-	for _, slot in slots do
-		local s = Style.GetPopScale(slot)
-		Style.Tween(s, 0.22, { Scale = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-	end
-	task.wait(0.25)
-	overlay:Destroy()
 	HatchAnimation.Finished:Fire(petIds)
 	playing = false
 	local nextBatch = table.remove(queue, 1)

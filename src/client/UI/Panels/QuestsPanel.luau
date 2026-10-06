@@ -15,6 +15,7 @@ local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
 local ProgressBar = require(Components.ProgressBar)
+local AtlasIcon = require(Components.AtlasIcon)
 local Icons = require(script.Parent.Parent.Icons)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 local Progress = require(script.Parent.Parent.Parent.Util.Progress)
@@ -60,7 +61,7 @@ local function refresh()
 		row.Reward.Text = RewardText.Describe(quest.Reward, data.MaxDepth)
 		if claimed then
 			row.Claim:SetEnabled(false)
-			row.Claim:SetText("✅")
+			row.Claim:SetText("Done!")
 		elseif done then
 			row.Claim:SetEnabled(true)
 			row.Claim:SetText("Claim!")
@@ -85,9 +86,8 @@ local function build()
 	resetLabel = Style.Label({
 		Text = "",
 		Size = UDim2.new(1, 0, 0, 24),
-		TextColor = C.TextDark,
 		Font = Style.Fonts.Body,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 17,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,
@@ -100,16 +100,15 @@ local function build()
 			Name = quest.Id,
 			Size = UDim2.new(1, -16, 0, 86),
 			LayoutOrder = i,
-			Color = if quest.Reset == "Daily" then C.PanelAlt else Style.Lighten(C.Purple, 0.8),
+			Color = if quest.Reset == "Daily" then C.NavyCard else Style.Darken(C.Purple, 0.55),
 			ZIndex = 6,
 			Parent = list,
 		})
 		Style.Label({
-			Text = (if quest.Reset == "Daily" then "📅 " else "🏆 ") .. quest.Name,
-			Size = UDim2.new(0.5, 0, 0, 26),
-			Position = UDim2.fromOffset(12, 6),
-			TextColor = C.TextDark,
-			Stroke = false,
+			Text = quest.Name,
+			Size = UDim2.new(0.5, -36, 0, 26),
+			Position = UDim2.fromOffset(44, 6),
+			StrokeThickness = 2,
 			MaxTextSize = 21,
 			XAlign = Enum.TextXAlignment.Left,
 			ZIndex = 8,
@@ -119,11 +118,18 @@ local function build()
 			Text = quest.Description,
 			Size = UDim2.new(0.5, -150, 0, 22),
 			Position = UDim2.new(0.5, 0, 0, 8),
-			TextColor = C.TextDark,
 			Font = Style.Fonts.Body,
-			Stroke = false,
+			StrokeThickness = 2,
 			MaxTextSize = 15,
 			XAlign = Enum.TextXAlignment.Left,
+			ZIndex = 8,
+			Parent = card.Face,
+		})
+		AtlasIcon.new({
+			Icon = if quest.Reset == "Daily" then "Quests" else "trophy",
+			Size = UDim2.fromOffset(32, 32),
+			Position = UDim2.fromOffset(8, 3),
+			AnchorPoint = Vector2.zero,
 			ZIndex = 8,
 			Parent = card.Face,
 		})
@@ -138,9 +144,9 @@ local function build()
 			Text = "",
 			Size = UDim2.new(0.45, -150, 0, 36),
 			Position = UDim2.new(0.55, 22, 0, 36),
-			TextColor = C.SandDark,
+			TextColor = C.Sand,
 			Font = Style.Fonts.Title,
-			Stroke = false,
+			StrokeThickness = 2,
 			Wrapped = true,
 			MaxTextSize = 16,
 			XAlign = Enum.TextXAlignment.Left,
@@ -149,7 +155,7 @@ local function build()
 		})
 		local claim = Button.new({
 			Text = "Claim!",
-			Size = UDim2.fromOffset(124, 54),
+			Size = UDim2.fromOffset(130, 76),
 			Position = UDim2.new(1, -10, 0.5, 0),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Color = C.Success,
@@ -185,7 +191,7 @@ function QuestsPanel.Init()
 	task.spawn(function()
 		while true do
 			if built and panel.IsOpen then
-				resetLabel.Text = "📅 Daily quests reset in " .. Format.Time(Progress.SecondsToDailyReset())
+				resetLabel.Text = "Daily quests reset in " .. Format.Time(Progress.SecondsToDailyReset())
 			end
 			task.wait(1)
 		end

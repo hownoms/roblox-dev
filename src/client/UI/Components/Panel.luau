@@ -1,9 +1,10 @@
 --!strict
 --[[
-	Panel — centred modal window (header with emoji + title, big red close button, cream body)
-	plus the panel registry: only one panel is open at a time.
+	Panel — centred modal window (docs/UI_STYLE.md): ocean-navy body with a thick dark outline,
+	one saturated header bar (atlas icon, big outlined title, red square close button) — plus
+	the panel registry: only one panel is open at a time.
 
-		local panel = Panel.new({ Name = "Shop", Title = "Shop", Icon = "🛒", Color = ... })
+		local panel = Panel.new({ Name = "Shop", Title = "Shop", Icon = Icons.Shop, Color = ... })
 		panel.Opened:Connect(function(args) ... end)
 		Panel.Open("Shop", { Tab = "Backpacks" })  -- from anywhere (HUD, prompts, tutorial)
 
@@ -15,6 +16,7 @@ local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 
 local Style = require(script.Parent.Style)
+local AtlasIcon = require(script.Parent.AtlasIcon)
 local Signal = require(script.Parent.Parent.Parent.Util.Signal)
 local Root = require(script.Parent.Parent.Root)
 local SoundController = require(script.Parent.Parent.Parent.Controllers.SoundController)
@@ -126,14 +128,14 @@ function Panel.new(props: PanelProps): Panel
 	openScale.Name = "Open"
 	openScale.Parent = window
 
-	-- Shrink the whole window when the screen is smaller than the panel (short phones):
-	-- leave room for the close button (sticks out ~27px) and a small margin.
+	-- Shrink the whole window when the screen is smaller than the panel (short phones),
+	-- keeping a small margin (the close button sits inside the header).
 	local function fit(): number
 		local design = Root.GetDesignSize()
 		if design.X <= 0 or design.Y <= 0 then
 			return 1
 		end
-		return math.min(1, (design.Y - 36) / (size.Y + 12), (design.X - 40) / (size.X + 30))
+		return math.min(1, (design.Y - 24) / (size.Y + 12), (design.X - 24) / (size.X + 12))
 	end
 	Root.ScaleChanged:Connect(function()
 		if window.Visible then
@@ -146,20 +148,22 @@ function Panel.new(props: PanelProps): Panel
 	shadow.Size = UDim2.new(1, 0, 1, -6)
 	shadow.Position = UDim2.fromOffset(0, 8)
 	shadow.BackgroundColor3 = Style.Colors.Stroke
-	shadow.BackgroundTransparency = 0.35
+	shadow.BackgroundTransparency = 0.25
 	shadow.ZIndex = 2
 	shadow.Parent = window
 	Style.Corner(shadow, Style.Theme.CornerLarge)
 
+	-- Ocean-navy body with a thick dark outline.
 	local face = Instance.new("Frame")
 	face.Name = "Face"
 	face.Size = UDim2.new(1, 0, 1, -6)
-	face.BackgroundColor3 = Style.Colors.Panel
 	face.ZIndex = 3
 	face.Parent = window
 	Style.Corner(face, Style.Theme.CornerLarge)
 	Style.Stroke(face, Style.Colors.Stroke, 4)
+	Style.NavyBody(face)
 
+	-- One saturated header bar: icon, big outlined title, red square close button.
 	local header = Instance.new("Frame")
 	header.Name = "Header"
 	header.Size = UDim2.new(1, 0, 0, HEADER)
@@ -167,16 +171,18 @@ function Panel.new(props: PanelProps): Panel
 	header.ZIndex = 4
 	header.Parent = face
 	Style.Corner(header, Style.Theme.CornerLarge)
-	Style.Gradient(header, { Style.Lighten(color, 0.25), color }, 90)
 	-- square off the header's bottom corners
 	local headerFill = Instance.new("Frame")
 	headerFill.Name = "Square"
-	headerFill.Size = UDim2.new(1, 0, 0, 22)
-	headerFill.Position = UDim2.new(0, 0, 1, -22)
+	headerFill.Size = UDim2.new(1, 0, 0, 20)
+	headerFill.Position = UDim2.new(0, 0, 1, -20)
 	headerFill.BackgroundColor3 = color
 	headerFill.BorderSizePixel = 0
 	headerFill.ZIndex = 4
 	headerFill.Parent = header
+	local shine = Style.Gloss(header, Style.Theme.CornerMedium, 4)
+	shine.Size = UDim2.new(1, -12, 0.42, 0)
+	shine.Position = UDim2.fromOffset(6, 4)
 	local divider = Instance.new("Frame")
 	divider.Name = "Divider"
 	divider.Size = UDim2.new(1, 0, 0, 4)
@@ -186,12 +192,27 @@ function Panel.new(props: PanelProps): Panel
 	divider.ZIndex = 5
 	divider.Parent = header
 
+	local titleLeft = 20
+	if props.Icon then
+		AtlasIcon.new({
+			Name = "HeaderIcon",
+			Icon = props.Icon,
+			Size = UDim2.fromOffset(66, 66),
+			Position = UDim2.new(0, 8, 0.5, -6),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Rotation = -6,
+			ZIndex = 7,
+			Parent = header,
+		})
+		titleLeft = 80
+	end
 	local title = Style.Label({
 		Name = "Title",
-		Text = (if props.Icon then props.Icon .. "  " else "") .. props.Title,
-		Size = UDim2.new(1, -140, 0, 40),
-		Position = UDim2.new(0, 20, 0, 9),
-		MaxTextSize = 34,
+		Text = props.Title,
+		Size = UDim2.new(1, -(titleLeft + 84), 0, 44),
+		Position = UDim2.new(0, titleLeft, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		MaxTextSize = 38,
 		XAlign = Enum.TextXAlignment.Left,
 		StrokeThickness = 3,
 		ZIndex = 6,
@@ -206,24 +227,44 @@ function Panel.new(props: PanelProps): Panel
 	body.ZIndex = 4
 	body.Parent = face
 
-	-- Close button (built inline to avoid a Button <-> Panel dependency loop)
+	-- Red square close button with a drawn X (built inline to avoid a Button <-> Panel loop).
+	local closeLip = Instance.new("Frame")
+	closeLip.Name = "CloseLip"
+	closeLip.Size = UDim2.fromOffset(50, 50)
+	closeLip.AnchorPoint = Vector2.new(1, 0.5)
+	closeLip.Position = UDim2.new(1, -10, 0, HEADER / 2 + 3)
+	closeLip.BackgroundColor3 = Style.Darken(Style.Colors.Danger, 0.45)
+	closeLip.ZIndex = 8
+	closeLip.Parent = window
+	Style.Corner(closeLip, UDim.new(0, 10))
+	Style.Stroke(closeLip, Style.Colors.Stroke, 3)
 	local close = Instance.new("TextButton")
 	close.Name = "Face"
-	close.Text = "✖"
-	close.Font = Style.Fonts.Title
-	close.TextScaled = true
-	close.TextColor3 = Style.Colors.Text
+	close.Text = ""
 	close.AutoButtonColor = true
 	close.BackgroundColor3 = Style.Colors.Danger
-	close.Size = UDim2.fromOffset(60, 60)
-	close.AnchorPoint = Vector2.new(0.5, 0.5)
-	close.Position = UDim2.new(1, -14, 0, 10)
-	close.ZIndex = 8
+	close.Size = UDim2.fromOffset(50, 50)
+	close.AnchorPoint = Vector2.new(1, 0.5)
+	close.Position = UDim2.new(1, -10, 0, HEADER / 2 - 2)
+	close.ZIndex = 9
 	close.Parent = window
-	Style.Corner(close, Style.Theme.CornerPill)
-	Style.Stroke(close, Style.Colors.Stroke, 4)
-	Style.Shine(close)
-	Style.Padding(close, 11)
+	Style.Corner(close, UDim.new(0, 10))
+	Style.Stroke(close, Style.Colors.Stroke, 3)
+	Style.Gloss(close, UDim.new(0, 7), 9)
+	for _, angle in { 45, -45 } do
+		local bar = Instance.new("Frame")
+		bar.Name = "X"
+		bar.AnchorPoint = Vector2.new(0.5, 0.5)
+		bar.Position = UDim2.fromScale(0.5, 0.5)
+		bar.Size = UDim2.new(0.64, 0, 0, 9)
+		bar.Rotation = angle
+		bar.BackgroundColor3 = Style.Colors.Text
+		bar.BorderSizePixel = 0
+		bar.ZIndex = 10
+		bar.Parent = close
+		Style.Corner(bar, Style.Theme.CornerPill)
+		Style.Stroke(bar, Style.Colors.Stroke, 2)
+	end
 	-- Invisible, larger touch target (>= 44 real px on a phone at UI scale 0.6).
 	local closeHit = Instance.new("TextButton")
 	closeHit.Name = "HitArea"
@@ -232,7 +273,7 @@ function Panel.new(props: PanelProps): Panel
 	closeHit.Selectable = false
 	closeHit.Size = UDim2.fromOffset(80, 80)
 	closeHit.AnchorPoint = Vector2.new(0.5, 0.5)
-	closeHit.Position = UDim2.new(1, -14, 0, 10)
+	closeHit.Position = UDim2.new(1, -35, 0, HEADER / 2)
 	closeHit.ZIndex = 7
 	closeHit.Parent = window
 
@@ -298,7 +339,7 @@ function Panel.new(props: PanelProps): Panel
 			closed:Fire()
 		end,
 		SetTitle = function(_: Panel, text: string)
-			title.Text = (if props.Icon then props.Icon .. "  " else "") .. text
+			title.Text = text
 		end,
 	}
 
@@ -362,7 +403,7 @@ function Panel.Scroller(parent: Instance, size: UDim2?, position: UDim2?): Scrol
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroller.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroller.ScrollBarThickness = 10
-	scroller.ScrollBarImageColor3 = Style.Colors.SandDark
+	scroller.ScrollBarImageColor3 = Style.Colors.Sky
 	scroller.ScrollBarImageTransparency = 0.1
 	scroller.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
 	scroller.ElasticBehavior = Enum.ElasticBehavior.Always

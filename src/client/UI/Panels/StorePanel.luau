@@ -14,6 +14,7 @@ local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
+local AtlasIcon = require(Components.AtlasIcon)
 local Icons = require(script.Parent.Parent.Icons)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
 local PurchaseController = require(script.Parent.Parent.Parent.Controllers.PurchaseController)
@@ -26,14 +27,14 @@ local C = Style.Colors
 local PASS_ORDER =
 	{ "DoubleSand", "VIP", "SellAnywhere", "AutoDig", "Lucky", "MegaBackpack", "ExtraPets", "TripleHatch" }
 local PASS_ICONS: { [string]: string } = {
-	VIP = "👑",
-	DoubleSand = "⏳",
-	SellAnywhere = "💸",
-	AutoDig = "🤖",
-	Lucky = "🍀",
-	TripleHatch = "🥚",
-	ExtraPets = "🐾",
-	MegaBackpack = "🎒",
+	VIP = "trophy|👑",
+	DoubleSand = "boost_sand",
+	SellAnywhere = "Sell",
+	AutoDig = "AutoDig",
+	Lucky = "boost_luck",
+	TripleHatch = "egg_hatch",
+	ExtraPets = "Pets",
+	MegaBackpack = "Backpack",
 }
 local PRODUCT_ORDER = {
 	"SandBoost15",
@@ -65,7 +66,7 @@ local function refresh()
 			if State.OwnsPass(item.Key) then
 				item.Button:SetEnabled(true)
 				item.Button:SetColor(C.Disabled)
-				item.Button:SetText("Owned ✅")
+				item.Button:SetText("Owned!")
 			elseif pass.Id == 0 then
 				item.Button:SetEnabled(false)
 				item.Button:SetText("Soon")
@@ -90,7 +91,7 @@ end
 
 local function selectTab(name: string)
 	for key, button in tabs do
-		button:SetColor(if key == name then C.Sunset else C.SandDark)
+		button:SetColor(if key == name then C.Sunset else C.NavyCard)
 		pages[key].Visible = key == name
 	end
 end
@@ -99,7 +100,7 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 	local name, description, color, icon
 	if isPass then
 		local pass = Config.Monetization.GamePasses[key]
-		name, description, color, icon = pass.Name, pass.Description, pass.Color, PASS_ICONS[key] or "💎"
+		name, description, color, icon = pass.Name, pass.Description, pass.Color, PASS_ICONS[key] or "gem"
 	else
 		local product = Config.Monetization.Products[key]
 		name, description = product.Name, product.Description
@@ -107,26 +108,26 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 		if grant.Boost then
 			local boost = Config.GetBoost(grant.Boost)
 			color = if boost then boost.Color else C.Ocean
-			icon = if boost then Icons.BoostKinds[boost.Kind] or "⚡" else "⚡"
+			icon = if boost then "BoostKinds." .. boost.Kind else "boost_speed"
 		elseif grant.Egg then
-			color, icon = C.Gold, "🥚"
+			color, icon = C.Gold, "Eggs"
 		elseif grant.Rebirth then
-			color, icon = C.Purple, Icons.Rebirth
+			color, icon = C.Purple, "Rebirth"
 		else
-			color, icon = C.Coins, Icons.Coins
+			color, icon = C.Coins, "Coins"
 		end
 	end
 	local card = Card.new({
 		Name = key,
 		LayoutOrder = order,
-		Gradient = { Style.Lighten(color, 0.55), Style.Lighten(color, 0.2) },
+		Gradient = { Style.Darken(color, 0.15), Style.Darken(color, 0.5) },
 		ZIndex = 6,
 		Parent = page,
 	})
-	Style.Icon({
-		Text = icon,
-		Size = UDim2.fromOffset(56, 56),
-		Position = UDim2.fromOffset(8, 8),
+	AtlasIcon.new({
+		Icon = icon,
+		Size = UDim2.fromOffset(60, 60),
+		Position = UDim2.fromOffset(6, 4),
 		AnchorPoint = Vector2.zero,
 		ZIndex = 8,
 		Parent = card.Face,
@@ -144,9 +145,8 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 		Text = description,
 		Size = UDim2.new(1, -16, 0, 58),
 		Position = UDim2.fromOffset(8, 66),
-		TextColor = C.TextDark,
 		Font = Style.Fonts.Body,
-		Stroke = false,
+		StrokeThickness = 2,
 		Wrapped = true,
 		MaxTextSize = 14,
 		XAlign = Enum.TextXAlignment.Left,
@@ -156,7 +156,7 @@ local function makeItem(page: Instance, key: string, isPass: boolean, order: num
 	})
 	local button = Button.new({
 		Text = "R$",
-		Size = UDim2.new(1, -16, 0, 48),
+		Size = UDim2.new(1, -16, 0, 60),
 		Position = UDim2.new(0.5, 0, 1, -6),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Color = C.Robux,
@@ -189,8 +189,8 @@ local function build()
 	for i, tab in { "Passes", "Boosts & Coins" } do
 		tabs[tab] = Button.new({
 			Text = tab,
-			Size = UDim2.fromOffset(210, 48),
-			Color = C.SandDark,
+			Size = UDim2.fromOffset(210, 56),
+			Color = C.NavyCard,
 			LayoutOrder = i,
 			ZIndex = 5,
 			Parent = tabRow,
@@ -200,7 +200,7 @@ local function build()
 		})
 		local page = Panel.Scroller(body, UDim2.new(1, 0, 1, -58), UDim2.fromOffset(0, 58))
 		local grid = Instance.new("UIGridLayout")
-		grid.CellSize = UDim2.fromOffset(235, 190)
+		grid.CellSize = UDim2.fromOffset(235, 200)
 		grid.CellPadding = UDim2.fromOffset(10, 10)
 		grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 		grid.SortOrder = Enum.SortOrder.LayoutOrder

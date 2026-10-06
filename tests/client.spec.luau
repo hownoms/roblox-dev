@@ -197,21 +197,30 @@ check(#Mock.Prompts == 0, "no MarketplaceService prompt for unconfigured ids (" 
 section("hud polish")
 do
 	local HUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HUD"])
-	local menuNames = { "Shop", "Beach", "Eggs", "Pets", "Index", "Quests", "Daily", "Rebirth", "Store", "Settings" }
-	local menuPanels = { Beach = "BeachShop" }
+	local menuNames = { "Shop", "Beach", "Eggs", "Pets", "Index", "Quests", "Rebirth", "Store" }
+	local menuPanels = { Beach = "BeachShop", Daily = "Daily", Settings = "Settings", Shop = "Shop" }
 	for _, name in menuNames do
 		check(HUD.Buttons[name] ~= nil, "HUD menu button " .. name)
 	end
+	check(HUD.Buttons.Daily ~= nil and HUD.Buttons.Settings ~= nil, "Daily + Settings round buttons exist")
 	check(HUD.Buttons.Garage == nil, "no Garage menu button (v2.1)")
+	local hudCanvas = playerGui:FindFirstChild("Dig_HUD"):FindFirstChild("Canvas")
+	local topRight = hudCanvas:FindFirstChild("TopRight")
+	local menu = hudCanvas:FindFirstChild("Menu")
+	local depth = hudCanvas:FindFirstChild("Depth")
 	do
-		local menuFrame = playerGui:FindFirstChild("Dig_HUD"):FindFirstChild("Canvas"):FindFirstChild("Menu")
 		local buttons = 0
-		for _, child in menuFrame:GetChildren() do
+		for _, child in menu:GetChildren() do
 			if child:IsA("GuiObject") then
 				buttons += 1
 			end
 		end
-		check(buttons == 10, "HUD menu has 10 buttons (" .. buttons .. ")")
+		check(buttons == #menuNames, "HUD menu has " .. #menuNames .. " buttons (" .. buttons .. ")")
+		check(
+			HUD.Buttons.Daily.Holder.Parent == topRight and HUD.Buttons.Settings.Holder.Parent == topRight,
+			"Daily + Settings live in the top-right currency cluster"
+		)
+		check(topRight:FindFirstChild("Coins") ~= nil and topRight:FindFirstChild("Tokens") ~= nil, "currency pills top-right")
 	end
 	for buttonName, panelName in menuPanels do
 		local button = HUD.Buttons[buttonName]
@@ -230,18 +239,155 @@ do
 	Panel.CloseAll()
 	Mock.Advance(0.5)
 
-	-- Layout: menu sits below the stat pills, depth meter stays out of the right-centre band.
-	local hudCanvas = playerGui:FindFirstChild("Dig_HUD"):FindFirstChild("Canvas")
-	local stats = hudCanvas:FindFirstChild("Stats")
-	local menu = hudCanvas:FindFirstChild("Menu")
-	local depth = hudCanvas:FindFirstChild("Depth")
-	check(
-		menu.Position.Y.Offset >= stats.Position.Y.Offset + stats.Size.Y.Offset,
-		"menu does not overlap the stat pills"
-	)
-	check(depth.Position.Y.Offset + depth.Size.Y.Offset <= 180, "depth meter leaves the right-centre edge free")
-	local grid = menu:FindFirstChildWhichIsA("UIGridLayout")
-	check(grid ~= nil and grid.CellSize.X.Offset >= 74, "menu cells >= 74 design px (44 px on phones)")
+	-- Layout (UI/Layout.luau): no overlaps between the HUD regions at phone, tablet and PC sizes
+	-- (design px = logical px / UI scale), phone thumbstick + jump zones kept clear.
+	local Layout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Layout"])
+	local current = Layout.Current()
+	local function sameRect(inst, r)
+		return inst.Position.X.Offset == r.X and inst.Position.Y.Offset == r.Y and inst.Size.X.Offset == r.W and inst.Size.Y.Offset == r.H
+	end
+	check(sameRect(topRight, current.TopRight), "TopRight cluster placed by Layout")
+	check(sameRect(menu, current.Menu), "menu placed by Layout")
+	check(sameRect(depth, current.Depth), "depth meter placed by Layout")
+	local survivalHolder = playerGui:FindFirstChild("Dig_Survival"):FindFirstChild("SurvivalHUD", true)
+	check(survivalHolder ~= nil and sameRect(survivalHolder, current.Survival), "SurvivalHUD placed by Layout")
+	local sizes = {
+		-- phones (landscape, after the top bar / notch insets) and the 800x360 reference phone
+		{ 1187, 503, "phone" }, { 1200, 540, "phone" }, { 1219, 540, "phone" }, { 1333, 503, "phone" }, { 1333, 540, "phone" },
+		-- tablet
+		{ 1000, 750, "phone" }, { 1000, 768, "phone" },
+		-- PC windows and 1920x1080 (scale 1.35)
+		{ 1000, 540, "pc" }, { 1044, 540, "pc" }, { 1422, 757, "pc" }, { 1422, 800, "pc" }, { 1600, 900, "pc" },
+	}
+	local names = { "TopRight", "Menu", "Depth", "Centre", "Survival", "Bottom", "Ride", "RideDig" }
+	for _, entry in sizes do
+		local W, H, kind = entry[1], entry[2], entry[3]
+		local r = Layout.Compute(Mock.Env.Vector2.new(W, H))
+		local tag = W .. "x" .. H
+		for i = 1, #names do
+			local a = r[names[i]]
+			check(a.X >= 0 and a.Y >= 0 and a.X + a.W <= W and a.Y + a.H <= H, tag .. ": " .. names[i] .. " on screen")
+			for j = i + 1, #names do
+				local b = r[names[j]]
+				check(not Layout.Overlaps(a, b), tag .. ": " .. names[i] .. " does not overlap " .. names[j])
+			end
+		end
+		check(r.Centre.W >= 340, tag .. ": top-centre column >= 340 wide (" .. r.Centre.W .. ")")
+		if kind == "phone" then
+			local thumb = { X = 0, Y = H - 190, W = 260, H = 190 }
+			local jump = { X = W - 170, Y = H - 160, W = 170, H = 160 }
+			for _, n in { "TopRight", "Menu", "Depth", "Centre", "Survival", "Ride", "RideDig", "Bottom" } do
+				check(not Layout.Overlaps(r[n], thumb), tag .. ": " .. n .. " clear of the thumbstick")
+				check(not Layout.Overlaps(r[n], jump), tag .. ": " .. n .. " clear of the jump button")
+			end
+		end
+	end
+	check(Layout.MENU_CELL >= 74, "menu cells >= 74 design px (44 px on phones at scale 0.6)")
+	local round = HUD.Buttons.Daily.Holder
+	local hit = round:FindFirstChild("HitArea")
+	check(hit ~= nil and round.Size.X.Offset + hit.Size.X.Offset >= 74, "round Daily button has a >= 74 px touch area")
+	for _, name in { "Surface", "Sell", "AutoDig" } do
+		check(HUD.Buttons[name].Holder.Size.Y.Offset >= 74, name .. " button >= 74 design px")
+	end
+
+	-- Icons: atlas-driven component everywhere (emoji fallback while IconAtlas.AssetId == "")
+	local AtlasIcon = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/AtlasIcon"])
+	local _, emoji = AtlasIcon.Resolve("Coins")
+	check(emoji == "💰", "AtlasIcon falls back to the Icons.luau emoji")
+	local _, shellEmoji = AtlasIcon.Resolve("Layers.shell_bed")
+	check(shellEmoji == "🐚", "AtlasIcon resolves grouped keys")
+	local _, rawEmoji = AtlasIcon.Resolve("🛒")
+	check(rawEmoji == "🛒", "AtlasIcon keeps raw emoji")
+	local icons = 0
+	for _, d in hudCanvas:GetDescendants() do
+		if d:IsA("Frame") and d:GetAttribute("Icon") ~= nil then
+			icons += 1
+		end
+	end
+	check(icons >= 14, "HUD icons use AtlasIcon (" .. icons .. ")")
+
+	-- Objective banner (tutorial) top-centre, inside the centre column
+	local objective = hudCanvas:FindFirstChild("Objective")
+	check(objective ~= nil and objective.Visible, "tutorial objective pill visible")
+	check(objective ~= nil and sameRect(objective, current.Banner), "objective pill placed in the Banner region")
+	local objectiveText = objective and objective:FindFirstChild("Text")
+	check(objectiveText ~= nil and objectiveText.Text ~= "", "objective pill has a line (" .. tostring(objectiveText and objectiveText.Text) .. ")")
+	check(playerGui:FindFirstChild("Tutorial", true) == nil, "old big tutorial bar is gone")
+
+	-- Shop: upgrade rows (icon | current | arrow | next | price), one per item
+	Mock.FireClientEvent("DataChanged", { Coins = 1e9 })
+	Mock.Advance(0.3)
+	for tab, list in { Shovels = Config.Shovels, Backpacks = Config.Backpacks } do
+		Panel.Open("Shop", { Tab = tab })
+		Mock.Advance(0.6)
+		local scroller = Panel.Get("Shop").Window:FindFirstChild(tab, true)
+		local rows, complete, prefix = 0, 0, 0
+		for _, row in scroller:GetChildren() do
+			if row:IsA("Frame") then
+				rows += 1
+				local nextBox = row:FindFirstChild("Next", true)
+				if row:FindFirstChild("Current", true) and nextBox and row:FindFirstChildWhichIsA("ViewportFrame", true) and row:FindFirstChild("Action", true) then
+					complete += 1
+				end
+				local main = nextBox and nextBox:FindFirstChild("Main")
+				if main and string.sub(main.Text, 1, if tab == "Shovels" then 4 else 6) == (if tab == "Shovels" then "Dig " else "Holds ") then
+					prefix += 1
+				end
+			end
+		end
+		check(rows == #list and complete == #list, tab .. ": one upgrade row per item (" .. rows .. "/" .. complete .. ")")
+		check(prefix == #list, tab .. ": next-stat boxes spell out the gain (" .. prefix .. ")")
+	end
+	-- buying a new shovel shows the Reveal popup
+	local popups = playerGui:FindFirstChild("Dig_Popups"):FindFirstChild("Canvas")
+	Panel.Open("Shop", { Tab = "Shovels" })
+	Mock.Advance(0.6)
+	local target = Config.Shovels[2]
+	local row = Panel.Get("Shop").Window:FindFirstChild(target.Id, true)
+	local s0 = #Mock.Remote.ToServer
+	Mock.FireEvent(row:FindFirstChild("Action", true):FindFirstChild("Face"), "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	Mock.Advance(0.3)
+	check(#sent("BuyShovel", s0) == 1, "upgrade row price button sends BuyShovel")
+	local owned = {}
+	for id in State.Data.OwnedShovels do
+		owned[id] = true
+	end
+	owned[target.Id] = true
+	Mock.FireClientEvent("DataChanged", { OwnedShovels = owned })
+	Mock.Advance(0.6)
+	local reveal = popups:FindFirstChild("Reveal")
+	local headline = reveal and reveal:FindFirstChild("Headline", true)
+	check(headline ~= nil and headline.Text == "NEW SHOVEL!", "new shovel opens the Reveal popup")
+	check(reveal ~= nil and reveal:FindFirstChildWhichIsA("ViewportFrame", true) ~= nil and reveal:FindFirstChild("Stats", true) ~= nil, "reveal card has a model + stat rows")
+	Mock.FireEvent(reveal, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	Mock.Advance(1)
+	check(popups:FindFirstChild("Reveal") == nil, "tap closes the reveal")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- Daily: 7 day cards in a row, wider jackpot, big CLAIM button
+	Panel.Open("Daily", {})
+	Mock.Advance(0.6)
+	local days = Panel.Get("Daily").Window:FindFirstChild("Days", true)
+	local dayCards = {}
+	for _, child in days:GetChildren() do
+		if child:IsA("Frame") then
+			dayCards[child.Name] = child
+		end
+	end
+	check(dayCards.Day1 ~= nil and dayCards.Day7 ~= nil and dayCards.Day7.Size.X.Offset > dayCards.Day1.Size.X.Offset, "7 day cards, Day 7 is the wide jackpot")
+	local claim = Panel.Get("Daily").Window:FindFirstChild("Claim", true)
+	check(claim ~= nil and claim.Size.Y.Offset >= 74, "big CLAIM button")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- Treasure finds: compact, non-blocking reveal (no full-screen tap catcher)
+	Mock.FireClientEvent("TreasureFound", Config.Treasures[1].Id, Config.Treasures[1].Rarity)
+	Mock.Advance(0.5)
+	local compact = popups:FindFirstChild("Reveal")
+	check(compact ~= nil and compact.ClassName == "Frame", "common treasure uses the compact reveal")
+	Mock.Advance(4)
+	check(popups:FindFirstChild("Reveal") == nil, "compact reveal auto-closes")
 
 	-- Toasts: the same notice twice (server + client wording) shows once.
 	local Toasts = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Toasts"])
@@ -502,16 +648,17 @@ do
 	local petsWindow = Panel.Get("Pets").Window
 	local digBadges, rideBadges = 0, 0
 	for _, d in petsWindow:GetDescendants() do
-		if d:IsA("TextLabel") and d.Name == "Badges" then
-			if string.find(d.Text, "⛏", 1, true) then
-				digBadges += 1
-			end
-			if string.find(d.Text, "🚜", 1, true) then
-				rideBadges += 1
+		if d.Name == "Badges" then
+			for _, icon in d:GetChildren() do
+				if icon:GetAttribute("Icon") == "Dig" then
+					digBadges += 1
+				elseif icon:GetAttribute("Icon") == "Ride" then
+					rideBadges += 1
+				end
 			end
 		end
 	end
-	check(digBadges == 2 and rideBadges == 1, "⛏ badge on digging pets, 🚜 on rideable (" .. digBadges .. "/" .. rideBadges .. ")")
+	check(digBadges == 2 and rideBadges == 1, "Dig badge (atlas icon) on digging pets, Ride on rideable (" .. digBadges .. "/" .. rideBadges .. ")")
 	local digInfo = petsWindow:FindFirstChild("DigInfo", true)
 	check(digInfo ~= nil and string.find(digInfo.Text, "digs to", 1, true) ~= nil, "selected digging pet shows its dig stats")
 	Panel.CloseAll()

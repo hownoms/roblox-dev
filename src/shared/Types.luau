@@ -376,6 +376,14 @@ export type ThemeColors = {
 	Coins: Color3,
 	Tokens: Color3,
 	Robux: Color3,
+	-- v3 restyle (docs/UI_STYLE.md): ocean-navy panel bodies, meaning colours for text
+	Navy: Color3, -- panel body top
+	NavyDark: Color3, -- panel body bottom
+	NavyCard: Color3, -- inner cards on a navy body
+	NavyCardDark: Color3,
+	Money: Color3, -- coins / money text
+	Time: Color3, -- boosts / timers text
+	Highlight: Color3, -- "next" stat box, current-step accents
 }
 
 export type ThemeFonts = {

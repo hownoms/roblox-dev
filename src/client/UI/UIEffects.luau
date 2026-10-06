@@ -5,6 +5,7 @@ local Debris = game:GetService("Debris")
 
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
+local AtlasIcon = require(script.Parent.Components.AtlasIcon)
 local State = require(script.Parent.Parent.Controllers.State)
 
 local UIEffects = {}
@@ -27,23 +28,22 @@ local function lowGraphics(): boolean
 	return State.GetSetting("LowGraphics", false) == true
 end
 
--- Icons burst out from `from` (design px; default screen centre) and fly into `target`.
+-- Icons (AtlasIcon keys) burst out from `from` (design px; default screen centre) and fly
+-- into `target`.
 function UIEffects.FlyTo(icon: string, target: GuiObject, count: number?, from: Vector2?, onArrive: (() -> ())?)
 	local c = canvas()
 	local start = from or (c.AbsoluteSize / Root.Scale) / 2
 	local finish = centerOf(target)
 	local n = if lowGraphics() then math.min(count or 8, 4) else (count or 8)
 	for i = 1, n do
-		local label = Style.Label({
-			Text = icon,
-			Size = UDim2.fromOffset(40, 40),
+		local label = AtlasIcon.new({
+			Icon = icon,
+			Size = UDim2.fromOffset(44, 44),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromOffset(start.X, start.Y),
-			Stroke = false,
-			MaxTextSize = 40,
 			ZIndex = 50,
 			Parent = c,
-		})
+		}).Frame
 		local angle = math.random() * math.pi * 2
 		local radius = 50 + math.random() * 70
 		local scatter = start + Vector2.new(math.cos(angle), math.sin(angle)) * radius

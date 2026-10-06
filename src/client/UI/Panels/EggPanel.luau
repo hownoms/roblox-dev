@@ -25,6 +25,7 @@ local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
+local AtlasIcon = require(Components.AtlasIcon)
 local Viewport = require(Components.Viewport)
 local Icons = require(script.Parent.Parent.Icons)
 local HatchAnimation = require(script.Parent.Parent.HatchAnimation)
@@ -39,7 +40,7 @@ local C = Style.Colors
 local panel: Panel.Panel
 local built = false
 local selected: string = Config.Eggs[1].Id
-local tiles: { [string]: { Card: Card.Card, Price: TextLabel, Lock: TextLabel } } = {}
+local tiles: { [string]: { Card: Card.Card, Price: TextLabel, Lock: AtlasIcon.AtlasIcon } } = {}
 local detail: {
 	View: Viewport.Viewport,
 	Name: TextLabel,
@@ -59,11 +60,19 @@ end
 -- "⛏ digs Pirate Cove · every 3.0s" for a digging pet.
 local function digText(dig: Types.PetDigDef): string
 	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(dig.Power)]
-	return string.format("%s digs %s · every %.1fs", Icons.Dig, layer.Name, dig.Interval)
+	return string.format("digs %s · every %.1fs", layer.Name, dig.Interval)
 end
 
 local function currencyIcon(egg: Types.EggDef): string
-	return if egg.Currency == "Tokens" then Icons.Tokens elseif egg.Currency == "Robux" then Icons.Robux else Icons.Coins
+	return if egg.Currency == "Tokens" then "Tokens" elseif egg.Currency == "Robux" then "Robux" else "Coins"
+end
+
+-- "1.2K" / "R$ 99" (the currency is shown as an icon on buttons and in front of prices)
+local function amountText(egg: Types.EggDef, count: number): string
+	if egg.Currency == "Robux" then
+		return "R$ " .. egg.Price * count
+	end
+	return Format.Abbreviate(egg.Price * count)
 end
 
 local function balance(egg: Types.EggDef): number
@@ -79,7 +88,7 @@ local function priceText(egg: Types.EggDef, count: number): string
 	if egg.Currency == "Robux" then
 		return "R$ " .. egg.Price * count
 	end
-	return currencyIcon(egg) .. " " .. Format.Abbreviate(egg.Price * count)
+	return Format.Abbreviate(egg.Price * count) .. (if egg.Currency == "Tokens" then " tokens" else " coins")
 end
 
 local function petCount(): number
@@ -145,11 +154,13 @@ local function updateButtons()
 		local ok1 = key1 ~= nil and PurchaseController.IsProductConfigured(key1 :: string)
 		local ok3 = key3 ~= nil and PurchaseController.IsProductConfigured(key3 :: string)
 		hatch1:SetEnabled(ok1 and not full)
+		hatch1:SetIcon("Eggs")
 		hatch1:SetText(
 			if ok1 then "Hatch 1  R$ " .. Config.Monetization.Products[key1 :: string].Price else "Coming soon"
 		)
 		hatch3:SetVisible(key3 ~= nil)
 		hatch3:SetEnabled(ok3 and not full)
+		hatch3:SetIcon("Eggs")
 		hatch3:SetText(
 			if ok3 then "Hatch 3  R$ " .. Config.Monetization.Products[key3 :: string].Price else "Coming soon"
 		)
@@ -159,29 +170,34 @@ local function updateButtons()
 	if not unlocked then
 		local layer = Config.Layers[egg.UnlockLayer]
 		hatch1:SetEnabled(false)
-		hatch1:SetText(Icons.Lock .. " Reach " .. layer.Name)
+		hatch1:SetIcon("Lock")
+		hatch1:SetText("Reach " .. layer.Name)
 		hatch3:SetVisible(false)
 		return
 	end
 	if full then
 		hatch1:SetEnabled(false)
+		hatch1:SetIcon("Pets")
 		hatch1:SetText("Pet bag full!")
 		hatch3:SetVisible(false)
 		return
 	end
 	hatch1:SetEnabled(have >= egg.Price)
-	hatch1:SetText(verb .. " 1  " .. priceText(egg, 1))
+	hatch1:SetIcon(currencyIcon(egg))
+	hatch1:SetText(verb .. " 1 · " .. amountText(egg, 1))
 	local owns3 = State.OwnsPass("TripleHatch")
 	local passOk = PurchaseController.IsPassConfigured("TripleHatch")
 	hatch3:SetVisible(owns3 or passOk)
 	if owns3 then
 		hatch3:SetEnabled(have >= egg.Price * Config.TRIPLE_HATCH_COUNT)
 		hatch3:SetColor(C.Purple)
-		hatch3:SetText(verb .. " 3  " .. priceText(egg, Config.TRIPLE_HATCH_COUNT))
+		hatch3:SetIcon(currencyIcon(egg))
+		hatch3:SetText(verb .. " 3 · " .. amountText(egg, Config.TRIPLE_HATCH_COUNT))
 	else
 		hatch3:SetEnabled(true)
 		hatch3:SetColor(C.Robux)
-		hatch3:SetText(Icons.Lock .. " " .. verb .. " 3 (pass)")
+		hatch3:SetIcon("Lock")
+		hatch3:SetText(verb .. " 3 (pass)")
 	end
 end
 
@@ -203,7 +219,7 @@ local function showEgg(eggId: string)
 		Style.Pop((dd.View :: Viewport.Viewport).Frame, 0.15);
 		(dd.Name :: TextLabel).Text = egg.Name;
 		(dd.Kind :: TextLabel).Text = if isCrate(egg)
-			then Icons.Crate .. " Construction Crate: pets that DIG for you! Chances:"
+			then "Construction Crate: pets that DIG for you! Chances:"
 			else "Chances (before luck boosts):"
 		local odds: ScrollingFrame = dd.Odds
 		for _, child in odds:GetChildren() do
@@ -229,12 +245,20 @@ local function showEgg(eggId: string)
 					ZIndex = 6,
 					Parent = odds,
 				})
+				AtlasIcon.new({
+					Icon = if pet.VehicleKind
+						then "VehicleKinds." .. pet.VehicleKind
+						else "PetShapes." .. pet.Look.Shape,
+					Size = UDim2.fromOffset(38, 38),
+					Position = UDim2.new(0, 6, 0.5, 0),
+					AnchorPoint = Vector2.new(0, 0.5),
+					ZIndex = 8,
+					Parent = row.Face,
+				})
 				Style.Label({
-					Text = Icons.Pet(pet.Look.Shape, pet.VehicleKind) .. " " .. pet.Name .. (if pet.Rideable
-						then " " .. Icons.Ride
-						else ""),
-					Size = UDim2.new(0.55, 0, if dig then 0.5 else 0.8, 0),
-					Position = UDim2.new(0, 10, if dig then 0.3 else 0.5, 0),
+					Text = pet.Name .. (if pet.Rideable then "  (ride!)" else ""),
+					Size = UDim2.new(0.55, -44, if dig then 0.5 else 0.8, 0),
+					Position = UDim2.new(0, 48, if dig then 0.3 else 0.5, 0),
 					AnchorPoint = Vector2.new(0, 0.5),
 					MaxTextSize = 18,
 					XAlign = Enum.TextXAlignment.Left,
@@ -244,8 +268,8 @@ local function showEgg(eggId: string)
 				if dig then
 					local digLabel = Style.Label({
 						Text = digText(dig) .. (if pet.Rideable then "  ·  Rideable!" else ""),
-						Size = UDim2.new(0.56, 0, 0.34, 0),
-						Position = UDim2.new(0, 10, 0.76, 0),
+						Size = UDim2.new(0.56, -44, 0.34, 0),
+						Position = UDim2.new(0, 48, 0.76, 0),
 						AnchorPoint = Vector2.new(0, 0.5),
 						Font = Style.Fonts.Body,
 						MaxTextSize = 13,
@@ -282,7 +306,7 @@ local function showEgg(eggId: string)
 	local unlocked = Config.IsEggUnlocked(egg.Id, State.Data.MaxDepth);
 	(dd.Price :: TextLabel).Text = if unlocked or egg.Currency == "Robux"
 		then priceText(egg, 1) .. " each"
-		else Icons.Lock .. " Unlocks at " .. Config.Layers[egg.UnlockLayer].Name
+		else "Unlocks at " .. Config.Layers[egg.UnlockLayer].Name
 	updateButtons()
 end
 
@@ -318,15 +342,7 @@ local function build()
 			band.Position = UDim2.fromScale(0, 0.37)
 			band.ZIndex = 9
 			band.Parent = swatch
-			Style.Label({
-				Text = Icons.Crate,
-				Size = UDim2.fromScale(0.8, 0.8),
-				Position = UDim2.fromScale(0.5, 0.5),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Stroke = false,
-				ZIndex = 10,
-				Parent = swatch,
-			})
+			AtlasIcon.new({ Icon = "Crate", Size = UDim2.fromScale(0.86, 0.86), ZIndex = 10, Parent = swatch })
 		else
 			Style.Corner(swatch, UDim.new(0.5, 0))
 			Style.Gradient(swatch, { Color3.new(1, 1, 1), egg.Look.SpotColor:Lerp(Color3.new(1, 1, 1), 0.4) }, 90)
@@ -335,8 +351,7 @@ local function build()
 			Text = egg.Name,
 			Size = UDim2.new(1, -66, 0, 26),
 			Position = UDim2.fromOffset(58, 6),
-			TextColor = C.TextDark,
-			Stroke = false,
+			StrokeThickness = 2,
 			MaxTextSize = 19,
 			XAlign = Enum.TextXAlignment.Left,
 			ZIndex = 8,
@@ -346,20 +361,20 @@ local function build()
 			Text = priceText(egg, 1) .. (if isCrate(egg) then "  ·  Crate" else ""),
 			Size = UDim2.new(1, -66, 0, 22),
 			Position = UDim2.fromOffset(58, 32),
-			TextColor = C.SandDark,
+			TextColor = C.Sand,
 			Font = Style.Fonts.Number,
-			Stroke = false,
+			StrokeThickness = 2,
 			MaxTextSize = 16,
 			XAlign = Enum.TextXAlignment.Left,
 			ZIndex = 8,
 			Parent = card.Face,
 		})
-		local lock = Style.Label({
-			Text = Icons.Lock,
-			Size = UDim2.fromOffset(30, 30),
+		local lock = AtlasIcon.new({
+			Name = "Lock",
+			Icon = "Lock",
+			Size = UDim2.fromOffset(34, 34),
 			Position = UDim2.new(1, -8, 0.5, 0),
 			AnchorPoint = Vector2.new(1, 0.5),
-			Stroke = false,
 			ZIndex = 9,
 			Parent = card.Face,
 		})
@@ -387,7 +402,7 @@ local function build()
 	local stage = Instance.new("Frame")
 	stage.Name = "Stage"
 	stage.Size = UDim2.fromOffset(190, 190)
-	stage.BackgroundColor3 = C.Sky
+	stage.BackgroundColor3 = Color3.new(1, 1, 1)
 	stage.ZIndex = 5
 	stage.Parent = right
 	Style.Corner(stage, Style.Theme.CornerLarge)
@@ -406,8 +421,7 @@ local function build()
 		Text = "",
 		Size = UDim2.new(1, -200, 0, 40),
 		Position = UDim2.fromOffset(200, 0),
-		TextColor = C.TextDark,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 32,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,
@@ -417,9 +431,9 @@ local function build()
 		Text = "",
 		Size = UDim2.new(1, -200, 0, 28),
 		Position = UDim2.fromOffset(200, 40),
-		TextColor = C.SandDark,
+		TextColor = C.Sand,
 		Font = Style.Fonts.Number,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 22,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,
@@ -429,9 +443,8 @@ local function build()
 		Text = "Chances (before luck boosts):",
 		Size = UDim2.new(1, -200, 0, 20),
 		Position = UDim2.fromOffset(200, 72),
-		TextColor = C.TextDark,
 		Font = Style.Fonts.Body,
-		Stroke = false,
+		StrokeThickness = 2,
 		MaxTextSize = 14,
 		XAlign = Enum.TextXAlignment.Left,
 		ZIndex = 6,
@@ -439,9 +452,9 @@ local function build()
 	})
 	local hatch1 = Button.new({
 		Text = "Hatch 1",
-		Icon = Icons.Eggs,
-		Size = UDim2.fromOffset(190, 56),
-		Position = UDim2.fromOffset(0, 200),
+		Icon = "Coins",
+		Size = UDim2.fromOffset(190, 80),
+		Position = UDim2.fromOffset(0, 198),
 		Color = C.Success,
 		MaxTextSize = 20,
 		ZIndex = 6,
@@ -455,9 +468,9 @@ local function build()
 	})
 	local hatch3 = Button.new({
 		Text = "Hatch 3",
-		Icon = "🥚",
-		Size = UDim2.fromOffset(190, 56),
-		Position = UDim2.fromOffset(0, 266),
+		Icon = "Coins",
+		Size = UDim2.fromOffset(190, 80),
+		Position = UDim2.fromOffset(0, 284),
 		Color = C.Purple,
 		MaxTextSize = 18,
 		ZIndex = 6,
@@ -487,10 +500,8 @@ local function refreshTiles()
 		local egg = Config.GetEgg(id)
 		if egg then
 			local unlocked = egg.Currency == "Robux" or Config.IsEggUnlocked(id, State.Data.MaxDepth)
-			tile.Lock.Visible = not unlocked
-			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price
-				then C.Danger
-				else C.SandDark
+			tile.Lock.Frame.Visible = not unlocked
+			tile.Price.TextColor3 = if egg.Currency ~= "Robux" and balance(egg) < egg.Price then C.Danger else C.Money
 		end
 	end
 	updateButtons()

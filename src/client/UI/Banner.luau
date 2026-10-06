@@ -1,8 +1,8 @@
 --!strict
 --[[
 	Banner — big centre-screen announcements, queued one at a time:
-	- ShowLayer(index, isNew): "Welcome to the Pirate Cove! 🏴‍☠️" + layer FlavorText, ribbon in
-	  the layer colour (isNew adds "NEW LAYER!" + confetti).
+	- ShowLayer(index, isNew): "Welcome to the Pirate Cove!" with the layer's atlas icon + layer
+	  FlavorText, glossy outlined ribbon in the layer colour (isNew adds "NEW LAYER!" + confetti).
 	- Show({ Title, Subtitle, Color, Icon }) for rebirths, milestones, events.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,7 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
-local Icons = require(script.Parent.Icons)
+local AtlasIcon = require(script.Parent.Components.AtlasIcon)
 local UIEffects = require(script.Parent.UIEffects)
 local State = require(script.Parent.Parent.Controllers.State)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
@@ -20,6 +20,7 @@ local Banner = {}
 export type BannerSpec = {
 	Title: string,
 	Subtitle: string?,
+	Icon: string?, -- AtlasIcon key shown overlapping the ribbon's left end
 	Tag: string?, -- small pill above the title ("NEW LAYER!")
 	Color: Color3?,
 	Duration: number?,
@@ -52,17 +53,31 @@ local function build(spec: BannerSpec): Frame
 	Style.Stroke(ribbon, Style.Colors.Stroke, 4)
 	Style.Gradient(ribbon, { Style.Lighten(color, 0.35), color, Style.Darken(color, 0.25) }, 90)
 
+	Style.Gloss(ribbon, Style.Theme.CornerMedium, 21)
+	local inset = if spec.Icon then 70 else 0
 	Style.Label({
 		Name = "Title",
 		Text = spec.Title,
-		Size = UDim2.new(1, -30, 0.8, 0),
-		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -30 - inset, 0.8, 0),
+		Position = UDim2.new(0.5, inset / 2, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		MaxTextSize = 44,
-		StrokeThickness = 3,
+		StrokeThickness = 4,
 		ZIndex = 22,
 		Parent = ribbon,
 	})
+	if spec.Icon then
+		AtlasIcon.new({
+			Name = "BannerIcon",
+			Icon = spec.Icon,
+			Size = UDim2.fromOffset(96, 96),
+			Position = UDim2.new(0, -14, 0.5, -4),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Rotation = -8,
+			ZIndex = 23,
+			Parent = ribbon,
+		})
+	end
 
 	if spec.Tag then
 		local tag = Style.Label({
@@ -94,9 +109,10 @@ local function build(spec: BannerSpec): Frame
 			ZIndex = 22,
 			Parent = holder,
 		})
-		sub.BackgroundTransparency = 0.25
-		sub.BackgroundColor3 = Style.Colors.Stroke
+		sub.BackgroundTransparency = 0.08
+		sub.BackgroundColor3 = Style.Colors.NavyDark
 		Style.Corner(sub, Style.Theme.CornerMedium)
+		Style.Stroke(sub, Style.Colors.Stroke, 3)
 		Style.Padding(sub, 4, 12)
 	end
 	return holder
@@ -157,10 +173,11 @@ function Banner.ShowLayer(index: number, isNew: boolean?)
 	local article = if string.sub(layer.Name, 1, 4) == "The " then "" else "the "
 	local subtitle = layer.FlavorText
 	if State.GetShovel().Power < layer.Hardness then
-		subtitle = "Too hard for your shovel! Needs 💪 " .. layer.Hardness .. " power."
+		subtitle = "Too hard for your shovel! Needs " .. layer.Hardness .. " power."
 	end
 	Banner.Show({
-		Title = "Welcome to " .. article .. layer.Name .. "! " .. Icons.Layer(layer.Id),
+		Title = "Welcome to " .. article .. layer.Name .. "!",
+		Icon = "Layers." .. layer.Id,
 		Subtitle = subtitle,
 		Tag = if isNew then "NEW LAYER!" else Config.DepthToMeters(layer.DepthStart) .. "m deep",
 		Color = layer.Color,

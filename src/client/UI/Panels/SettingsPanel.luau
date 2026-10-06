@@ -10,6 +10,7 @@ local Style = require(Components.Style)
 local Panel = require(Components.Panel)
 local Button = require(Components.Button)
 local Card = require(Components.Card)
+local AtlasIcon = require(Components.AtlasIcon)
 local Icons = require(script.Parent.Parent.Icons)
 local Toasts = require(script.Parent.Parent.Toasts)
 local State = require(script.Parent.Parent.Parent.Controllers.State)
@@ -21,10 +22,10 @@ local C = Style.Colors
 type Toggle = { Key: string, Default: boolean, Button: Button.Button, Row: Frame, NeedsPass: string? }
 
 local TOGGLES = {
-	{ Key = "Music", Label = "Music", Icon = "🎵", Default = true },
-	{ Key = "SFX", Label = "Sound Effects", Icon = "🔊", Default = true },
-	{ Key = "LowGraphics", Label = "Low Graphics", Icon = "📱", Default = false },
-	{ Key = "AutoDig", Label = "Auto Dig", Icon = Icons.AutoDig, Default = false, NeedsPass = "AutoDig" },
+	{ Key = "Music", Label = "Music", Icon = "music", Default = true },
+	{ Key = "SFX", Label = "Sound Effects", Icon = "sfx", Default = true },
+	{ Key = "LowGraphics", Label = "Low Graphics", Icon = "settings|📱", Default = false },
+	{ Key = "AutoDig", Label = "Auto Dig", Icon = "AutoDig", Default = false, NeedsPass = "AutoDig" },
 }
 
 local panel: Panel.Panel
@@ -68,14 +69,21 @@ local function build()
 	Style.List(list, Enum.FillDirection.Vertical, 8)
 	for i, def in TOGGLES do
 		local card =
-			Card.new({ Name = def.Key, Size = UDim2.new(1, -16, 0, 64), LayoutOrder = i, ZIndex = 6, Parent = list })
-		Style.Label({
-			Text = def.Icon .. "  " .. def.Label,
-			Size = UDim2.new(1, -170, 0.7, 0),
-			Position = UDim2.new(0, 14, 0.5, 0),
+			Card.new({ Name = def.Key, Size = UDim2.new(1, -16, 0, 84), LayoutOrder = i, ZIndex = 6, Parent = list })
+		AtlasIcon.new({
+			Icon = def.Icon,
+			Size = UDim2.fromOffset(52, 52),
+			Position = UDim2.new(0, 10, 0.5, 0),
 			AnchorPoint = Vector2.new(0, 0.5),
-			TextColor = C.TextDark,
-			Stroke = false,
+			ZIndex = 8,
+			Parent = card.Face,
+		})
+		Style.Label({
+			Text = def.Label,
+			Size = UDim2.new(1, -230, 0.6, 0),
+			Position = UDim2.new(0, 70, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			StrokeThickness = 2,
 			MaxTextSize = 24,
 			XAlign = Enum.TextXAlignment.Left,
 			ZIndex = 8,
@@ -83,7 +91,7 @@ local function build()
 		})
 		local button = Button.new({
 			Text = "ON",
-			Size = UDim2.fromOffset(130, 50),
+			Size = UDim2.fromOffset(140, 74),
 			Position = UDim2.new(1, -10, 0.5, 0),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Color = C.Success,
@@ -102,20 +110,27 @@ local function build()
 
 	local codes = Card.new({
 		Name = "Codes",
-		Size = UDim2.new(1, -16, 0, 120),
+		Size = UDim2.new(1, -16, 0, 136),
 		LayoutOrder = 100,
-		Color = Style.Lighten(C.Ocean, 0.7),
+		Color = C.NavyCardDark,
 		ZIndex = 6,
 		Parent = list,
 	})
 	Style.Label({
-		Text = "🎟️  Codes",
-		Size = UDim2.new(1, -20, 0, 30),
-		Position = UDim2.fromOffset(14, 8),
-		TextColor = C.TextDark,
-		Stroke = false,
+		Text = "Codes",
+		Size = UDim2.new(1, -70, 0, 30),
+		Position = UDim2.fromOffset(56, 8),
+		StrokeThickness = 2,
 		MaxTextSize = 24,
 		XAlign = Enum.TextXAlignment.Left,
+		ZIndex = 8,
+		Parent = codes.Face,
+	})
+	AtlasIcon.new({
+		Icon = "codes",
+		Size = UDim2.fromOffset(38, 38),
+		Position = UDim2.fromOffset(12, 4),
+		AnchorPoint = Vector2.zero,
 		ZIndex = 8,
 		Parent = codes.Face,
 	})
@@ -126,10 +141,10 @@ local function build()
 	codeBox.ClearTextOnFocus = false
 	codeBox.Font = Style.Fonts.Title
 	codeBox.TextScaled = true
-	codeBox.TextColor3 = C.TextDark
+	codeBox.TextColor3 = C.Text
 	codeBox.PlaceholderColor3 = C.Disabled
-	codeBox.BackgroundColor3 = C.Panel
-	codeBox.Size = UDim2.new(1, -190, 0, 52)
+	codeBox.BackgroundColor3 = C.NavyDark
+	codeBox.Size = UDim2.new(1, -190, 0, 62)
 	codeBox.Position = UDim2.fromOffset(14, 50)
 	codeBox.ZIndex = 8
 	codeBox.Parent = codes.Face
@@ -146,8 +161,8 @@ local function build()
 	end)
 	Button.new({
 		Text = "Redeem",
-		Size = UDim2.fromOffset(150, 56),
-		Position = UDim2.new(1, -12, 0, 48),
+		Size = UDim2.fromOffset(150, 76),
+		Position = UDim2.new(1, -12, 0, 44),
 		AnchorPoint = Vector2.new(1, 0),
 		Color = C.Palm,
 		ZIndex = 8,

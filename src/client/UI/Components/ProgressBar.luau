@@ -38,8 +38,8 @@ function ProgressBar.new(props: ProgressBarProps): ProgressBar
 	frame.Size = props.Size or UDim2.fromOffset(240, 32)
 	frame.Position = props.Position or UDim2.new()
 	frame.AnchorPoint = props.AnchorPoint or Vector2.zero
-	frame.BackgroundColor3 = props.BackColor or Style.Darken(Style.Colors.Stroke, 0.1)
-	frame.BackgroundTransparency = 0.15
+	frame.BackgroundColor3 = props.BackColor or Style.Colors.NavyDark
+	frame.BackgroundTransparency = 0.05
 	frame.BorderSizePixel = 0
 	frame.LayoutOrder = props.LayoutOrder or 0
 	frame.ZIndex = z
@@ -74,7 +74,8 @@ function ProgressBar.new(props: ProgressBarProps): ProgressBar
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		MaxTextSize = props.MaxTextSize or 22,
-		Font = Style.Fonts.Number,
+		Font = Style.Fonts.Title,
+		StrokeThickness = 2,
 		ZIndex = z + 2,
 		Parent = frame,
 	})
