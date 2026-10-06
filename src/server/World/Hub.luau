@@ -58,8 +58,14 @@ local function lp(
 	})
 end
 
+-- A Layout position (Y = voxel-grid height) moved up onto the visible sand. v2.2 playtest: the
+-- rebirth shrine's steps (and every station built at grid height) were partly under the sand.
+local function onSand(pos: Vector3): Vector3
+	return Vector3.new(pos.X, Util.TerrainY(pos), pos.Z)
+end
+
 local function hubFacing(pos: Vector3): CFrame
-	return Util.Facing(pos, Layout.HUB_LOOK_TARGET)
+	return Util.Facing(onSand(pos), Layout.HUB_LOOK_TARGET)
 end
 
 -- Spawns --------------------------------------------------------------------------------------
@@ -99,7 +105,7 @@ end
 local function buildSell(parent: Instance)
 	local m = Util.Model("SellStand", parent)
 	-- Faces the beach so players walking up from the sand see it first.
-	local base = Util.Facing(Layout.SELL, Layout.SELL + Vector3.new(0, 0, -10))
+	local base = Util.Facing(onSand(Layout.SELL), Layout.SELL + Vector3.new(0, 0, -10))
 
 	lp(m, base, "Counter", Vector3.new(16, 3.6, 4), Vector3.new(0, 1.8, 0), C.Coral)
 	lp(m, base, "CounterTop", Vector3.new(17, 0.5, 5), Vector3.new(0, 3.85, 0), WOOD, Enum.Material.WoodPlanks)
@@ -151,7 +157,7 @@ local function buildSell(parent: Instance)
 		base,
 		"SellZone",
 		Vector3.new(16, 1, 8),
-		Vector3.new(0, 2.2, -6.5),
+		Vector3.new(0, 0.2, -6.5), -- base is on the visible sand now (was 2.2 above the grid)
 		rgb(50, 170, 75),
 		Enum.Material.SmoothPlastic
 	)
@@ -253,7 +259,7 @@ local function buildLeaderboard(
 	accent: Color3
 )
 	local m = Util.Model(name, parent)
-	local base = Util.Facing(pos, Layout.SPAWNS[1])
+	local base = Util.Facing(onSand(pos), Layout.SPAWNS[1])
 	for _, x in { -6, 6 } do
 		lp(m, base, "Leg", Vector3.new(1.2, 4, 1.2), Vector3.new(x, 2, 0.6), WOOD_DARK, Enum.Material.Wood)
 	end

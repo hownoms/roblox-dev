@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Models = require(ReplicatedStorage.Shared.Models)
+local Layout = require(script.Parent.Layout)
 
 local Theme = Config.Theme
 
@@ -270,7 +271,7 @@ end
 -- is built in one go right after the terrain is written, and those raycasts can miss terrain
 -- written in the same frame, so SurfaceY fell back to the grid height. Here a miss falls back
 -- to the grid height + TERRAIN_VISIBLE_OFFSET instead (the same +2 that fixed egg pedestals).
-Util.TERRAIN_VISIBLE_OFFSET = 2
+Util.TERRAIN_VISIBLE_OFFSET = Layout.VISIBLE_SURFACE_OFFSET
 local terrainParams = RaycastParams.new()
 terrainParams.FilterType = Enum.RaycastFilterType.Include
 terrainParams.IgnoreWater = true
@@ -302,7 +303,15 @@ local SMALL_PROPS: { [string]: boolean } = {
 }
 
 -- Models.Prop(name) placed on the visible ground at `pos` (Y = layout grid height), rotated `yawDeg`.
-function Util.Prop(name: string, parent: Instance, pos: Vector3, yawDeg: number, scale: number?): Model?
+-- `onPart` = true: pos.Y is already the top of a part (deck, pier); don't look for the sand.
+function Util.Prop(
+	name: string,
+	parent: Instance,
+	pos: Vector3,
+	yawDeg: number,
+	scale: number?,
+	onPart: boolean?
+): Model?
 	local ok, result = pcall(Models.Prop, name)
 	if not ok or typeof(result) ~= "Instance" or not result:IsA("Model") then
 		warn("[World] Models.Prop failed for", name, result)
@@ -315,7 +324,7 @@ function Util.Prop(name: string, parent: Instance, pos: Vector3, yawDeg: number,
 		end)
 	end
 	Util.Finish(model, SMALL_PROPS[name] == true)
-	local ground = Vector3.new(pos.X, Util.TerrainY(pos), pos.Z)
+	local ground = if onPart then pos else Vector3.new(pos.X, Util.TerrainY(pos), pos.Z)
 	Util.Ground(model, CFrame.new(ground) * CFrame.Angles(0, math.rad(yawDeg), 0))
 	model.Parent = parent
 	return model

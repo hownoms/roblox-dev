@@ -19,7 +19,11 @@
 	    current pose, so very fast shovels chop continuously instead of snapping.
 	  * Local player: DigController calls PlayScoop on every dig click (no server round trip).
 	    Others: the server fires "Scoop"(player) for each successful shovel dig (ShopService).
-	  * R6 avatars are skipped (the plain right-hand grip stays); a local R6 scoop falls back to
+	  * R6 avatars, hand tools (v2.2 playtest 2: the spade still stuck out on blocky R6 avatars):
+	    the one-piece right arm swings about the shoulder only (pitch from the same Pose keys),
+	    and because a lowered arm would point the spade backwards with the fixed Tool.Grip, the
+	    RightGrip weld's C1 is re-aimed locally so the shaft follows the pose (restored on
+	    release). R6 + full-size shovels keep the plain grip; a local scoop there falls back to
 	    the default Animate "Slash" tool animation.
 
 	R15 joint math (all in UPPERTORSO space, U = identity):
@@ -226,6 +230,13 @@ type Rig = {
 	LeftHand: BasePart,
 }
 
+type R6Rig = {
+	Humanoid: Humanoid,
+	Torso: BasePart,
+	RightShoulder: Motor6D,
+	RightArm: BasePart,
+}
+
 type ToolInfo = {
 	Tool: Tool,
 	Handle: BasePart,
@@ -247,6 +258,8 @@ type Scoop = {
 
 type CharState = {
 	Rig: Rig?,
+	R6: R6Rig?,
+	Grips: { [Weld]: CFrame }, -- R6: RightGrip welds whose C1 we re-aimed -> original C1
 	RigCheckedAt: number,
 	Info: ToolInfo?,
 	Weight: number,
@@ -364,6 +377,25 @@ local function resolveRig(character: Model): Rig?
 	}
 end
 
+local function resolveR6(character: Model): R6Rig?
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R6 then
+		return nil
+	end
+	local torso = part(character, "Torso")
+	local arm = part(character, "Right Arm")
+	local rs = motor(torso, "Right Shoulder")
+	if not (torso and arm and rs) or rs.Part0 ~= torso or rs.Part1 ~= arm then
+		return nil
+	end
+	return {
+		Humanoid = humanoid :: Humanoid,
+		Torso = torso :: BasePart,
+		RightShoulder = rs :: Motor6D,
+		RightArm = arm :: BasePart,
+	}
+end
+
 local function rigAlive(rig: Rig): boolean
 	return rig.RightShoulder.Parent ~= nil
 		and rig.RightWrist.Parent ~= nil
@@ -458,6 +490,12 @@ local function release(state: CharState)
 		end
 	end
 	table.clear(state.Touched)
+	for weld, original in state.Grips do
+		if weld.Parent then
+			weld.C1 = original
+		end
+	end
+	table.clear(state.Grips)
 	state.Weight = 0
 	state.Posed = false
 end
@@ -548,6 +586,41 @@ local function armLength(sh: Motor6D, el: Motor6D, wr: Motor6D, palm: Vector3): 
 		+ (palm - wr.C1.Position).Magnitude
 end
 
+-- Tool rotation (torso space) for a pose: shaft along pose.Shaft, cupped face up, rolled.
+local function toolRotation(info: ToolInfo, pose: Pose): CFrame
+	local shaft = pose.Shaft.Unit
+	local up = Vector3.yAxis - shaft * shaft.Y
+	if up.Magnitude < 0.2 then
+		up = -Vector3.zAxis - shaft * -shaft.Z
+	end
+	local cup = CFrame.fromAxisAngle(shaft, pose.Roll) * up.Unit
+	return align(info.Shaft, info.Cup, shaft, cup)
+end
+
+-- R6, hand tools: swing the one-piece arm forward about the shoulder by the pose's pitch (the
+-- angle of pose.Hand in front of straight down), then re-aim the grip weld so the shaft points
+-- along pose.Shaft from the palm. All in Torso space.
+local function applyPoseR6(state: CharState, rig: R6Rig, info: ToolInfo, pose: Pose, weight: number): boolean
+	local weld = rig.RightArm:FindFirstChild("RightGrip")
+	if not (weld and weld:IsA("Weld") and weld.Part1 == info.Handle) then
+		return false
+	end
+	local rs = rig.RightShoulder
+	local pitch = math.atan2(-pose.Hand.Z, math.max(-pose.Hand.Y, 0.05))
+	local pivot = rs.C0.Position
+	local arm = CFrame.new(pivot) * CFrame.Angles(pitch, 0, 0) * CFrame.new(-pivot) * rs.C0 * rs.C1:Inverse()
+	write(state, rs, rs.C0:Inverse() * arm * rs.C1, weight)
+
+	local original = state.Grips[weld] or weld.C1
+	state.Grips[weld] = original
+	local palm = arm * weld.C0
+	local rot = toolRotation(info, pose)
+	local handle = CFrame.new(palm.Position - rot * original.Position) * rot
+	local c1 = handle:Inverse() * palm -- weld rule: Arm * C0 == Handle * C1
+	weld.C1 = if weight >= 0.999 then c1 else original:Lerp(c1, weight)
+	return true
+end
+
 -- Poses one character. Returns false if the pose could not be solved (nothing written).
 local function applyPose(state: CharState, rig: Rig, info: ToolInfo, pose: Pose, weight: number): boolean
 	local rs, re, rw = rig.RightShoulder, rig.RightElbow, rig.RightWrist
@@ -557,13 +630,7 @@ local function applyPose(state: CharState, rig: Rig, info: ToolInfo, pose: Pose,
 	local reach = armLength(rs, re, rw, rightPalm)
 
 	-- 2. Wanted tool CFrame (U space): shaft along pose.Shaft, cupped face up, rolled.
-	local shaft = pose.Shaft.Unit
-	local up = Vector3.yAxis - shaft * shaft.Y
-	if up.Magnitude < 0.2 then
-		up = -Vector3.zAxis - shaft * -shaft.Z
-	end
-	local cup = CFrame.fromAxisAngle(shaft, pose.Roll) * up.Unit
-	local rot = align(info.Shaft, info.Cup, shaft, cup)
+	local rot = toolRotation(info, pose)
 	local palmTarget = shoulder + pose.Hand * reach
 	if not isFinite(palmTarget) then
 		return false
@@ -717,6 +784,8 @@ local function getState(character: Model): CharState
 	if not state then
 		local s: CharState = {
 			Rig = nil,
+			R6 = nil,
+			Grips = {},
 			RigCheckedAt = -math.huge,
 			Info = nil,
 			Weight = 0,
@@ -732,25 +801,38 @@ local function getState(character: Model): CharState
 	return state :: CharState
 end
 
-local function getRig(state: CharState, character: Model, now: number): Rig?
+-- The character's R15 rig, or (when it has none) its R6 rig.
+local function getRig(state: CharState, character: Model, now: number): (Rig?, R6Rig?)
 	local rig = state.Rig
 	if rig and rigAlive(rig) then
-		return rig
+		return rig, nil
+	end
+	local r6 = state.R6
+	if r6 and r6.RightShoulder.Parent ~= nil and r6.Humanoid.Parent ~= nil then
+		return nil, r6
 	end
 	state.Rig = nil
+	state.R6 = nil
 	if now - state.RigCheckedAt < 1 then
-		return nil
+		return nil, nil
 	end
 	state.RigCheckedAt = now
 	state.Rig = resolveRig(character)
-	return state.Rig
+	state.R6 = if state.Rig then nil else resolveR6(character)
+	return state.Rig, state.R6
 end
 
 local function updateCharacter(character: Model, now: number, dt: number)
 	local state = getState(character)
 	local tool = heldShovel(character)
 	local found = if tool then getToolInfo(tool) else nil
-	local foundRig = if found then getRig(state, character, now) else nil
+	local foundRig, foundR6 = nil, nil
+	if found then
+		foundRig, foundR6 = getRig(state, character, now)
+	end
+	if found and found.TwoHanded then
+		foundR6 = nil -- R6 + full-size shovel: plain grip
+	end
 	if found ~= state.Info then
 		if state.Clump then
 			tossClump(state, character)
@@ -759,15 +841,15 @@ local function updateCharacter(character: Model, now: number, dt: number)
 		state.Scoop = nil
 		release(state)
 	end
-	if not found or not foundRig then
+	if not found or not (foundRig or foundR6) then
 		if state.Posed then
 			release(state)
 		end
 		return
 	end
 	local info = found :: ToolInfo
-	local rig = foundRig :: Rig
-	if rig.Humanoid.Health <= 0 or rig.Humanoid.Sit then
+	local humanoid = if foundRig then foundRig.Humanoid else (foundR6 :: R6Rig).Humanoid
+	if humanoid.Health <= 0 or humanoid.Sit then
 		if state.Posed then
 			release(state)
 		end
@@ -794,7 +876,10 @@ local function updateCharacter(character: Model, now: number, dt: number)
 	local pose: Pose = if scoop then sample(scoop.Keys, alpha) else rest
 
 	state.Pose = pose
-	if applyPose(state, rig, info, pose, weight) then
+	local posed = if foundRig
+		then applyPose(state, foundRig, info, pose, weight)
+		else applyPoseR6(state, foundR6 :: R6Rig, info, pose, weight)
+	if posed then
 		state.Posed = true
 	end
 
@@ -884,8 +969,11 @@ function ShovelPoseController.PlayScoop(character: Model?, cooldown: number?, co
 	local found = if tool then getToolInfo(tool) else nil
 	local now = os.clock()
 	local state = getState(char)
-	local rig = if found then getRig(state, char, now) else nil
-	if not found or not rig then
+	local rig, r6 = nil, nil
+	if found then
+		rig, r6 = getRig(state, char, now)
+	end
+	if not found or not (rig or (r6 and not found.TwoHanded)) then
 		legacySwing(char)
 		return false
 	end

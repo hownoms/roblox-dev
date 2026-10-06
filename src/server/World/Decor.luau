@@ -133,12 +133,19 @@ function Decor.Build(parent: Instance, rng: Random)
 	-- Boardwalk stalls (on the deck, away from the hub, facing the sand)
 	local deckZ = (Layout.BOARDWALK_Z0 + Layout.BOARDWALK_Z1) / 2 + 3
 	for _, x in { -130, -250, -350, 130, 250, 350 } do
-		prop("Boardwalk Stall", Vector3.new(x, Layout.DECK_TOP, deckZ), 0)
+		Util.Prop("Boardwalk Stall", parent, Vector3.new(x, Layout.DECK_TOP, deckZ), 0, nil, true)
 	end
 
 	-- Chests: next to the rebirth shrine and on the pier end platform
 	prop("Chest", Layout.REBIRTH + Vector3.new(9, 0, -4), Util.YawTowards(Layout.REBIRTH, hub))
-	prop("Chest", Vector3.new(-9, S + 1, Layout.PIER_Z1 - Layout.PIER_END_DEPTH + 4), 0)
+	Util.Prop(
+		"Chest",
+		parent,
+		Vector3.new(-9, Layout.DECK_TOP, Layout.PIER_Z1 - Layout.PIER_END_DEPTH + 4),
+		0,
+		nil,
+		true
+	)
 end
 
 return Decor

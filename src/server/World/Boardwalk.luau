@@ -44,6 +44,7 @@ local function lamp(parent: Instance, ground: Vector3)
 end
 
 local function buildPromenade(parent: Instance)
+	local S = Layout.DECK_TOP - 1 -- deck base: everything below is built relative to it
 	local m = Util.Model("Promenade", parent)
 	local z0, z1 = Layout.BOARDWALK_Z0, Layout.BOARDWALK_Z1
 	local zc, depth = (z0 + z1) / 2, z1 - z0
@@ -160,10 +161,11 @@ local function buildTitle(parent: Instance)
 end
 
 local function buildPier(parent: Instance)
+	local S = Layout.DECK_TOP - 1 -- deck base (same height as the promenade)
 	local m = Util.Model("Pier", parent)
 	local hw = Layout.PIER_HALF_W
 	local z0, z1 = Layout.PIER_Z0, Layout.PIER_Z1
-	local deckY = S + 0.5 -- top at S + 1
+	local deckY = S + 0.5 -- top at S + 1 = DECK_TOP
 	-- Deck segments
 	local z = z0
 	local i = 0
