@@ -139,6 +139,17 @@ export type PetDef = {
 	Multiplier: number, -- sand multiplier (additive with other pets, see Config.PetMultiplier)
 	Exclusive: boolean, -- not in any egg (daily reward / code / event)
 	Look: PetLook,
+	-- v2.1: digging companions (vehicles from Construction Crates, some creatures).
+	Dig: PetDigDef?,
+	Rideable: boolean?, -- v2.1: the player can ride it (see Services/RideService)
+	VehicleKind: string?, -- v2.1: Models/Diggers builder kind for vehicle pets (e.g. "Excavator")
+}
+
+export type PetDigDef = {
+	Power: number, -- digs layers with Hardness <= Power
+	Interval: number, -- seconds between digs
+	Radius: number, -- same scale as shovel Radius
+	SandMultiplier: number, -- replaces the shovel factor for this pet's digs
 }
 
 export type PetInstance = {
@@ -168,6 +179,7 @@ export type EggDef = {
 	UnlockLayer: number, -- index into Config.Layers; requires MaxDepth >= that layer's DepthStart
 	Pets: { EggEntry },
 	Look: EggLook,
+	Kind: ("Egg" | "Crate")?, -- v2.1: Construction Crates hatch vehicle pets; default "Egg"
 }
 
 -- Treasure ---------------------------------------------------------------------------------
@@ -504,7 +516,7 @@ export type PlayerData = {
 
 -- v2 (Beach): DigService.DigAt(player, position, opts). Shovel/Auto digs use the equipped
 -- shovel's stats; Digger digs pass their own.
-export type DigSource = "Shovel" | "Digger" | "Auto"
+export type DigSource = "Shovel" | "Digger" | "Auto" | "Pet" | "Ride"
 
 export type DigOptions = {
 	Power: number, -- compared against LayerDef.Hardness
