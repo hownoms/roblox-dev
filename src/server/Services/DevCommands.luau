@@ -23,6 +23,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
 local BeachService = require(script.Parent.BeachService)
+local PetService = require(script.Parent.PetService)
 local ShopService = require(script.Parent.ShopService)
 local World = require(script.Parent.Parent.World)
 
@@ -114,6 +115,16 @@ handlers["/wipe"] = function(player)
 	Net.Notify(player, "Success", "[Dev] Save wiped. Rejoin to replay the tutorial.")
 end
 
+handlers["/pet"] = function(player, args)
+	local id = args[1] or "mega_excavator"
+	if not Config.GetPet(id) then
+		Net.Notify(player, "Error", "[Dev] Unknown pet id: " .. id)
+		return
+	end
+	PetService.GrantPet(player, id, true)
+	Net.Notify(player, "Success", "[Dev] Gave pet " .. id)
+end
+
 handlers["/surface"] = function(player)
 	BeachService.TeleportToSurface(player)
 end
@@ -140,7 +151,7 @@ function DevCommands.Start()
 			task.spawn(handler, player, args) -- errors print to Output with a stack trace
 		end)
 	end
-	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface /tide")
+	print("[DevCommands] Studio dev commands ready: /coins /max /dig /rebirths /wipe /surface /tide /pet /tide")
 end
 
 return DevCommands

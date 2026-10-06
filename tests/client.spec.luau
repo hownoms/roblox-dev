@@ -468,9 +468,11 @@ do
 	local s0 = #Mock.Remote.ToServer
 	for _, d in window:GetDescendants() do
 		if d:IsA("GuiButton") and d:IsDescendantOf(window:FindFirstChild("Detail", true)) then
-			local label = d:FindFirstChildWhichIsA("TextLabel", true)
-			if label and string.find(label.Text, "Open 1", 1, true) then
-				Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+			for _, label in d:GetDescendants() do
+				if label:IsA("TextLabel") and string.find(label.Text, "Open 1", 1, true) then
+					Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+					break
+				end
 			end
 		end
 	end
@@ -1044,6 +1046,12 @@ do
 	-- drive forward (towards the sea): the target moves, stays on the surface and in the area
 	local ap = vehicle.PrimaryPart.RideAlignPosition
 	local ao = vehicle.PrimaryPart.RideAlignOrientation
+	-- stand-in for physics: the assembly follows its constraint targets
+	local follow = Mock.Service("RunService").Heartbeat:Connect(function()
+		if vehicle.Parent then
+			vehicle:PivotTo(CFrame.new(ap.Position) * ao.CFrame.Rotation)
+		end
+	end)
 	Mock.AllowRestricted = { MoveDirection = true }
 	humanoid.MoveDirection = Vector3.new(0, 0, -1)
 	Mock.Advance(1)
@@ -1057,6 +1065,7 @@ do
 	check(ao.CFrame.LookVector:Dot(Vector3.new(0, 0, -1)) < 0.99, "steering turns the vehicle")
 	humanoid.MoveDirection = Vector3.zero
 	Mock.AllowRestricted = nil
+	follow:Disconnect()
 
 	-- RideDug: bucket scoop + burst on every client
 	Mock.FireClientEvent("RideDug", player, start.Position + Vector3.new(0, 0, -11), true, 1)
