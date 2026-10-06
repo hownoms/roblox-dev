@@ -237,10 +237,19 @@ pass also raised the towel fabric to stop it flickering against the sand (a sepa
 | Fountain, beach towels and other props still sunk into the sand | Their ground raycast runs in the same frame the terrain is written and can miss it, falling back to grid height | `Util.TerrainY`: a miss falls back to grid + 2 (the visible surface), the same offset that fixed egg pedestals |
 | Occasional red error "Parent property of UITextSizeConstraint is locked" | A label refit (deferred signal) ran after the label was destroyed and tried to re-parent its locked constraint | Refits stop once the label is destroyed, and the re-parent is guarded |
 
+## Playtest fixes, round 2
+
+| Problem seen in Studio | Cause | Fix |
+|---|---|---|
+| Spade still held out in front | The pose controller skipped **R6** avatars (blocky, one-piece arms), so they kept the default tool hold | R6 + hand tools: the arm swings about the shoulder using the same pose keys, and the RightGrip weld's C1 is re-aimed locally so the spade points forward/down from a lowered arm (restored on release). R6 + full shovels keep the plain grip |
+| Spawn pads ("towels") in the sand | The boardwalk deck and pier were built at grid + 1, under the visible sand (grid + 2) | `Layout.DECK_TOP` = grid + 3; the promenade and pier are built from it; `Ride.DeckTop` follows |
+| Rebirth shrine partly in the ground | Hub stations were built at grid height | Rebirth shrine, shops, sell stand, beach shop and leaderboards stand on `Util.TerrainY` (the visible sand); the sell pad offset drops back from 2.2 to 0.2 |
+| (regression) Boardwalk stalls floating | Round 1's prop lift also applied to props standing on the deck | `Util.Prop(..., onPart = true)` for deck/pier props |
+
 ---
 
 ## Standing rules (learned the hard way)
-1. **Ground placement:** raycast for the visible terrain surface. Never place things at grid height.
+1. **Ground placement:** raycast for the visible terrain surface. Never place things at grid height. Use `Util.TerrainY` (or `Layout.VISIBLE_SURFACE_OFFSET`); decks use `Layout.DECK_TOP`.
 2. **Untrusted clicks:** never trust a client position to be inside solid terrain; resolve it on the server.
 3. **Emoji in text:** never put emoji in `TextScaled` labels; use `AtlasIcon` or `Style.Icon`.
 4. **Sounds:** only built-ins we've verified load, plus owned audio.

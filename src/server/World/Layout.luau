@@ -45,7 +45,12 @@ Layout.TERRAIN_HALF_X = 520
 -- Boardwalk (inland edge of the dig zone; spawns stand on it)
 Layout.BOARDWALK_Z0 = -4 -- seaward edge
 Layout.BOARDWALK_Z1 = 12 -- inland edge
-Layout.DECK_TOP = S + 1
+-- Smooth terrain's visible surface sits ~2 studs above the 4-stud voxel grid that S is on
+-- (CHANGELOG: v1/v2 playtests and the v2.2 playtest). Decks and stations are lifted by it.
+Layout.VISIBLE_SURFACE_OFFSET = 2
+-- Deck top 1 stud above the VISIBLE sand. v2.2 playtest: at S + 1 the deck, the spawn pads and
+-- their rims were half under the sand.
+Layout.DECK_TOP = S + Layout.VISIBLE_SURFACE_OFFSET + 1
 
 -- Hub (north of the boardwalk)
 Layout.HUB_CENTER = Vector3.new(0, S, 50)

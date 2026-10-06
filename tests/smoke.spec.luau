@@ -144,6 +144,43 @@ do
 	end
 	check(towels > 0 and sunk == 0, "beach towels are placed (" .. towels .. ") and none are buried")
 end
+do
+	-- playtest 2: spawn pads / boardwalk and the rebirth shrine steps were under the visible sand
+	-- (smooth terrain shows the sand ~2 studs above the voxel grid at SURFACE_Y).
+	local visible = Config.SURFACE_Y + 2
+	local map = workspace:FindFirstChild("Map")
+	local function lowest(root: Instance?, name: string): number
+		local y = math.huge
+		for _, d in if root then root:GetDescendants() else {} do
+			if d:IsA("BasePart") and d.Name == name then
+				y = math.min(y, d.Position.Y - d.Size.Y / 2)
+			end
+		end
+		return y
+	end
+	local deckTop = -math.huge
+	for _, d in if map then map:GetDescendants() else {} do
+		if d:IsA("BasePart") and d.Name == "Deck" then
+			deckTop = math.max(deckTop, d.Position.Y + d.Size.Y / 2)
+		end
+	end
+	check(deckTop >= visible + 0.9, "boardwalk deck sits above the visible sand (" .. deckTop - visible .. ")")
+	local pad = Mock.Tagged("SpawnLocation")[1]
+	check(pad ~= nil and pad.Position.Y - pad.Size.Y / 2 >= deckTop - 0.01, "spawn pad stands on the deck")
+	local step = lowest(map and map:FindFirstChild("RebirthShrine", true), "Step1")
+	check(step >= visible - 0.1, "rebirth shrine steps sit on the visible sand (" .. step - visible .. ")")
+	local sell = lowest(map and map:FindFirstChild("SellStand", true), "Counter")
+	check(sell >= visible - 0.1, "sell counter sits on the visible sand (" .. sell - visible .. ")")
+	local stallBottom = math.huge
+	local decor = map and map:FindFirstChild("Decor")
+	for _, m in if decor then decor:GetChildren() else {} do
+		if m:IsA("Model") and (m.Name == "BoardwalkStall" or m.Name == "Boardwalk Stall") then
+			local cf, size = m:GetBoundingBox()
+			stallBottom = math.min(stallBottom, cf.Position.Y - size.Y / 2)
+		end
+	end
+	check(math.abs(stallBottom - deckTop) < 0.05, "boardwalk stalls stand on the deck (" .. stallBottom - deckTop .. ")")
+end
 check(#Mock.Tagged("Garage") == 0, "the Garage is gone (v2.1: vehicles are pets from crates)")
 for t, action in { WaterFountain = "Drink", CrateShop = "Open", BeachShop = "Shop" } do
 	local part = Mock.Tagged(t)[1]

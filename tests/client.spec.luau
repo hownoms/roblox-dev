@@ -1265,7 +1265,70 @@ do
 	makeTool(full.Id).Parent = other.Character
 	Mock.Advance(1.5)
 	check(Pose.PlayScoop(other.Character) == false, "R6 rig: no procedural scoop")
-	check(not Pose.GetDebug(other.Character) or not Pose.GetDebug(other.Character).Posed, "R6 rig is not posed")
+	check(not Pose.GetDebug(other.Character) or not Pose.GetDebug(other.Character).Posed, "R6 rig + full shovel keeps the plain grip")
+
+	-- R6 + hand spade (playtest 2: the spade still stuck out on a blocky R6 avatar). The arm hangs
+	-- low and the grip weld is re-aimed so the spade points forward / down, not backwards.
+	do
+		local r6Char = Mock.SpawnCharacter(other, c + Vector3.new(6, 3, 6))
+		r6Char:FindFirstChildOfClass("Humanoid").RigType = Enum.HumanoidRigType.R6
+		local function r6Part(name, size)
+			local p = r6Char:FindFirstChild(name) or Instance.new("Part")
+			p.Name = name
+			p.Size = size
+			p.Parent = r6Char
+			return p
+		end
+		local torso = r6Part("Torso", Vector3.new(2, 2, 1))
+		local arm = r6Part("Right Arm", Vector3.new(1, 2, 1))
+		local shoulder = Instance.new("Motor6D")
+		shoulder.Name = "Right Shoulder"
+		shoulder.Part0 = torso
+		shoulder.Part1 = arm
+		shoulder.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		shoulder.C1 = CFrame.new(-0.5, 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		shoulder.Parent = torso
+		local spade6 = makeTool(hand.Id)
+		spade6.Parent = r6Char
+		local gripWeld = Instance.new("Weld")
+		gripWeld.Name = "RightGrip"
+		gripWeld.Part0 = arm
+		gripWeld.Part1 = spade6.Handle
+		gripWeld.C0 = CFrame.new(0, -1, 0) * CFrame.Angles(-math.pi / 2, 0, 0)
+		gripWeld.C1 = spade6.Grip
+		gripWeld.Parent = arm
+		local function r6Report()
+			local armCF = shoulder.C0 * shoulder.Transform * shoulder.C1:Inverse()
+			local palm = armCF * gripWeld.C0
+			local handle = palm * gripWeld.C1:Inverse()
+			local h = spade6.Handle
+			return {
+				Palm = palm.Position,
+				Shaft = handle:VectorToWorldSpace(h:GetAttribute("ShaftAxis")).Unit,
+				Blade = handle * h:GetAttribute("BladePoint"),
+				Grip = (handle * spade6.Grip.Position - palm.Position).Magnitude,
+			}
+		end
+		Mock.Advance(1.5)
+		local d6 = Pose.GetDebug(r6Char)
+		check(d6 ~= nil and d6.Posed and not d6.TwoHanded, "R6 hand spade is posed")
+		local r = r6Report()
+		check(r.Palm.Y < shoulder.C0.Position.Y - 1.3, "R6 spade arm hangs low (" .. r.Palm.Y .. ")")
+		check(r.Shaft.Z < -0.5 and r.Shaft.Y < 0, "R6 spade points forward and down (" .. tostring(r.Shaft) .. ")")
+		check(r.Blade.Z < r.Palm.Z - 0.3, "R6 spade blade is in front of the hand")
+		check(r.Grip < 1e-3, "R6 spade stays in the fist")
+		local restY = r.Palm.Y
+		check(Pose.PlayScoop(r6Char) == true, "R6 hand spade plays the procedural scoop")
+		local high = -math.huge
+		for _ = 1, 30 do
+			Mock.Advance(1 / 30)
+			high = math.max(high, r6Report().Palm.Y)
+		end
+		check(high > restY + 0.5, "R6 scoop lifts the spade up (" .. high - restY .. ")")
+		spade6.Parent = nil
+		Mock.Advance(0.2)
+		check(shoulder.Transform == CFrame.identity and gripWeld.C1 == spade6.Grip, "putting the R6 spade away restores the arm and grip")
+	end
 
 	-- unequip resets the local rig
 	tool.Parent = player:FindFirstChildOfClass("Backpack")

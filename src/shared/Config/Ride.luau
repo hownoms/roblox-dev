@@ -24,10 +24,10 @@ local Ride = {
 	EdgeMargin = 7,
 	InlandMaxZ = 4, -- boardwalk deck is z -4..12; the vehicle's back stays on the deck
 	SpawnMaxDistance = 40, -- the player must be this close to the ride area to call the vehicle
-	-- Ground (mirrors World/Layout: BOARDWALK_Z0 = -4, DECK_TOP = SURFACE_Y + 1). On the sand the
+	-- Ground (mirrors World/Layout: BOARDWALK_Z0 = -4, DECK_TOP = SURFACE_Y + 3). On the sand the
 	-- tracks follow the terrain (raycast) but never sink below SURFACE_Y: holes are bridged.
 	DeckSeaEdgeZ = -4,
-	DeckTop = 1, -- above Config.SURFACE_Y
+	DeckTop = 3, -- above Config.SURFACE_Y (visible sand + 1)
 	TrackSamples = { -- model-space (x, z) points under the tracks sampled for the ground height
 		Vector2.new(-3.5, -5.5),
 		Vector2.new(3.5, -5.5),
