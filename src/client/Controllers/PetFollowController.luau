@@ -55,6 +55,7 @@ local NEAR_HEIGHT = 6 -- ground this far above / below the feet counts as "not r
 local NEAR_SCALE = 0.4 -- vehicle slot offset scale when tucked in close
 local GROUND_REFRESH = 0.2
 local SNAP_DISTANCE = 60 -- further than this from its target: snap (respawn / long teleport)
+local MAX_SPEED = 28 -- studs / second: pets drive / walk, they never jump across the beach
 
 local PARK_DISTANCE = 2.4 -- the pet parks this far beyond its dig point (away from the owner)
 local APPROACH_MAX = 1.6 -- seconds to drive to the spot before digging anyway
@@ -487,7 +488,13 @@ local function update(dt: number)
 			if not current or ((current :: CFrame).Position - target).Magnitude > SNAP_DISTANCE then
 				position = target
 			else
-				position = (current :: CFrame).Position:Lerp(target, 1 - math.exp(-dt * speed))
+				local from = (current :: CFrame).Position
+				position = from:Lerp(target, 1 - math.exp(-dt * speed))
+				local stepVec = position - from
+				local maxStep = MAX_SPEED * dt
+				if stepVec.Magnitude > maxStep then
+					position = from + stepVec.Unit * maxStep
+				end
 			end
 			local moved = if current
 				then (position - (current :: CFrame).Position) * Vector3.new(1, 0, 1)

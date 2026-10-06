@@ -197,10 +197,21 @@ check(#Mock.Prompts == 0, "no MarketplaceService prompt for unconfigured ids (" 
 section("hud polish")
 do
 	local HUD = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HUD"])
-	local menuNames = { "Shop", "Beach", "Garage", "Eggs", "Pets", "Index", "Quests", "Daily", "Rebirth", "Store", "Settings" }
-	local menuPanels = { Beach = "BeachShop", Garage = "Garage" }
+	local menuNames = { "Shop", "Beach", "Eggs", "Pets", "Index", "Quests", "Daily", "Rebirth", "Store", "Settings" }
+	local menuPanels = { Beach = "BeachShop" }
 	for _, name in menuNames do
 		check(HUD.Buttons[name] ~= nil, "HUD menu button " .. name)
+	end
+	check(HUD.Buttons.Garage == nil, "no Garage menu button (v2.1)")
+	do
+		local menuFrame = playerGui:FindFirstChild("Dig_HUD"):FindFirstChild("Canvas"):FindFirstChild("Menu")
+		local buttons = 0
+		for _, child in menuFrame:GetChildren() do
+			if child:IsA("GuiObject") then
+				buttons += 1
+			end
+		end
+		check(buttons == 10, "HUD menu has 10 buttons (" .. buttons .. ")")
 	end
 	for buttonName, panelName in menuPanels do
 		local button = HUD.Buttons[buttonName]
@@ -412,115 +423,186 @@ end
 Panel.CloseAll()
 Mock.Advance(30)
 
--- Diggers: Garage panel, followers, dig animation, Garage station (Diggers agent) -----------------
-section("diggers")
+-- Companions (v2.1): crates in the egg panel, dig badges, digging pets, crate yard prompt ------------
+section("companions")
 do
-	local DiggerController =
-		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/DiggerController"])
-	local first, second = Config.Diggers[1], Config.Diggers[2]
+	local PetFollowController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/PetFollowController"])
+	local HatchAnimation = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/HatchAnimation"])
+	local e0 = #Mock.Errors
+	check(Panel.Get("Garage") == nil, "Garage panel is gone")
+	local crate, topCrate
+	for _, egg in Config.Eggs do
+		if egg.Kind == "Crate" then
+			crate = crate or egg
+			topCrate = egg
+		end
+	end
+	Mock.FireClientEvent("DataChanged", { Coins = 1e12, MaxDepth = Config.TOTAL_DEPTH })
+	Mock.Advance(0.5)
+
+	-- Egg panel: crates are listed, drawn as crates, with dig stats in the odds
 	Panel.CloseAll()
 	Mock.Advance(0.3)
-	check(Panel.Get("Garage") ~= nil, "panel registered: Garage")
-	local e0 = #Mock.Errors
-	Panel.Open("Garage")
-	Mock.Advance(0.6)
-	check(#Mock.Errors == e0 and Panel.Current() == "Garage", "Garage panel opens")
-	local window = Panel.Get("Garage").Window
-	local scroller = window:FindFirstChild("Diggers", true)
-	local cardCount, viewports = 0, 0
-	if check(scroller ~= nil, "Garage has a digger list") then
-		for _, child in scroller:GetChildren() do
-			if Config.GetDigger(child.Name) then
-				cardCount += 1
-				local vp = child:FindFirstChildWhichIsA("ViewportFrame", true)
-				if vp and vp:FindFirstChildWhichIsA("Model") and vp.CurrentCamera then
-					viewports += 1
-				end
+	Panel.Open("Eggs", { EggId = topCrate.Id })
+	Mock.Advance(1)
+	local window = Panel.Get("Eggs").Window
+	check(Panel.Current() == "Eggs" and #Mock.Errors == e0, "egg panel opens on a crate")
+	local kind = window:FindFirstChild("Kind", true)
+	check(kind ~= nil and string.find(kind.Text, "Construction Crate", 1, true) ~= nil, "crate detail says Construction Crate")
+	local digRows, rideRow = 0, false
+	for _, d in window:GetDescendants() do
+		if d:IsA("TextLabel") and d.Name == "Dig" and string.find(d.Text, "digs", 1, true) then
+			digRows += 1
+			if string.find(d.Text, "Rideable", 1, true) then
+				rideRow = true
 			end
 		end
 	end
-	check(cardCount == #Config.Diggers, "one Garage card per digger (" .. cardCount .. ")")
-	check(viewports == #Config.Diggers, "every card has a framed ViewportFrame preview (" .. viewports .. ")")
-
-	-- owned diggers: equip / upgrade / buy buttons fire the remotes
-	Mock.FireClientEvent("DataChanged", {
-		Coins = 1e9,
-		Diggers = { [first.Id] = { Level = 2, Equipped = true }, [second.Id] = { Level = 1, Equipped = false } },
-	})
-	Mock.Advance(0.5)
+	check(digRows == #topCrate.Pets, "every crate odds row shows dig stats (" .. digRows .. ")")
+	check(rideRow, "the rideable Mythic is marked in the odds")
+	local view = window:FindFirstChild("Detail", true)
+	local vp = view and view:FindFirstChildWhichIsA("ViewportFrame", true)
+	local crateModel = vp and vp:FindFirstChildWhichIsA("Model")
+	check(crateModel ~= nil and crateModel:GetAttribute("Crate") == true and crateModel:FindFirstChild("Lid") ~= nil, "crate art (with a lid) in the preview")
 	local s0 = #Mock.Remote.ToServer
 	for _, d in window:GetDescendants() do
-		if d:IsA("GuiButton") then
-			Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
-			Mock.Advance(0.05)
+		if d:IsA("GuiButton") and d:IsDescendantOf(window:FindFirstChild("Detail", true)) then
+			local label = d:FindFirstChildWhichIsA("TextLabel", true)
+			if label and string.find(label.Text, "Open 1", 1, true) then
+				Mock.FireEvent(d, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+			end
 		end
 	end
 	Mock.Advance(0.5)
-	check(#sent("UpgradeDigger", s0) >= 2, "Garage upgrade buttons send UpgradeDigger")
-	check(#sent("UnequipDigger", s0) >= 1, "Garage unequip button sends UnequipDigger")
-	check(#sent("BuyDigger", s0) >= 1, "Garage buy buttons send BuyDigger")
-	check(#Mock.Errors == e0, "Garage buttons click without errors")
+	local hatches = sent("HatchEgg", s0)
+	check(#hatches >= 1 and hatches[1][1] == topCrate.Id, "Open 1 sends HatchEgg(crateId)")
 	Panel.CloseAll()
 	Mock.Advance(0.5)
 
-	-- followers from the EquippedDiggers attribute
-	player:SetAttribute("EquippedDiggers", first.Id .. ":2," .. second.Id)
+	-- Crate hatch animation: lid pops off, no errors
+	HatchAnimation.SetPendingEgg(crate.Id)
+	HatchAnimation.Play({ crate.Pets[1].PetId })
+	Mock.Advance(5)
+	check(#Mock.Errors == e0, "crate opening animation runs without errors")
+
+	-- Pets panel: dig + ride badges and dig stats
+	local vuid, muid = "{00000002-0000-4000-8000-000000000002}", "{00000003-0000-4000-8000-000000000003}"
+	Mock.FireClientEvent("DataChanged", {
+		Pets = {
+			[vuid] = { Id = "mini_excavator", Equipped = true },
+			[muid] = { Id = "mega_excavator", Equipped = false },
+		},
+	})
+	Mock.Advance(0.5)
+	Panel.Open("Pets", {})
 	Mock.Advance(1)
-	local visuals = DiggerController.GetVisuals(player)
-	check(#visuals == 2, "two digger followers rendered (" .. #visuals .. ")")
+	local petsWindow = Panel.Get("Pets").Window
+	local digBadges, rideBadges = 0, 0
+	for _, d in petsWindow:GetDescendants() do
+		if d:IsA("TextLabel") and d.Name == "Badges" then
+			if string.find(d.Text, "⛏", 1, true) then
+				digBadges += 1
+			end
+			if string.find(d.Text, "🚜", 1, true) then
+				rideBadges += 1
+			end
+		end
+	end
+	check(digBadges == 2 and rideBadges == 1, "⛏ badge on digging pets, 🚜 on rideable (" .. digBadges .. "/" .. rideBadges .. ")")
+	local digInfo = petsWindow:FindFirstChild("DigInfo", true)
+	check(digInfo ~= nil and string.find(digInfo.Text, "digs to", 1, true) ~= nil, "selected digging pet shows its dig stats")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+
+	-- Digging pets: vehicle follows on the ground, drives (no teleport) to its spot, digs, parks
 	local root = player.Character.HumanoidRootPart
-	if visuals[1] then
-		check(visuals[1].Level == 2 and visuals[2].Level == 1, "levels parsed from the attribute")
-		local model = visuals[1].Model
-		check(model.Parent ~= nil and model.Parent.Name == "ClientDiggers", "digger model parented in ClientDiggers")
+	player.Character:PivotTo(CFrame.new(zone.CFrame.Position + Vector3.new(-40, 3, 0)))
+	Mock.Advance(0.5)
+	player:SetAttribute("EquippedPets", "mini_excavator,sandy_crab")
+	Mock.Advance(4)
+	local visuals = PetFollowController.GetVisuals(player)
+	check(#visuals == 2, "two pets rendered (" .. #visuals .. ")")
+	local vehicle
+	for _, v in visuals do
+		if v.Vehicle then
+			vehicle = v
+		end
+	end
+	if check(vehicle ~= nil and vehicle.Id == "mini_excavator", "vehicle pet flagged as a vehicle") then
+		local model = vehicle.Model
+		check(model.Parent ~= nil and model.Parent.Name == "ClientPets", "vehicle pet in ClientPets")
+		local size = model:GetExtentsSize()
+		check(math.max(size.X, size.Z) >= 2.5 and math.max(size.X, size.Z) <= 6, "vehicle at pet scale (" .. tostring(size) .. ")")
 		local offset = model:GetPivot().Position - root.Position
-		check(Vector3.new(offset.X, 0, offset.Z).Magnitude < 16, "digger follows its owner")
+		check(Vector3.new(offset.X, 0, offset.Z).Magnitude < 16, "vehicle follows its owner")
 		for _, part in model:GetDescendants() do
 			if part:IsA("BasePart") and (part.CanCollide or part.CanQuery) then
-				check(false, "digger parts never collide / block raycasts: " .. part.Name)
+				check(false, "pet parts never collide / block raycasts: " .. part.Name)
 				break
 			end
 		end
-		-- dig animation: drives to the dig point
-		local target = root.Position + Vector3.new(4, -3, 0)
-		Mock.FireClientEvent("DiggerDug", player, first.Id, target, 12)
-		Mock.Advance(0.6)
+		local target = root.Position + Vector3.new(9, -3, 0)
+		local before = model:GetPivot().Position
+		Mock.FireClientEvent("PetDug", player, vehicle.Slot, vehicle.Id, target, 12)
+		Mock.Advance(0.05)
+		local step = (model:GetPivot().Position - before).Magnitude
+		check(step < 3, string.format("no teleport: the vehicle drives (moved %.2f in one frame)", step))
+		Mock.Advance(1.8)
 		local p = model:GetPivot().Position
-		check(
-			(Vector3.new(p.X, target.Y, p.Z) - target).Magnitude < 6,
-			"digger drives to its dig point"
-		)
-		Mock.Advance(1.5)
-		check(#Mock.Errors == e0, "DiggerDug animation runs without errors")
+		check((Vector3.new(p.X, target.Y, p.Z) - target).Magnitude < 4.5, "vehicle drove to its dig spot")
+		local now = PetFollowController.GetVisuals(player)
+		local still
+		for _, v in now do
+			if v.Vehicle then
+				still = v
+			end
+		end
+		check(still ~= nil and (still.Digging or still.Parked), "vehicle digs / stays at its spot")
+		local ownerFlat = Vector3.new(root.Position.X, 0, root.Position.Z)
+		check((Vector3.new(p.X, 0, p.Z) - ownerFlat).Magnitude >= 5, "the vehicle parks away from the owner")
+		-- owner walks off: the pet follows again
+		player.Character:PivotTo(player.Character:GetPivot() + Vector3.new(-14, 0, 0))
+		Mock.Advance(2)
+		for _, v in PetFollowController.GetVisuals(player) do
+			if v.Vehicle then
+				check(not v.Parked and not v.Digging, "vehicle stops parking when the owner leaves")
+			end
+		end
+		check(#Mock.Errors == e0, "PetDug animation runs without errors")
 	end
-	Mock.FireClientEvent("DiggerDug", player, "unknown", root.Position, 1)
-	Mock.FireClientEvent("DiggerDug", "junk")
+	Mock.FireClientEvent("PetDug", player, 9, "unknown", root.Position, 1)
+	Mock.FireClientEvent("PetDug", "junk")
 	Mock.Advance(0.5)
-	player:SetAttribute("EquippedDiggers", "")
+	check(#Mock.Errors == e0, "bad PetDug payloads are ignored")
+	player:SetAttribute("EquippedPets", "")
 	Mock.Advance(0.5)
-	check(#DiggerController.GetVisuals(player) == 0, "followers removed when unequipped")
+	check(#PetFollowController.GetVisuals(player) == 0, "pets removed when unequipped")
 
-	-- Garage station prompt (World places a "Garage"-tagged part; make one if it isn't there yet)
-	local station = Mock.Tagged("Garage")[1]
-	if not station then
-		station = Mock.Env.Instance.new("Part")
-		station.Name = "GarageStation"
+	-- Crate yard pallet prompt opens the egg panel on that crate
+	local pallet = Mock.Tagged("CrateShop")[1]
+	if not pallet then
+		pallet = Mock.Env.Instance.new("Part")
+		pallet.Name = "CratePallet"
+		pallet:SetAttribute("EggId", crate.Id)
 		local prompt = Mock.Env.Instance.new("ProximityPrompt")
-		prompt.Parent = station
-		station.Parent = Mock.Service("Workspace")
-		Mock.Service("CollectionService"):AddTag(station, "Garage")
+		prompt:SetAttribute("EggId", crate.Id)
+		prompt.Parent = pallet
+		pallet.Parent = Mock.Service("Workspace")
+		Mock.Service("CollectionService"):AddTag(pallet, "CrateShop")
 		Mock.Advance(0.2)
 	end
-	local prompt = station:FindFirstChildWhichIsA("ProximityPrompt", true)
-	if check(prompt ~= nil, "Garage station has a ProximityPrompt") then
+	local prompt = pallet:FindFirstChildWhichIsA("ProximityPrompt", true)
+	if check(prompt ~= nil, "crate pallet has a ProximityPrompt") then
 		Panel.CloseAll()
 		Mock.Advance(0.3)
 		Mock.FireEvent(prompt, "Triggered", player)
 		Mock.Advance(0.5)
-		check(Panel.Current() == "Garage", "Garage prompt opens the Garage panel")
+		check(Panel.Current() == "Eggs", "crate pallet prompt opens the egg panel")
 	end
 	Panel.CloseAll()
 	Mock.Advance(0.5)
+	check(#Mock.Errors == e0, "companions client section ran without errors")
 end
 
 -- Survival: heat HUD, quick-slots, Beach Shop panel, shade placement, prompts (Survival agent) --------
@@ -860,6 +942,147 @@ do
 	check(#Mock.Errors == e0, "shovel pose without errors")
 	Mock.RemovePlayer(other)
 	Mock.Advance(0.5)
+end
+
+-- Ride-on excavator (Ride agent): Ride button, toggle, driving, ride digs ---------------------------
+section("ride")
+do
+	local e0 = #Mock.Errors
+	local RideController =
+		Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/RideController"])
+	local RideButton = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/RideButton"])
+	local DigController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/DigController"])
+	local Models = Mock.Require(byPath["ReplicatedStorage/Shared/Models"])
+	local Panel2 = Panel
+	Panel2.CloseAll()
+	Mock.Advance(0.3)
+	local gui = playerGui:FindFirstChild("Dig_Ride")
+	check(gui ~= nil and gui:IsA("ScreenGui"), "Ride ScreenGui Dig_Ride")
+	local ride = RideButton.Ride
+	check(ride ~= nil and ride.Holder.Name == "RideButton", "Ride button built")
+
+	-- hidden without a rideable pet
+	Mock.FireClientEvent("DataChanged", { Pets = {} })
+	Mock.Advance(0.5)
+	check(ride.Holder.Visible == false, "Ride button hidden without a rideable pet")
+	local s0 = #Mock.Remote.ToServer
+	Mock.Actions.RideToggle.Fn("RideToggle", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.V))
+	Mock.Advance(0.2)
+	check(#sent("ToggleRide", s0) == 0, "V does nothing without a rideable pet")
+
+	local def
+	for _, p in Config.Pets do
+		if p.Rideable == true then
+			def = p
+			break
+		end
+	end
+	local injected = false
+	if not def then
+		def = {
+			Id = "test_ride_excavator",
+			Name = "Test Excavator",
+			Rarity = "Mythic",
+			Multiplier = 1,
+			Exclusive = true,
+			VehicleKind = "Excavator",
+			Rideable = true,
+			Dig = { Power = 1e6, Interval = 0.8, Radius = 6, SandMultiplier = 50 },
+			Look = {
+				BodyColor = Mock.Env.Color3.fromRGB(255, 190, 20),
+				AccentColor = Mock.Env.Color3.fromRGB(255, 90, 160),
+				Shape = "Blob",
+				Size = 1,
+				Glow = false,
+			},
+		}
+		table.insert(Config.Pets, def)
+		injected = true
+	end
+	Mock.FireClientEvent("DataChanged", { Pets = { r1 = { Id = def.Id, Equipped = false } } })
+	Mock.Advance(0.5)
+	check(ride.Holder.Visible == true, "Ride button appears with a rideable pet")
+	check(ride.Label.Text == "Ride", "Ride button says Ride")
+	s0 = #Mock.Remote.ToServer
+	Mock.FireEvent(ride.Face, "Activated", Mock.Input(Enum.UserInputType.MouseButton1), 1)
+	Mock.Advance(0.2)
+	check(#sent("ToggleRide", s0) == 1, "Ride button fires ToggleRide")
+	Mock.Actions.RideToggle.Fn("RideToggle", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.V))
+	Mock.Advance(0.2)
+	check(#sent("ToggleRide", s0) == 2, "V fires ToggleRide")
+
+	-- the "server" spawns the vehicle and seats us
+	local workspace = Mock.Service("Workspace")
+	local folder = Mock.Env.Instance.new("Folder")
+	folder.Name = "Rides"
+	folder.Parent = workspace
+	local vehicle = Models.RideVehicle(def.Id)
+	vehicle.Name = "Ride_" .. player.UserId
+	vehicle:SetAttribute("OwnerUserId", player.UserId)
+	vehicle:SetAttribute("DigInterval", 0.5)
+	local start = CFrame.new(40, Config.SURFACE_Y + Config.Ride.HoverHeight, zone.CFrame.Position.Z)
+	vehicle:PivotTo(start)
+	vehicle.Parent = folder
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	local digWasEnabled = DigController.Enabled
+	vehicle.RideSeat:Sit(humanoid)
+	Mock.Advance(0.3)
+	check(RideController.Riding == true, "riding detected from the seat")
+	check(ride.Label.Text == "Exit", "button turns into Exit while riding")
+	check(DigController.Enabled == false, "shovel digging paused while riding")
+
+	-- hold dig -> RideDig at the vehicle's DigInterval
+	s0 = #Mock.Remote.ToServer
+	RideController.SetDigHeld(true)
+	Mock.Advance(1.2)
+	RideController.SetDigHeld(false)
+	local digs = #sent("RideDig", s0)
+	check(digs >= 2 and digs <= 3, "holding Dig sends RideDig every DigInterval (" .. digs .. ")")
+	Mock.Advance(1)
+	check(#sent("RideDig", s0) == digs, "releasing Dig stops RideDig")
+
+	-- drive forward (towards the sea): the target moves, stays on the surface and in the area
+	local ap = vehicle.PrimaryPart.RideAlignPosition
+	local ao = vehicle.PrimaryPart.RideAlignOrientation
+	Mock.AllowRestricted = { MoveDirection = true }
+	humanoid.MoveDirection = Vector3.new(0, 0, -1)
+	Mock.Advance(1)
+	check(ap.Position.Z < start.Position.Z - 4, "driving forward moves the AlignPosition target (" .. tostring(ap.Position) .. ")")
+	check(math.abs(ap.Position.Y - start.Position.Y) < 0.6, "target stays on the surface")
+	Mock.Advance(6)
+	local minZ = zone.CFrame.Position.Z - zone.Size.Z / 2 + Config.Ride.EdgeMargin
+	check(ap.Position.Z >= minZ - 0.01 and ap.Position.Z < minZ + 1, "target clamped to the ride area (" .. ap.Position.Z .. ")")
+	humanoid.MoveDirection = Vector3.new(1, 0, 0)
+	Mock.Advance(0.5)
+	check(ao.CFrame.LookVector:Dot(Vector3.new(0, 0, -1)) < 0.99, "steering turns the vehicle")
+	humanoid.MoveDirection = Vector3.zero
+	Mock.AllowRestricted = nil
+
+	-- RideDug: bucket scoop + burst on every client
+	Mock.FireClientEvent("RideDug", player, start.Position + Vector3.new(0, 0, -11), true, 1)
+	Mock.Advance(0.4)
+	local boom = vehicle:FindFirstChild("BoomMotor", true)
+	check(boom ~= nil and boom.Transform ~= CFrame.identity, "bucket scoop animates the arm")
+	Mock.Advance(1.2)
+	Mock.FireClientEvent("RideDug", "junk")
+	Mock.FireClientEvent("RideDug", player, start.Position, false, 99)
+	Mock.Advance(1.5)
+
+	-- jump out
+	Mock.LeaveSeat(humanoid)
+	Mock.Advance(0.3)
+	check(RideController.Riding == false, "leaving the seat stops riding")
+	check(ride.Label.Text == "Ride", "button back to Ride")
+	check(DigController.Enabled == digWasEnabled, "shovel digging restored")
+	vehicle:Destroy()
+	folder:Destroy()
+	Mock.FireClientEvent("DataChanged", { Pets = {} })
+	Mock.Advance(0.3)
+	check(ride.Holder.Visible == false, "Ride button hides when the pet is gone")
+	if injected then
+		table.remove(Config.Pets, table.find(Config.Pets, def))
+	end
+	check(#Mock.Errors == e0, "ride client flow without errors")
 end
 
 -- Report ------------------------------------------------------------------------------------------

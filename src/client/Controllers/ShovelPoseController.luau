@@ -34,11 +34,15 @@
 	     palm point H * Grip.Position lands on the target. The tool hangs off the hand through
 	     the RightGrip weld (Hand * GripC0 == Handle * Grip), so the hand must be
 	     Hand = H * Grip * GripC0:Inverse(), and the wrist target is Hand * RightWrist.C1.Position.
-	  3. 2-bone IK (law of cosines) from S to the wrist target gives the elbow point; the elbow
-	     bends towards the POLE direction. Each bone's CFrame maps its rest bone vector onto the
-	     solved bone and its local X (the R15 elbow hinge axis) onto the bend-plane normal
-	     (upper x fore), so the elbow bends like a hinge. If the target is out of reach the arm
-	     straightens and the hand (and shovel) slide back to the reachable wrist point.
+	  3. Arm IK, exact for the R15 hinge elbow: the shoulder joint sits at the torso edge, ~0.5
+	     stud off the arm's own axis, so a plain shoulder-elbow-wrist triangle is NOT the elbow's
+	     bend plane. Instead (solveArm): the elbow flexes about its joint X axis, so the end
+	     point is J * Rx(theta) * u (J = RightElbow.C0); the shoulder->end distance depends on
+	     theta only and gives theta in closed form (law of cosines in J's YZ plane, see
+	     armGeometry). Then the whole arm rotates about the shoulder joint so shoulder->end
+	     points at the target, twisted so the back of the upper arm (+Z, the elbow tip) faces
+	     the POLE direction. The elbow Transform is then exactly Rx(theta). Out of reach: the
+	     arm straightens and the hand (and shovel) slide back to the reachable wrist point.
 	  4. Left hand: the target is H * LeftHand (on the shaft). If the left arm can't reach it,
 	     the grip slides along the shaft towards the right hand (sphere/line intersection), so
 	     the fist never floats off the shaft on short-armed avatars. The forearm and hand are

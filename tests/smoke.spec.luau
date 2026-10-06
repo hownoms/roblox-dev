@@ -1465,6 +1465,7 @@ step("ride", function()
 	end
 	check(countToClient(rp, "DigResult", since) == 1, "ride dig sends a DigResult (+sand float text)")
 	-- rate limit: Dig.Interval
+	d.Sand = 0
 	local s1 = #Mock.Remote.ToClient
 	for _ = 1, 5 do
 		Mock.FireServer("RideDig", rp)
@@ -1474,7 +1475,7 @@ step("ride", function()
 	Mock.Advance(def.Dig.Interval)
 	Mock.FireServer("RideDig", rp)
 	Mock.Advance(0.2)
-	check(#rideDugSince(s1) == 1, "RideDig works again after the interval")
+	check(#rideDugSince(s1) == 1 and rideDugSince(s1)[1][3] == true, "RideDig works again after the interval")
 	-- capacity
 	local capacity = rp:GetAttribute("Capacity")
 	d.Sand = capacity
