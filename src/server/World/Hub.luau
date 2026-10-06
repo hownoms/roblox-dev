@@ -458,7 +458,7 @@ end
 
 local function buildFountain(parent: Instance)
 	local m = Util.Model("WaterFountain", parent)
-	local p = Vector3.new(Layout.FOUNTAIN.X, Util.SurfaceY(Layout.FOUNTAIN), Layout.FOUNTAIN.Z)
+	local p = Vector3.new(Layout.FOUNTAIN.X, Util.TerrainY(Layout.FOUNTAIN), Layout.FOUNTAIN.Z)
 	local water = rgb(70, 196, 240)
 	local basin = Util.Cylinder(m, "Basin", p + Vector3.new(0, 1, 0), 2, 16, MARBLE, Enum.Material.Marble)
 	Util.Tag(basin, "WaterFountain")
@@ -619,7 +619,7 @@ local function buildCrateYard(parent: Instance)
 	-- Traffic cones at the arc ends (decor)
 	for _, sx in { -1, 1 } do
 		local p = arcPoint(math.rad(sx * (CRATE_ARC_DEGREES / 2 + 16)), CRATE_ARC_RADIUS)
-		local y = Util.SurfaceY(p + Vector3.new(0, 2, 0))
+		local y = Util.TerrainY(p)
 		local coneBase = CFrame.new(p.X, y, p.Z)
 		lp(m, coneBase, "ConeBase", Vector3.new(2.4, 0.3, 2.4), Vector3.new(0, 0.15, 0), rgb(255, 120, 30), nil, true)
 		Util.Cylinder(m, "Cone", (coneBase * CFrame.new(0, 1.4, 0)).Position, 2.4, 1.4, rgb(255, 120, 30), nil, true)

@@ -125,6 +125,25 @@ for _, t in
 do
 	check(#Mock.Tagged(t) > 0, "map places tag " .. t)
 end
+do
+	-- playtest: fountain and towels sunk. Their raycast can miss terrain written in the same
+	-- frame; the fallback must still sit on the visible surface (grid + 2), not the grid.
+	local basin = Mock.Tagged("WaterFountain")[1]
+	local bottom = basin and basin.Position.Y - basin.Size.X / 2 -- cylinder: height is Size.X
+	check(bottom ~= nil and bottom >= Config.SURFACE_Y + 1.9, "fountain basin sits on the visible sand (" .. tostring(bottom) .. ")")
+	local towels, sunk = 0, 0
+	local decor = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Decor")
+	for _, m in if decor then decor:GetChildren() else {} do
+		if m:IsA("Model") and m.Name == "BeachTowel" then
+			towels += 1
+			local cf, size = m:GetBoundingBox()
+			if cf.Position.Y - size.Y / 2 < Config.SURFACE_Y - 8 then
+				sunk += 1 -- wet sand is on the slope; just catch "far below the beach"
+			end
+		end
+	end
+	check(towels > 0 and sunk == 0, "beach towels are placed (" .. towels .. ") and none are buried")
+end
 check(#Mock.Tagged("Garage") == 0, "the Garage is gone (v2.1: vehicles are pets from crates)")
 for t, action in { WaterFountain = "Drink", CrateShop = "Open", BeachShop = "Shop" } do
 	local part = Mock.Tagged(t)[1]

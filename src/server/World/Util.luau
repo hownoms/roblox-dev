@@ -265,6 +265,25 @@ function Util.SurfaceY(pos: Vector3, ignore: { Instance }?): number
 	return pos.Y
 end
 
+-- Height of the visible smooth-terrain surface at `pos` (pos.Y = a layout / voxel-grid height).
+-- v2.2 playtest: the fountain and beach towels were STILL sunk after the SurfaceY fix. The map
+-- is built in one go right after the terrain is written, and those raycasts can miss terrain
+-- written in the same frame, so SurfaceY fell back to the grid height. Here a miss falls back
+-- to the grid height + TERRAIN_VISIBLE_OFFSET instead (the same +2 that fixed egg pedestals).
+Util.TERRAIN_VISIBLE_OFFSET = 2
+local terrainParams = RaycastParams.new()
+terrainParams.FilterType = Enum.RaycastFilterType.Include
+terrainParams.IgnoreWater = true
+
+function Util.TerrainY(pos: Vector3): number
+	terrainParams.FilterDescendantsInstances = { workspace.Terrain }
+	local hit = workspace:Raycast(pos + Vector3.new(0, 6, 0), Vector3.new(0, -12, 0), terrainParams)
+	if hit and math.abs(hit.Position.Y - pos.Y) <= 6 then
+		return hit.Position.Y
+	end
+	return pos.Y + Util.TERRAIN_VISIBLE_OFFSET
+end
+
 function Util.Ground(model: Model, cf: CFrame)
 	local groundY = Util.SurfaceY(cf.Position, { model :: Instance })
 	cf = cf + Vector3.new(0, groundY - cf.Position.Y, 0)
@@ -282,7 +301,7 @@ local SMALL_PROPS: { [string]: boolean } = {
 	Surfboard = true,
 }
 
--- Models.Prop(name) placed on the ground at `pos` (Y = ground height), rotated `yawDeg`.
+-- Models.Prop(name) placed on the visible ground at `pos` (Y = layout grid height), rotated `yawDeg`.
 function Util.Prop(name: string, parent: Instance, pos: Vector3, yawDeg: number, scale: number?): Model?
 	local ok, result = pcall(Models.Prop, name)
 	if not ok or typeof(result) ~= "Instance" or not result:IsA("Model") then
@@ -296,7 +315,8 @@ function Util.Prop(name: string, parent: Instance, pos: Vector3, yawDeg: number,
 		end)
 	end
 	Util.Finish(model, SMALL_PROPS[name] == true)
-	Util.Ground(model, CFrame.new(pos) * CFrame.Angles(0, math.rad(yawDeg), 0))
+	local ground = Vector3.new(pos.X, Util.TerrainY(pos), pos.Z)
+	Util.Ground(model, CFrame.new(ground) * CFrame.Angles(0, math.rad(yawDeg), 0))
 	model.Parent = parent
 	return model
 end

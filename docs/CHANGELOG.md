@@ -125,6 +125,15 @@ Based on the owner's research on top Roblox simulators and tycoons. The plan:
   "Friends +X%" chip and the Invite button (Settings) make the friend bonus visible; invites give
   no reward because they can't be verified.
 
+## v2.2 playtest fixes
+
+| Problem seen in Studio | Cause | Fix |
+|---|---|---|
+| Clicking the crate yard showed eggs first, which was confusing | Crates and eggs shared one list in the Eggs panel | The panel has **Eggs / Crates** tabs. The crate yard opens the Crates tab ("Construction Crates", crates only); the menu opens the Eggs tab |
+| Hand spade scoop looked like digging *down* | At rest the arm was held out in front (default tool hold), so each scoop first dropped the arm | The spade arm now hangs at the side (IK-posed like the two-handed hold); the scoop swings forward into the sand and lifts up, without a raised wind-up |
+| Fountain, beach towels and other props still sunk into the sand | Their ground raycast runs in the same frame the terrain is written and can miss it, falling back to grid height | `Util.TerrainY`: a miss falls back to grid + 2 (the visible surface), the same offset that fixed egg pedestals |
+| Occasional red error "Parent property of UITextSizeConstraint is locked" | A label refit (deferred signal) ran after the label was destroyed and tried to re-parent its locked constraint | Refits stop once the label is destroyed, and the re-parent is guarded |
+
 ---
 
 ## Standing rules (learned the hard way)
