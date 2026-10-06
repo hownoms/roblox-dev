@@ -1330,6 +1330,39 @@ do
 		check(shoulder.Transform == CFrame.identity and gripWeld.C1 == spade6.Grip, "putting the R6 spade away restores the arm and grip")
 	end
 
+	-- Studio diagnostics (playtest: the spade kept the default hold and nothing said why)
+	do
+		local wasStudio = Mock.IsStudio
+		Mock.IsStudio = true
+		local p0, w0 = #Mock.Prints, #Mock.Warnings
+		local diag = Mock.AddPlayer(2003, "Diag")
+		local diagChar = Mock.SpawnCharacter(diag, c + Vector3.new(-6, 3, 6))
+		local diagRig = Mock.MakeR15(diagChar)
+		makeTool(hand.Id).Parent = diagChar
+		Mock.Advance(0.3)
+		local said = false
+		for i = p0 + 1, #Mock.Prints do
+			said = said or string.find(Mock.Prints[i], "[ShovelPose] Diag: posing one-handed (R15)", 1, true) ~= nil
+		end
+		check(said, "Studio Output says the spade is being posed")
+		-- a rig without an elbow joint: Output names what is missing
+		diagRig.RightElbow:Destroy()
+		Mock.Advance(1.5)
+		local missing = false
+		for i = w0 + 1, #Mock.Warnings do
+			missing = missing or string.find(Mock.Warnings[i], "missing RightElbow", 1, true) ~= nil
+		end
+		check(missing, "Studio Output names the missing joint")
+		for i = #Mock.Warnings, w0 + 1, -1 do -- expected diagnostics, not failures
+			if string.find(Mock.Warnings[i], "[ShovelPose] Diag:", 1, true) then
+				table.remove(Mock.Warnings, i)
+			end
+		end
+		Mock.RemovePlayer(diag)
+		Mock.IsStudio = wasStudio
+		Mock.Advance(0.2)
+	end
+
 	-- unequip resets the local rig
 	tool.Parent = player:FindFirstChildOfClass("Backpack")
 	Mock.Advance(0.2)

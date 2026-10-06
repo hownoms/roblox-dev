@@ -325,8 +325,13 @@ end
 
 -- Rig / tool lookup -------------------------------------------------------------------------------
 
-local function motor(parent: Instance?, name: string): Motor6D?
+-- The joint `name`, normally a child of `parent`; falls back to a search of the whole character
+-- (some avatar packages parent their joints differently).
+local function motor(character: Model, parent: Instance?, name: string): Motor6D?
 	local m = if parent then parent:FindFirstChild(name) else nil
+	if not (m and m:IsA("Motor6D")) then
+		m = character:FindFirstChild(name, true)
+	end
 	if m and m:IsA("Motor6D") and m.Part0 and m.Part1 then
 		return m
 	end
@@ -338,28 +343,51 @@ local function part(character: Model, name: string): BasePart?
 	return if p and p:IsA("BasePart") then p else nil
 end
 
-local function resolveRig(character: Model): Rig?
+-- The character's R15 rig, or nil plus what is missing (Studio diagnostics).
+local function resolveRig(character: Model): (Rig?, string?)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
-		return nil
+	if not humanoid then
+		return nil, "no Humanoid"
+	elseif humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		return nil, "rig is " .. humanoid.RigType.Name
 	end
 	local upper = part(character, "UpperTorso")
 	local rightHand = part(character, "RightHand")
 	local leftHand = part(character, "LeftHand")
-	local rs = motor(character:FindFirstChild("RightUpperArm"), "RightShoulder")
-	local re = motor(character:FindFirstChild("RightLowerArm"), "RightElbow")
-	local rw = motor(rightHand, "RightWrist")
-	local ls = motor(character:FindFirstChild("LeftUpperArm"), "LeftShoulder")
-	local le = motor(character:FindFirstChild("LeftLowerArm"), "LeftElbow")
-	local lw = motor(leftHand, "LeftWrist")
-	local waist = motor(upper, "Waist")
+	local rs = motor(character, character:FindFirstChild("RightUpperArm"), "RightShoulder")
+	local re = motor(character, character:FindFirstChild("RightLowerArm"), "RightElbow")
+	local rw = motor(character, rightHand, "RightWrist")
+	local ls = motor(character, character:FindFirstChild("LeftUpperArm"), "LeftShoulder")
+	local le = motor(character, character:FindFirstChild("LeftLowerArm"), "LeftElbow")
+	local lw = motor(character, leftHand, "LeftWrist")
+	local waist = motor(character, upper, "Waist")
 	if not (upper and rightHand and leftHand and rs and re and rw and ls and le and lw and waist) then
-		return nil
+		local missing = {}
+		local function need(name: string, found: Instance?)
+			if found == nil then
+				table.insert(missing, name)
+			end
+		end
+		need("UpperTorso", upper)
+		need("RightHand", rightHand)
+		need("LeftHand", leftHand)
+		need("RightShoulder", rs)
+		need("RightElbow", re)
+		need("RightWrist", rw)
+		need("LeftShoulder", ls)
+		need("LeftElbow", le)
+		need("LeftWrist", lw)
+		need("Waist", waist)
+		table.sort(missing)
+		return nil, "R15 rig is missing " .. table.concat(missing, ", ")
 	end
 	-- refine for the type checker (guarded above)
 	assert(upper and rightHand and leftHand and rs and re and rw and ls and le and lw and waist)
 	if rs.Part0 ~= upper or ls.Part0 ~= upper then
-		return nil
+		return nil,
+			"shoulders are not attached to UpperTorso (RightShoulder.Part0 = " .. (if rs.Part0
+				then rs.Part0.Name
+				else "nil") .. ")"
 	end
 	return {
 		Humanoid = humanoid :: Humanoid,
@@ -371,7 +399,7 @@ local function resolveRig(character: Model): Rig?
 		LeftElbow = le :: Motor6D,
 		LeftWrist = lw :: Motor6D,
 		Waist = waist :: Motor6D,
-		Neck = motor(character:FindFirstChild("Head"), "Neck"),
+		Neck = motor(character, character:FindFirstChild("Head"), "Neck"),
 		RightHand = rightHand :: BasePart,
 		LeftHand = leftHand :: BasePart,
 	}
@@ -384,7 +412,7 @@ local function resolveR6(character: Model): R6Rig?
 	end
 	local torso = part(character, "Torso")
 	local arm = part(character, "Right Arm")
-	local rs = motor(torso, "Right Shoulder")
+	local rs = motor(character, torso, "Right Shoulder")
 	if not (torso and arm and rs) or rs.Part0 ~= torso or rs.Part1 ~= arm then
 		return nil
 	end
@@ -396,12 +424,21 @@ local function resolveR6(character: Model): R6Rig?
 	}
 end
 
+-- Every joint still in the character and connected. Avatar appearance loading can replace
+-- limbs/joints after spawn; a stale joint must trigger a re-resolve, not silent writes to it.
+local function jointAlive(m: Motor6D?): boolean
+	return m ~= nil and m.Parent ~= nil and m.Part0 ~= nil and m.Part1 ~= nil
+end
+
 local function rigAlive(rig: Rig): boolean
-	return rig.RightShoulder.Parent ~= nil
-		and rig.RightWrist.Parent ~= nil
-		and rig.LeftWrist.Parent ~= nil
-		and rig.Waist.Parent ~= nil
-		and rig.Humanoid.Parent ~= nil
+	return rig.Humanoid.Parent ~= nil
+		and jointAlive(rig.RightShoulder)
+		and jointAlive(rig.RightElbow)
+		and jointAlive(rig.RightWrist)
+		and jointAlive(rig.LeftShoulder)
+		and jointAlive(rig.LeftElbow)
+		and jointAlive(rig.LeftWrist)
+		and jointAlive(rig.Waist)
 end
 
 local function vecAttr(inst: Instance, name: string): Vector3?
@@ -801,6 +838,23 @@ local function getState(character: Model): CharState
 	return state :: CharState
 end
 
+-- Studio only: one Output line per character whenever its pose status changes, so a playtest
+-- shows whether the shovel pose runs and, if not, why (v2.2 playtest: the spade kept the
+-- default hold on the owner's avatar and nothing said why).
+local lastStatus: { [Model]: string } = setmetatable({}, { __mode = "k" }) :: any
+local function report(character: Model, status: string, isProblem: boolean)
+	if not RunService:IsStudio() or lastStatus[character] == status then
+		return
+	end
+	lastStatus[character] = status
+	local line = "[ShovelPose] " .. character.Name .. ": " .. status
+	if isProblem then
+		warn(line)
+	else
+		print(line)
+	end
+end
+
 -- The character's R15 rig, or (when it has none) its R6 rig.
 local function getRig(state: CharState, character: Model, now: number): (Rig?, R6Rig?)
 	local rig = state.Rig
@@ -817,8 +871,12 @@ local function getRig(state: CharState, character: Model, now: number): (Rig?, R
 		return nil, nil
 	end
 	state.RigCheckedAt = now
-	state.Rig = resolveRig(character)
-	state.R6 = if state.Rig then nil else resolveR6(character)
+	local rig15, why = resolveRig(character)
+	state.Rig = rig15
+	state.R6 = if rig15 then nil else resolveR6(character)
+	if not rig15 and not state.R6 then
+		report(character, "can't pose the shovel: " .. (why or "unknown rig"), true)
+	end
 	return state.Rig, state.R6
 end
 
@@ -881,6 +939,15 @@ local function updateCharacter(character: Model, now: number, dt: number)
 		else applyPoseR6(state, foundR6 :: R6Rig, info, pose, weight)
 	if posed then
 		state.Posed = true
+		report(
+			character,
+			"posing "
+				.. (if info.TwoHanded then "two-handed" else "one-handed")
+				.. (if foundRig then " (R15)" else " (R6)"),
+			false
+		)
+	else
+		report(character, "pose could not be solved for this avatar", true)
 	end
 
 	-- sand clump rides the blade between the thrust and the toss
