@@ -248,7 +248,26 @@ function Util.Finish(model: Instance, small: boolean)
 end
 
 -- Put a model so the bottom of its bounding box rests at the Y of `cf`.
+-- Height of the visible ground (smooth terrain or a map part) at `pos`. Smooth terrain's
+-- visible surface sits ~2 studs above the 4-stud voxel grid that layout heights are built on,
+-- so things placed at the grid height looked sunk (playtest: fountain, towels, egg labels).
+-- Only accepts a hit within 4 studs of `pos.Y`; otherwise keeps `pos.Y`.
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+groundParams.IgnoreWater = true
+
+function Util.SurfaceY(pos: Vector3, ignore: { Instance }?): number
+	groundParams.FilterDescendantsInstances = ignore or {}
+	local hit = workspace:Raycast(pos + Vector3.new(0, 4, 0), Vector3.new(0, -8, 0), groundParams)
+	if hit and math.abs(hit.Position.Y - pos.Y) <= 4 then
+		return hit.Position.Y
+	end
+	return pos.Y
+end
+
 function Util.Ground(model: Model, cf: CFrame)
+	local groundY = Util.SurfaceY(cf.Position, { model :: Instance })
+	cf = cf + Vector3.new(0, groundY - cf.Position.Y, 0)
 	model:PivotTo(cf)
 	local bbCF, bbSize = model:GetBoundingBox()
 	local bottom = bbCF.Position.Y - bbSize.Y / 2

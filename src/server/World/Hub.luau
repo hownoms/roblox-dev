@@ -451,7 +451,7 @@ end
 
 local function buildFountain(parent: Instance)
 	local m = Util.Model("WaterFountain", parent)
-	local p = Layout.FOUNTAIN
+	local p = Vector3.new(Layout.FOUNTAIN.X, Util.SurfaceY(Layout.FOUNTAIN), Layout.FOUNTAIN.Z)
 	local water = rgb(70, 196, 240)
 	local basin = Util.Cylinder(m, "Basin", p + Vector3.new(0, 1, 0), 2, 16, MARBLE, Enum.Material.Marble)
 	Util.Tag(basin, "WaterFountain")
