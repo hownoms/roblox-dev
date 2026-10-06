@@ -159,6 +159,9 @@ end
 
 -- Small, decaying camera shake (stacks by taking the max intensity).
 function EffectsController.Shake(intensity: number, duration: number)
+	if State.GetSetting("ReducedMotion", false) == true then
+		return
+	end
 	local now = os.clock()
 	if now > shakeUntil then
 		shakeIntensity = 0
@@ -170,6 +173,10 @@ end
 
 function EffectsController.Init()
 	RunService:BindToRenderStep("DigCameraShake", Enum.RenderPriority.Camera.Value + 1, function()
+		if State.GetSetting("ReducedMotion", false) == true then
+			shakeIntensity = 0
+			return
+		end
 		local now = os.clock()
 		if now >= shakeUntil or shakeIntensity <= 0 then
 			return

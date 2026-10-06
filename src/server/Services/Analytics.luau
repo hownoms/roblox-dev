@@ -62,6 +62,10 @@ Analytics.Steps = table.freeze({
 	FirstPetDig = 16,
 	Layer5 = 17,
 	FirstRebirth = 18,
+	-- v3 discovery slice (DiscoveryService)
+	FirstFind = 19,
+	FirstRareFind = 20, -- Rare or better
+	FirstPerfectExcavation = 21,
 })
 
 local STEP_NAMES: { [number]: string } = {}

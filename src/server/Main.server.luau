@@ -46,6 +46,7 @@ local ShopService = require(Services.ShopService)
 local PetService = require(Services.PetService)
 local EconomyService = require(Services.EconomyService)
 local DigService = require(Services.DigService)
+local DiscoveryService = require(Services.DiscoveryService) -- v3 buried finds / detector / excavation
 local RebirthService = require(Services.RebirthService)
 local RewardsService = require(Services.RewardsService)
 local LeaderboardService = require(Services.LeaderboardService)
@@ -57,6 +58,7 @@ local SurvivalService = require(Services.SurvivalService)
 local PetDigService = require(Services.PetDigService)
 local RideService = require(Services.RideService)
 local OfflineService = require(Services.OfflineService)
+local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
 local Net = require(Services.Net)
 
 type Service = {
@@ -69,6 +71,7 @@ type Service = {
 -- Dependency order (each service only requires services listed before it).
 local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "DataService", Module = DataService :: any },
+	{ Name = "StreamingService", Module = StreamingService :: any }, -- v2.3: needs only the World
 	{ Name = "PolicyService", Module = PolicyService :: any }, -- v2.2: paid random item policy
 	{ Name = "Analytics", Module = Analytics :: any },
 	{ Name = "MonetizationService", Module = MonetizationService :: any },
@@ -80,6 +83,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "PetService", Module = PetService :: any },
 	{ Name = "EconomyService", Module = EconomyService :: any },
 	{ Name = "DigService", Module = DigService :: any },
+	{ Name = "DiscoveryService", Module = DiscoveryService :: any }, -- v3 discovery slice
 	{ Name = "RebirthService", Module = RebirthService :: any },
 	{ Name = "RewardsService", Module = RewardsService :: any },
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },

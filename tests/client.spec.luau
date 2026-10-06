@@ -55,6 +55,10 @@ Mock.Env.task.spawn(function()
 	World.Build()
 end)
 Mock.Advance(3)
+-- v2.3 streaming: the server publishes station anchors + Atomic station models (StreamingService)
+local StreamingService = Mock.Require(byPath["ServerScriptService/Server/Services/StreamingService"])
+StreamingService.Init()
+Mock.Advance(0.1)
 local Remotes = Mock.Require(byPath["ReplicatedStorage/Shared/Remotes"])
 do
 	local net = Mock.Env.Instance.new("Folder")
@@ -298,6 +302,14 @@ do
 	check(shellEmoji == "🐚", "AtlasIcon resolves grouped keys")
 	local _, rawEmoji = AtlasIcon.Resolve("🛒")
 	check(rawEmoji == "🛒", "AtlasIcon keeps raw emoji")
+	local loadingIcon = AtlasIcon.new({ Icon = "Coins", Parent = hudCanvas })
+	local loadingImage = loadingIcon.Frame:FindFirstChild("Image")
+	local loadingFallback = loadingIcon.Frame:FindFirstChild("Emoji")
+	check(loadingImage ~= nil and loadingFallback ~= nil, "configured atlas retains a loading fallback")
+	check(loadingFallback ~= nil and loadingFallback.Visible, "unavailable atlas leaves the control icon readable")
+	loadingIcon:Set("🛰️")
+	check(loadingImage ~= nil and not loadingImage.Visible, "switching to a raw icon hides the atlas image")
+	loadingIcon.Frame:Destroy()
 	local icons = 0
 	for _, d in hudCanvas:GetDescendants() do
 		if d:IsA("Frame") and d:GetAttribute("Icon") ~= nil then
@@ -446,6 +458,109 @@ for _, t in { "ShovelShop", "BackpackShop", "EggShop", "RebirthStatue" } do
 end
 Panel.CloseAll()
 Mock.Advance(0.5)
+
+-- Streaming (v2.3) --------------------------------------------------------------------------------
+section("streaming")
+do
+	local e0 = #Mock.Errors
+	local Tagged = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Util/Tagged"])
+	local Anchors = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Util/Anchors"])
+	local GuideController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/GuideController"])
+	local StatusController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/StatusController"])
+
+	-- the mock shares one instance tree with the "server": keep its anchors while we stream parts
+	StreamingService._Freeze(true)
+	-- anchors: every station tag has positions that survive streaming
+	for _, tag in StreamingService.ANCHOR_TAGS do
+		check(#Anchors.Get(tag) == #Mock.Tagged(tag) and #Anchors.Get(tag) > 0, "anchors published for " .. tag)
+	end
+	local sellPart = Mock.Tagged("SellZone")[1]
+	local sellTop = sellPart.Position + Vector3.new(0, sellPart.Size.Y / 2, 0)
+	check((Anchors.Nearest("SellZone") - sellTop).Magnitude < 1e-6, "SellZone anchor = top of the pad")
+	local shopModel = Mock.Tagged("ShovelShop")[1]:FindFirstAncestorWhichIsA("Model")
+	check(shopModel and shopModel.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "station models stream atomically")
+
+	-- Tagged.Watch: added + removed, cleanup runs on stream-out, new instance on stream-in
+	local added, cleaned = 0, 0
+	local stop = Tagged.Watch("ShovelShop", function()
+		added += 1
+		return function()
+			cleaned += 1
+		end
+	end)
+	Mock.Advance(0.1)
+	local count = #Mock.Tagged("ShovelShop")
+	check(added == count, "Tagged.Watch sees existing instances (" .. added .. ")")
+	local shopPart = Mock.Tagged("ShovelShop")[1]
+	local token = Mock.StreamOut(shopPart)
+	Mock.Advance(0.1)
+	check(cleaned == 1 and #Mock.Tagged("ShovelShop") == count - 1, "stream-out runs the cleanup")
+	local fresh = Mock.StreamIn(token)
+	Mock.Advance(0.1)
+	check(added == count + 1 and fresh ~= shopPart, "stream-in arrives as a new instance and is watched")
+
+	-- prompts still work after a stream-out / stream-in cycle (and the old one is not hooked)
+	local prompt = fresh:FindFirstChildWhichIsA("ProximityPrompt", true)
+	if check(prompt ~= nil, "streamed-in station has its prompt") then
+		Panel.CloseAll()
+		Mock.Advance(0.2)
+		Mock.FireEvent(prompt, "Triggered", player)
+		Mock.Advance(0.5)
+		check(Panel.Current() ~= nil, "prompt on a streamed-in station opens its panel")
+		Panel.CloseAll()
+		Mock.Advance(0.3)
+	end
+	-- a prompt that streams in AFTER its part is hooked too
+	local eggPart = Mock.Tagged("EggShop")[1]
+	local eggPrompt = eggPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+	local promptToken = Mock.StreamOut(eggPrompt)
+	Mock.Advance(0.1)
+	local lateprompt = Mock.StreamIn(promptToken)
+	Mock.Advance(0.1)
+	Mock.FireEvent(lateprompt, "Triggered", player)
+	Mock.Advance(0.5)
+	check(Panel.Current() ~= nil, "prompt that streams in after its part still opens the panel")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	stop()
+	check(cleaned == added, "stop() cleans every watched instance")
+
+	-- guide beams: target streamed out -> anchor position; streamed back in -> the new part
+	local root = character:FindFirstChild("HumanoidRootPart")
+	local sellToken = Mock.StreamOut(sellPart)
+	Mock.Advance(0.1)
+	local target = GuideController.FindTagged("SellZone", root.Position)
+	check(target ~= nil, "FindTagged works while the station is streamed out")
+	local resolved = target and GuideController.Resolve(target, root.Position)
+	check(resolved and (resolved - sellTop).Magnitude < 1e-6, "guide falls back to the published anchor")
+	GuideController.Set("StreamTest", target, 99, "S")
+	Mock.Advance(0.3)
+	local beam = Mock.Service("Workspace").Terrain:FindFirstChild("GuideBeam")
+	local to = Mock.Service("Workspace").Terrain:FindFirstChild("GuideTo")
+	check(beam and beam.Enabled and to and (to.WorldPosition - sellTop).Magnitude < 1e-6, "beam points at a streamed-out station")
+	local sellBack = Mock.StreamIn(sellToken)
+	Mock.Advance(0.3)
+	check(sellBack ~= sellPart and (GuideController.Resolve(target, root.Position) - sellTop).Magnitude < 1e-6, "guide locks onto the streamed-in part")
+	GuideController.Clear("StreamTest")
+	Mock.Advance(0.2)
+
+	-- far player's character streams out and back in: nameplate follows the new Head
+	local far = Mock.AddPlayer(3003, "FarAway")
+	local farChar = Mock.SpawnCharacter(far, spawnCF.Position + Vector3.new(30, 0, 0))
+	Mock.Advance(0.8)
+	local plate = StatusController.GetPlate(far)
+	check(plate ~= nil and plate.Adornee == farChar:FindFirstChild("Head"), "far player has a nameplate")
+	local headToken = Mock.StreamOut(farChar:FindFirstChild("Head"))
+	Mock.Advance(0.8)
+	local newHead = Mock.StreamIn(headToken)
+	Mock.Advance(0.8)
+	plate = StatusController.GetPlate(far)
+	check(plate ~= nil and plate.Adornee == newHead, "nameplate re-adorns the streamed-in Head")
+	Mock.RemovePlayer(far)
+	Mock.Advance(0.3)
+	StreamingService._Freeze(false)
+	check(#Mock.Errors == e0, "no errors while streaming parts out and in")
+end
 
 -- Dig ---------------------------------------------------------------------------------------------
 section("dig")
@@ -1596,37 +1711,60 @@ do
 		return store:FindFirstChild(key, true)
 	end
 	check(storeCard("CoinsSmall") and storeCard("CoinsSmall").Visible, "store shows coins when unrestricted")
-	check(storeCard("Lucky") and storeCard("Lucky").Visible, "store shows the Lucky pass when unrestricted")
+	check(storeCard("FastDig") and storeCard("FastDig").Visible, "store shows the Turbo Shovel pass (v2.3)")
+	for _, key in { "Lucky", "GoldenEgg", "GoldenEgg3", "LuckBoost15" } do
+		check(storeCard(key) == nil, "v2.3: no paid luck / paid egg item in the store: " .. key)
+	end
+	-- v2.3 prices: config suggestion until an Id is set, then the live Creator Hub price
+	local vipButton = storeCard("VIP"):FindFirstChildWhichIsA("TextButton", true)
+	check(PurchaseController.GetPrice("GamePass", "VIP") == 349, "VIP suggested price is 349")
+	Config.Monetization.GamePasses.VIP.Id = 7101
+	Mock.ProductPrices[7101] = 379
+	check(PurchaseController.GetPrice("GamePass", "VIP") == 349, "price falls back to config while the lookup runs")
+	Mock.Advance(0.5)
+	check(PurchaseController.GetPrice("GamePass", "VIP") == 379, "live price from GetProductInfo")
+	local liveShown = false
+	for _, d in storeCard("VIP"):GetDescendants() do
+		if d:IsA("TextLabel") and d.Text == "R$ 379" then
+			liveShown = true
+		end
+	end
+	check(liveShown, "store button shows the live price")
+	local _ = vipButton
+	Config.Monetization.GamePasses.VIP.Id = 0
+	Config.Monetization.Products.CoinsMedium.Id = 9102 -- GetProductInfo answers 0: keep the config price
+	check(PurchaseController.GetPrice("Product", "CoinsMedium") == 149, "coin pack price before lookup")
+	Mock.Advance(0.5)
+	check(PurchaseController.GetPrice("Product", "CoinsMedium") == 149, "off-sale / unknown live price falls back to config")
+	Config.Monetization.Products.CoinsMedium.Id = 0
 	check(storeCard("CoolerPack") == nil, "no Cooler Pack in the store")
 	player:SetAttribute("PaidRandomRestricted", true)
 	Mock.Advance(0.5)
-	for _, key in { "CoinsSmall", "CoinsMedium", "CoinsLarge", "CoinsHuge", "GoldenEgg", "GoldenEgg3", "LuckBoost15", "SkipRebirth", "Lucky" } do
+	for _, key in { "CoinsSmall", "CoinsMedium", "CoinsLarge", "CoinsHuge", "SkipRebirth" } do
 		check(storeCard(key) and storeCard(key).Visible == false, "restricted: store hides " .. key)
 	end
-	check(storeCard("SandBoost15").Visible and storeCard("DoubleSand").Visible, "restricted: other items still shown")
+	check(storeCard("SandBoost15").Visible and storeCard("DoubleSand").Visible and storeCard("FastDig").Visible, "restricted: other items still shown")
 	Config.Monetization.Products.CoinsSmall.Id = 9001
-	Config.Monetization.GamePasses.Lucky.Id = 7003
 	local p0 = #Mock.Prompts
-	check(PurchaseController.PromptProduct("CoinsSmall") == false and PurchaseController.PromptPass("Lucky") == false, "restricted: PurchaseController refuses")
+	check(PurchaseController.PromptProduct("CoinsSmall") == false, "restricted: PurchaseController refuses")
 	check(#Mock.Prompts == p0, "restricted: no MarketplaceService prompt")
 	Config.Monetization.Products.CoinsSmall.Id = 0
-	Config.Monetization.GamePasses.Lucky.Id = 0
 	Panel.CloseAll()
 	Mock.Advance(0.3)
 	Panel.Open("Eggs", { EggId = "golden_egg" })
 	Mock.Advance(1)
 	local eggs = Panel.Get("Eggs").Window
 	local goldenTile = eggs:FindFirstChild("golden_egg", true)
-	check(goldenTile and goldenTile.Visible == false, "restricted: Golden Egg hidden in the egg panel")
+	check(goldenTile and goldenTile.Visible == true, "v2.3: the Golden Egg is a token egg, listed even when restricted")
 	local kindLabel = eggs:FindFirstChild("Kind", true)
 	check(eggs:FindFirstChild("Detail", true) and #Mock.Errors == e0, "restricted: egg panel still works")
 	player:SetAttribute("PaidRandomRestricted", false)
 	Mock.Advance(0.5)
 	check(goldenTile.Visible == true, "unrestricted: Golden Egg listed")
 
-	-- A1 true odds: Lucky pass + 2x Luck boost + pity, live
+	-- A1 true odds: 2x Luck boost + pity, live (v2.3: no pass changes luck, VIP included)
 	local beach = Config.GetEgg("beach_egg")
-	State.SetPassOwned("Lucky", true)
+	State.SetPassOwned("VIP", true)
 	Mock.FireClientEvent("DataChanged", { Boosts = { LuckBoost = os.time() + 3600 }, Pity = { beach_egg = 5 }, MaxDepth = Config.TOTAL_DEPTH })
 	Mock.Advance(0.5)
 	Panel.Open("Eggs", { EggId = beach.Id })
@@ -1640,7 +1778,7 @@ do
 			eventLuck *= ev.Multiplier
 		end
 	end
-	check(luck == 4 * eventLuck, "client luck = Lucky x2 * 2x Luck x2 * events (" .. luck .. ")")
+	check(luck == 2 * eventLuck, "client luck = 2x Luck x2 * events, VIP adds none (" .. luck .. ")")
 	local function shownRows()
 		local rows = {}
 		for _, entry in beach.Pets do
@@ -1664,7 +1802,7 @@ do
 	check(ok, "egg panel shows Stats.GetHatchOddsList with luck + pity " .. why)
 	check(kindLabel.Text == "Your odds per hatch:", "odds header no longer says 'before luck boosts'")
 	local note = eggs:FindFirstChild("LuckNote", true)
-	check(note and string.find(note.Text, "x" .. luck, 1, true) and string.find(note.Text, "Lucky Shovel", 1, true) and string.find(note.Text, "2x Luck", 1, true), "luck note lists the modifiers: " .. (note and note.Text or "nil"))
+	check(note and string.find(note.Text, "x" .. luck, 1, true) and not string.find(note.Text, "VIP", 1, true) and string.find(note.Text, "2x Luck", 1, true), "luck note lists the modifiers: " .. (note and note.Text or "nil"))
 	check(note and string.find(note.Text, "Rare+ guaranteed in " .. (beach.PityAt + 1 - 5) .. " hatches", 1, true), "pity countdown in the detail")
 	local beachTile = eggs:FindFirstChild(beach.Id, true)
 	local pityLabel = beachTile and beachTile:FindFirstChild("Pity", true)
@@ -1677,14 +1815,14 @@ do
 	Mock.Advance(1.2)
 	luck = Stats.GetLuck(State.GetStatsContext())
 	ok, why = matches(5)
-	check(luck == 2 * eventLuck and ok, "odds update live when a boost ends " .. why)
+	check(luck == eventLuck and ok, "odds update live when a boost ends " .. why)
 	-- pity reached: the guaranteed hatch shows the Rare+ distribution
 	Mock.FireClientEvent("DataChanged", { Pity = { beach_egg = beach.PityAt } })
 	Mock.Advance(0.6)
 	ok, why = matches(beach.PityAt)
 	check(ok and shownRows().sandy_crab == "0%", "pity hatch shows Rare+ odds " .. why)
 	check(string.find(note.Text, "PITY", 1, true) ~= nil and pityLabel.Text == "Rare+ next hatch!", "pity active is announced")
-	State.SetPassOwned("Lucky", false)
+	State.SetPassOwned("VIP", false)
 	Panel.CloseAll()
 	Mock.Advance(0.5)
 
@@ -2096,6 +2234,245 @@ do
 	Mock.Advance(1.5)
 	check(popups:FindFirstChild("Reveal") == nil, "tap collects / closes the popup")
 	check(#Mock.Errors == e0, "no errors in rebirth & economy (client)")
+end
+
+-- Discovery (v3 slice): detector UI from coarse pings, excavation minigame flow, reveal tiers,
+-- streaming-safe find models ------------------------------------------------------------------
+section("discovery")
+do
+	local e0 = #Mock.Errors
+	local CP = "StarterPlayer/StarterPlayerScripts/Client/"
+	local DiscoveryController = Mock.Require(byPath[CP .. "Controllers/DiscoveryController"])
+	local DetectorHUD = Mock.Require(byPath[CP .. "UI/DetectorHUD"])
+	local ExcavationGame = Mock.Require(byPath[CP .. "UI/ExcavationGame"])
+	local FindReveal = Mock.Require(byPath[CP .. "UI/FindReveal"])
+	local DigController = Mock.Require(byPath[CP .. "Controllers/DigController"])
+	local HUD = Mock.Require(byPath[CP .. "UI/HUD"])
+	local D = Config.Discovery
+	local workspace = Mock.Service("Workspace")
+	Panel.CloseAll()
+	Mock.Advance(6) -- let earlier reveals / toasts clear
+
+	-- Scan button: in the bottom action row, as big as Surface / Sell / Auto
+	local scan = HUD.Buttons.Scan
+	check(scan ~= nil and scan.Holder.Parent == HUD.ActionsRow, "Scan button sits in the bottom action row")
+	check(scan ~= nil and scan.Holder.Size.Y.Offset >= 74 and scan.Holder.Size.X.Offset >= 74, "Scan button >= 74 design px")
+	-- Scan cooldown (client mirror)
+	Mock.Advance(D.SCAN_COOLDOWN + 0.5)
+	local s0 = #Mock.Remote.ToServer
+	check(DiscoveryController.Scan() == true, "Scan sends a request")
+	check(DiscoveryController.Scan() == false, "Scan again during the cooldown does nothing")
+	check(#sent("Scan", s0) == 1, "exactly one Scan remote")
+	check(DiscoveryController.CooldownLeft() > 0, "cooldown counting")
+
+	-- detector UI from coarse server data
+	Mock.FireClientEvent("DetectorPing", { Band = 1, Sector = 2, Vertical = "Down", Signal = "Gold", Remaining = 6 })
+	Mock.Advance(0.3)
+	check(DiscoveryController.Ping.Band == 1 and DiscoveryController.IsScanning(), "ping stored, scanning")
+	check(scan.Label.Text == "HOT!", "HOT! when the find is close (" .. scan.Label.Text .. ")")
+	local pill = scan.Holder:FindFirstChild("Vertical")
+	check(pill ~= nil and pill.Visible and pill.Text == "DOWN", "DOWN pill when the find is below you")
+	local dot = scan.Holder:FindFirstChild("Dot", true)
+	check(dot ~= nil and dot.Visible and dot.BackgroundColor3 == D.SIGNAL_COLORS.Gold, "radar dot in the gold signal colour")
+	local radar = scan.Holder:FindFirstChild("Radar")
+	local stroke = radar and radar:FindFirstChildOfClass("UIStroke")
+	check(stroke ~= nil and stroke.Color == D.SIGNAL_COLORS.Gold and stroke.Transparency == 0, "radar outline glows gold")
+	check(math.abs(DiscoveryController.ArrowAngle(Vector3.new(0, 0, 1)) + 90) < 1e-6, "sector +X with the camera looking +Z: arrow points left")
+	check(math.abs(DiscoveryController.ArrowAngle(Vector3.new(0, 0, -1)) - 90) < 1e-6, "camera looking -Z: arrow points right")
+	local arrow = workspace:FindFirstChild("DetectorArrow")
+	check(arrow ~= nil and arrow.Transparency < 1 and arrow.Color == D.SIGNAL_COLORS.Gold, "ground arrow shows while scanning")
+	Mock.FireClientEvent("DetectorPing", { Band = 4, Sector = 0, Vertical = "Level", Signal = "Purple", Remaining = 3 })
+	Mock.Advance(0.3)
+	check(scan.Label.Text == "Faint" and not pill.Visible, "Faint at the edge of range, no pill when level")
+	Mock.FireClientEvent("DetectorPing", { Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 2 })
+	Mock.Advance(0.3)
+	check(scan.Label.Text == "Nothing" and not dot.Visible, "Nothing in range")
+	Mock.FireClientEvent("DetectorPing", "junk")
+	Mock.FireClientEvent("DetectorPing", { Band = 99, Sector = "x" })
+	Mock.Advance(0.2)
+	check(DiscoveryController.Ping.Band <= #D.BANDS + 1 and DiscoveryController.Ping.Sector == -1, "junk pings are sanitised")
+	Mock.Advance(D.SCAN_SECONDS + 1)
+	check(not DiscoveryController.IsScanning() and (arrow.Transparency == 1), "scan over: arrow hidden")
+	check(DetectorHUD.Caption({ Band = 2, Sector = 0, Vertical = "", Signal = "", Remaining = 1 }, true, 0) == "Warm", "Caption: Warm")
+	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 2.2) == "3s", "Caption: cooldown seconds")
+	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 0) == "Scan", "Caption: ready")
+
+	-- excavation minigame: headless state machine with a pinned clock
+	local info = {
+		Id = "x900",
+		Position = Vector3.new(0, Config.SURFACE_Y - 4, zone.CFrame.Position.Z),
+		Signal = "White",
+		Rings = 3,
+		RingSeconds = 0.9,
+		RingGap = 0.25,
+		PerfectWindow = D.PERFECT_WINDOW,
+		GoodWindow = D.GOOD_WINDOW,
+		Timeout = 9,
+	}
+	local x0 = #Mock.Remote.ToServer
+	ExcavationGame.Start(info, 100, true)
+	check(ExcavationGame.IsActive() and DigController.Enabled == false, "minigame active, digging paused")
+	local lead = ExcavationGame.LEAD
+	check(ExcavationGame.Tap(100.1) == nil, "a tap before the first ring shows is ignored")
+	check(ExcavationGame.Tap(100 + lead + 0.9) == "Perfect", "tap on the beat: Perfect")
+	check(ExcavationGame.Tap(100 + lead + 0.9 + 1.15 + 0.15) == "Good", "a little late: Good")
+	ExcavationGame.Step(100 + lead + 0.9 + 2.3 + 0.5) -- third ring passes untouched
+	check(not ExcavationGame.IsActive() and DigController.Enabled == true, "game over after the last ring, digging back on")
+	local ex = sent("Excavate", x0)
+	check(#ex == 1 and ex[1][1] == "x900" and #ex[1][2] == 3, "Excavate(id, errors) sent once with 3 rings")
+	check(ex[1] and math.abs(ex[1][2][1]) < 1e-9 and math.abs(ex[1][2][2] - 0.15) < 1e-6 and ex[1][2][3] == -1, "errors: 0, 0.15, -1 (miss)")
+
+	-- the real flow: server ExcavationStart -> overlay -> taps -> answer
+	local popups = playerGui:FindFirstChild("Dig_Popups"):FindFirstChild("Canvas")
+	local x1 = #Mock.Remote.ToServer
+	Mock.FireClientEvent("ExcavationStart", {
+		Id = "x901",
+		Position = info.Position,
+		Signal = "Purple",
+		Rings = 3,
+		RingSeconds = 0.9,
+		RingGap = 0.25,
+		PerfectWindow = D.PERFECT_WINDOW,
+		GoodWindow = D.GOOD_WINDOW,
+		Timeout = 9,
+	})
+	Mock.Advance(0.05)
+	local overlay = popups:FindFirstChild("Excavation")
+	check(overlay ~= nil and ExcavationGame.IsActive(), "ExcavationStart opens the minigame overlay")
+	check(DiscoveryController.Active ~= nil and DiscoveryController.Active.Id == "x901", "controller tracks the active excavation")
+	local grades = {}
+	local conn = ExcavationGame.Graded:Connect(function(_, g)
+		table.insert(grades, g)
+	end)
+	Mock.Advance(lead + 0.9 - 0.05)
+	Mock.FireEvent(overlay, "Activated", Mock.Input(Enum.UserInputType.Touch), 1)
+	Mock.Advance(1.15)
+	Mock.FireEvent(overlay, "Activated", Mock.Input(Enum.UserInputType.Touch), 1)
+	Mock.Advance(1.15)
+	Mock.FireEvent(overlay, "Activated", Mock.Input(Enum.UserInputType.Touch), 1)
+	Mock.Advance(0.1)
+	conn:Disconnect()
+	local answer = sent("Excavate", x1)
+	check(#answer == 1 and answer[1][1] == "x901", "taps answered the server")
+	check(#grades == 3 and grades[1] ~= "Miss" and grades[2] ~= "Miss" and grades[3] ~= "Miss", "on-beat taps grade as hits (" .. table.concat(grades, ",") .. ")")
+	Mock.Advance(1)
+	check(popups:FindFirstChild("Excavation") == nil and DigController.Enabled, "overlay closed, digging back on")
+	-- unanswered: the game times out into misses on its own
+	local x2 = #Mock.Remote.ToServer
+	Mock.FireClientEvent("ExcavationStart", { Id = "x902", Position = info.Position, Signal = "White", Rings = 3, RingSeconds = 0.9, RingGap = 0.25, PerfectWindow = 0.09, GoodWindow = 0.22, Timeout = 9 })
+	Mock.Advance(5)
+	local miss = sent("Excavate", x2)
+	check(#miss == 1 and miss[1][2][1] == -1 and miss[1][2][3] == -1, "no taps: three misses reported")
+
+	-- reveal tier selection
+	local function fi(rarity, size, material, isNew, newVariants)
+		local Finds = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Finds"])
+		return {
+			Id = "x", TreasureId = "bottle_cap", Rarity = rarity, Size = size or "Normal", Material = material or "None",
+			Quality = "Good", Value = 10, Tier = Finds.Tier(rarity, size, material), IsNew = isNew or false,
+			NewVariants = newVariants or {}, Perfect = false, Ambient = false, Position = info.Position,
+		}
+	end
+	local p = FindReveal.Presentation(fi("Common"))
+	check(p.Tier == "Pop" and p.Card == "None" and p.Float and not p.Camera, "Common repeat: float text only")
+	p = FindReveal.Presentation(fi("Common", "Normal", "None", true))
+	check(p.Card == "Compact", "first Common find: compact card")
+	p = FindReveal.Presentation(fi("Common", "Giant"))
+	check(p.Tier == "Beam" and p.Card == "Compact" and p.Sound == "RareTreasure", "Giant common: Beam tier")
+	p = FindReveal.Presentation(fi("Rare"))
+	check(p.Tier == "Beam" and p.Card == "Compact", "Rare: Beam + compact card")
+	p = FindReveal.Presentation(fi("Legendary"))
+	check(p.Tier == "Card" and p.Card == "Full" and p.Camera and not p.Flash, "Legendary: full card + camera moment")
+	p = FindReveal.Presentation(fi("Mythic"))
+	check(p.Tier == "Server" and p.Flash and p.Confetti, "Mythic: server tier, flash + confetti")
+	p = FindReveal.Presentation(fi("Relic"))
+	check(p.Tier == "Spectacle" and p.Card == "Full" and p.Flash, "Relic: spectacle")
+	Mock.FireClientEvent("FindRevealed", fi("Legendary", "Giant", "Crystal", true, { "Giant", "Crystal" }))
+	Mock.Advance(0.6)
+	local reveal = popups:FindFirstChild("Reveal")
+	check(reveal ~= nil and reveal:IsA("TextButton"), "Legendary find shows the full Reveal card")
+	local names = {}
+	for _, d in (reveal or popups):GetDescendants() do
+		if d:IsA("TextLabel") then
+			names[d.Text] = true
+		end
+	end
+	check(names["Giant Crystal Bottle Cap"] and names["SIZE"] and names["MATERIAL"] and names["QUALITY"], "card shows the variant name and SIZE / MATERIAL / QUALITY rows")
+	Mock.Advance(6)
+	Mock.FireClientEvent("FindRevealed", "junk")
+	Mock.Advance(0.2)
+
+	-- world models: streaming-safe tag watching (Stage Excavating -> Revealed, late stream-in)
+	local CollectionService = Mock.Service("CollectionService")
+	local function findModel(id, stage, tier)
+		local m = Mock.Env.Instance.new("Model")
+		local part = Mock.Env.Instance.new("Part")
+		part.Anchored = true
+		part.Size = Vector3.new(1, 1, 1)
+		part.CFrame = CFrame.new(5, Config.SURFACE_Y - 6, zone.CFrame.Position.Z)
+		part.Parent = m
+		m.PrimaryPart = part
+		m:SetAttribute("FindId", id)
+		m:SetAttribute("Rarity", "Rare")
+		m:SetAttribute("Tier", tier)
+		m:SetAttribute("Rise", 2)
+		m:SetAttribute("Stage", stage)
+		m.Parent = workspace
+		CollectionService:AddTag(m, "DiscoveryFind")
+		return m, part
+	end
+	local m1, part1 = findModel("w1", "Excavating", "Beam")
+	Mock.Advance(0.1)
+	check(DiscoveryController.Models.w1 == m1, "tagged find model is tracked")
+	local y0 = part1.Position.Y
+	m1:SetAttribute("Stage", "Revealed")
+	Mock.Advance(1.2)
+	check(math.abs(part1.Position.Y - (y0 + 2)) < 0.05, "revealed find rises out of the ground (" .. part1.Position.Y - y0 .. ")")
+	check(part1:FindFirstChildOfClass("Beam") ~= nil, "Beam tier gets a light beam")
+	local m2, part2 = findModel("w2", "Revealed", "Pop")
+	Mock.Advance(0.1)
+	check(math.abs(part2.Position.Y - (Config.SURFACE_Y - 6 + 2)) < 0.05, "a find streaming in already revealed is shown risen")
+	check(part2:FindFirstChildOfClass("Beam") == nil, "Pop tier: no beam")
+	m1:Destroy()
+	m2:Destroy()
+	Mock.Advance(0.2)
+	check(DiscoveryController.Models.w1 == nil and DiscoveryController.Models.w2 == nil, "streamed-out / destroyed models are forgotten")
+
+	-- Index: base item + variant checkmarks, holdings from Finds, true odds line
+	local IndexPanel = Mock.Require(byPath[CP .. "UI/Panels/IndexPanel"])
+	Mock.FireClientEvent("DataChanged", {
+		Index = { bottle_cap = true },
+		Treasures = {},
+		Finds = { ["bottle_cap|Giant|Golden|Good"] = 2, ["bottle_cap|Normal|None|Damaged"] = 1 },
+		FindVariants = { ["bottle_cap/Giant"] = true, ["bottle_cap/Golden"] = true, ["bottle_cap/Normal"] = true },
+		MaxDepth = 0,
+	})
+	Mock.Advance(0.3)
+	check(IndexPanel.Held("bottle_cap") == 3, "Index holdings count every variant in Finds")
+	local pills = IndexPanel.VariantPills("bottle_cap")
+	local lit = {}
+	for _, pl in pills do
+		lit[pl.Id] = pl.Found
+	end
+	check(#pills == 7 and lit.Giant and lit.Golden and lit.Normal and not lit.Tiny and not lit.Crystal, "variant pills: 4 sizes + 3 materials, found ones lit")
+	local odds = IndexPanel.OddsText()
+	local Stats = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Stats"])
+	local FindsMod = Mock.Require(byPath["ReplicatedStorage/Shared/Util/Finds"])
+	local luck = Stats.GetLuck(State.GetStatsContext())
+	local giantOdds = FindsMod.VariantOdds("Size", luck)[4].Chance * 100
+	local want = "Giant " .. (if giantOdds >= 10 then string.format("%.0f", giantOdds) else string.format("%.1f", giantOdds)) .. "%"
+	check(string.find(odds, want, 1, true) ~= nil, "Index shows true variant odds incl. luck (" .. odds .. ")")
+	Panel.Open("Index")
+	Mock.Advance(0.5)
+	local indexGui = Panel.Get("Index")
+	local capCard = indexGui and indexGui.Body:FindFirstChild("bottle_cap", true)
+	local giantPill = capCard and capCard:FindFirstChild("Giant", true)
+	check(giantPill ~= nil and giantPill:GetAttribute("Found") == true, "Index card shows the Giant checkmark")
+	local oddsLabel = indexGui and indexGui.Body:FindFirstChild("Odds", true)
+	check(oddsLabel ~= nil and string.find(oddsLabel.Text, "Find odds", 1, true) ~= nil, "Index header shows the odds line")
+	Panel.CloseAll()
+	Mock.Advance(0.5)
+	check(#Mock.Errors == e0, "no errors in discovery")
 end
 
 section("report")

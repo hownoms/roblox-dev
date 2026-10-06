@@ -45,6 +45,11 @@ function Models.Treasure(treasureId: string): Model
 	return Treasures.Build(treasureId)
 end
 
+-- v3 discovery: a treasure with its size + material variant (Config.Discovery) applied.
+function Models.Find(treasureId: string, size: string?, material: string?): Model
+	return Treasures.ApplyVariant(Treasures.Build(treasureId), size, material)
+end
+
 function Models.Backpack(backpackId: string): Model
 	return Backpacks.Build(backpackId)
 end

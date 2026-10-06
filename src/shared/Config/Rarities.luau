@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Rarities — display data for treasure & pet rarities. Ordered array (Order 1..6) plus the
+	Rarities — display data for treasure & pet rarities. Ordered array (Order 1..7; 7 = Relic, v3 finds only) plus the
 	lookup helper Config.GetRarity(name). Gradient is meant for a UIGradient on rarity cards.
 	Announce = broadcast a server-wide toast/chat message when anyone finds or hatches one.
 ]]
@@ -50,6 +50,14 @@ local Rarities: { Types.RarityDef } = {
 		Order = 6,
 		Color = rgb(255, 70, 140),
 		Gradient = { rgb(255, 90, 90), rgb(255, 210, 60), rgb(90, 220, 255), rgb(200, 90, 255) },
+		Announce = true,
+	},
+	-- v3 discovery slice: above Mythic, only from buried finds (Config.Discovery.RELIC_CHANCE).
+	{
+		Name = "Relic",
+		Order = 7,
+		Color = rgb(120, 255, 230),
+		Gradient = { rgb(255, 255, 255), rgb(120, 255, 230), rgb(255, 120, 230), rgb(255, 230, 120) },
 		Announce = true,
 	},
 }

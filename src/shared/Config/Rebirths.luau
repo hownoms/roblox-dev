@@ -43,7 +43,7 @@ local Rebirths: Types.RebirthConfig = {
 	CostGrowth = COST_GROWTH,
 	MultiplierPerRebirth = MULTIPLIER_PER_REBIRTH,
 	BaseTokens = BASE_TOKENS,
-	Resets = { "Coins", "Sand", "Shovel", "OwnedShovels", "Backpack", "OwnedBackpacks", "Treasures" },
+	Resets = { "Coins", "Sand", "Shovel", "OwnedShovels", "Backpack", "OwnedBackpacks", "Treasures", "Finds" },
 	Keeps = {
 		"Rebirths",
 		"RebirthTokens",
@@ -52,6 +52,7 @@ local Rebirths: Types.RebirthConfig = {
 		"Pets",
 		"PetSlots",
 		"Index",
+		"FindVariants",
 		"DailyStreak",
 		"LastDailyClaim",
 		"Quests",

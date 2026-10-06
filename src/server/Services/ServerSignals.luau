@@ -23,6 +23,8 @@ local ServerSignals = {
 	DepthReached = Signal.new() :: Signal.Signal<Player, number>,
 	-- player, total rebirths after this one
 	Rebirthed = Signal.new() :: Signal.Signal<Player, number>,
+	-- v3 discovery: player, carved box min, carved box max, dig source, layer index (DigService)
+	Carved = Signal.new() :: Signal.Signal<Player, Vector3, Vector3, string, number>,
 	-- player
 	BackpackFull = Signal.new() :: Signal.Signal<Player>,
 }

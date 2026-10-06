@@ -56,6 +56,7 @@ local HUD = {}
 
 HUD.Buttons = {} :: { [string]: Button.Button }
 HUD.Coins = nil :: IconLabel.IconLabel?
+HUD.ActionsRow = nil :: Frame? -- v3 discovery: the bottom Surface/Sell/Auto row (UI/DetectorHUD adds Scan)
 
 local C = Style.Colors
 local backpackPulse: Tween? = nil
@@ -618,6 +619,7 @@ local function buildBottom(canvas: Frame)
 	row.Size = UDim2.fromOffset(400, 80)
 	row.Parent = holder
 	Style.List(row, Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom)
+	HUD.ActionsRow = row -- v3 discovery: UI/DetectorHUD adds the Scan button here (LayoutOrder 0)
 
 	HUD.Buttons.Surface = Button.new({
 		Name = "Surface",

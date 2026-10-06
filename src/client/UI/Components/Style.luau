@@ -172,6 +172,9 @@ function Style.TrackTextSize(constraint: UITextSizeConstraint, maxDesign: number
 	local caps = { Max = maxDesign, Min = minDesign or MIN_READABLE }
 	constraints[constraint] = caps
 	applyCaps(constraint, caps, Root.Scale)
+	constraint.Destroying:Once(function()
+		constraints[constraint] = nil
+	end)
 end
 
 Root.ScaleChanged:Connect(function(scale: number)
@@ -227,18 +230,25 @@ local function fitLabel(label: TextLabel, constraint: UITextSizeConstraint)
 end
 
 local function autoFit(label: TextLabel, constraint: UITextSizeConstraint)
-	local destroyed = false
+	local alive = true
 	local function refit()
-		if not destroyed then
+		if alive then
 			fitLabel(label, constraint)
 		end
 	end
-	label:GetPropertyChangedSignal("Text"):Connect(refit)
-	label:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
+	local textConn = label:GetPropertyChangedSignal("Text"):Connect(refit)
+	local sizeConn = label:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 	local scaleConn = Root.ScaleChanged:Connect(refit)
 	label.Destroying:Connect(function()
-		destroyed = true
+		alive = false
+		textConn:Disconnect()
+		sizeConn:Disconnect()
 		scaleConn:Disconnect()
+		constraints[constraint] = nil
+		-- Symbol fitting can detach this constraint from the label. Dispose it too.
+		if constraint.Parent == nil then
+			constraint:Destroy()
+		end
 	end)
 	refit()
 end

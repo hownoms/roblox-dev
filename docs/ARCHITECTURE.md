@@ -122,9 +122,9 @@ Boosts { [boostId] = expiresUnix }, PlayTime, FirstJoin, Version
 Game pass ownership is NOT persisted in PlayerData — query `MarketplaceService` and cache.
 
 ## Monetization (Config.Monetization, ids are 0 placeholders until the owner creates them)
-Game passes: VIP, 2x Sand, Sell Anywhere, Auto Dig, Lucky (2x treasure luck), Triple Hatch,
-+Pet Slots, Mega Backpack. Developer products: coin packs, 15-min boosts (2x sand, 2x luck),
-Skip-Rebirth, egg hatches. All purchases granted through one `ProcessReceipt` with
+Game passes: VIP, 2x Sand, Sell Anywhere, Auto Dig, Turbo Shovel (v2.3, replaced Lucky), Triple
+Hatch, +Pet Slots, Mega Backpack. Developer products: coin packs, 2x Sand (15 min), Skip-Rebirth
+(v2.3: no egg or luck products; see docs/CHANGELOG.md v2.3). All purchases granted through one `ProcessReceipt` with
 idempotent purchase history in DataStore. Premium players get a small perk (+10% sand)
 and the server uses `Players.PlayerMembershipChanged`.
 

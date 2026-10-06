@@ -22,9 +22,9 @@
 	cube is clamped to the dig zone so the zone walls and the floor never break.
 	Success: sand (Stats; opts.SandMultiplier replaces the shovel factor) into the backpack
 	(capped at capacity), tide/anti-cheat bookkeeping (BeachService.RecordCarve), MaxDepth via
-	BeachService.ReportDig, treasure roll (layer chance x luck, capped), ServerSignals.Dug
-	(player, depth, gained, source) and a DigResult to the player unless opts.Silent.
-	The 8th dig of a brand-new player's first session always finds a Common treasure (GDD §8).
+	BeachService.ReportDig, ServerSignals.Carved(player, min, max, source, layerIndex) (v3: the
+	DiscoveryService uncovers buried finds from it; there is no per-dig treasure roll any more),
+	ServerSignals.Dug(player, depth, gained, source) and a DigResult unless opts.Silent.
 
 	Messages: the CLIENT shows every dig hint (too hard, backpack full, bottom...) from the
 	DigResult it receives, so the server sends no Notify for dig failures (no duplicates).
@@ -47,7 +47,6 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Stats = require(Shared.Util.Stats)
-local Weighted = require(Shared.Util.Weighted)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -69,7 +68,6 @@ local RIDE_RANGE = 64 -- "Ride": max studs from the vehicle (opts.Origin) to the
 local SURFACE_SLACK = 4 -- how far above the surface a dig point may be
 local BOTTOM_FLOOR = 2 -- studs of indestructible floor kept at the bottom of the world
 local EDGE_SLACK = 1 -- dig points may be this far outside the footprint (surface rounding)
-local FTUE_TREASURE_DIG = 8
 local AUTO_TICK = 0.05
 local FAIL_RESULT_INTERVAL = 0.2 -- Shovel: min seconds between failure DigResults
 local AUTO_FAIL_INTERVAL = 1.5 -- Auto: min seconds between failure DigResults
@@ -84,11 +82,9 @@ local TOTAL_DEPTH = ZONE.Size.Y
 local DigService = {}
 
 local terrain = Workspace.Terrain
-local rng = Random.new()
 
 local lastDig: { [Player]: number } = {}
 local lastFailResult: { [Player]: number } = {}
-local sessionDigs: { [Player]: number } = {}
 
 local function baseResult(position: Vector3): Types.DigResult
 	return {
@@ -218,50 +214,6 @@ local function hasSolidTerrainNear(position: Vector3): boolean
 		end
 	end
 	return false
-end
-
-local function rollTreasure(
-	player: Player,
-	data: Types.PlayerData,
-	ctx: Stats.Context,
-	layerIndex: number
-): Types.TreasureDef?
-	local layer = Config.Layers[layerIndex]
-	local digs = sessionDigs[player] or 0
-	local forced = digs == FTUE_TREASURE_DIG and next(data.Index) == nil
-	if forced then
-		for _, entry in layer.LootTable do
-			local def = Config.GetTreasure(entry.TreasureId)
-			if def and def.Rarity == "Common" then
-				return def
-			end
-		end
-	end
-	if rng:NextNumber() >= Stats.GetTreasureChance(ctx, layerIndex) then
-		return nil
-	end
-	local luck = Stats.GetLuck(ctx)
-	local entry = Weighted.Pick(layer.LootTable, function(e: Types.LootEntry): number
-		local def = Config.GetTreasure(e.TreasureId)
-		return Stats.LuckWeight(e.Weight, if def then def.Rarity else nil, luck)
-	end, rng:NextNumber())
-	return if entry then Config.GetTreasure(entry.TreasureId) else nil
-end
-
-local function awardTreasure(player: Player, treasure: Types.TreasureDef)
-	DataService.Mutate(player, { "Treasures", "Index" }, function(d)
-		d.Treasures[treasure.Id] = (d.Treasures[treasure.Id] or 0) + 1
-		d.Index[treasure.Id] = true
-	end)
-	Net.FireClient("TreasureFound", player, treasure.Id, treasure.Rarity)
-	local rarity = Config.GetRarity(treasure.Rarity)
-	if rarity and rarity.Announce then
-		Net.NotifyAll(
-			"Announce",
-			string.format("%s found a %s %s!", player.DisplayName, string.upper(treasure.Rarity), treasure.Name)
-		)
-	end
-	ServerSignals.TreasureFound:Fire(player, treasure.Id)
 end
 
 local function fail(
@@ -395,7 +347,6 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	if not companion then
 		lastDig[player] = now
 	end
-	sessionDigs[player] = (sessionDigs[player] or 0) + 1
 	local carvedMin, carvedMax = carve(target, opts.Radius)
 	BeachService.RecordCarve(carvedMin, carvedMax)
 
@@ -412,9 +363,11 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	end)
 	local newRecord, newLayer = BeachService.ReportDig(player, depth)
 
-	local treasure = rollTreasure(player, data, ctx, layerIndex)
-	if treasure then
-		awardTreasure(player, treasure)
+	-- v3 discovery: finds come from buried deposits (DiscoveryService listens to Carved: uncover,
+	-- ownership, excavation, plus a tiny ambient junk chance). No per-dig treasure roll here.
+	-- Silent digs (pets, /stress bots) never produce finds or popups for the player.
+	if not opts.Silent then
+		ServerSignals.Carved:Fire(player, carvedMin, carvedMax, source, layerIndex)
 	end
 
 	result.Success = true
@@ -422,7 +375,6 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	result.Sand = data.Sand
 	result.NewMaxDepth = newRecord
 	result.NewLayer = newLayer
-	result.TreasureId = if treasure then treasure.Id else nil
 	if not opts.Silent then
 		Net.FireClient("DigResult", player, result)
 	end
@@ -523,7 +475,6 @@ end
 function DigService.OnPlayerRemoving(player: Player)
 	lastDig[player] = nil
 	lastFailResult[player] = nil
-	sessionDigs[player] = nil
 end
 
 return DigService

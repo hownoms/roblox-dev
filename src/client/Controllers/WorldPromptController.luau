@@ -3,12 +3,11 @@
 	WorldPromptController — map stations open UI. Parts tagged ShovelShop / BackpackShop /
 	EggShop / RebirthStatue carry a ProximityPrompt; Triggered opens the matching panel.
 	EggShop pedestals (and their prompt) carry attribute "EggId" -> egg panel focuses that egg.
-	Tagged parts may stream in late, so we use GetTagged + GetInstanceAddedSignal and also
-	watch for prompts added under a tagged part later.
+	v2.3 streaming: Util/Tagged.WatchPrompts handles parts that stream in late, prompts that
+	arrive after their part, and stream-outs (connections are dropped with the instance).
 ]]
-local CollectionService = game:GetService("CollectionService")
-
 local Panel = require(script.Parent.Parent.UI.Components.Panel)
+local Tagged = require(script.Parent.Parent.Util.Tagged)
 
 local WorldPromptController = {}
 
@@ -34,46 +33,11 @@ local OPENERS: { [string]: Opener } = {
 	end,
 }
 
-local hooked: { [ProximityPrompt]: boolean } = {}
-
-local function hookPrompt(tag: string, inst: Instance, prompt: ProximityPrompt)
-	if hooked[prompt] then
-		return
-	end
-	hooked[prompt] = true
-	prompt.Triggered:Connect(function()
-		OPENERS[tag](inst, prompt)
-	end)
-	prompt.Destroying:Connect(function()
-		hooked[prompt] = nil
-	end)
-end
-
-local function hookTagged(tag: string, inst: Instance)
-	if inst:IsA("ProximityPrompt") then
-		hookPrompt(tag, inst, inst)
-		return
-	end
-	for _, d in inst:GetDescendants() do
-		if d:IsA("ProximityPrompt") then
-			hookPrompt(tag, inst, d)
-		end
-	end
-	inst.DescendantAdded:Connect(function(d: Instance)
-		if d:IsA("ProximityPrompt") then
-			hookPrompt(tag, inst, d)
-		end
-	end)
-end
-
 function WorldPromptController.Init()
-	for tag in OPENERS do
-		for _, inst in CollectionService:GetTagged(tag) do
-			task.spawn(hookTagged, tag, inst)
-		end
-		CollectionService:GetInstanceAddedSignal(tag):Connect(function(inst: Instance)
-			hookTagged(tag, inst)
-		end)
+	for tag, opener in OPENERS do
+		-- v2.3 streaming: stations stream in late, out, and back in as new instances; Tagged
+		-- hooks every arrival and disconnects on InstanceRemoved.
+		Tagged.WatchPrompts(tag, opener)
 	end
 end
 

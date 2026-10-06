@@ -4,20 +4,29 @@
 	billboard marker over it. Several systems can request a guide (tutorial, "backpack full",
 	"too hard"); the highest priority request wins.
 
-		Guide.Set("Tutorial", target, 10, "⬇️")   -- target: BasePart | Vector3 | nil
+		Guide.Set("Tutorial", target, 10, "⬇️")   -- target: BasePart | Vector3 | TagTarget | nil
 		Guide.Clear("Tutorial")
+
+	v2.3 streaming: stations far away are not on the client. FindTagged(tag) returns a TagTarget
+	({ Tag = tag }) that is resolved EVERY FRAME: the nearest streamed-in part with the tag if
+	there is one, else the nearest server-published anchor position (Util/Anchors). So a beam
+	from the bottom of a hole to the sell stand still points the right way, and it locks onto the
+	real part as soon as it streams in (a new instance after every stream-out). A BasePart target
+	that streams out falls back to its last known position.
 ]]
-local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Character = require(script.Parent.Parent.Util.Character)
+local Tagged = require(script.Parent.Parent.Util.Tagged)
+local Anchors = require(script.Parent.Parent.Util.Anchors)
 
 local GuideController = {}
 
-export type Target = BasePart | Vector3
+export type TagTarget = { Tag: string }
+export type Target = BasePart | Vector3 | TagTarget
 
-type Request = { Target: Target, Priority: number, Marker: string, Expires: number? }
+type Request = { Target: Target, Priority: number, Marker: string, Expires: number?, LastPosition: Vector3? }
 
 local requests: { [string]: Request } = {}
 local beam: Beam? = nil
@@ -27,37 +36,37 @@ local marker: BillboardGui? = nil
 local markerLabel: TextLabel? = nil
 local activeKey: string? = nil
 
-local function targetPosition(target: Target): Vector3?
+local function partTop(part: BasePart): Vector3
+	return part.Position + Vector3.new(0, part.Size.Y / 2, 0)
+end
+
+-- World position of a target right now (nil = nothing known). `from` picks the nearest of many.
+function GuideController.Resolve(target: Target, from: Vector3?): Vector3?
 	if typeof(target) == "Vector3" then
 		return target
 	end
-	local part = target :: BasePart
-	if part.Parent then
-		return part.Position + Vector3.new(0, part.Size.Y / 2, 0)
+	if typeof(target) == "Instance" then
+		local part = target :: BasePart
+		return if part:IsDescendantOf(Workspace) then partTop(part) else nil
 	end
-	return nil
+	local tag = (target :: TagTarget).Tag
+	local part = Tagged.Nearest(tag, from)
+	local anchor = Anchors.Nearest(tag, from)
+	if part and anchor and from then
+		-- a nearer station may exist that has not streamed in: prefer the nearer of the two
+		local top = partTop(part)
+		return if (anchor - from).Magnitude + 1 < (top - from).Magnitude then anchor else top
+	end
+	return if part then partTop(part) else anchor
 end
 
--- Nearest BasePart carrying `tag` (or inside a tagged Model) to `from`.
-function GuideController.FindTagged(tag: string, from: Vector3?): BasePart?
-	local best: BasePart? = nil
-	local bestDistance = math.huge
-	for _, inst in CollectionService:GetTagged(tag) do
-		local part: BasePart? = nil
-		if inst:IsA("BasePart") then
-			part = inst
-		elseif inst:IsA("Model") then
-			part = inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart", true)
-		end
-		if part then
-			local distance = if from then (part.Position - from).Magnitude else 0
-			if distance < bestDistance then
-				best = part
-				bestDistance = distance
-			end
-		end
+-- A guide target for the nearest station carrying `tag` (streamed in or not), or nil when the
+-- tag exists nowhere (no streamed part and no published anchor).
+function GuideController.FindTagged(tag: string, from: Vector3?): Target?
+	if Tagged.Nearest(tag, from) or Anchors.Nearest(tag, from) then
+		return { Tag = tag } :: TagTarget
 	end
-	return best
+	return nil
 end
 
 local function ensureVisuals()
@@ -164,7 +173,12 @@ function GuideController.Init()
 		t += dt
 		local key, found = pickActive()
 		local maybeRoot = Character.GetRoot()
-		local maybePosition = if found then targetPosition(found.Target) else nil
+		local maybePosition: Vector3? = nil
+		if found then
+			maybePosition = GuideController.Resolve(found.Target, if maybeRoot then maybeRoot.Position else nil)
+				or found.LastPosition -- a part target streamed out: keep its last known spot
+			found.LastPosition = maybePosition
+		end
 		if not (found and maybeRoot and maybePosition) then
 			setVisible(false)
 			activeKey = nil

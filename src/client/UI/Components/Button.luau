@@ -184,6 +184,7 @@ function Button.new(props: ButtonProps): Button
 
 	local button: Button
 	local pressed = false
+	local focused = false
 
 	local function press(down: boolean)
 		if down == pressed then
@@ -230,9 +231,15 @@ function Button.new(props: ButtonProps): Button
 		end
 	end)
 	face.SelectionGained:Connect(function()
+		focused = true
+		faceStroke.Color = Style.Colors.Gold
+		faceStroke.Thickness = 4
 		Style.Tween(hoverScale, 0.15, { Scale = 1.06 }, Enum.EasingStyle.Back)
 	end)
 	face.SelectionLost:Connect(function()
+		focused = false
+		faceStroke.Color = Style.Colors.Stroke
+		faceStroke.Thickness = 3
 		Style.Tween(hoverScale, 0.12, { Scale = 1 })
 	end)
 	face.Activated:Connect(activate)
@@ -258,6 +265,7 @@ function Button.new(props: ButtonProps): Button
 		face.BackgroundColor3 = c
 		shadow.BackgroundColor3 = Style.Darken(c, 0.45)
 		faceStroke.Transparency = if enabled then 0 else 0.25
+		faceStroke.Color = if focused then Style.Colors.Gold else Style.Colors.Stroke
 		gloss.Visible = enabled
 	end
 

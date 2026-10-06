@@ -220,6 +220,10 @@ local function spawnRide(player: Player)
 	local pivot = levelPivot(spot, root.CFrame.LookVector)
 	pivot = pivot + Vector3.new(0, RideMath.GroundY(pivot) - pivot.Position.Y, 0)
 	model:PivotTo(pivot)
+	-- v2.3 streaming: the rider always has the whole vehicle (it owns its physics); everyone else
+	-- streams it in and out as one unit.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.PersistentPerPlayer
+	model:AddPersistentPlayer(player)
 	model.Parent = getFolder()
 
 	local ride: Ride = {

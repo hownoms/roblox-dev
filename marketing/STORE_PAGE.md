@@ -83,7 +83,7 @@ Answer honestly. These are the expected answers for the game *as built*. Re-chec
 | Strong language | **No** | Chat uses Roblox filtering. |
 | Alcohol / drugs / tobacco | **No** | |
 | Gambling (real-money) | **No** | |
-| **Paid random items** | **Yes** | The *Golden Egg* is a random pet bought with Robux. Odds are shown in the egg UI for every egg (required). |
+| **Paid random items** | **Yes (indirect only, v2.3)** | No Robux item buys a random outcome or luck directly: the Golden Egg costs Rebirth Tokens, and the Lucky pass and 2x Luck product were removed. Coin packs and Skip Rebirth buy currency that can hatch eggs and crates, which is why we still answer *Yes*. The egg UI shows true odds for every egg, including any free luck boosts (required). These items are hidden for accounts whose Roblox policy restricts paid random items. |
 | Social hangout / free-form user creation | **No** | |
 | Free-form voice/text beyond Roblox chat | **No** | |
 
@@ -180,7 +180,8 @@ hooks. Title formula: `<hook> #roblox #robloxsimulator #digtothecore`.
 - [ ] Maturity questionnaire done, label = Minimal, paid random items disclosed, egg odds visible in-game
 - [ ] Social links: Roblox group (and Discord/YouTube/X, 13+ rules)
 - [ ] 10 badges created, ids in config, each one awarded correctly in a test server
-- [ ] Game passes and dev products created, ids pasted into `Config/Monetization.luau`, prices as GDD §7
+- [ ] Game passes and dev products created, ids pasted into `Config/Monetization.luau`, prices as the README table (v2.3)
+- [ ] After launch: Roblox Managed Pricing turned on for developer products
 - [ ] `GROUP_ID` set, group bonus tested with a member and a non-member account
 - [ ] Private servers enabled (50–100 R$/month)
 

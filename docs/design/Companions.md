@@ -173,12 +173,12 @@ item**. Every one shows the player's real odds, with every active modifier appli
   - The server rolls with `RollHatch`, which is `Weighted.Pick` over `GetHatchOddsList`.
   - `EggPanel` shows `GetHatchOddsList` with `Stats.GetLuck(State.GetStatsContext())` and
     `PlayerData.Pity[egg]`. The two can't diverge.
-- **Luck** (Lucky pass x2, VIP x1.25, 2x Luck boost, Luck events) multiplies the weight of every
+- **Luck** (2x Luck boost from quests, daily rewards and codes, and Luck events; since v2.3 no pass sells luck) multiplies the weight of every
   non-Common pet.
 - **What the panel shows:**
   - Odds are shown as `Format.Chance` values: 60%, 12.5%, 1.9%, 0.5%, 0.05%.
   - A gold note under the header lists the modifiers, e.g.
-    "Includes your luck x4: Lucky Shovel x2, 2x Luck x2".
+    "Includes your luck x2: 2x Luck x2".
   - The odds refresh on pass, boost, event and pity changes, and every second while the panel
     is open.
 - **Reveal:** `EggHatched(petIds, { EggId, Chances, Pity })`. The hatch reveal shows a CHANCE row

@@ -4,7 +4,7 @@
 	SurvivalHUD and BeachShopPanel call into it.
 
 	- Map prompts: parts tagged "WaterFountain" -> DrinkFountain remote, "BeachShop" -> opens
-	  Panel "BeachShop" (prompts may stream in late; GetTagged + added signals).
+	  Panel "BeachShop" (v2.3: streaming-safe prompt hooks via Util/Tagged).
 	- Keybinds: 1 / 2 / 3 use the consumable quick-slots, F starts / stops shade placement.
 	- Quick-slots: the (up to) 3 best owned consumables, cheapest first.
 	- Reads the server's player attributes: Heat, Sunburnt, InShade, HeatZone, HeatGrace.
@@ -32,6 +32,7 @@ local State = require(script.Parent.State)
 local SoundController = require(script.Parent.SoundController)
 local PlacementController = require(script.Parent.PlacementController)
 local Panel = require(script.Parent.Parent.UI.Components.Panel)
+local Tagged = require(script.Parent.Parent.Util.Tagged)
 
 local SurvivalController = {}
 
@@ -120,6 +121,7 @@ end
 function SurvivalController.GetMyShades(): { Model }
 	local list = {}
 	for _, inst in CollectionService:GetTagged("PlacedShade") do
+		-- v2.3: own shades are PersistentPerPlayer on the server, so they never stream out for us
 		if inst:IsA("Model") and inst:GetAttribute("OwnerUserId") == localPlayer.UserId and inst.Parent then
 			table.insert(list, inst)
 		end
@@ -147,38 +149,6 @@ local OPENERS: { [string]: () -> () } = {
 	end,
 }
 
-local hooked: { [ProximityPrompt]: boolean } = {}
-
-local function hookPrompt(tag: string, prompt: ProximityPrompt)
-	if hooked[prompt] then
-		return
-	end
-	hooked[prompt] = true
-	prompt.Triggered:Connect(function()
-		OPENERS[tag]()
-	end)
-	prompt.Destroying:Connect(function()
-		hooked[prompt] = nil
-	end)
-end
-
-local function hookTagged(tag: string, inst: Instance)
-	if inst:IsA("ProximityPrompt") then
-		hookPrompt(tag, inst)
-		return
-	end
-	for _, d in inst:GetDescendants() do
-		if d:IsA("ProximityPrompt") then
-			hookPrompt(tag, d)
-		end
-	end
-	inst.DescendantAdded:Connect(function(d: Instance)
-		if d:IsA("ProximityPrompt") then
-			hookPrompt(tag, d)
-		end
-	end)
-end
-
 -- Init ----------------------------------------------------------------------------------------------
 
 function SurvivalController.Init()
@@ -187,12 +157,10 @@ function SurvivalController.Init()
 	end
 	initialized = true
 
-	for tag in OPENERS do
-		for _, inst in CollectionService:GetTagged(tag) do
-			task.spawn(hookTagged, tag, inst)
-		end
-		CollectionService:GetInstanceAddedSignal(tag):Connect(function(inst: Instance)
-			hookTagged(tag, inst)
+	for tag, opener in OPENERS do
+		-- v2.3 streaming-safe: late stream-in, stream-out cleanup (Util/Tagged)
+		Tagged.WatchPrompts(tag, function()
+			opener()
 		end)
 	end
 

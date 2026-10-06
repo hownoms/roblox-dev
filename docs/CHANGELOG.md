@@ -125,7 +125,110 @@ Based on the owner's research on top Roblox simulators and tycoons. The plan:
   "Friends +X%" chip and the Invite button (Settings) make the friend bonus visible; invites give
   no reward because they can't be verified.
 
-## v2.2 playtest fixes
+## v2.3: platform (streaming, load testing, monetization cleanup)
+**Owner decisions** (from research on competing digging games and on Roblox policy):
+- **Streaming on.** Every client system has to work when parts stream in late, stream out, and come back as new instances.
+- **A `/stress` load test** so the owner can profile a 16-digger server with the MicroProfiler on a real Android phone.
+- **No paid randomness or paid luck.** Robux never buys a random outcome or a probability modifier directly.
+- **Prices raised** toward the competitor band (comparable passes sell for 175–750 R$).
+
+**Streaming** (`docs/PERFORMANCE.md` has the details):
+- **Workspace settings:**
+  - `StreamingEnabled`, MinRadius 64 and TargetRadius 320.
+  - `MinimumRadiusPause`, because of 1000-stud teleports out of holes.
+  - `StreamOutBehavior = Opportunistic`.
+- **New `Services/StreamingService`:**
+  - Publishes every station's position to `ReplicatedStorage.WorldAnchors.<Tag>` (`Count`, `P1..Pn`). These attributes always replicate.
+  - Makes every station's Model `Atomic`.
+- **Rides and shades** are `PersistentPerPlayer` for their owner.
+- **Client:**
+  - New `Util/Tagged` (Watch / WatchPrompts / Nearest), which also cleans up on InstanceRemoved, and new `Util/Anchors`.
+  - World prompts, Survival prompts and crate-yard prompts use `Tagged`.
+  - Guide beams resolve a tag target every frame and fall back to the anchor. The beam from the bottom of a hole to the sell stand now works.
+  - Nameplates re-attach to a streamed-in Head every 0.5 s.
+- **Tests:**
+  - `Mock.StreamOut` / `Mock.StreamIn` simulate streaming, and the mock now fires `InstanceRemoved`.
+  - New client "streaming" section.
+
+**/stress** (Studio only, `DevCommands`):
+- Spawns N (default 15) `StressBot_i` dummies. Each has the top shovel and 3 top digging pets, and digs through the real `DigService.DigAt` at the shovel's cooldown.
+- Prints digs/s, terrain edits/s, heartbeat avg/max, memory and send kbps every 10 s.
+- `/stress stop` removes the bots and refills the holes.
+
+**Monetization:**
+
+| Item | Before | After |
+|---|---|---|
+| VIP | 249 R$; +25% sand, **+25% luck** | 349 R$; +25% sand, **+10% sell coins** (`CoinMultiplier`), 2 shades. The description no longer promises a chat tag or lounge that were never built |
+| 2x Sand | 299 | 399 |
+| Sell Anywhere | 149 | 249 |
+| Auto Dig | 199 | 299 |
+| Lucky Shovel (x2 luck) | 149 | **removed** (paid probability modifier) |
+| Turbo Shovel (+25% dig speed) | – | **new**, 249 |
+| Triple Hatch | 99 | 249 |
+| +2 Pet Slots | 199 | 349 |
+| Mega Backpack | 129 | 299 |
+| Coins S/M/L/XL | 25/99/299/799 | 49/149/399/999 |
+| 2x Sand (15 min) | 35 | 49 |
+| 2x Luck (15 min) | 35 | **removed** |
+| Golden Egg / 3 Golden Eggs | 79 / 199 R$ | **removed**; the Golden Egg now costs **10 Rebirth Tokens** (same pets and odds) |
+| Skip Rebirth | 199 | 199 |
+
+- **Config rules at require time:** no pass may have `LuckMultiplier`, no product may grant an egg or a Luck boost, and no egg may cost Robux.
+- **Free luck stays:** Luck events, the Lucky Digger perk, and 2x Luck from quests, daily rewards and codes.
+- **Prices in the store:** the store and the Skip button show the live Creator Hub price (`PurchaseController.GetPrice`, via `GetProductInfo`) and fall back to the config price.
+- **Owner:** turn on Roblox Managed Pricing for developer products after launch.
+- **Why Turbo Shovel:** it fills the Lucky pass slot with a deterministic perk.
+- **Why VIP gets +10% sell coins:** it is a visible, non-random replacement for the luck. VIP already had the extra shade slot.
+
+## v3-slice: Discovery (buried finds, detector, excavation)
+**Owner direction (research on DIG / Dig it! / Mining Simulator 2):** discovery, not sand, made
+DIG peak highest. Treasures stop being a dice roll on every dig and become the main event; sand
+stays the steady background income. This is a **vertical slice to playtest** before the museum,
+co-op and events are built on it. Full design, numbers and odds tables: `docs/design/Discovery.md`.
+
+**What was built:**
+- **Buried deposits.** `DiscoveryService` keeps hidden deposits as pure server data in a chunk
+  hash over the dig zone (32 × 16 × 32 studs, seeded lazily, capped per chunk and per server,
+  regrown and evicted over time). Each deposit holds a treasure from its layer's loot table, or
+  a rare **Relic**. A dig whose carve comes within 3 studs of a deposit uncovers it. The digger
+  owns the excavation; everyone else sees it. Only your own shovel and Auto Dig digs find things:
+  pets, the ride-on, /stress bots and any `Silent` dig never do.
+- **No more per-dig treasure roll** (DigService). It fires `ServerSignals.Carved` instead. A tiny
+  ambient chance of a Common remains as popcorn, and the FTUE's guaranteed first treasure is now
+  a guaranteed first *find* on dig 6.
+- **Detector.** The free **Scan** button (bottom row; F / gamepad Y) pings for 6 s. The radar
+  button shows distance band, direction, DOWN/UP and signal colour (white / gold / purple), with
+  a beep that speeds up and an arrow at your feet. The server only ever sends coarse bands,
+  never positions.
+- **Excavation minigame.** Three timed taps on shrinking rings set the quality (Damaged / Good /
+  Pristine = ×0.6 / ×1 / ×1.5). Misses never lose the item. The server grades the timings,
+  caps impossibly fast answers at Good and times out to Damaged.
+- **Variants:** size (Tiny / Normal / Large / Giant) and material (None / Golden / Fossilized /
+  Crystal), rolled at uncover with the owner's luck. The true odds are shown in the Index.
+  Value = base × size × material × quality.
+- **Rarity you feel.** There are 5 presentation tiers (Pop / Beam / Card / Server / Spectacle).
+  Mythic and Relic get a server-wide announcement plus a sky beam on a streaming-persistent
+  model. New rarity **Relic** (Order 7) with two items: A.D.'s Sun Compass and Heart of the Tide.
+- **Collection.** `PlayerData.Finds` holds unsold finds by variant and `PlayerData.FindVariants`
+  holds the Index checkmarks. Index cards show variant pills, and the header shows the odds line.
+  `DATA_VERSION` 3 migrates unsold `Treasures` into `Finds`.
+- **Analytics:** funnel steps 19–21 (FirstFind, FirstRareFind, FirstPerfectExcavation) and
+  custom event `Find`.
+
+**Decisions and why:**
+- **Variants are rolled at uncover, the treasure at seeding.** The detector has to hint the tier
+  before you dig, and rolling the variant late lets the uncovering player's luck apply with
+  true, displayable odds.
+- **Quality is checked loosely.** It only scales value (at most +50% from cheating), so the
+  server re-grades the reported timings and rate-limits rather than trying to verify taps.
+- **Density was calibrated in the headless test**, not guessed: about one find per 33–45 s
+  standing still with the starter spade. Deeper layers scale by 1 ÷ shovel sweep so big shovels
+  don't chain finds.
+
+## Playtest fixes (v2.2 Studio session)
+Found playing v2.2; merged on top of v2.3/v3 and the visual polish pass. The visual polish
+pass also raised the towel fabric to stop it flickering against the sand (a separate issue).
 
 | Problem seen in Studio | Cause | Fix |
 |---|---|---|
@@ -141,6 +244,9 @@ Based on the owner's research on top Roblox simulators and tycoons. The plan:
 2. **Untrusted clicks:** never trust a client position to be inside solid terrain; resolve it on the server.
 3. **Emoji in text:** never put emoji in `TextScaled` labels; use `AtlasIcon` or `Style.Icon`.
 4. **Sounds:** only built-ins we've verified load, plus owned audio.
-5. **Paid randomness:** show true odds including every active modifier, and check `PolicyService`.
+5. **Paid randomness:** show true odds including every active modifier, and check `PolicyService`. Since v2.3, never sell a random outcome or luck for Robux directly; `Config` asserts it.
 6. **Studio check:** every gameplay change needs a playtest. Headless tests catch logic errors, not feel or visuals.
 7. **Agent edits:** agents edit only the files they own, plus small additive edits to shared files.
+8. **Finds come from deposits** (v3): don't add per-dig treasure rolls back. New find sources go
+   through `DiscoveryService` so ownership, odds (`Finds.VariantOdds`) and the Index stay consistent.
+8. **Streaming (v2.3):** never assume a Workspace part exists on the client. Use `Util/Tagged` for tags and `Util/Anchors` or Workspace attributes for far positions. Never call `WaitForChild` on Workspace content without a timeout. Test with `Mock.StreamOut` / `StreamIn`.
