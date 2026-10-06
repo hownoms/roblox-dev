@@ -25,12 +25,18 @@ local function centerOf(gui: GuiObject): Vector2
 end
 
 local function lowGraphics(): boolean
-	return State.GetSetting("LowGraphics", false) == true
+	return State.GetSetting("LowGraphics", false) == true or State.GetSetting("ReducedMotion", false) == true
 end
 
 -- Icons (AtlasIcon keys) burst out from `from` (design px; default screen centre) and fly
 -- into `target`.
 function UIEffects.FlyTo(icon: string, target: GuiObject, count: number?, from: Vector2?, onArrive: (() -> ())?)
+	if State.GetSetting("ReducedMotion", false) == true then
+		if onArrive then
+			onArrive()
+		end
+		return
+	end
 	local c = canvas()
 	local start = from or (c.AbsoluteSize / Root.Scale) / 2
 	local finish = centerOf(target)
@@ -94,7 +100,9 @@ function UIEffects.FloatFrom(target: GuiObject, text: string, color: Color3?)
 		Parent = c,
 	})
 	Style.PopIn(label, 0.25)
-	Style.Tween(label, 1.1, { Position = UDim2.fromOffset(pos.X + 6, pos.Y - 40) }, Enum.EasingStyle.Quad)
+	if State.GetSetting("ReducedMotion", false) ~= true then
+		Style.Tween(label, 1.1, { Position = UDim2.fromOffset(pos.X + 6, pos.Y - 40) }, Enum.EasingStyle.Quad)
+	end
 	task.delay(0.7, function()
 		Style.Tween(label, 0.4, { TextTransparency = 1 })
 		local stroke = label:FindFirstChildOfClass("UIStroke")
@@ -106,6 +114,9 @@ function UIEffects.FloatFrom(target: GuiObject, text: string, color: Color3?)
 end
 
 function UIEffects.Flash(color: Color3?, strength: number?)
+	if State.GetSetting("ReducedMotion", false) == true then
+		return
+	end
 	local c = canvas()
 	local flash = Instance.new("Frame")
 	flash.Name = "Flash"
@@ -121,6 +132,9 @@ function UIEffects.Flash(color: Color3?, strength: number?)
 end
 
 function UIEffects.Confetti(count: number?, colors: { Color3 }?)
+	if State.GetSetting("ReducedMotion", false) == true then
+		return
+	end
 	local c = canvas()
 	local size = c.AbsoluteSize / Root.Scale
 	local palette: { Color3 } = colors

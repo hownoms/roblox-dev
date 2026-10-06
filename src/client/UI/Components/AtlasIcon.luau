@@ -253,6 +253,22 @@ function AtlasIcon.new(props: AtlasIconProps): AtlasIcon
 
 	local image: ImageLabel? = nil
 	local emojiLabel: TextLabel? = nil
+	local usesAtlas = false
+	local loadConnection: RBXScriptConnection? = nil
+	local function syncLoaded()
+		local loaded = usesAtlas and image ~= nil and image.IsLoaded
+		if image then
+			image.Visible = loaded
+		end
+		if emojiLabel then
+			emojiLabel.Visible = not loaded
+		end
+	end
+	frame.Destroying:Once(function()
+		if loadConnection then
+			loadConnection:Disconnect()
+		end
+	end)
 
 	local self: AtlasIcon
 	self = {
@@ -262,6 +278,17 @@ function AtlasIcon.new(props: AtlasIconProps): AtlasIcon
 			this.Key = icon
 			frame:SetAttribute("Icon", icon)
 			local offset, emoji = AtlasIcon.Resolve(icon)
+			usesAtlas = offset ~= nil
+			if not emojiLabel then
+				emojiLabel = Style.Icon({
+					Name = "Emoji",
+					Text = emoji,
+					Size = UDim2.fromScale(1, 1),
+					ZIndex = frame.ZIndex,
+					Parent = frame,
+				})
+			end
+			(emojiLabel :: TextLabel).Text = emoji
 			if offset then
 				local img = image
 				if not img then
@@ -274,16 +301,14 @@ function AtlasIcon.new(props: AtlasIconProps): AtlasIcon
 					made.Parent = frame
 					image = made
 					img = made
+					loadConnection = made:GetPropertyChangedSignal("IsLoaded"):Connect(syncLoaded)
 				end
 				local cell = cellSize()
 				local i = img :: ImageLabel
 				i.Image = atlas.AssetId
 				i.ImageRectOffset = offset
 				i.ImageRectSize = Vector2.new(cell, cell)
-				i.Visible = true
-				if emojiLabel then
-					emojiLabel.Visible = false
-				end
+				syncLoaded()
 			else
 				local label = emojiLabel
 				if not label then

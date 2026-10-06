@@ -29,6 +29,7 @@ local TOGGLES = {
 	{ Key = "Music", Label = "Music", Icon = "music", Default = true },
 	{ Key = "SFX", Label = "Sound Effects", Icon = "sfx", Default = true },
 	{ Key = "LowGraphics", Label = "Low Graphics", Icon = "settings|📱", Default = false },
+	{ Key = "ReducedMotion", Label = "Reduced Motion", Icon = "settings", Default = false },
 	{ Key = "ShowNameplates", Label = "Nameplates", Icon = "star", Default = true },
 	{ Key = "AutoDig", Label = "Auto Dig", Icon = "AutoDig", Default = false, NeedsPass = "AutoDig" },
 }

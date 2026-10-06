@@ -411,6 +411,56 @@ specials.mammoth_tusk = function(x)
 	return main, CFrame.Angles(0, 0.3, 0)
 end
 
+-- Relics have unique silhouettes; they must never read as the common coin/orb fallback.
+specials.sun_compass = function(x)
+	local brass = Color3.fromRGB(204, 149, 63)
+	local main = Build.cyl(x.m, "CompassCase", 0.24, 1.45, FACE_Z, brass, Enum.Material.Metal)
+	Build.cyl(x.m, "Dial", 0.035, 1.18, CF(0, 0, -0.145) * FACE_Z, Color3.fromRGB(28, 47, 66))
+	for k = 0, 7 do
+		local a = k * math.pi / 4
+		local p = V(math.sin(a) * 0.48, math.cos(a) * 0.48, -0.18)
+		Build.part(x.m, "DialMark", V(0.045, 0.13, 0.035), CF(p) * CFrame.Angles(0, 0, -a), brass, Enum.Material.Metal)
+	end
+	Build.tri(x.m, "DownNeedle", CF(0, -0.17, -0.22) * CFrame.Angles(0, 0, math.pi), 0.28, 0.62, 0.07, x.c, NEON)
+	Build.tri(x.m, "Counterweight", CF(0, 0.17, -0.21), 0.2, 0.35, 0.06, Color3.fromRGB(222, 90, 72))
+	Build.ball(x.m, "Axle", 0.16, CF(0, 0, -0.25), brass, Enum.Material.Metal)
+	Build.cyl(x.m, "Crown", 0.2, 0.26, CF(0, 0.8, 0), brass, Enum.Material.Metal)
+	for side = -1, 1, 2 do
+		Build.cylBetween(
+			x.m,
+			"ChainLoop",
+			V(side * 0.15, 0.82, 0),
+			V(side * 0.12, 1.03, 0),
+			0.07,
+			brass,
+			Enum.Material.Metal
+		)
+	end
+	Build.cylBetween(x.m, "ChainLoop", V(-0.12, 1.03, 0), V(0.12, 1.03, 0), 0.07, brass, Enum.Material.Metal)
+	return main, CFrame.Angles(0, 0.15, -0.12)
+end
+
+specials.tide_heart = function(x)
+	local pearl = Color3.fromRGB(226, 242, 226)
+	local teal = Color3.fromRGB(43, 121, 128)
+	local main = Build.ellipsoid(x.m, "ShellHeart", V(1.35, 1.1, 0.8), CF(), pearl)
+	-- Raised spiral follows a stylized shell face, with enough contrast to read at icon size.
+	local last: Vector3? = nil
+	for k = 0, 13 do
+		local t = k / 13
+		local a = t * math.pi * 3.3
+		local r = 0.08 + t * 0.5
+		local p = V(math.cos(a) * r, math.sin(a) * r * 0.8, -0.4 - 0.035 * (1 - t))
+		if last then
+			Build.cylBetween(x.m, "ShellSpiral", last, p, 0.07, teal)
+		end
+		last = p
+	end
+	Build.ellipsoid(x.m, "TidePearl", V(0.42, 0.5, 0.25), CF(0, 0, -0.46), x.c, NEON)
+	Build.tri(x.m, "ShellLip", CF(0, -0.58, -0.1) * CFrame.Angles(0, 0, math.pi), 0.65, 0.5, 0.28, pearl)
+	return main, CFrame.Angles(0, 0.25, 0.15)
+end
+
 local RAINBOW_GLOW = Color3.fromRGB(255, 230, 160)
 
 local FALLBACK: Types.TreasureLook = {
@@ -440,7 +490,7 @@ local function build(id: string, look: Types.TreasureLook, rarity: Types.Rarity)
 	if look.Glow then
 		Build.glow(main, if id == "beach_ball_of_creation" then RAINBOW_GLOW else look.Color, 1.3, 7)
 	end
-	if rarity == "Legendary" or rarity == "Mythic" then
+	if rarity == "Legendary" or rarity == "Mythic" or rarity == "Relic" then
 		Build.sparkle(main, Build.lighten(look.Color, 0.3), if rarity == "Mythic" then 10 else 5)
 	end
 	Build.weldAll(m, root)
