@@ -138,3 +138,12 @@ Paste this in the next chat:
 ## Authorized integration checkpoint, 7 October 2026
 
 Howard explicitly requested saving, documenting, pushing and merging the continuation. The integration includes checkpoint `ea6b437` (collection refinements, Reduced Motion pet behavior and all-layer scenery) plus the central scenery review/lintel support correction. Target base remains `claude/pensive-meitner-6jx4u4`. All outstanding release gates stay open and Roblox publication remains prohibited without a new instruction. The post-merge status below records the final repository state; older local/uncommitted statements describe their original checkpoint time.
+
+
+## Saved integration: PR #9 merged, 7 October 2026
+
+- PR #9 is merged: https://github.com/hownoms/roblox-dev/pull/9. Source checkpoint `c14c3281acb32636af38e06fc5e859b1c02f7ee4` includes prior `ea6b437`; merge commit `cc3de1974727b6d607abf0ee0c281ac877185508`. Howard explicitly authorized save, documentation, push and merge.
+- Local `claude/pensive-meitner-6jx4u4` was fast-forwarded to the merge. Continue from this updated base, preserving any later local/remote work. The continuation branch is preserved on origin.
+- Final source validation: 1,308 client / 2,144 normal server / 2,131 Studio-mode server / 8 utility checks pass. Client and utility were rerun for integration. GitHub returned no workflow runs or commit status checks; local checks and the recorded Studio review provide validation.
+- Central-family scenery review is 15/15; Shipwreck barrels and source-built Ancient Ruins lintels passed native retests. All 45 pockets/angles, normal gameplay scrutiny, dynamic fit/contact, complete unassisted sequence/audio and populated/device performance remain unfinished. Phone/controller hardware stays deferred. All remaining release gates stay open; nothing was published, uploaded or assigned new audio/badge IDs.
+- Next work follows the preceding continuation's final bullet. DigTest was stopped with Studio open and Rojo connected on port 34872; recheck live state before restarting. No need to repeat the static collection sweep.
