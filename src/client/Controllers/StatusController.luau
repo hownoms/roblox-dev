@@ -22,8 +22,12 @@
 	hidden by the engine) and re-applies the backpack fill when a new WornBackpack shows up, so
 	no state depends on CharacterAdded firing again.
 
+	Your own plate hides while a Reveal popup is up (SetOwnHidden, wired in Main.client): its
+	rarity headline sits right where your nameplate floats in the default camera.
+
 	API (tests): StatusController.StarsText(n), StatusController.Describe(player),
-	             StatusController.GetPlate(player): BillboardGui?, StatusController.Refresh()
+	             StatusController.GetPlate(player): BillboardGui?, StatusController.Refresh(),
+	             StatusController.SetOwnHidden(hidden)
 ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -104,6 +108,13 @@ local function enabled(): boolean
 	return State.GetSetting(SETTING, true) ~= false
 end
 
+local ownHidden = false
+
+-- Whether this player's plate shows right now (setting, and your own plate during reveals).
+local function plateOn(player: Player): boolean
+	return enabled() and not (ownHidden and player == Players.LocalPlayer)
+end
+
 local function getFolder(): Folder
 	if folder and folder.Parent then
 		return folder
@@ -152,7 +163,7 @@ local function render(player: Player)
 	-- name shifts right to make room for the tag pill
 	plate.Name.Position = if tag then UDim2.fromScale(0.29, 0.3) else UDim2.fromScale(0.02, 0.3)
 	plate.Name.Size = if tag then UDim2.fromScale(0.69, 0.36) else UDim2.fromScale(0.96, 0.36)
-	plate.Gui.Enabled = enabled()
+	plate.Gui.Enabled = plateOn(player)
 end
 
 local function setDefaultName(character: Model?, hidden: boolean)
@@ -289,8 +300,19 @@ end
 function StatusController.Refresh()
 	local on = enabled()
 	for player, plate in plates do
-		plate.Gui.Enabled = on
+		plate.Gui.Enabled = plateOn(player)
 		setDefaultName(player.Character, on)
+	end
+end
+
+function StatusController.SetOwnHidden(hidden: boolean)
+	if hidden == ownHidden then
+		return
+	end
+	ownHidden = hidden
+	local plate = plates[Players.LocalPlayer]
+	if plate then
+		plate.Gui.Enabled = plateOn(Players.LocalPlayer)
 	end
 end
 

@@ -55,6 +55,7 @@ export type Spec = {
 	OnClosed: (() -> ())?,
 }
 
+Reveal.Opened = Signal.new()
 Reveal.Closed = Signal.new()
 
 local C = Style.Colors
@@ -315,6 +316,7 @@ local pump: () -> ()
 
 local function show(spec: Spec)
 	showing = true
+	Reveal.Opened:Fire()
 	local canvas = Root.Get("Popups")
 	local compact = spec.Compact == true
 	local items = spec.Items

@@ -2429,6 +2429,20 @@ do
 	local d = StatusController.Describe(other)
 	check(d.Title == "Core Breaker" and d.Stars == "" and d.Tag == nil, "Describe(other)")
 
+	-- a reveal headline sits where your own plate floats: it hides only yours, only meanwhile
+	do
+		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
+		local mine = StatusController.GetPlate(me)
+		Mock.Advance(15)
+		check(mine ~= nil and mine.Enabled, "own nameplate shown before the reveal")
+		RevealUI.Show({ Headline = "EPIC!", Color = Mock.Env.Color3.new(1, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 2 })
+		Mock.Advance(0.3)
+		check(mine ~= nil and not mine.Enabled, "own nameplate hidden while a reveal is showing")
+		check(otherPlate ~= nil and otherPlate.Enabled, "other players' nameplates stay visible")
+		Mock.Advance(3)
+		check(not RevealUI.IsShowing() and mine ~= nil and mine.Enabled, "own nameplate returns after the reveal")
+	end
+
 	-- worn backpack sand level (client-side visual)
 	local pack = Models.Backpack(Config.Backpacks[1].Id)
 	pack.Name = "WornBackpack"
