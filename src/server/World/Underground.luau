@@ -135,7 +135,7 @@ local function landmark(model: Model, origin: Vector3, id: string)
 			for i = 0, 2 do
 				block("RuinsPillar", V(4 - i * 0.4, 4, 3), V(side * 9, 5 + i * 4, -4), cream)
 			end
-			block("BrokenLintel", V(7, 2, 3), V(side * 6, 18, -4), cream)
+			block("BrokenLintel", V(7, 2, 3), V(side * 6, 16, -4), cream)
 		end
 		block("StoneTablet", V(7, 7, 1), V(0, 6.5, -4), rgb(191, 157, 95))
 		for i = 0, 2 do

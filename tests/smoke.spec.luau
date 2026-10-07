@@ -421,6 +421,29 @@ local function checkSceneryProtected(context)
 				support = barrel
 			end
 		end
+		if model:GetAttribute("SceneryLayer") == "ancient_ruins" then
+			local lintels = 0
+			for _, lintel in model:GetChildren() do
+				if lintel.Name == "BrokenLintel" then
+					lintels += 1
+					local supported = false
+					for _, pillar in model:GetChildren() do
+						if pillar.Name == "RuinsPillar" then
+							local delta = lintel.Position - pillar.Position
+							if
+								math.abs(delta.Y - (lintel.Size.Y + pillar.Size.Y) / 2) < 0.01
+								and math.abs(delta.X) < (lintel.Size.X + pillar.Size.X) / 2
+								and math.abs(delta.Z) < (lintel.Size.Z + pillar.Size.Z) / 2
+							then
+								supported = true
+							end
+						end
+					end
+					check(supported, context .. ": broken lintel rests on a pillar: " .. model.Name)
+				end
+			end
+			check(lintels == 2, context .. ": ruins retain both broken lintels: " .. model.Name)
+		end
 		local air = Mock.GetVoxel(mid)
 		local support = Mock.GetVoxel(Vector3.new(mid.X, minV.Y - 2, mid.Z))
 		check(
