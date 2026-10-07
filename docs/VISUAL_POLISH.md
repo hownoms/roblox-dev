@@ -2,6 +2,8 @@
 
 For the latest saved branch, PR, verification results and next-chat instructions, read [POLISH_HANDOFF.md](POLISH_HANDOFF.md).
 
+The **7 October 2026 continuation** at the end records current local progress and supersedes historical entry-28 and six-alcove status statements; earlier reviews are preserved as dated evidence.
+
 Audited 6 October 2026 against repository revision `9cc921e`, existing icon artwork, and a Studio baseline playtest. This is a production checklist, not a claim that every model has passed close-up visual review.
 
 ## The direction
@@ -108,3 +110,16 @@ Native/detail review now covers all 14 tools and 13 backpacks at actual 48/120/2
 Latest client/server checks pass (1,299/1,091), affected strict/format/build/whitespace checks pass, and agent diff/lifecycle review found no actionable defect. The full ordered polish plan and remaining release gates remain unfinished; hardware remains deferred and the experience remains unpublished.
 
 Saved integration: PR #8 (https://github.com/hownoms/roblox-dev/pull/8) merged the native/detail checkpoint; implementation 1a8786e, merge 3319520. Local continuation uses claude/pensive-meitner-6jx4u4. All four suites pass on the final source. Resume at Pets entry 28; release gates stay open.
+
+## Continuation: collection, motion and all-layer scenery source, 7 October 2026
+
+- Fetched and checked the clean `affbe28` base on `claude/pensive-meitner-6jx4u4`; origin matched. Preserved intervening pose/avatar/crate/placement work. This continuation is saved on local `codex/polish-continuation` based on `affbe28`; no reset, push, publication, uploads or new audio/badge IDs.
+- Static collection review now covers **199/199 primary native views plus actual 48/120/240 px**, extending the complete contact-sheet pass and prior tools/backpacks coverage. All frames populated without edge clipping. Magma Golem/Star Golem body colors were lifted modestly, and Mole Machine's visor was raised above eye highlights and changed to darker SmoothPlastic. Fresh four-angle native/detail retests covered entries **54/61/80/93**. Shared-family treasure identities and Viewport SurfaceGui text limitations remain distinct from fitted geometry approval.
+- Reduced Motion now stops pet decorative idle bob, flying roll and drill spin while preserving following and gameplay actions. Live Mole Machine idle comparison showed position change 0 and orientation comparison approximately 1 with the setting on, versus 0.0267 and 0.9784 with it off. Moving fit and terrain/contact remain separate checks. Root R15 static backpack/shovel-grip review is in progress; all-body, strike/contact and ride fit are still open.
+- Ordinary-input DigTest review covered walking, mouse digging, a full 20-unit bag, Surface return, a 46-coin sale and Garden Trowel purchase/autoequip for 30 coins with 16 remaining. Scan/timed excavation, reveal-name clarity and audio listening are not certified. Subsequent `/pet` and `/max` were assisted setup.
+- All fifteen layers now have source scenery: **45 atomic groups / 798 BaseParts**, three per layer, 12–34 parts/group, one shadowless fill light each and no particles. New families use supported beach, shell/clay, wreck/fossil/stone, ice/ruins, magma/obsidian and alien/core silhouettes. Existing Pirate/Crystal shapes and lighting remain. Adaptive shallow-pocket heights keep scenery within its layer and protected inland wall; all-layer bounds, floor, maximum-radius carve and tide tests pass. **Actual-depth visual review of the new families is still in progress**, and client streaming/performance is not approved by part counts or mocks.
+- Combined checks pass: **1,308 client / 2,072 normal server / 2,059 Studio-mode server / 8 utility**, with affected strict analysis, formatting, builds and whitespace checks passing. Continue outstanding fit/motion and complete sequence/audio review, actual-depth scenery, then populated/device profiling. Hardware remains deferred without another request; real population/device budgets, owned audio, actual badges and faithful final store media stay open. No experience was published.
+
+### Final local save checkpoint
+
+See the final section of POLISH_HANDOFF.md for the exact restart procedure. All 27 tools/backpacks received actual R15 static worn/grip inspection; dynamic fit remains open. Assisted native depth review reached Frozen Abyss (central families 1–10/15). Shipwreck's floating upper barrel was lowered one stud and received a support regression; native retest remains first, followed by Ancient Ruins key 32 and the four deeper families. Studio/Rojo were closed at the final check. Final post-fix suites pass: 1,308 client / 2,108 normal server / 2,095 Studio-mode / 8 utility; affected strict/format/build/whitespace checks pass. No remaining release gate is closed by this save, and nothing was pushed or published.

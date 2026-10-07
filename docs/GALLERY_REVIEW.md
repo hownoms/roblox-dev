@@ -1,5 +1,15 @@
 # Collection review diagnostic — 6 October 2026
 
+## Current continuation coverage
+
+The systematic static native/detail sweep is now complete: **199/199 entries**, each with a primary native view and actual 48/120/240-pixel production previews in maximized Studio. This continuation covered Pets 28–83, full vehicles 84–96, ride 97, eggs 98–110, treasures 111–163, shade 164–170, consumables 171–177 and props 178–199. All frames populated without observed edge clipping. Earlier pending statements below describe historical checkpoints.
+
+Magma Golem and Star Golem had weak dark-body contrast at 48 px; their body colors were modestly lifted. Mole Machine's neon visor obscured eye highlights; the shared pet/full-vehicle visor is raised and matte. Fresh `build/CollectionPetRefinement.rbxlx` retests inspected entries 54, 61, 80 and 93 at exact preview sizes and four native angles. Eye separation and fitted frames are visible; native golem materials remain dark. Local evidence: `build/review/mole-native-refined.png` (ignored).
+
+The sweep also records identity limitations rather than approving every design: Crystal Bat uses a bird silhouette; Mermaid's Comb is a crystal cluster, Pirate Hook an anchor, Trilobite/Ammonite share a scallop shell, Dino Skull uses the skull family, Geode is closed, and several mineral/arrowhead/scale finds share crystal geometry. Native BoardwalkStall, Sign and SurfShack lettering is visible, while production Viewport previews omit their SurfaceGui text. Thin canopy posts, bench legs and Lamp pole remain subtle at 48 px.
+
+Static framing does not close worn backpack/avatar fit, shovel strike/contact, animated pet movement, ride seat/ground contact or live Reduced Motion review. Continue those through DigTest/Rojo before the unassisted sequence, scenery extension and profiling.
+
 Build `gallery.project.json` into `build/AssetGalleryReview.rbxlx`, open that isolated place in Studio, and press Play. Keep the owner's DigTest place for gameplay work.
 
 The native-size rows cover all configured tools, backpacks, pets, eggs, treasures, shades, consumables and listed props. Added rows separately cover every vehicle pet at full digger scale and every rideable pet using its actual ride builder. Both the world and preview interface read the same catalog so selection cannot drift from a separately maintained list.
@@ -42,3 +52,7 @@ D:/Tools/rojo.exe build gallery.project.json -o build/AssetGalleryReview.rbxlx
 - Latest isolated build: `build/CollectionReviewCheckpoint.rbxlx` (ignored). Production changes are in Config/Shovels, Models/Props and Models/Shovels; diagnostic changes in GalleryReview.client. These changes are committed as `1a8786e`, pushed on `codex/native-detail-polish`, and merged through PR #8 (`3319520`).
 - Validation: 1,299 client and 1,091 normal server checks passed again after the drill fix. The save checkpoint also reran 1,078 Studio-mode server and 8 utility checks successfully on the final geometry. Affected strict analysis, formatting, Rojo build and whitespace checks pass.
 - Worn fit, animated motion, remaining entries, unassisted sequence/audio listening, the other thirteen scenery layers and populated/device profiling remain open. Hardware remains deferred; no publication, uploads or audio/badge ID changes.
+
+## Local save: 7 October 2026
+
+All 13 backpacks and 14 tools additionally received actual R15 static worn/idle-grip inspection in DigTest. Backpacks were viewed obliquely, with Bucket also from the rear; widened framing retested the longest tool heads. This does not close dynamic motion/contact, other avatar bodies or ride fit. Static collection remains 199/199; no further collection sweep from Pets is needed. Resume using the final POLISH_HANDOFF.md stopping point on local `codex/polish-continuation`.

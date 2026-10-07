@@ -942,6 +942,99 @@ do
 		check(#Mock.Errors == e0, "PetDug animation runs without errors")
 	end
 	Mock.FireClientEvent("PetDug", player, 9, "unknown", root.Position, 1)
+	-- Decorative pet motion stops on a live setting toggle; follow and digging still work.
+	local savedPetMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", true)
+	player:SetAttribute("EquippedPets", "")
+	root.CFrame = CFrame.new(root.Position)
+	player:SetAttribute("EquippedPets", "mining_drill,seagull,sandy_crab")
+	Mock.Advance(0.05)
+	local motionPets = PetFollowController.GetVisuals(player)
+	local drillPet, flyingPet, walkingPet
+	for _, v in motionPets do
+		if v.Id == "mining_drill" then
+			drillPet = v
+		elseif v.Id == "seagull" then
+			flyingPet = v
+		else
+			walkingPet = v
+		end
+	end
+	local drillJoint
+	for _, d in drillPet.Model:GetDescendants() do
+		if d:IsA("Model") and (d:GetAttribute("Motion") == "Drill" or d:GetAttribute("Motion") == "Spin") then
+			drillJoint = d
+			break
+		end
+	end
+	local function jointPose()
+		return drillPet.Model:GetPivot():ToObjectSpace(drillJoint:GetPivot())
+	end
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.05)
+	local flyStill, walkStill, vehicleStill =
+		flyingPet.Model:GetPivot(), walkingPet.Model:GetPivot(), drillPet.Model:GetPivot()
+	local drillStill = jointPose()
+	Mock.Advance(0.1)
+	check(
+		(flyingPet.Model:GetPivot().Position - flyStill.Position).Magnitude < 0.001
+			and flyingPet.Model:GetPivot().UpVector:Dot(flyStill.UpVector) > 0.99999,
+		"reduced motion stops pet flight bob and roll"
+	)
+	check(
+		(walkingPet.Model:GetPivot().Position - walkStill.Position).Magnitude < 0.001,
+		"reduced motion stops ground creature idle bob"
+	)
+	check(
+		(drillPet.Model:GetPivot().Position - vehicleStill.Position).Magnitude < 0.001,
+		"reduced motion stops vehicle idle engine bob"
+	)
+	check(jointPose().RightVector:Dot(drillStill.RightVector) > 0.99999, "reduced motion freezes idle drill rotation")
+	Mock.Advance(0.05)
+	State.SetSetting("ReducedMotion", false)
+	local resumePose = jointPose()
+	local resumeFly = flyingPet.Model:GetPivot()
+	Mock.Advance(0.1)
+	check(
+		jointPose().RightVector:Dot(resumePose.RightVector) < 0.999,
+		"idle drill rotation resumes after disabling reduced motion"
+	)
+	check(
+		(flyingPet.Model:GetPivot().Position - resumeFly.Position).Magnitude > 0.01,
+		"pet flight bob resumes after disabling reduced motion"
+	)
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.02)
+	local toggledDrill = jointPose()
+	Mock.Advance(0.02)
+	check(
+		jointPose().RightVector:Dot(toggledDrill.RightVector) > 0.99999
+			and flyingPet.Model:GetPivot().UpVector.Y > 0.99999,
+		"enabling reduced motion immediately stops active idle drill spin and flight roll"
+	)
+	root.CFrame = CFrame.new(root.Position + Vector3.new(-8, 0, 0))
+	Mock.Advance(0.15)
+	check(
+		(drillPet.Model:GetPivot().Position - vehicleStill.Position).Magnitude > 0.1
+			and (flyingPet.Model:GetPivot().Position - flyStill.Position).Magnitude > 0.1,
+		"reduced motion preserves pet follow locomotion"
+	)
+	local actionPose = jointPose()
+	Mock.FireClientEvent(
+		"PetDug",
+		player,
+		drillPet.Slot,
+		drillPet.Id,
+		drillPet.Model:GetPivot().Position - Vector3.new(0, 1, 0) + Vector3.new(0, 0, -2.4),
+		12
+	)
+	Mock.Advance(0.25)
+	check(
+		jointPose().RightVector:Dot(actionPose.RightVector) < 0.999
+			or (jointPose().Position - actionPose.Position).Magnitude > 0.01,
+		"reduced motion preserves active drill feedback"
+	)
+	State.SetSetting("ReducedMotion", savedPetMotion)
 	Mock.FireClientEvent("PetDug", "junk")
 	Mock.Advance(0.5)
 	check(#Mock.Errors == e0, "bad PetDug payloads are ignored")

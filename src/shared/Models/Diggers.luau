@@ -433,8 +433,8 @@ kinds.Mole = function(c)
 	Build.ellipsoid(m, "Head", V(1.6, 1.4, 1.5), CF(0, 1.8, -1.2), B, METAL)
 	Build.ball(m, "Nose", 0.45, CF(0, 1.7, -1.98), Color3.fromRGB(255, 130, 170))
 	Build.face(m, CF(0, 2.05, -1.86), 0.9, { mouth = false, radius = 0.75 })
-	-- visor + antenna
-	Build.part(m, "Visor", V(1.2, 0.18, 0.4), CF(0, 2.3, -1.7), A, am)
+	-- Keep the visor above the eye spheres and their highlights; a matte brow avoids neon bloom.
+	Build.part(m, "Visor", V(1.2, 0.18, 0.4), CF(0, 2.44, -1.7), Build.darken(A, 0.12), SMOOTH)
 	Build.cylBetween(m, "Antenna", V(0.3, 2.5, 0.2), V(0.45, 3.3, 0.4), 0.08, STEEL, METAL)
 	Build.ball(m, "AntennaTip", 0.25, CF(0.45, 3.35, 0.4), A, am)
 	for side = -1, 1, 2 do
