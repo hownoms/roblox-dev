@@ -1,5 +1,11 @@
 # Launch runbook: Dig to the Core! Beach Simulator
 
+## Current limited-test route — 7 October 2026
+
+Start with [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md). Owner reports no Roblox setup yet. No publication/access authorization has been given. Missing optional passes/products/badges/group/ambience do not block a useful core-loop test while disabled and unpromised.
+
+Current [Roblox publishing documentation](https://create.roblox.com/docs/production/publishing/publish-games-and-places) supersedes older private-test advice below: Private is owner/Edit only; Playtest permission requires **Limited → Playtesters**. The initial 16+ / Trusted Friends route requires good standing, a two-day-old account, age check and completed maturity/compliance questionnaire. All-ages reach has additional eligibility/evaluation; see [Kids and Select](https://create.roblox.com/docs/production/publishing/kids-and-select). Owner performs account verification. No payment is necessary for the initial 16+ route.
+
 The ordered path from this repo to a public experience. Each step says who does it. "Owner"
 steps need the Roblox account and Creator Hub; nothing in the repo can do them. Release gates
 and their evidence live in [POLISH_RELEASE_GATES.md](POLISH_RELEASE_GATES.md); this file is the
@@ -9,8 +15,8 @@ here authorizes it on its own.
 Run `tools/preflight.sh` at any time. It lists every id and asset that is still a placeholder
 and fails if something that must not ship is switched on. Live servers print the same summary
 once at boot as a `[LaunchCheck]` warning in the Developer Console.
-`tools/preflight.sh strict` fails until every placeholder is filled; run it right before the
-public launch.
+`tools/preflight.sh strict` fails until every placeholder is filled; use it for a fully configured
+public launch. Disabled optional features may remain unset if store copy promises only the enabled scope.
 
 ## 0. Repo health (automatic)
 
@@ -32,23 +38,23 @@ Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md): one issue per stage, ordinary inp
       toast appears after the card closes, never over the rarity headline.
 - [ ] Multi-client: Test → Clients and Servers with 4 players: shared beach, tide refill,
       server dig goal, friends bonus, nameplates.
-- [ ] Data: join, earn, leave, rejoin; two Studio servers on one account (session lock);
+- [ ] Data: join, earn, leave, rejoin; dedicated real-server competing-session diagnostics (session lock);
       shutdown during play (BindToClose save).
 - [ ] At least one fresh-player session watched without coaching (where they stall, whether
       they keep playing after the first upgrade).
 
-## 2. Creator Hub setup (owner)
+## 2. Creator Hub setup (owner; conditional feature checklist)
 
 1. [ ] Publish the place (File → Publish to Roblox). Max Players **16**. Genre Simulation.
 2. [ ] Game Settings → Security: **Enable Studio Access to API Services** on; HTTP off;
        third-party sales off.
-3. [ ] Game passes: create the 8 passes in `src/shared/Config/Monetization.luau`
+3. [ ] If enabling paid passes: create the 8 passes in `src/shared/Config/Monetization.luau`
        (README §2 has names and suggested prices); paste each id.
-4. [ ] Developer products: create the 6 products; paste each id.
-5. [ ] Badges: create the 10 badges in `src/shared/Config/Badges.luau` (art in
+4. [ ] If enabling developer products: create the 6 products; paste each id.
+5. [ ] If promising badges: create the 10 badges in `src/shared/Config/Badges.luau` (art in
        `marketing/badges/`); paste ids. Awards retry automatically after a BadgeService
        failure (30 s, 2 min, 10 min).
-6. [ ] Group: create the Roblox group; paste its id into `GROUP_ID` in
+6. [ ] If enabling group perks: create the Roblox group; paste its id into `GROUP_ID` in
        `src/shared/Config/init.luau` (turns on the group sand bonus and the `DIGDEEP` code).
 7. [ ] Audio (optional but recommended): upload or pick owned/Creator Store audio for
        `MusicBeach`, `MusicDeep` and `Ambience` in `src/shared/Config/Sounds.luau`. Ambience
@@ -66,14 +72,14 @@ Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md): one issue per stage, ordinary inp
 - [ ] Experience Questionnaire: answer as described in STORE_PAGE.md. No Robux item sells a
       random outcome since v2.3; coin packs and Skip Rebirth are still marked paid-random
       (they buy currency that buys eggs) and are hidden for policy-restricted players.
-- [ ] Devices: Phone, Tablet, Computer, Console.
-- [ ] Private servers on (suggested 50–100 R$/month).
+- [ ] Devices: enable only supported/tested devices; phone/controller hardware remains deferred.
+- [ ] Private servers/pricing are optional owner decisions; unnecessary for the core test.
 
 ## 4. Soft launch (owner)
 
-- [ ] Keep the experience private or friends-only for a first real session on a phone and a
+- [ ] Use the authorized Limited → Playtesters audience for a first real session on a phone and a
       PC. Check loading, safe areas, dig/scan/excavate/sell, panel scrolling, and purchases
-      (one cheap product end to end).
+      (end-to-end receipt/entitlement checks only if enabling paid offers).
 - [ ] Phone and controller hardware checks (deferred until hardware is available; emulators
       do not close this gate).
 - [ ] Watch the Developer Console for errors and the one-line `[LaunchCheck]` summary
