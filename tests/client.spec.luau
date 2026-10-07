@@ -456,6 +456,47 @@ do
 	check(countToasts() == before + 1, "duplicate backpack-full notices dedupe to one toast")
 	Mock.Advance(6)
 
+	-- Toasts wait while a reveal is on screen (never cover its headline); urgent ones do not.
+	do
+		local function hasToast(text: string): boolean
+			for _, child in toastRoot:GetChildren() do
+				if child.Name == "Toast" then
+					for _, d in child:GetDescendants() do
+						if d:IsA("TextLabel") and string.find(d.Text, text, 1, true) then
+							return true
+						end
+					end
+				end
+			end
+			return false
+		end
+		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
+		local base = countToasts()
+		RevealUI.Show({ Headline = "RARE!", Color = Mock.Env.Color3.new(0, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 3 })
+		Mock.Advance(0.3)
+		check(RevealUI.IsShowing(), "reveal is showing for the toast hold test")
+		Toasts.Show("You can afford the Garden Trowel!", "Success")
+		Mock.Advance(0.5)
+		check(countToasts() == base, "non-urgent toast waits while a reveal is showing")
+		Toasts.Show("Too hard! Upgrade your shovel", "Warning")
+		Mock.Advance(0.5)
+		check(countToasts() == base + 1, "warning toasts still show during a reveal")
+		Mock.Advance(3)
+		check(not RevealUI.IsShowing() and hasToast("Garden Trowel"), "held toast appears once the reveal closes")
+		Mock.Advance(6)
+		-- chained reveals cannot hold a toast forever
+		for _ = 1, 4 do
+			RevealUI.Show({ Headline = "COMMON!", Color = Mock.Env.Color3.new(1, 1, 1), Items = { { Name = "Cap", Rows = {} } }, Hold = 3 })
+		end
+		Mock.Advance(0.3)
+		Toasts.Show("Quest complete!", "Success")
+		Mock.Advance(5)
+		check(RevealUI.IsShowing() and not hasToast("Quest complete"), "toast still waits early in a reveal chain")
+		Mock.Advance(2.5)
+		check(RevealUI.IsShowing() and hasToast("Quest complete"), "a toast held behind chained reveals shows after the cap")
+		Mock.Advance(15)
+	end
+
 	-- Viewport: a 1 x 6 x 1 stick fills ~75% of a square frame's height.
 	local Viewport = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/Viewport"])
 	local model = Mock.Env.Instance.new("Model")
@@ -590,6 +631,15 @@ do
 	check(marker.Enabled and beam.Enabled, "guide reappears when the target is distant again")
 	local markerIcon = marker:FindFirstChild("MarkerIcon")
 	check(markerIcon ~= nil and markerIcon:GetAttribute("Icon") == "S", "world marker draws through AtlasIcon")
+
+	-- chat window: docked bottom-left on keyboard screens (the menu's Shop row is top-left)
+	do
+		local ChatLayout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/ChatLayoutController"])
+		local pc = ChatLayout.DockFor(false, true)
+		check(pc and pc.Horizontal == Enum.HorizontalAlignment.Left and pc.Vertical == Enum.VerticalAlignment.Bottom, "chat docks bottom-left on PC")
+		check(ChatLayout.DockFor(true, false) == nil, "phones keep the default chat position (thumbstick is bottom-left)")
+		check(ChatLayout.DockFor(true, true) ~= nil, "touch laptops with a keyboard dock like PC")
+	end
 
 	-- off-screen edge indicator: pure placement math
 	do
