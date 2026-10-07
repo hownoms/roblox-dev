@@ -40,4 +40,4 @@ Badges and additional ambience have lower priority than the core loop. Audio rig
 
 ## Continuation state
 
-PR #11 is merged. Saved base: `claude/pensive-meitner-6jx4u4`, verified at `866ea5a` before the final handoff documentation update. Fetch/check local and remote changes and preserve intervening work. Full release gates remain open; no Roblox publication is authorized. The reveal-readability/overlap stage is complete; choose only one remaining issue in a future chat. Scan direction, sell guidance, chat covering Shop, audio, upgrade feel and contact remain separate. Do not restart collection or scenery sweeps.
+PR #12 is merged. Saved base: `claude/pensive-meitner-6jx4u4`, fast-forwarded to `9ada1dd` before the final discovery handoff documentation checkpoint. Fetch/check local and remote changes and preserve intervening work. Full release gates remain open; no Roblox publication is authorized. The reveal-readability/overlap stage is complete; choose only one remaining issue in a future chat. Scan direction, sell guidance, chat covering Shop, audio, upgrade feel and contact remain separate. Do not restart collection or scenery sweeps.
