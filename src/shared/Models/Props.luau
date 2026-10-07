@@ -365,7 +365,7 @@ builders.Sign = function(m, v)
 end
 
 builders.Lamp = function(m, v)
-	local metal = pick({ rgb(40, 60, 70), rgb(30, 30, 40), rgb(30, 110, 120) }, v)
+	local metal = pick({ rgb(85, 110, 125), rgb(85, 90, 105), rgb(55, 135, 145) }, v)
 	solid(Build.cyl(m, "Base", 0.4, 1.0, CF(0, 0.2, 0), metal, M.Metal))
 	solid(Build.cyl(m, "Pole", 8.1, 0.3, CF(0, 4.45, 0), metal, M.Metal))
 	Build.beam(m, "Arm", V(0, 8.3, 0), V(0, 8.6, -1.2), 0.2, 0.2, metal, M.Metal, X)

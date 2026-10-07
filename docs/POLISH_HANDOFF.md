@@ -70,3 +70,15 @@ Next work: finish the native/detail collection review, starting with dark/thin a
 ## Suggested opening message in the next chat
 
 “Continue the Roblox polish in `roblox-dev`. Read `docs/POLISH_HANDOFF.md` and `docs/VISUAL_POLISH.md`, check local and remote updates and PR #7's integration status first, and preserve my intervening work. Continue from the updated base after merge. Real phone/controller verification remains deferred. Use my existing DigTest place with git pull and Rojo for testing, and continue the remaining review/kits/profiling work recorded in the handoff.”
+
+## Continuation: native/detail collection checkpoint, 6 October 2026
+
+Fetched origin from a clean `c3410bc`; no newer local or remote work was present. Preserved the base branch and existing pose/avatar/crate/placement work. This continuation is saved on `codex/native-detail-polish` for the user-authorized push and integration checkpoint.
+
+Individually reviewed all 14 tools and 13 backpacks at native scale plus actual 48/120/240 px. Steel Pickaxe, Obsidian Shard, pet-scale Lava Drill and Lamp also received four-angle native inspection; full-size Lava Drill received details and a primary native view. Steel head is now brighter smooth Metal, Lamp has a modestly brighter metal palette, and the shared Obsidian/Plasma Drill housing closes an observed 0.15-stud gap. Fresh Studio builds verified these refinements. No global exposure or economy changes.
+
+Diagnostic now supports exact asset jumps (use numeric 94 for full Lava Drill), four-angle orbit, native previous/next, optional simultaneous exact-size details, actual pixel labels and unobstructed views with restoration on Return. Build `gallery.project.json`; latest local build is `build/CollectionReviewCheckpoint.rbxlx`. Lamp native evidence is `build/review/lamp-native-refined.png`. DigTest was preserved; diagnostic Rojo prompts must not be connected to the default game project. Recheck Rojo process before gameplay—the current process check found none.
+
+Validation on the final drill fix: 1,299 client, 1,091 normal server, 1,078 Studio-mode server and 8 utility checks pass. Studio-mode and utility were rerun for the save checkpoint. Affected strict analysis, formatting, builds and diff whitespace pass. Agent diff/lifecycle review found no actionable defect.
+
+**Resume collection at entry 28 (Pets).** Remaining pets, vehicles/rides, eggs, treasures, shade, consumables and props still need the systematic native/detail sweep, apart from targeted entries above. Static primary-angle review of the 27 tools/backpacks does not approve worn/moving fit. After collection and fit/motion review, continue the unassisted DigTest sequence/audio listening, other thirteen scenery layers, then populated/device profiling in the requested order. All outstanding release gates remain open; phone/controller hardware is deferred without another request. Nothing was published, uploaded or assigned new audio/badge IDs.
