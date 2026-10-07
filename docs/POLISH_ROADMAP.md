@@ -1,3 +1,17 @@
+# Current limited-playtest priorities — 7 October 2026
+
+Howard now authorizes multiple focused, reviewable stages in this chat, including saving/pushing/merging ready source stages. This supersedes historical one-stage/new-chat instructions below. Publishing, uploads, access changes, spending and tester contact require separate explicit authorization.
+
+1. Finish ordinary first session through Shell Bed, HOT instructions and the full Reduced Motion sequence; check off-screen Sell guidance and visible gameplay contact. Current ordinary evidence reaches sell, first upgrade and one subsequent dig. Keep assisted stress separate.
+2. Complete coordinated four-client shared digging and natural tide checks. Four clients spawned; goal replication and forced refill were observed, but those do not close the gate.
+3. Dedicated test experience and real save/rejoin/locking/shutdown verification after owner eligibility and publication authorization. Save serialization and stalled-rejoin protection are integrated with mock regressions; actual DataStores remain untested.
+4. Capture server spikes with its MicroProfiler. Fresh assisted stress measured 82 ms max; saved client capture does not explain it. Hardware remains deferred until available.
+5. Use the reproducible package, player script and prioritized checklist in [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md). Optional monetization/badges/group/audio may remain disabled for useful core testing. Correct only concrete blockers; completed collection/scenery sweeps stay complete.
+
+See [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) for measurements and limitations and the newest handoff for checkpoints. No invitation or public-launch sign-off is claimed.
+
+---
+
 # Polish roadmap — 7 October 2026
 
 This is the current priority order approved by Howard. It supersedes the older exhaustive fit/scenery-first order in historical reviews. Read POLISH_HANDOFF.md for saved evidence and repository state; POLISH_RELEASE_GATES.md remains the inventory of unresolved gates. Changing priorities does not close any gate or authorize publication.
