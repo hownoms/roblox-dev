@@ -4,7 +4,7 @@ This is the current priority order approved by Howard. It supersedes the older e
 
 ## Delivery stages
 
-Howard requested one issue per stage: observe/reproduce it, fix it, verify the focused result, save progress, push and merge its PR, then continue the next issue in a new chat. Do not batch unrelated polish into future stages. The existing first-player changes are the current checkpoint to finish integrating. The next stage is **excavation WAIT/TAP cue readability and timing**: retest the new cue in DigTest, correct any observed issue, and record what was actually verified. Keep other onboarding, contact and UI follow-ups queued separately. Publishing Roblox remains unauthorized.
+Howard requested one issue per stage: observe/reproduce it, fix it, verify the focused result, save progress, push and merge its PR, then continue the next issue in a new chat. Do not batch unrelated polish into future stages. Excavation cue presentation is integrated through PR #11. The next proposed stage is **discovery-name readability and reveal overlap**: reproduce competing reward feedback in ordinary DigTest gameplay, fix observed confusion and record what was actually verified. Keep other onboarding, contact and UI follow-ups queued separately. Publishing Roblox remains unauthorized.
 
 ## 1. First-player experience — next work
 
@@ -40,4 +40,4 @@ Badges and additional ambience have lower priority than the core loop. Audio rig
 
 ## Continuation state
 
-PR #9 is merged. Saved base: claude/pensive-meitner-6jx4u4 at f5fe836 before this roadmap documentation. Fetch/check local and remote changes and preserve intervening work. All release gates remain open; no Roblox publication is authorized. Next action is the complete unassisted first-player sequence, not another collection or scenery sweep.
+PR #11 is merged. Saved base: `claude/pensive-meitner-6jx4u4`, verified at `866ea5a` before the final handoff documentation update. Fetch/check local and remote changes and preserve intervening work. Full release gates remain open; no Roblox publication is authorized. Continue with the single reveal-readability/overlap stage described in the handoff, using ordinary gameplay. Do not restart collection or scenery sweeps.

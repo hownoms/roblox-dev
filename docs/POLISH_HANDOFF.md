@@ -1,4 +1,16 @@
-# Visual polish handoff — 6 October 2026
+# Visual polish handoff — 7 October 2026
+
+## Next-chat starting point — final save checkpoint
+
+PR #11 is confirmed merged. Implementation and evidence are integrated on `claude/pensive-meitner-6jx4u4`; checkpoint `866ea5a` was verified clean and equal to origin after a fresh fetch. This final documentation update follows that checkpoint. Read this section and the excavation checkpoint below before historical entries; old continuation prompts are superseded.
+
+Next proposed focused stage: **discovery-name readability and reveal overlap**. Reproduce the observed competition between reward text and other feedback, including excavation's brief teardown overlapping the reveal, through ordinary DigTest gameplay. Fix only concrete observed confusion, retest, document actual evidence, then save/push/merge that one stage. No implementation for this next stage has started. Keep scan direction, offscreen sell guidance, chat covering Shop, audio, upgrade feel and contact in separate stages.
+
+Use existing `build/DigTest.rbxl` and default Rojo port **34872**; recheck live Studio/Rojo state. DigTest was saved locally after Stop (file timestamp 7 October, 13:17); the ignored place/build artifacts are local, while source/tests/docs are pushed. Assisted diagnostic evidence remains separate. Reactive ordinary-input excavation timing and the other release gates remain open. Hardware stays deferred; do not restart completed collection/scenery sweeps. No Roblox publication or asset uploads.
+
+Suggested next-chat prompt:
+
+> Continue Roblox polish in `C:\Users\howar\Documents\ChatGPT\Roblox UEFN Dev\roblox-dev`. Read `docs/POLISH_HANDOFF.md`, `docs/POLISH_ROADMAP.md`, and `docs/POLISH_RELEASE_GATES.md` first. Fetch/check local and remote updates and preserve intervening work; PR #11 is merged, with verified checkpoint `866ea5a` followed by the final handoff documentation commit. Work on ONE issue: discovery-name readability and reveal overlap. Recheck Studio/Rojo; use existing DigTest and default port 34872. Reproduce through ordinary gameplay, keep assisted setup separate, fix observed confusion and record actual evidence. Save, push and merge the focused stage when ready; I authorize that integration cycle. Keep other issues separate, hardware deferred, and completed collection/scenery sweeps complete. No Roblox publication or asset uploads.
 
 ## Excavation cue polish checkpoint — 7 October 2026
 
