@@ -3154,6 +3154,35 @@ step("discovery", function()
 	check(#Mock.Errors == e0, "no errors in discovery")
 end)
 
+section("launch check")
+do
+	local LaunchCheck = Mock.Require(byPath["ServerScriptService/Server/Services/LaunchCheck"])
+	local MonetizationService = Mock.Require(byPath["ServerScriptService/Server/Services/MonetizationService"])
+	local report = LaunchCheck.Report()
+	check(#report.Blocking == 0, "no blocking launch issues in the repo config")
+	local text = LaunchCheck.Format(report)
+	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
+	check(string.find(text, "Badge ids (10)", 1, true) ~= nil, "launch check lists unset badge ids")
+	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
+	MonetizationService.STUDIO_GRANT_ALL_PASSES = true
+	check(#LaunchCheck.Report().Blocking == 1, "Studio grant-all switch is blocking")
+	MonetizationService.STUDIO_GRANT_ALL_PASSES = false
+	local pass = Config.Monetization.GamePasses.VIP
+	local saved = pass.Id
+	pass.Id = 123
+	check(string.find(LaunchCheck.Format(LaunchCheck.Report()), "VIP", 1, true) == nil, "a configured pass drops off the list")
+	pass.Id = saved
+	if not STUDIO_NO_API then
+		local warned = false
+		for _, w in Mock.Warnings do
+			if string.find(w, "[LaunchCheck]", 1, true) then
+				warned = true
+			end
+		end
+		check(warned, "live server boot warns once about unconfigured placeholders")
+	end
+end
+
 section("badges")
 do
 	local e0 = #Mock.Errors
@@ -3236,6 +3265,7 @@ local EXPECTED_WARNINGS = {
 	"Studio has no DataStore access", -- studio mode only
 	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"
 	"mock badge throttled", -- BadgeService failure, provoked in "badges"
+	"[LaunchCheck]", -- the repo ships with placeholder ids; live boot lists them once
 }
 for _, w in Mock.Warnings do
 	local ok = false

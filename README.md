@@ -11,6 +11,7 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 | Doc | What it covers |
 |---|---|
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **Start here:** what changed in each version, playtest fixes, decisions and standing rules |
+| [`docs/LAUNCH.md`](docs/LAUNCH.md) | Ordered go-live runbook; `tools/preflight.sh` lists every id and asset still to fill in |
 | [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |
 | [`docs/UI_STYLE.md`](docs/UI_STYLE.md) | UI style guide and layout map |
 | [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
@@ -101,10 +102,13 @@ every game pass for free. It only works in Studio.
 Tools: Rojo, StyLua, luau-lsp (strict type check against the Roblox API).
 
 ```sh
-stylua src          # format
-./tools/check.sh    # format check + strict type check + rojo build (must say ALL CHECKS PASSED)
-luau tests/util.spec.luau
+stylua src            # format
+./tools/check.sh      # format check + strict type check + rojo build (must say ALL CHECKS PASSED)
+./tests/run.sh        # headless unit, server smoke and client tests (must say ALL TESTS PASSED)
+./tools/preflight.sh  # launch checklist: placeholder ids/assets still to fill in
 ```
+
+CI (`.github/workflows/ci.yml`) runs all of these on every push and pull request.
 
 `tools/check.sh` expects `rojo`, `stylua` and `luau-lsp` on `PATH` (or in `~/bin`), and the
 Roblox type definitions at `~/luau-defs/globalTypes.d.luau`, which come from the luau-lsp repo's

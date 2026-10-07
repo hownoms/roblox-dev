@@ -291,9 +291,9 @@ Watch the funnel in Creator Hub Analytics: any step with > 15% drop-off is the n
 - Server size: **max 16 players** (one shared dig beach, v2). Server fill: "Roblox optimised" (leave 1–2 slots for friends).
 - Devices: Phone, Tablet, Computer, Console (gamepad: R2 = dig, X = surface). VR off.
 - **Maturity & Compliance Questionnaire:** answer honestly — no violence/blood, no romance, no
-  gambling *for real money*. Note: random-item purchases with Robux (Golden Egg) must be
-  disclosed truthfully in the questionnaire and show odds in the egg UI (we show odds for every
-  egg). Expected label: **Minimal**.
+  gambling *for real money*. Note: since v2.3 no Robux item sells a random outcome; coin packs
+  and Skip Rebirth buy currency that can hatch eggs, so disclose them truthfully as described in
+  `marketing/STORE_PAGE.md` (we show odds for every egg). Expected label: **Minimal**.
 - Private servers: **enabled, 50–100 R$/month** (cheap = more friend groups, YouTubers).
 - Allow copying off; API services on (DataStores); third-party sales off; HTTP off.
 - Social links: Roblox group (required for group bonus), Discord (13+ only; mention in game only

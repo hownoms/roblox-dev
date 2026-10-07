@@ -128,6 +128,10 @@ for _, entry in ordered do
 	end
 end
 
+-- Owner placeholders still to fill in before launch (docs/LAUNCH.md); never changes gameplay.
+local LaunchCheck = require(Services.LaunchCheck)
+pcall(LaunchCheck.Run)
+
 local handled: { [Player]: boolean } = {}
 
 local function onPlayerAdded(player: Player)
