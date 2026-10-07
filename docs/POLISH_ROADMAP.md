@@ -8,6 +8,8 @@ Howard requested one issue per stage: observe/reproduce it, fix it, verify the f
 
 ## 1. First-player experience — next work
 
+7 October excavation cue stage: corrected observed result/cue confusion with a separate numbered result and immediate completed-ring hiding. Ordinary DigTest captured natural WAIT/TAP and unanswered expiry before/after; synthetic pinned Tap diagnostics separately checked early MISS, PERFECT and late GOOD. See the latest handoff entry. This focused presentation checkpoint does not certify reactive human timing or close the full sequence gate. Keep every other listed issue in its own future stage; do not resume broader sweeps in this stage.
+
 Use the existing build/DigTest.rbxl with default-project Rojo on port 34872. Recheck Studio/Rojo state and start fresh Play with current source. Run spawn → equip → dig → scan/excavate → readable discovery → full bag → sell → first upgrade/equip using ordinary input. Keep assisted setup separate from unassisted evidence; do not use /max, scripted digs or teleports to claim completion.
 
 Record confusion, dead time, unclear controls/objectives, reward-name visibility, feedback timing and whether the first upgrade feels meaningful. Prioritize concrete friction found in this run. Check Reduced Motion and focus equipment contact/fit review on visible gameplay problems. Audio listening needs actual listening evidence; do not infer it from scripts or screenshots.

@@ -41,6 +41,10 @@ Use [PERFORMANCE.md](PERFORMANCE.md) for the existing `/stress` commands and tar
 
 Physical phone checks still need loading, safe areas, dig/scan/excavate/sell, and panel scrolling in the reported orientation. Physical controller checks still need visible focus, traversal, activation, dismissal and restored focus across panels. Source tests and emulators do not close these gates.
 
+## Focused excavation cue evidence — 7 October 2026
+
+Natural sixth-dig excavation in fresh ordinary-input DigTest runs visibly showed READY → WAIT → TAP and unanswered expiry, before and after the focused cue fix. Numbered results now remain separate from the next ring's centre cue, and graded rings disappear immediately. A separate synthetic client diagnostic showed pinned early MISS, PERFECT and late GOOD results; this is assisted presentation evidence. Client checks: 1,321 passing; affected strict analysis, formatting and Rojo build passed. Actual reactive successful/early/late ordinary-input timing, independent fresh-player feedback, physical controls, live Reduced Motion and full-sequence approval remain open. No other gate is closed; no publication or uploads occurred.
+
 ## First-player evidence update — 7 October 2026
 
 A fresh DigTest ordinary-input run reached starter autoequip, digging, scan activation, excavation, retained bottle-cap discovery, full 20/20 bag, native sale (84 coins) and Garden Trowel purchase/autoequip (30 coins). This run used mouse clicks and Roblox Click to Move without dev grants or scripted digs/positioning. It still does **not close the complete-sequence gate**: scan direction, precise excavation timing, reward-name readability, audio listening, Reduced Motion across that sequence and meaningful post-upgrade digging remain unverified. Automated ordinary input is not independent fresh-player feedback.
