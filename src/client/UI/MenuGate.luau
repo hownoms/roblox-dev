@@ -46,9 +46,18 @@ MenuGate.STORE_PLAYTIME = 8 * 60
 MenuGate.DAILY_PLAYTIME = 60
 MenuGate.REBIRTH_FRACTION = 0.6
 -- Tutorial (Config.TUTORIAL_STEPS) completed-step counts that reveal a button: reaching the
--- "shop" step (4 done) shows Shop, reaching the "egg" step (5 done) shows Eggs.
-MenuGate.TUTORIAL_SHOP = 4
-MenuGate.TUTORIAL_EGGS = 5
+-- "shop" step shows Shop, reaching the "egg" step shows Eggs. Derived from the step ids so
+-- inserting a step never shifts which button unlocks when.
+local function stepsBefore(id: string): number
+	for i, step in Config.TUTORIAL_STEPS do
+		if step.Id == id then
+			return i - 1
+		end
+	end
+	error("MenuGate: no tutorial step " .. id)
+end
+MenuGate.TUTORIAL_SHOP = stepsBefore("shop")
+MenuGate.TUTORIAL_EGGS = stepsBefore("egg")
 
 -- Unlock lines (short, no emoji: toasts use TextScaled labels).
 MenuGate.MESSAGES = table.freeze({

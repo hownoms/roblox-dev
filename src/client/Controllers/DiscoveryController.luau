@@ -10,8 +10,10 @@
 	                                       signal colour; the client never learns deposit positions)
 	  DiscoveryController.PingChanged      (ping)
 	  DiscoveryController.CooldownLeft()   seconds until Scan works again (client mirror)
-	  Beeps faster as the band gets hotter (Finds.BeepInterval) while a scan runs, and a small
-	  world-space arrow by the character's feet points at the sector in the signal colour.
+	  Beeps faster as the band gets hotter (Finds.BeepInterval) while a scan runs, and a
+	  world-space arrow (shaft "DetectorArrow" + chevron head) by the character's feet points at
+	  the sector in the signal colour; it pulses when the find is in the hot band (not with
+	  Reduced Motion).
 
 	Excavation
 	  ExcavationStarted (Types.ExcavationInfo) -> UI/ExcavationGame plays the rings
@@ -155,15 +157,13 @@ function DiscoveryController.ApplyPing(raw: any)
 	DiscoveryController.PingChanged:Fire(ping)
 end
 
-local function getArrow(): Part
-	local current = arrow
-	if current and current.Parent then
-		return current
-	end
+local arrowHead: { Part } = {}
+
+local function arrowPart(name: string, size: Vector3, parent: Instance): Part
 	local part = Instance.new("Part")
-	part.Name = "DetectorArrow"
+	part.Name = name
 	part.Shape = Enum.PartType.Block
-	part.Size = Vector3.new(0.5, 0.15, 2.4)
+	part.Size = size
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
@@ -171,9 +171,32 @@ local function getArrow(): Part
 	part.CastShadow = false
 	part.Material = Enum.Material.Neon
 	part.Transparency = 1
-	part.Parent = Workspace
+	part.Parent = parent
+	return part
+end
+
+-- Shaft part (its Color/Transparency are the arrow's) plus two chevron arms as its children.
+local function getArrow(): Part
+	local current = arrow
+	if current and current.Parent then
+		return current
+	end
+	local part = arrowPart("DetectorArrow", Vector3.new(0.5, 0.15, 2.4), Workspace)
+	arrowHead = {
+		arrowPart("HeadLeft", Vector3.new(0.5, 0.15, 1.5), part),
+		arrowPart("HeadRight", Vector3.new(0.5, 0.15, 1.5), part),
+	}
 	arrow = part
 	return part
+end
+
+local function hideArrow()
+	if arrow then
+		arrow.Transparency = 1
+	end
+	for _, arm in arrowHead do
+		arm.Transparency = 1
+	end
 end
 
 local function updateWorld()
@@ -192,17 +215,30 @@ local function updateWorld()
 	end
 	-- ground arrow
 	if not scanning or not dir or not root then
-		if arrow then
-			arrow.Transparency = 1
-		end
+		hideArrow()
 		return
 	end
 	local part = getArrow()
 	local base = (root :: BasePart).Position - Vector3.new(0, 2.6, 0)
 	local d = dir :: Vector3
-	part.CFrame = CFrame.lookAt(base + d * 3.2, base + d * 6)
-	part.Color = DiscoveryController.SignalColor(ping.Signal)
-	part.Transparency = 0.2 + (ping.Band - 1) * 0.12
+	local hot = ping.Band == 1
+	local pulse = if hot and State.GetSetting("ReducedMotion", false) ~= true
+		then 1 + 0.15 * math.sin(os.clock() * 8)
+		else 1
+	local color = DiscoveryController.SignalColor(ping.Signal)
+	local transparency = 0.2 + (ping.Band - 1) * 0.12
+	part.CFrame = CFrame.lookAt(base + d * 3.2 * pulse, base + d * 6 * pulse)
+	part.Color = color
+	part.Transparency = transparency
+	-- chevron: two arms meeting at the tip, swept back 40 degrees either side
+	local tip = base + d * 4.6 * pulse
+	for i, arm in arrowHead do
+		local sweep = CFrame.Angles(0, math.rad(if i == 1 then 40 else -40), 0):VectorToWorldSpace(-d)
+		local centre = tip + sweep * 0.7
+		arm.CFrame = CFrame.lookAt(centre, centre + sweep)
+		arm.Color = color
+		arm.Transparency = transparency
+	end
 end
 
 -- World FX for tagged find models ---------------------------------------------------------------
@@ -381,11 +417,7 @@ function DiscoveryController.Init()
 			updateWorld()
 		end
 	end)
-	Players.LocalPlayer.CharacterRemoving:Connect(function()
-		if arrow then
-			arrow.Transparency = 1
-		end
-	end)
+	Players.LocalPlayer.CharacterRemoving:Connect(hideArrow)
 end
 
 return DiscoveryController

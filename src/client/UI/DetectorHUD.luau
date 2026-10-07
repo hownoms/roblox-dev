@@ -10,7 +10,9 @@
 	  - its outline glows in the signal colour (white = common, gold = rare+, purple = mythic+)
 	  - a dot orbits the button pointing at the find, relative to the camera
 	  - the caption reads the distance band (HOT! / Warm / Cool / Faint / Nothing)
-	  - a pill above it says DOWN / UP when the find is below / above you
+	  - a pill above it says what to do: DIG HERE! / DIG DOWN! when the find is within the hot
+	    band, otherwise DOWN / UP when it is below / above you (DetectorHUD.Instruction)
+	  - the orbiting dot carries an arrowhead pointing away from the button, toward the find
 	Between scans the caption counts the cooldown down. Everything is driven by the coarse
 	DetectorPing (band, sector, vertical, signal); DetectorHUD.Render(ping, scanning, cooldown)
 	is public for tests.
@@ -23,6 +25,7 @@ local Types = require(Shared:WaitForChild("Types"))
 
 local Style = require(script.Parent.Components.Style)
 local Button = require(script.Parent.Components.Button)
+local AtlasIcon = require(script.Parent.Components.AtlasIcon)
 local HUD = require(script.Parent.HUD)
 local DiscoveryController = require(script.Parent.Parent.Controllers.DiscoveryController)
 
@@ -37,6 +40,17 @@ local dot: Frame? = nil
 local ringStroke: UIStroke? = nil
 local verticalPill: TextLabel? = nil
 local initialized = false
+
+-- What the pill above the button says (pure, tests): "" when there is nothing to say.
+function DetectorHUD.Instruction(ping: Types.DetectorPing, scanning: boolean): string
+	if not scanning or ping.Band <= 0 then
+		return ""
+	end
+	if ping.Band == 1 then
+		return if ping.Vertical == "Up" then "UP HERE!" elseif ping.Vertical == "Down" then "DIG DOWN!" else "DIG HERE!"
+	end
+	return if ping.Vertical == "Down" then "DOWN" elseif ping.Vertical == "Up" then "UP" else ""
+end
 
 -- Caption for the button (pure, tests).
 function DetectorHUD.Caption(ping: Types.DetectorPing, scanning: boolean, cooldown: number): string
@@ -76,12 +90,10 @@ function DetectorHUD.Render(ping: Types.DetectorPing, scanning: boolean, cooldow
 		end
 	end
 	if verticalPill then
-		local word = if live and ping.Vertical == "Down"
-			then "DOWN"
-			elseif live and ping.Vertical == "Up" then "UP"
-			else ""
+		local word = DetectorHUD.Instruction(ping, scanning)
 		verticalPill.Visible = word ~= ""
 		verticalPill.Text = word
+		verticalPill.BackgroundColor3 = if ping.Band == 1 then color:Lerp(C.Navy, 0.35) else C.Navy
 	end
 	button:SetColor(if scanning then C.Purple elseif cooldown > 0 then C.Disabled else C.Coral)
 end
@@ -142,11 +154,21 @@ function DetectorHUD.Init()
 	d.Parent = p
 	Style.Corner(d, UDim.new(1, 0))
 	Style.Stroke(d, C.Stroke, 2)
+	-- the pivot's rotation carries this round; 180 turns the down-arrow icon to point outward
+	AtlasIcon.new({
+		Name = "Pointer",
+		Icon = "Arrow",
+		Size = UDim2.fromScale(1.1, 1.1),
+		Position = UDim2.fromScale(0.5, -0.35),
+		Rotation = 180,
+		ZIndex = 8,
+		Parent = d,
+	})
 	dot = d
 	local pill = Style.Label({
 		Name = "Vertical",
 		Text = "",
-		Size = UDim2.fromOffset(70, 22),
+		Size = UDim2.fromOffset(96, 24),
 		Position = UDim2.new(0.5, 0, 0, -16),
 		AnchorPoint = Vector2.new(0.5, 1),
 		MaxTextSize = 16,

@@ -632,6 +632,25 @@ do
 	local markerIcon = marker:FindFirstChild("MarkerIcon")
 	check(markerIcon ~= nil and markerIcon:GetAttribute("Icon") == "S", "world marker draws through AtlasIcon")
 
+	-- first upgrade: the reveal says what changed, and better shovels hit visibly harder
+	do
+		local ItemStats = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats"])
+		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		local spade, trowel = SharedConfig.Shovels[1], SharedConfig.Shovels[2]
+		local summary = ItemStats.UpgradeSummary(spade, trowel)
+		check(summary ~= nil and string.find(summary, "NOW DIGS " .. string.upper(SharedConfig.Layers[3].Name), 1, true) ~= nil, "trowel reveal names the new layer it digs (" .. tostring(summary) .. ")")
+		check(summary ~= nil and string.find(summary, "+50% SAND", 1, true) ~= nil, "trowel reveal shows +50% sand")
+		check(summary ~= nil and string.find(summary, "BIGGER DIGS", 1, true) == nil, "no 'bigger digs' claim when the dig cube is the same size")
+		check(ItemStats.UpgradeSummary(nil, trowel) == nil and ItemStats.UpgradeSummary(trowel, trowel) == nil, "no summary without a real upgrade")
+		check(ItemStats.Heft(spade.Id) == 1 and ItemStats.Heft(trowel.Id) > 1, "trowel hits harder than the spade")
+		check(ItemStats.Heft(SharedConfig.Shovels[#SharedConfig.Shovels].Id) == 2, "heft is capped at 2")
+		local MenuGateUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/MenuGate"])
+		local steps = SharedConfig.TUTORIAL_STEPS
+		check(steps[MenuGateUI.TUTORIAL_SHOP + 1].Id == "shop" and steps[MenuGateUI.TUTORIAL_EGGS + 1].Id == "egg", "menu unlocks follow the tutorial step ids")
+		local shopIndex = MenuGateUI.TUTORIAL_SHOP + 1
+		check(steps[shopIndex + 1].Id == "dig_deeper" and steps[shopIndex + 1].Complete == "NewLayer", "after buying a shovel the tutorial sends you down to the new layer")
+	end
+
 	-- chat window: docked bottom-left on keyboard screens (the menu's Shop row is top-left)
 	do
 		local ChatLayout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/ChatLayoutController"])
@@ -2410,6 +2429,20 @@ do
 	local d = StatusController.Describe(other)
 	check(d.Title == "Core Breaker" and d.Stars == "" and d.Tag == nil, "Describe(other)")
 
+	-- a reveal headline sits where your own plate floats: it hides only yours, only meanwhile
+	do
+		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
+		local mine = StatusController.GetPlate(me)
+		Mock.Advance(15)
+		check(mine ~= nil and mine.Enabled, "own nameplate shown before the reveal")
+		RevealUI.Show({ Headline = "EPIC!", Color = Mock.Env.Color3.new(1, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 2 })
+		Mock.Advance(0.3)
+		check(mine ~= nil and not mine.Enabled, "own nameplate hidden while a reveal is showing")
+		check(otherPlate ~= nil and otherPlate.Enabled, "other players' nameplates stay visible")
+		Mock.Advance(3)
+		check(not RevealUI.IsShowing() and mine ~= nil and mine.Enabled, "own nameplate returns after the reveal")
+	end
+
 	-- worn backpack sand level (client-side visual)
 	local pack = Models.Backpack(Config.Backpacks[1].Id)
 	pack.Name = "WornBackpack"
@@ -2720,7 +2753,7 @@ do
 	check(DiscoveryController.Ping.Band == 1 and DiscoveryController.IsScanning(), "ping stored, scanning")
 	check(scan.Label.Text == "HOT!", "HOT! when the find is close (" .. scan.Label.Text .. ")")
 	local pill = scan.Holder:FindFirstChild("Vertical")
-	check(pill ~= nil and pill.Visible and pill.Text == "DOWN", "DOWN pill when the find is below you")
+	check(pill ~= nil and pill.Visible and pill.Text == "DIG DOWN!", "hot and below: the pill says DIG DOWN!")
 	local dot = scan.Holder:FindFirstChild("Dot", true)
 	check(dot ~= nil and dot.Visible and dot.BackgroundColor3 == D.SIGNAL_COLORS.Gold, "radar dot in the gold signal colour")
 	local radar = scan.Holder:FindFirstChild("Radar")
@@ -2730,6 +2763,15 @@ do
 	check(math.abs(DiscoveryController.ArrowAngle(Vector3.new(0, 0, -1)) - 90) < 1e-6, "camera looking -Z: arrow points right")
 	local arrow = workspace:FindFirstChild("DetectorArrow")
 	check(arrow ~= nil and arrow.Transparency < 1 and arrow.Color == D.SIGNAL_COLORS.Gold, "ground arrow shows while scanning")
+	local headL, headR = arrow and arrow:FindFirstChild("HeadLeft"), arrow and arrow:FindFirstChild("HeadRight")
+	check(headL ~= nil and headR ~= nil and headL.Transparency < 1 and headR.Color == D.SIGNAL_COLORS.Gold, "ground arrow has a visible chevron head")
+	if headL and headR and arrow then
+		-- both arms sit further along the pointing direction than the shaft centre
+		local dirX = Vector3.new(1, 0, 0) -- sector 2 of 8 = +X
+		local shaftAlong = arrow.Position:Dot(dirX)
+		check(headL.Position:Dot(dirX) > shaftAlong and headR.Position:Dot(dirX) > shaftAlong, "chevron head is at the tip end of the arrow")
+	end
+	check(dot:FindFirstChild("Pointer") ~= nil, "radar dot carries an arrowhead")
 	Mock.FireClientEvent("DetectorPing", { Band = 4, Sector = 0, Vertical = "Level", Signal = "Purple", Remaining = 3 })
 	Mock.Advance(0.3)
 	check(scan.Label.Text == "Faint" and not pill.Visible, "Faint at the edge of range, no pill when level")
@@ -2743,6 +2785,13 @@ do
 	Mock.Advance(D.SCAN_SECONDS + 1)
 	check(not DiscoveryController.IsScanning() and (arrow.Transparency == 1), "scan over: arrow hidden")
 	check(DetectorHUD.Caption({ Band = 2, Sector = 0, Vertical = "", Signal = "", Remaining = 1 }, true, 0) == "Warm", "Caption: Warm")
+	local function instr(band, vertical, scanning)
+		return DetectorHUD.Instruction({ Band = band, Sector = 0, Vertical = vertical, Signal = "", Remaining = 1 }, scanning)
+	end
+	check(instr(1, "Level", true) == "DIG HERE!", "Instruction: hot and level -> DIG HERE!")
+	check(instr(1, "Down", true) == "DIG DOWN!" and instr(1, "Up", true) == "UP HERE!", "Instruction: hot below / above")
+	check(instr(2, "Down", true) == "DOWN" and instr(3, "Up", true) == "UP" and instr(3, "Level", true) == "", "Instruction: farther away keeps DOWN / UP")
+	check(instr(1, "Down", false) == "" and instr(0, "Down", true) == "", "Instruction: nothing when not scanning or nothing in range")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 2.2) == "3s", "Caption: cooldown seconds")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 0) == "Scan", "Caption: ready")
 

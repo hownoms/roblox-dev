@@ -85,6 +85,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local State = require(script.Parent.State)
+local ItemStats = require(script.Parent.Parent.UI.ItemStats)
 
 local ShovelPoseController = {}
 
@@ -852,7 +853,9 @@ local function spawnClump(state: CharState, info: ToolInfo, color: Color3)
 	if lowGraphics() then
 		return
 	end
-	local size = if info.TwoHanded then CLUMP_SIZE.Two else CLUMP_SIZE.One
+	-- bigger shovels scoop visibly bigger clumps (ItemStats.Heft), for every player's scoops
+	local heft = ItemStats.Heft(tostring(info.Tool:GetAttribute("ShovelId")))
+	local size = (if info.TwoHanded then CLUMP_SIZE.Two else CLUMP_SIZE.One) * heft
 	local clump = Instance.new("Part")
 	clump.Name = "SandClump"
 	clump.Shape = Enum.PartType.Ball

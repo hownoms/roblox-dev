@@ -76,6 +76,7 @@ local DiscoveryController = require(Controllers:WaitForChild("DiscoveryControlle
 local DetectorHUD = require(UI:WaitForChild("DetectorHUD"))
 local ExcavationGame = require(UI:WaitForChild("ExcavationGame"))
 local FindReveal = require(UI:WaitForChild("FindReveal"))
+local Reveal = require(UI:WaitForChild("Reveal"))
 local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
 
 local function start(name: string, fn: () -> ())
@@ -128,6 +129,15 @@ DigController.SetHintCallback(function(text: string, kind: string)
 end)
 LayerController.SetBannerCallback(function(index: number, isNew: boolean)
 	Banner.ShowLayer(index, isNew)
+end)
+-- Reveal headlines sit where your own nameplate floats: hide it while one is up.
+Reveal.Opened:Connect(function()
+	StatusController.SetOwnHidden(true)
+end)
+Reveal.Closed:Connect(function()
+	task.defer(function()
+		StatusController.SetOwnHidden(Reveal.IsShowing())
+	end)
 end)
 
 -- 4. World controllers
