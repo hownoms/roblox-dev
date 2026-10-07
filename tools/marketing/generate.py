@@ -111,8 +111,33 @@ def put(c: Canvas, fn, x, y, size, rot=0.0, glow=None, flip=False, outline=10):
     c.paste(sprite(fn, size, outline=outline), x, y, rot=rot, flip=flip)
 
 
+TITLE_SAFE = 0.06  # titles keep this fraction of the short side clear of every edge
+
+
+def title_safe_centre(t, cx, cy, w, h, s):
+    """Shift (cx, cy) so the title's visible pixels stay TITLE_SAFE inside a w x h canvas."""
+    box = t.getchannel("A").getbbox()
+    if not box:
+        return cx, cy
+    margin = TITLE_SAFE * min(w, h)
+    left = cx - t.width / (2 * s) + box[0] / s
+    right = cx - t.width / (2 * s) + box[2] / s
+    top = cy - t.height / (2 * s) + box[1] / s
+    bottom = cy - t.height / (2 * s) + box[3] / s
+    if top < margin:
+        cy += margin - top
+    elif bottom > h - margin:
+        cy -= bottom - (h - margin)
+    if left < margin:
+        cx += margin - left
+    elif right > w - margin:
+        cx -= right - (w - margin)
+    return cx, cy
+
+
 def put_title(c: Canvas, text, cx, cy, size, rot=-4, **kw):
     t = title_text(text, size, rot=rot, **kw)
+    cx, cy = title_safe_centre(t, cx, cy, c.w, c.h, c.s)
     c.paste(t, cx, cy)
     return t
 
@@ -212,16 +237,18 @@ def thumb_pets(seed=2) -> Image.Image:
     c = Canvas(W, H)
     burst_bg(c, 960, 640, (255, 140, 230), (90, 40, 190), n=22, ray_alpha=38)
     sand_island(c, 960, 960, 900, 110)
-    # the hatch: golden egg cracking open, Core Dragon (Mythic) bursting out
-    c.glow(960, 610, 470, (255, 240, 150), 255, 1.3)
-    A.sunburst(c, 960, 610, 16, 520, (255, 250, 200), 80, 0.3)
+    # the hatch: the Magma Egg (Config/Eggs: dark shell, orange spots) cracking open, the Core
+    # Dragon (Mythic, magma_egg) bursting out
+    MAGMA_SHELL, MAGMA_SPOTS = (60, 30, 30), (255, 100, 30)
+    c.glow(960, 610, 470, (255, 190, 110), 255, 1.3)
+    A.sunburst(c, 960, 610, 16, 520, (255, 230, 180), 80, 0.3)
     confetti(c, rng, 46, (0, 260, W, 780))
-    c.ellipse((760, 640, 1160, 740), (200, 140, 30), STROKE, 7)       # inside of the shell
-    c.ellipse((780, 655, 1140, 735), (150, 95, 20))
+    c.ellipse((760, 640, 1160, 740), (255, 120, 40), STROKE, 7)       # glowing inside of the shell
+    c.ellipse((780, 655, 1140, 735), (200, 60, 20))
     put(c, A.pet_dragon, 960, 530, 380)
-    egg = lambda cc: A.tr_egg_bottom(cc, (255, 220, 70), (255, 160, 50))
-    put(c, egg, 960, 760, 440)
-    put(c, lambda cc: A.tr_egg_top(cc, (255, 220, 70), (255, 160, 50)), 1250, 330, 230, rot=-35)
+    egg = lambda cc: A.tr_egg_bottom(cc, MAGMA_SHELL, MAGMA_SPOTS)
+    put(c, egg, 960, 760, 440, glow=(255, 120, 40))
+    put(c, lambda cc: A.tr_egg_top(cc, MAGMA_SHELL, MAGMA_SPOTS), 1250, 330, 230, rot=-35)
     for _ in range(26):
         A.sparkle(c, 960 + rng.uniform(-330, 330), 600 + rng.uniform(-260, 220), rng.uniform(10, 26), (255, 255, 230))
     # pet parade on the island
@@ -304,6 +331,44 @@ def thumb_treasure(seed=3) -> Image.Image:
 
 
 # ============================================================ thumbnail 4 — rebirth & go deeper
+MARBLE = (246, 242, 255)
+SHRINE_PURPLE = (170, 100, 255)
+
+
+def rebirth_shrine(c: Canvas, cx, base_y, scale, rng):
+    """World/Hub.buildRebirth seen from the front: three stepped marble tiers (the middle one
+    lilac), a purple glow disc on the top step, a marble pedestal with the purple REBIRTH sign,
+    the golden digger statue holding its shovel up, and two purple orbs."""
+    u = scale  # px per stud
+    lilac = mix(SHRINE_PURPLE, WHITE, 0.55)
+    gold = (255, 205, 40)
+    c.glow(cx, base_y - 12 * u, 13 * u, (190, 130, 255), 200, 1.4)
+    for w, h, y, col in ((14, 1, 0, MARBLE), (11, 1, 1, lilac), (8, 1, 2, MARBLE)):
+        box3d(c, cx - w * u / 2, base_y - (y + h) * u, w * u, h * u, col, d=int(u * 0.9), width=6)
+    # neon glow disc lying on the top step (horizontal, seen at a low angle)
+    c.glow(cx, base_y - 3.05 * u, 6 * u, (200, 140, 255), 230, 1.4)
+    c.ellipse((cx - 4.5 * u, base_y - 3.05 * u - 0.9 * u, cx + 4.5 * u, base_y - 3.05 * u + 0.9 * u),
+              (210, 160, 255), STROKE, 5)
+    # pedestal + sign
+    box3d(c, cx - 2 * u, base_y - 8 * u, 4 * u, 5 * u, MARBLE, d=int(u * 0.8), width=6)
+    c.paste(pill_label("REBIRTH", int(1.35 * u), bg=SHRINE_PURPLE), cx, base_y - 1.7 * u)
+    # golden statue: legs, torso, arms, head, shovel raised high
+    def g(x0, y0, w, h):
+        c.rrect((cx + (x0 - w / 2) * u, base_y - (y0 + h / 2) * u, cx + (x0 + w / 2) * u, base_y - (y0 - h / 2) * u),
+                int(0.25 * u), gold, STROKE, 6)
+    g(0, 9.2, 2.4, 2.4)
+    g(0, 11.9, 3, 3)
+    g(-1.95, 11.8, 0.9, 2.8)
+    g(1.95, 14.6, 0.9, 3.4)
+    g(1.95, 18.5, 0.4, 6)
+    g(1.95, 22.4, 1.8, 2.4)
+    c.circle(cx, base_y - 14.7 * u, 1.3 * u, gold, STROKE, 6)
+    shine(c, (cx - 1.5 * u, base_y - 13.4 * u, cx - 0.2 * u, base_y - 10.6 * u), 90)
+    for x in (-5, 5):
+        c.glow(cx + x * u, base_y - 9 * u, 1.6 * u, (190, 120, 255), 230, 1.3)
+        c.circle(cx + x * u, base_y - 9 * u, 0.7 * u, (150, 90, 230), STROKE, 5)
+
+
 def portal(c: Canvas, cx, cy, r, rng, cols=((120, 255, 200), (60, 160, 255), (190, 110, 255))):
     c.glow(cx, cy, r * 1.7, (120, 255, 220), 230, 1.3)
     c.circle(cx, cy, r, (40, 30, 90), STROKE, 10)
@@ -346,12 +411,12 @@ def thumb_rebirth(seed=4, badge="NEW GAME!") -> Image.Image:
     c.glow(1530, 1080, 360, (255, 190, 60), 255, 1.3)
     core_glow(c, 1530, 1140, 170)
     put(c, A.tr_arrow_down, 1530, 560, 230)
-    # rebirth portal with the hero
-    portal(c, 700, 600, 330, rng)
-    ring_arrows(c, 700, 600, 350)
-    put(c, lambda cc: character(cc, pose="cheer", shirt=(170, 100, 255)), 700, 600, 330)
-    put(c, A.pet_phoenix, 980, 820, 170, rot=8)
-    put(c, A.pet_dragon, 400, 860, 190, rot=-8)
+    # the Rebirth Shrine as built in the hub, the hero celebrating beside it
+    ring_arrows(c, 580, 720, 300)
+    rebirth_shrine(c, 580, 1010, 25, rng)
+    put(c, lambda cc: character(cc, pose="cheer", shirt=(170, 100, 255)), 950, 770, 290)
+    put(c, A.pet_phoenix, 1000, 500, 140, rot=8)
+    put(c, A.pet_dragon, 230, 900, 180, rot=-8)
     for txt, x, y, sz, col in (("x1.5", 1190, 470, 60, (90, 220, 110)), ("x2", 1200, 620, 74, (60, 170, 255)),
                                ("x2.5", 1180, 790, 90, (255, 90, 160))):
         c.paste(pill_label(txt, sz, bg=col, rot=rng.uniform(-8, 8)), x, y)
