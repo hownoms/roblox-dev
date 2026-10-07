@@ -30,3 +30,15 @@ D:/Tools/rojo.exe sourcemap gallery.project.json -o build/gallery-review-sourcem
 .tools/stylua.exe --check tools/gallery
 D:/Tools/rojo.exe build gallery.project.json -o build/AssetGalleryReview.rbxlx
 ```
+
+## Continuation: native/detail pass, 6 October 2026
+
+- Fetched origin and inspected the clean `c3410bc` continuation base; no intervening local or remote updates were present. No reset, merge or pull was needed.
+- Improved isolated review controls: exact ID/name/catalog-number jump, four native camera angles, previous/next native assets, optional simultaneous details, actual rendered pixel labels, resize refitting, and restoration of camera, character visibility and gallery labels on Return. Chat/Captures overlays are disabled only in the diagnostic. Live navigation and Return were exercised.
+- Individually inspected all 14 tools and 13 backpacks at native scale and actual 48/120/240 px in a maximized Studio viewport. This is a static primary-angle pass, not four-angle or worn/moving approval for all 27. All frames populated without edge clipping. Remaining sequential review starts at entry 28 (Pets).
+- Targeted priority reviews: Steel Pickaxe, Obsidian Shard, pet-scale Lava Drill and Lamp were inspected from four native angles before refinement, plus their exact-size details. Full-size Lava Drill (entry 94) received details and a primary native view. Obsidian Shard and Lava Drill kept their existing materials/palettes.
+- Steel Pickaxe's head now uses smoother Metal and a brighter steel color; its dark grip and geometry remain. Lamp's pole/base/arm palette is modestly brighter with unchanged geometry/light. Fresh Studio details/native views verified both refinements; Lamp's thin pole remains necessarily subtle at 48 px.
+- Native review exposed a 0.15-stud housing-to-bit gap on Obsidian Drill and Plasma Drill. Extended only their shared housing to overlap the first bit, preserving lower housing extent, grip, pose attributes and blade point. Fresh Studio retest verified both connected heads and fitted detail frames.
+- Latest isolated build: `build/CollectionReviewCheckpoint.rbxlx` (ignored). Production changes are in Config/Shovels, Models/Props and Models/Shovels; diagnostic changes in GalleryReview.client. These changes are saved on `codex/native-detail-polish` for the authorized integration checkpoint.
+- Validation: 1,299 client and 1,091 normal server checks passed again after the drill fix. The save checkpoint also reran 1,078 Studio-mode server and 8 utility checks successfully on the final geometry. Affected strict analysis, formatting, Rojo build and whitespace checks pass.
+- Worn fit, animated motion, remaining entries, unassisted sequence/audio listening, the other thirteen scenery layers and populated/device profiling remain open. Hardware remains deferred; no publication, uploads or audio/badge ID changes.

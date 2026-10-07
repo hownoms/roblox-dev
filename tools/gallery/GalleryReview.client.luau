@@ -2,9 +2,13 @@
 -- One selected asset at a time: full collection remains native-size in the world.
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 -- Chat overlays the review controls in narrow Studio windows; isolated diagnostic only.
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+end)
+pcall(function()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Captures, false)
 end)
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Catalog = require(Shared:WaitForChild("GalleryCatalog"))
@@ -31,7 +35,7 @@ local function resize()
 	local camera = workspace.CurrentCamera
 	if camera then
 		local available = camera.ViewportSize
-		scale.Scale = math.min(1, (available.X - 24) / 1074, (available.Y - 60) / 580)
+		scale.Scale = math.min(1, (available.X - 24) / 1074, (available.Y - 60) / 628)
 	end
 end
 local camera = workspace.CurrentCamera
@@ -39,6 +43,12 @@ if camera then
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
 end
 resize()
+local index = 1
+local previews: { Viewport.Viewport } = {}
+local selectEntry: (number) -> ()
+local jumpInput: TextBox
+local panel: Frame
+local nativeDetails = false
 local savedCameraType: Enum.CameraType? = nil
 local savedCameraFrame: CFrame? = nil
 local nativeReturn = Instance.new("TextButton")
@@ -49,7 +59,102 @@ nativeReturn.Font = Enum.Font.GothamBold
 nativeReturn.TextSize = 14
 nativeReturn.Visible = false
 nativeReturn.Parent = gui
+local hiddenBillboards: { [BillboardGui]: boolean } = {}
+local hiddenParts: { [BasePart]: number } = {}
+local hideCharacterConnection: RBXScriptConnection? = nil
+local function hideNativeObstructions(gallery: Instance, character: Model)
+	for _, descendant in gallery:GetDescendants() do
+		if descendant:IsA("BillboardGui") then
+			hiddenBillboards[descendant] = descendant.Enabled
+			descendant.Enabled = false
+		end
+	end
+	for _, descendant in character:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			hiddenParts[descendant] = descendant.LocalTransparencyModifier
+			descendant.LocalTransparencyModifier = 1
+		end
+	end
+	hideCharacterConnection = RunService.RenderStepped:Connect(function()
+		for part in hiddenParts do
+			if part.Parent then
+				part.LocalTransparencyModifier = 1
+			end
+		end
+	end)
+end
+local nativeModel: Model? = nil
+local nativeYaw = 25
+local nativeLabel = Instance.new("TextLabel")
+nativeLabel.Size = UDim2.fromOffset(420, 36)
+nativeLabel.Position = UDim2.new(0, 202, 1, -44)
+nativeLabel.Font = Enum.Font.GothamBold
+nativeLabel.TextSize = 14
+nativeLabel.TextColor3 = Color3.fromRGB(255, 239, 201)
+nativeLabel.BackgroundColor3 = Color3.fromRGB(25, 42, 63)
+nativeLabel.TextWrapped = true
+nativeLabel.Visible = false
+nativeLabel.Parent = gui
+local nativeControls: { TextButton } = {}
+local function frameNative()
+	local current = workspace.CurrentCamera
+	local model = nativeModel
+	if not current or not model or not model.Parent then
+		return
+	end
+	local bounds, size = model:GetBoundingBox()
+	local blockedWidth = if nativeDetails then 450 * scale.Scale + 24 else 0
+	local usableWidth = math.max(1, current.ViewportSize.X - blockedWidth)
+	local aspect = usableWidth / math.max(1, current.ViewportSize.Y)
+	local vertical = math.rad(current.FieldOfView / 2)
+	local halfFov = math.min(vertical, math.atan(math.tan(vertical) * aspect))
+	local distance = math.max(3, size.Magnitude / 2 / math.sin(halfFov) / 0.75)
+	local yaw = math.rad(nativeYaw)
+	local direction = Vector3.new(math.sin(yaw), 0.35, -math.cos(yaw)).Unit
+	local fitted = CFrame.lookAt(bounds.Position + direction * distance, bounds.Position)
+	local shift = blockedWidth / math.max(1, current.ViewportSize.Y) * distance * math.tan(vertical)
+	current.CFrame = fitted + fitted.RightVector * shift
+end
+if camera then
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		if nativeModel then
+			frameNative()
+		end
+	end)
+end
+for i, action in { { Label = "Left 90 deg", Yaw = -90 }, { Label = "Right 90 deg", Yaw = 90 } } do
+	local control = Instance.new("TextButton")
+	control.Text = action.Label
+	control.Size = UDim2.fromOffset(110, 36)
+	control.Position = UDim2.new(0, 12 + (i - 1) * 118, 1, -84)
+	control.Font = Enum.Font.GothamBold
+	control.TextSize = 14
+	control.Visible = false
+	control.Parent = gui
+	control.Activated:Connect(function()
+		nativeYaw = (nativeYaw + action.Yaw) % 360
+		frameNative()
+	end)
+	table.insert(nativeControls, control)
+end
 local function restoreCamera()
+	local wasNative = nativeModel ~= nil
+	if hideCharacterConnection then
+		hideCharacterConnection:Disconnect()
+		hideCharacterConnection = nil
+	end
+	for part, transparency in hiddenParts do
+		if part.Parent then
+			part.LocalTransparencyModifier = transparency
+		end
+	end
+	table.clear(hiddenParts)
+	for billboard, enabled in hiddenBillboards do
+		if billboard.Parent then
+			billboard.Enabled = enabled
+		end
+	end
+	table.clear(hiddenBillboards)
 	local current = workspace.CurrentCamera
 	if current and savedCameraType then
 		current.CameraType = savedCameraType
@@ -59,10 +164,25 @@ local function restoreCamera()
 	end
 	savedCameraType, savedCameraFrame = nil, nil
 	nativeReturn.Visible = false
+	nativeLabel.Visible = false
+	nativeModel = nil
+	nativeDetails = false
+	jumpInput.Visible = true
+	for _, child in panel:GetChildren() do
+		if child:IsA("GuiButton") then
+			child.Visible = true
+		end
+	end
+	for _, control in nativeControls do
+		control.Visible = false
+	end
 	root.Visible = true
+	if wasNative then
+		selectEntry(index)
+	end
 end
 nativeReturn.Activated:Connect(restoreCamera)
-local panel = Instance.new("Frame")
+panel = Instance.new("Frame")
 panel.Size = UDim2.fromOffset(450, 434)
 panel.Position = UDim2.fromOffset(624, 0)
 panel.BackgroundColor3 = Color3.fromRGB(25, 42, 63)
@@ -83,24 +203,28 @@ local function text(value: string, position: UDim2, size: UDim2): TextLabel
 end
 
 local title = text("", UDim2.fromOffset(8, 4), UDim2.fromOffset(434, 42))
-local previews: { Viewport.Viewport } = {}
 local x = 12
 for _, pixels in { 48, 120, 240 } do
-	text(tostring(pixels) .. " px", UDim2.fromOffset(x, 48), UDim2.fromOffset(pixels, 24))
+	local sizeLabel = text("", UDim2.fromOffset(x, 48), UDim2.fromOffset(pixels, 24))
+	sizeLabel.TextSize = 11
 	local preview = Viewport.new({
 		Parent = panel,
 		Position = UDim2.fromOffset(x, 76),
 		Size = UDim2.fromOffset(pixels, pixels),
 		Spin = false,
 	})
+	local function updateSizeLabel()
+		sizeLabel.Text = string.format("%d px\n%.0f actual", pixels, preview.Frame.AbsoluteSize.X)
+	end
+	preview.Frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSizeLabel)
+	updateSizeLabel()
 	table.insert(previews, preview)
 	x += pixels + 8
 end
 
-local index = 1
 local showContact: () -> ()
 local clearContact: () -> ()
-local function selectEntry(nextIndex: number)
+selectEntry = function(nextIndex: number)
 	index = (nextIndex - 1) % #Catalog + 1
 	local entry = Catalog[index]
 	title.Text = string.format("%d / %d · %s / %s\n%s", index, #Catalog, entry.Category, entry.Name, entry.Id)
@@ -128,38 +252,70 @@ end)
 button("Next", 140, function()
 	selectEntry(index + 1)
 end)
-button("Visit native", 268, function()
+local function visitNative(nextIndex: number)
 	local gallery = workspace:FindFirstChild("AssetGallery")
 	local character = player.Character
-	if not gallery or not character then
+	local current = workspace.CurrentCamera
+	if not gallery or not character or not current then
 		return
 	end
-	for _, pad in gallery:GetChildren() do
-		if pad:IsA("BasePart") and pad:GetAttribute("GalleryIndex") == index then
-			character:PivotTo(pad.CFrame * CFrame.new(0, 4, -12))
-			local current = workspace.CurrentCamera
-			if current then
-				for _, model in gallery:GetChildren() do
-					if model:IsA("Model") and model:GetAttribute("GalleryIndex") == index then
-						local bounds, size = model:GetBoundingBox()
-						local aspect = current.ViewportSize.X / math.max(1, current.ViewportSize.Y)
-						local vertical = math.rad(current.FieldOfView / 2)
-						local halfFov = math.min(vertical, math.atan(math.tan(vertical) * aspect))
-						local distance = math.max(3, size.Magnitude / 2 / math.sin(halfFov) / 0.75)
-						savedCameraType, savedCameraFrame = current.CameraType, current.CFrame
-						current.CameraType = Enum.CameraType.Scriptable
-						current.CFrame =
-							CFrame.lookAt(bounds.Position + Vector3.new(0.5, 0.35, -1).Unit * distance, bounds.Position)
-						root.Visible = false
-						nativeReturn.Visible = true
-						break
-					end
-				end
+	local targetIndex = (nextIndex - 1) % #Catalog + 1
+	local targetModel: Model? = nil
+	local targetPad: BasePart? = nil
+	for _, descendant in gallery:GetChildren() do
+		if descendant:GetAttribute("GalleryIndex") == targetIndex then
+			if descendant:IsA("Model") then
+				targetModel = descendant
+			elseif descendant:IsA("BasePart") then
+				targetPad = descendant
 			end
-			return
 		end
 	end
+	if not targetModel or not targetPad then
+		return
+	end
+	if not nativeModel then
+		savedCameraType, savedCameraFrame = current.CameraType, current.CFrame
+		hideNativeObstructions(gallery, character)
+		for _, preview in previews do
+			preview:SetModel(nil)
+		end
+	end
+	character:PivotTo(targetPad.CFrame * CFrame.new(0, 4, -12))
+	index = targetIndex
+	if nativeDetails then
+		selectEntry(index)
+	end
+	nativeModel, nativeYaw = targetModel, 25
+	current.CameraType = Enum.CameraType.Scriptable
+	frameNative()
+	local entry = Catalog[index]
+	nativeLabel.Text = string.format("%d / %d: %s / %s\n%s", index, #Catalog, entry.Category, entry.Name, entry.Id)
+	nativeLabel.Visible = true
+	for _, control in nativeControls do
+		control.Visible = true
+	end
+	root.Visible = nativeDetails
+	jumpInput.Visible = false
+	nativeReturn.Visible = true
+end
+button("Visit native", 268, function()
+	visitNative(index)
 end)
+for i, action in { { Label = "Previous asset", Offset = -1 }, { Label = "Next asset", Offset = 1 } } do
+	local control = Instance.new("TextButton")
+	control.Text = action.Label
+	control.Size = UDim2.fromOffset(132, 36)
+	control.Position = UDim2.new(0, 248 + (i - 1) * 140, 1, -84)
+	control.Font = Enum.Font.GothamBold
+	control.TextSize = 14
+	control.Visible = false
+	control.Parent = gui
+	control.Activated:Connect(function()
+		visitNative(index + action.Offset)
+	end)
+	table.insert(nativeControls, control)
+end
 text(
 	"Static production Viewport · no player data / gameplay services",
 	UDim2.fromOffset(8, 368),
@@ -170,6 +326,33 @@ local contact = Instance.new("Frame")
 contact.Size = UDim2.fromOffset(610, 580)
 contact.BackgroundColor3 = panel.BackgroundColor3
 contact.Parent = root
+jumpInput = Instance.new("TextBox")
+jumpInput.PlaceholderText = "Jump: asset ID, name or catalog number; Enter"
+jumpInput.Text = ""
+jumpInput.ClearTextOnFocus = false
+jumpInput.Size = UDim2.fromOffset(610, 32)
+jumpInput.Position = UDim2.fromOffset(0, 588)
+jumpInput.Font = Enum.Font.Gotham
+jumpInput.TextSize = 14
+jumpInput.Parent = root
+jumpInput.FocusLost:Connect(function(enterPressed)
+	if not enterPressed then
+		return
+	end
+	local query = string.lower(jumpInput.Text):match("^%s*(.-)%s*$") or ""
+	local number = tonumber(query)
+	for entryIndex, entry in Catalog do
+		if entryIndex == number or string.lower(entry.Id) == query or string.lower(entry.Name) == query then
+			clearContact()
+			contact.Visible = false
+			panel.Visible = true
+			selectEntry(entryIndex)
+			jumpInput.Text = ""
+			return
+		end
+	end
+	jumpInput.Text = "No exact match: " .. query
+end)
 local contactTitle = text("", UDim2.fromOffset(8, 4), UDim2.fromOffset(594, 38))
 contactTitle.Parent = contact
 local cells = Instance.new("Frame")
@@ -288,3 +471,35 @@ back.TextSize = 14
 back.Parent = panel
 back.Activated:Connect(showContact)
 showContact()
+
+local detailsToggle = Instance.new("TextButton")
+detailsToggle.Text = "Show details"
+detailsToggle.Size = UDim2.fromOffset(132, 36)
+detailsToggle.Position = UDim2.new(0, 528, 1, -84)
+detailsToggle.Font = Enum.Font.GothamBold
+detailsToggle.TextSize = 14
+detailsToggle.Visible = false
+detailsToggle.Parent = gui
+detailsToggle.Activated:Connect(function()
+	nativeDetails = not nativeDetails
+	detailsToggle.Text = if nativeDetails then "Hide details" else "Show details"
+	root.Visible = nativeDetails
+	jumpInput.Visible = false
+	for _, child in panel:GetChildren() do
+		if child:IsA("GuiButton") then
+			child.Visible = not nativeDetails
+		end
+	end
+	if nativeDetails then
+		selectEntry(index)
+	else
+		for _, preview in previews do
+			preview:SetModel(nil)
+		end
+	end
+	frameNative()
+end)
+nativeReturn.Activated:Connect(function()
+	detailsToggle.Text = "Show details"
+end)
+table.insert(nativeControls, detailsToggle)

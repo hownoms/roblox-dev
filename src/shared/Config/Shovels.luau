@@ -138,10 +138,10 @@ local Shovels: { Types.ShovelDef } = {
 		RebirthsRequired = 0,
 		Description = "Miner-grade steel. Cracks Bedrock like a cookie.",
 		Look = {
-			HeadColor = rgb(120, 130, 150),
+			HeadColor = rgb(165, 180, 195),
 			HandleColor = rgb(60, 60, 70),
 			HeadShape = "Pick",
-			Material = Enum.Material.DiamondPlate,
+			Material = Enum.Material.Metal,
 			Glow = false,
 		},
 	},
