@@ -1,5 +1,15 @@
 # Visual polish handoff — 7 October 2026
 
+## First-player batch 2 (Claude, cloud session) — 7 October 2026
+
+Three queued first-player stages implemented on `claude/friendly-goldberg-55gojy` (base `e53054a`, PR #13 merged). **Headless evidence only**; each needs the ordinary DigTest check below. Validation: `tools/check.sh` ALL CHECKS PASSED; `tests/run.sh` ALL TESTS PASSED (client 1,373).
+
+- **First upgrade feel.** The Garden Trowel digs the same 4x4 cube as the Hand Spade at 0.46 vs 0.5 s, so the purchase looked like nothing changed. The NEW SHOVEL reveal now captions the gain over the best shovel owned before ("NOW DIGS SHELL BED · +50% SAND · +9% SPEED"); `ItemStats.Heft` (1..2, +0.2 per tier) scales the dig burst, chunks, shake, the scooped sand clump and gives a deeper, louder dig sound; a new tutorial step after buying a shovel sends you down into the first layer the starter could not dig. MenuGate unlock thresholds now derive from step ids, and resuming players silently skip steps already satisfied (finished players never see the tutorial again). Economy numbers unchanged; `tools/sim/economy.luau` still shows Shell Bed at 1.6 min, first rebirth 45 min. *Studio check:* buy the trowel and dig for a minute; does it feel stronger, and does the objective lead you down to Shell Bed?
+- **Scan direction.** The ground arrow (a plain stick) gets a chevron head and pulses in the hot band (static with Reduced Motion); the radar dot gets an arrowhead; the pill says DIG HERE! / DIG DOWN! / UP HERE! within 6 studs, DOWN / UP farther away. *Studio check:* scan from a few spots; can you walk to the find from the cues alone?
+- **Reveal vs own nameplate.** Your own nameplate hides while a Reveal is showing; other players' plates stay. *Studio check:* get a discovery card and confirm the headline no longer crosses your name.
+
+Not changed: performance (tide refill and leaderboard writes are already time-sliced; spikes need a MicroProfiler capture), equipment/pet contact (needs live viewing).
+
 ## Production-readiness batch (Claude, cloud session) — 7 October 2026
 
 The owner asked for everything that can move the game toward going live. This session ran in a Linux cloud container without Studio, so every item below has **headless evidence only**; each needs the ordinary-input Studio check listed in `docs/LAUNCH.md` §1 before it counts toward a release gate. Branch `claude/friendly-goldberg-55gojy`, based on `bf89b00`. Full validation: `tools/check.sh` ALL CHECKS PASSED; `tests/run.sh` ALL TESTS PASSED (util 8, server smoke 2,158 and 2,144 in Studio mode, client 1,354).

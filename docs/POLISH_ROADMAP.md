@@ -8,6 +8,8 @@ Howard requested one issue per stage: observe/reproduce it, fix it, verify the f
 
 ## 1. First-player experience — next work
 
+7 October batch 2 (headless only, awaiting DigTest checks; see the latest handoff entry): first-upgrade feel, scan direction cues and the reveal/own-nameplate overlap are implemented. Remaining here: the complete unassisted sequence with Reduced Motion, audio listening and independent fresh-player feedback.
+
 7 October excavation cue stage: corrected observed result/cue confusion with a separate numbered result and immediate completed-ring hiding. Ordinary DigTest captured natural WAIT/TAP and unanswered expiry before/after; synthetic pinned Tap diagnostics separately checked early MISS, PERFECT and late GOOD. See the latest handoff entry. This focused presentation checkpoint does not certify reactive human timing or close the full sequence gate. Keep every other listed issue in its own future stage; do not resume broader sweeps in this stage.
 
 Use the existing build/DigTest.rbxl with default-project Rojo on port 34872. Recheck Studio/Rojo state and start fresh Play with current source. Run spawn → equip → dig → scan/excavate → readable discovery → full bag → sell → first upgrade/equip using ordinary input. Keep assisted setup separate from unassisted evidence; do not use /max, scripted digs or teleports to claim completion.
