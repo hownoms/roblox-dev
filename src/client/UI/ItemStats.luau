@@ -33,7 +33,8 @@ function ItemStats.Rate(shovel: Types.ShovelDef): string
 end
 
 function ItemStats.SandMult(multiplier: number): string
-	return "x" .. Format.Abbreviate(multiplier)
+	-- Currency formatting floors small numbers, which hides fractional shovel upgrades.
+	return "x" .. (if multiplier < 1000 then tostring(multiplier) else Format.Abbreviate(multiplier))
 end
 
 return ItemStats

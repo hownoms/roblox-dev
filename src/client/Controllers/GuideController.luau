@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 local Character = require(script.Parent.Parent.Util.Character)
 local Tagged = require(script.Parent.Parent.Util.Tagged)
 local Anchors = require(script.Parent.Parent.Util.Anchors)
+local State = require(script.Parent.State)
 
 local GuideController = {}
 
@@ -210,11 +211,14 @@ function GuideController.Init()
 			markerLabel.Text = request.Marker
 		end
 		activeKey = key
+		local reducedMotion = State.GetSetting("ReducedMotion", false) == true
 		if marker then
-			marker.StudsOffsetWorldSpace = Vector3.new(0, 4 + math.abs(math.sin(t * 4)) * 1.5, 0)
+			local bounce = if reducedMotion then 0 else math.abs(math.sin(t * 4)) * 1.5
+			marker.StudsOffsetWorldSpace = Vector3.new(0, 4 + bounce, 0)
 		end
 		-- hide the beam when standing on the target (marker stays)
 		if beam then
+			beam.TextureSpeed = if reducedMotion then 0 else 2
 			beam.Enabled = (root.Position - position).Magnitude > 8
 		end
 	end)

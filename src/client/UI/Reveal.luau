@@ -34,6 +34,7 @@ export type Item = {
 	Yaw: number?,
 	Pitch: number?,
 	Rotation: CFrame?,
+	Spin: boolean?, -- defaults true; flat finds can keep their recognizable front face
 	Rows: { Row },
 	Tag: string?, -- "NEW!"
 	NameColor: Color3?,
@@ -233,7 +234,7 @@ local function card(parent: Instance, item: Item, spec: Spec, single: boolean, z
 	local view = Viewport.new({
 		Name = "Model",
 		Size = UDim2.fromScale(1, 1),
-		Spin = true,
+		Spin = item.Spin ~= false,
 		SpinSpeed = 1.4,
 		Pitch = item.Pitch or 12,
 		Yaw = item.Yaw,

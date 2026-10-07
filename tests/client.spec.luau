@@ -330,8 +330,30 @@ do
 	local objectiveText = objective and objective:FindFirstChild("Text")
 	check(objectiveText ~= nil and objectiveText.Text ~= "", "objective pill has a line (" .. tostring(objectiveText and objectiveText.Text) .. ")")
 	check(playerGui:FindFirstChild("Tutorial", true) == nil, "old big tutorial bar is gone")
+	local savedSand = State.Data.Sand
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", false)
+	Mock.FireClientEvent("DataChanged", { Sand = State.GetCapacity() })
+	Mock.Advance(0.1)
+	local bag = hudCanvas:FindFirstChild("Backpack", true)
+	local sellArrow = hudCanvas:FindFirstChild("SellArrow", true)
+	check(sellArrow.Visible and bag:FindFirstChild("Pop").Scale > 1, "full bag draws attention with motion enabled")
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.2)
+	check(sellArrow.Visible and sellArrow.Position.Y.Offset == -52 and bag:FindFirstChild("Pop").Scale == 1, "reduced motion keeps full-bag warning visible and static")
+	HUD.Flash("Settings", 1)
+	check(HUD.Buttons.Settings.Holder:FindFirstChild("Pop") == nil or HUD.Buttons.Settings.Holder.Pop.Scale == 1, "reduced motion suppresses HUD attention pulse")
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.1)
+	check(sellArrow.Position.Y.Offset == -62 and bag:FindFirstChild("Pop").Scale > 1, "full-bag motion resumes after preference changes")
+	Mock.FireClientEvent("DataChanged", { Sand = savedSand })
+	State.SetSetting("ReducedMotion", savedMotion)
+	Mock.Advance(0.2)
 
 	-- Shop: upgrade rows (icon | current | arrow | next | price), one per item
+	local ItemStats = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats"])
+	check(ItemStats.SandMult(1.5) == "x1.5", "first shovel upgrade retains its fractional sand bonus")
+	check(ItemStats.SandMult(2) == "x2" and ItemStats.SandMult(1500) == "x1.5K", "sand bonus keeps compact whole and large values")
 	Mock.FireClientEvent("DataChanged", { Coins = 1e9 })
 	Mock.Advance(0.3)
 	for tab, list in { Shovels = Config.Shovels, Backpacks = Config.Backpacks } do
@@ -546,6 +568,33 @@ do
 	local sellBack = Mock.StreamIn(sellToken)
 	Mock.Advance(0.3)
 	check(sellBack ~= sellPart and (GuideController.Resolve(target, root.Position) - sellTop).Magnitude < 1e-6, "guide locks onto the streamed-in part")
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.2)
+	local marker = to:FindFirstChild("GuideMarker")
+	check(beam.TextureSpeed == 0 and marker.StudsOffsetWorldSpace.Y == 4, "reduced motion keeps a static world guide")
+	Mock.Advance(0.3)
+	check(marker.StudsOffsetWorldSpace.Y == 4 and marker.Enabled, "static guide remains visible without bouncing")
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.2)
+	check(
+		beam.TextureSpeed == 2 and marker.StudsOffsetWorldSpace.Y > 4,
+		"world guide motion resumes when preference is disabled"
+	)
+	local ObjectiveBanner = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ObjectiveBanner"])
+	ObjectiveBanner.Show("Sell your sand!", "Sell", { Arrow = true })
+	local arrow = ObjectiveBanner.Get():FindFirstChild("Arrow")
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.6)
+	check(arrow.Visible and arrow.Position.Y.Offset == -2, "enabling reduced motion stops an active objective arrow")
+	ObjectiveBanner.Hide()
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.6)
+	check(
+		not ObjectiveBanner.Get().Visible and arrow.Position.Y.Offset == -2,
+		"hidden objective arrow stays stopped when settings change"
+	)
+	State.SetSetting("ReducedMotion", savedMotion)
 	GuideController.Clear("StreamTest")
 	Mock.Advance(0.2)
 
@@ -656,8 +705,14 @@ Mock.FireClientEvent(
 	Config.Treasures[#Config.Treasures].Rarity
 )
 Mock.Advance(6)
+State.SetSetting("ReducedMotion", true)
 Mock.FireClientEvent("EggHatched", { Config.Pets[1].Id })
+Mock.Advance(0.1)
+local hatch = playerGui:FindFirstChild("Hatch", true)
+local hatchEgg = hatch and hatch:FindFirstChild("Egg", true)
+check(hatchEgg ~= nil and (hatchEgg.Rotation or 0) == 0 and hatchEgg.Size.X.Offset == 180, "reduced-motion hatch keeps egg still at its original size")
 Mock.Advance(8)
+State.SetSetting("ReducedMotion", false)
 Mock.FireClientEvent("EggHatched", { Config.Pets[1].Id, Config.Pets[2].Id, Config.Pets[#Config.Pets].Id })
 Mock.Advance(10)
 for _, kind in { "Info", "Success", "Error", "Reward", "Sell", "Announce", "Event", "Weird" } do
@@ -2552,6 +2607,63 @@ do
 	Mock.FireClientEvent("FindRevealed", "junk")
 	Mock.Advance(0.2)
 
+	-- A thin flip-flop must retain its front silhouette throughout both reveal paths.
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", false)
+	local TreasurePopup = Mock.Require(byPath[CP .. "UI/TreasurePopup"])
+	local shown = {}
+	local seenAncestors = {}
+	local function revealModel()
+		local card = popups:FindFirstChild("Reveal")
+		local frame = card and card:FindFirstChild("Model", true)
+		-- Earlier menu tests can leave a popup ancestor hidden. Exercise actual motion.
+		local ancestor = frame
+		while ancestor do
+			local property = if ancestor:IsA("GuiObject") then "Visible" elseif ancestor:IsA("ScreenGui") then "Enabled" else nil
+			if property then
+				if not seenAncestors[ancestor] then
+					seenAncestors[ancestor] = true
+					table.insert(shown, { ancestor, property, ancestor[property] })
+				end
+				ancestor[property] = true
+			end
+			ancestor = ancestor.Parent
+		end
+		return frame and frame:FindFirstChildOfClass("Model")
+	end
+	local flipInfo = fi("Common", "Normal", "None", true)
+	flipInfo.TreasureId = "lost_flip_flop"
+	FindReveal.Show(flipInfo)
+	Mock.Advance(0.2)
+	local flip = revealModel()
+	check(flip ~= nil, "flip-flop discovery has a model preview")
+	local initial = flip and flip:GetPivot()
+	Mock.Advance(0.8)
+	check(flip and flip:GetPivot() == initial, "flip-flop discovery keeps its broad front face without Reduced Motion")
+	Mock.Advance(5)
+	TreasurePopup.Show("lost_flip_flop", "Common")
+	Mock.Advance(0.2)
+	flip = revealModel()
+	initial = flip and flip:GetPivot()
+	Mock.Advance(0.8)
+	check(flip and flip:GetPivot() == initial, "legacy flip-flop popup also stays static")
+	Mock.Advance(5)
+	local Reveal = Mock.Require(byPath[CP .. "UI/Reveal"])
+	local Models = Mock.Require(byPath["ReplicatedStorage/Shared/Models"])
+	Reveal.Show({ Headline = "SPIN DEFAULT", Color = Config.GetRarity("Common").Color, Items = { { Name = "Bottle Cap", Model = Models.Treasure("bottle_cap"), Rows = {} } }, Hold = 3 })
+	Mock.Advance(0.2)
+	local spinning = revealModel()
+	initial = spinning and spinning:GetPivot()
+	Mock.Advance(0.8)
+	check(spinning and spinning:GetPivot() ~= initial, "visible Reveal item without a Spin option preserves rotation")
+	Mock.Advance(5)
+	for _, restored in shown do
+		if restored[1].Parent then
+			restored[1][restored[2]] = restored[3]
+		end
+	end
+	State.SetSetting("ReducedMotion", savedMotion)
+
 	-- world models: streaming-safe tag watching (Stage Excavating -> Revealed, late stream-in)
 	local CollectionService = Mock.Service("CollectionService")
 	local function findModel(id, stage, tier)
@@ -2623,6 +2735,27 @@ do
 	Panel.CloseAll()
 	Mock.Advance(0.5)
 	check(#Mock.Errors == e0, "no errors in discovery")
+end
+
+section("confirmed sell feedback")
+do
+	local UIEffects = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/UIEffects"])
+	local originalFly = UIEffects.FlyTo
+	local flights = 0
+	UIEffects.FlyTo = function(...)
+		flights += 1
+	end
+	Mock.FireClientEvent("DataChanged", { Sand = 5 })
+	Mock.FireClientEvent("DataChanged", { Sand = 0 })
+	Mock.Advance(0.1)
+	check(flights == 0, "sand reset alone does not celebrate a sale")
+	Mock.FireClientEvent("Notify", "Sell", "+8 Coins!")
+	Mock.Advance(0.1)
+	check(flights == 1, "confirmed treasure-only sale celebrates with an empty sand bag")
+	Mock.FireClientEvent("Notify", "Sell", false)
+	Mock.Advance(0.1)
+	check(flights == 1, "malformed sell notification does not trigger effects")
+	UIEffects.FlyTo = originalFly
 end
 
 section("report")

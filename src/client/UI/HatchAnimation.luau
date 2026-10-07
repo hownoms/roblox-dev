@@ -156,7 +156,7 @@ local function play(petIds: { string }, info: HatchInfo?)
 	overlay.Parent = canvas
 	Style.Tween(overlay, 0.25, { BackgroundTransparency = 0.45 })
 
-	local skip = false
+	local skip = State.GetSetting("ReducedMotion", false) == true
 	overlay.Activated:Connect(function()
 		skip = true
 	end)
@@ -187,7 +187,9 @@ local function play(petIds: { string }, info: HatchInfo?)
 		local eggId = eggFor(petId)
 		eggIds[i] = eggId
 		egg:SetModel(ModelFactory.Egg(eggId))
-		Style.PopIn(egg.Frame, 0.4)
+		if not skip then
+			Style.PopIn(egg.Frame, 0.4)
+		end
 		table.insert(slots, slot)
 		table.insert(eggViews, egg)
 	end
@@ -196,7 +198,7 @@ local function play(petIds: { string }, info: HatchInfo?)
 	-- wobble, building up
 	local wobbles = { 8, 10, 14, 18, 24, 30 }
 	for step, angle in wobbles do
-		if skip then
+		if skip or State.GetSetting("ReducedMotion", false) == true then
 			break
 		end
 		SoundController.Play("EggShake", 0.9 + step * 0.08)
@@ -226,7 +228,9 @@ local function play(petIds: { string }, info: HatchInfo?)
 	for i in petIds do
 		local egg = eggViews[i]
 		egg.Frame.Rotation = 0
-		if Config.IsCrate(eggIds[i]) then
+		if State.GetSetting("ReducedMotion", false) == true then
+			egg.Frame.Visible = false
+		elseif Config.IsCrate(eggIds[i]) then
 			-- crates open: the lid pops off, then the crate fades
 			popLid(egg)
 			task.delay(0.25, function()
