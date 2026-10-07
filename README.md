@@ -108,7 +108,9 @@ luau tests/util.spec.luau
 
 `tools/check.sh` expects `rojo`, `stylua` and `luau-lsp` on `PATH` (or in `~/bin`), and the
 Roblox type definitions at `~/luau-defs/globalTypes.d.luau`, which come from the luau-lsp repo's
-`scripts/globalTypes.d.luau`.
+`scripts/globalTypes.d.luau`. On Linux (CI, cloud sessions) `tools/setup_toolchain.sh` installs
+the pinned versions of all of them. Keep the definitions pinned: the test mock is generated from
+them, and newer upstream definitions drop enum items the mock relies on.
 
 Balance numbers are all in `src/shared/Config/`. Change prices, layers, pets and drop rates
 there, and the rest of the game picks them up.
