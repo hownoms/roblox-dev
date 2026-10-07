@@ -18,6 +18,7 @@ Mock.Init(Generated, { Client = true })
 
 local Vector3 = Mock.Vector3
 local CFrame = Mock.CFrame
+local Vector2 = Mock.Vector2
 local Enum = Mock.Enum
 local byPath = Mock.ByPath
 
@@ -587,6 +588,63 @@ do
 	GuideController.Set("StreamTest", target, 99, "S")
 	Mock.Advance(0.2)
 	check(marker.Enabled and beam.Enabled, "guide reappears when the target is distant again")
+	local markerIcon = marker:FindFirstChild("MarkerIcon")
+	check(markerIcon ~= nil and markerIcon:GetAttribute("Icon") == "S", "world marker draws through AtlasIcon")
+
+	-- off-screen edge indicator: pure placement math
+	do
+		local size = Vector2.new(1280, 720)
+		local onScreen, at = GuideController.EdgePlacement(Vector3.new(0, 0, -10), Vector3.new(640, 360, 10), size, 50)
+		check(onScreen and at == Vector2.new(640, 360), "edge: target in view needs no edge arrow")
+		local off, right, rotRight = GuideController.EdgePlacement(Vector3.new(50, 0, -10), Vector3.new(4000, 360, 10), size, 50)
+		check(not off and math.abs(right.X - 1230) < 1e-6 and math.abs(right.Y - 360) < 1e-6, "edge: off to the right pins to the right margin")
+		check(math.abs(rotRight + 90) < 1e-6, "edge: right-pointing rotation is -90 (down arrow turned anticlockwise)")
+		local _, left = GuideController.EdgePlacement(Vector3.new(-50, 0, -10), Vector3.new(-4000, 360, 10), size, 50)
+		check(math.abs(left.X - 50) < 1e-6, "edge: off to the left pins to the left margin")
+		local _, up, rotUp = GuideController.EdgePlacement(Vector3.new(0, 50, -10), Vector3.new(640, -4000, 10), size, 50)
+		check(math.abs(up.Y - 50) < 1e-6 and math.abs(math.abs(rotUp) - 180) < 1e-6, "edge: above the view pins to the top and points up")
+		local behindOn, behind, rotBehind = GuideController.EdgePlacement(Vector3.new(30, 0, 20), Vector3.new(640, 360, -20), size, 50)
+		check(not behindOn and math.abs(behind.X - 1230) < 1e-6 and math.abs(rotBehind + 90) < 1e-6, "edge: behind and to the right uses the right edge")
+		local _, straight, rotStraight = GuideController.EdgePlacement(Vector3.new(0, 0, 20), Vector3.new(640, 360, -20), size, 50)
+		check(math.abs(straight.Y - 670) < 1e-6 and math.abs(rotStraight) < 1e-6, "edge: directly behind points down (turn around)")
+		local _, corner = GuideController.EdgePlacement(Vector3.new(80, 80, -10), Vector3.new(9000, -9000, 10), size, 50)
+		check(corner.X <= 1230 + 1e-6 and corner.Y >= 50 - 1e-6, "edge: diagonal targets stay inside the margin box")
+	end
+
+	-- off-screen edge indicator: live, target behind the camera
+	do
+		local camera = Mock.Service("Workspace").CurrentCamera
+		local savedCF = camera.CFrame
+		local edgeGui = player.PlayerGui:FindFirstChild("Dig_GuideEdge")
+		local edge = edgeGui and edgeGui:FindFirstChild("EdgeArrow")
+		local behindPoint = root.Position + Vector3.new(0, 0, 60)
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, -15), root.Position + Vector3.new(0, 0, -100))
+		GuideController.Set("StreamTest", behindPoint, 99, "Coins")
+		Mock.Advance(0.2)
+		edgeGui = player.PlayerGui:FindFirstChild("Dig_GuideEdge")
+		edge = edgeGui and edgeGui:FindFirstChild("EdgeArrow")
+		check(edge ~= nil and edge.Visible, "edge arrow shows for a target behind the camera")
+		check(edge and edge:FindFirstChild("MarkerIcon") and edge.MarkerIcon:GetAttribute("Icon") == "Coins", "edge arrow carries the guide's marker icon")
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, 15), behindPoint)
+		Mock.Advance(0.2)
+		check(edge and not edge.Visible, "edge arrow hides once the target is in view")
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, -15), root.Position + Vector3.new(0, 0, -100))
+		Mock.Advance(0.2)
+		check(edge and edge.Visible, "edge arrow returns when the camera turns away again")
+		local savedReduced = State.GetSetting("ReducedMotion", false)
+		State.SetSetting("ReducedMotion", true)
+		Mock.Advance(0.2)
+		local s1 = edge.Size.X.Offset
+		Mock.Advance(0.13)
+		check(edge.Size.X.Offset == s1, "reduced motion: edge arrow does not pulse")
+		State.SetSetting("ReducedMotion", savedReduced)
+		GuideController.Set("StreamTest", root.Position, 99, "Coins")
+		Mock.Advance(0.2)
+		check(edge and not edge.Visible, "edge arrow hides when the player is at the target")
+		camera.CFrame = savedCF
+		GuideController.Set("StreamTest", target, 99, "S")
+		Mock.Advance(0.2)
+	end
 	State.SetSetting("ReducedMotion", false)
 	Mock.Advance(0.2)
 	check(

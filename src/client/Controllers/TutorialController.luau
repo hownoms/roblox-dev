@@ -116,14 +116,14 @@ local function updateGuide(step: Types.TutorialStep)
 	if target == "Sand" then
 		local position = sandTarget()
 		if position then
-			GuideController.Set(GUIDE_KEY, position, 10, if step.Complete == "Dig" then "👆" else "⬇️")
+			GuideController.Set(GUIDE_KEY, position, 10, if step.Complete == "Dig" then "Hand" else "Arrow")
 		end
 		return
 	end
 	local root = Character.GetRoot()
 	local part = GuideController.FindTagged(target :: string, if root then root.Position else nil)
 	if part then
-		GuideController.Set(GUIDE_KEY, part, 10, "⬇️")
+		GuideController.Set(GUIDE_KEY, part, 10, "Arrow")
 	else
 		GuideController.Clear(GUIDE_KEY)
 	end

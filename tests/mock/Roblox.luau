@@ -3258,6 +3258,7 @@ function Mock.Init(generated, opts)
 	end
 	Mock.Enum = Enum
 	Mock.Vector3 = Vector3
+	Mock.Vector2 = Vector2
 	Mock.CFrame = CFrame
 	Mock.Game = g
 
