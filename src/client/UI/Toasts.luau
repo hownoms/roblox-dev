@@ -12,6 +12,9 @@
 	Kinds: Success, Error, Info, Warning, Reward, Announce (anything else -> Info).
 	Routes (v2.2): Toasts.SetRoute(kind, fn) hands every message of that kind to another
 	presenter instead (UI/Announcements takes "Announce" -> big gold top banner).
+	Reveals: while a Reveal popup is on screen, new non-urgent toasts (anything but Error and
+	Warning) wait in the queue so they never cover its rarity headline; they appear when it
+	closes, or after REVEAL_HOLD_MAX seconds if reveals keep chaining.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -21,6 +24,7 @@ local Style = require(script.Parent.Components.Style)
 local AtlasIcon = require(script.Parent.Components.AtlasIcon)
 local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
+local Reveal = require(script.Parent.Reveal)
 
 local Toasts = {}
 
@@ -28,6 +32,7 @@ local MAX_VISIBLE = 3
 local DEFAULT_DURATION = 3.2
 local DEDUPE_WINDOW = 2
 local MIN_PREFIX = 10 -- normalised chars needed before a prefix counts as "the same message"
+local REVEAL_HOLD_MAX = 6 -- seconds a toast may wait behind reveals before it shows anyway
 
 type KindStyle = { Color: Color3, Icon: string, Sound: string? }
 
@@ -44,7 +49,7 @@ local KINDS: { [string]: KindStyle } = {
 	event = { Color = C.Sunset, Icon = "star", Sound = "RareTreasure" },
 }
 
-type Entry = { Text: string, Kind: string, Duration: number }
+type Entry = { Text: string, Kind: string, Duration: number, Queued: number }
 type Active = { Text: string, Key: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
 
 local container: Frame? = nil
@@ -190,9 +195,35 @@ local function display(entry: Entry)
 	end)
 end
 
+-- Errors and warnings are about what the player is doing right now: never held back.
+function Toasts.IsUrgent(kind: string): boolean
+	local style = getKind(kind)
+	return style == KINDS.error or style == KINDS.warning
+end
+
+local function waitsForReveal(entry: Entry, now: number): boolean
+	return Reveal.IsShowing() and not Toasts.IsUrgent(entry.Kind) and now - entry.Queued < REVEAL_HOLD_MAX
+end
+
+local holdTimer = false
 pump = function()
-	while #queue > 0 and #active < MAX_VISIBLE do
-		display(table.remove(queue, 1) :: Entry)
+	local now = os.clock()
+	local i = 1
+	while i <= #queue and #active < MAX_VISIBLE do
+		local entry = queue[i]
+		if waitsForReveal(entry, now) then
+			i += 1
+		else
+			display(table.remove(queue, i) :: Entry)
+		end
+	end
+	if #queue > 0 and Reveal.IsShowing() and not holdTimer then
+		-- re-check when the hold cap runs out even if the reveals never stop
+		holdTimer = true
+		task.delay(1, function()
+			holdTimer = false
+			pump()
+		end)
 	end
 end
 
@@ -242,12 +273,20 @@ function Toasts.Show(text: string, kind: string?, duration: number?)
 	if #queue > 6 then
 		table.remove(queue, 1)
 	end
-	table.insert(queue, { Text = text, Kind = kind or "Info", Duration = duration or DEFAULT_DURATION })
+	table.insert(
+		queue,
+		{ Text = text, Kind = kind or "Info", Duration = duration or DEFAULT_DURATION, Queued = os.clock() }
+	)
 	pump()
 end
 
 function Toasts.Init()
 	getContainer()
+	Reveal.Closed:Connect(function()
+		-- deferred: Closed fires before Reveal shows the next queued reveal; a chained reveal
+		-- must keep holding toasts instead of letting them pop in under its headline
+		task.defer(pump)
+	end)
 	task.spawn(function()
 		Remotes.Get("Notify").OnClientEvent:Connect(function(kind: any, text: any)
 			if typeof(text) == "string" then

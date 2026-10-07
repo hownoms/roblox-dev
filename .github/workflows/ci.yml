@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain (pinned)
+        run: |
+          bash tools/setup_toolchain.sh
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Format, strict typecheck, Rojo build
+        run: tools/check.sh
+      - name: Headless tests
+        run: tests/run.sh
+      - name: Launch preflight (report)
+        run: tools/preflight.sh

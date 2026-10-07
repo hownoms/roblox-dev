@@ -2460,6 +2460,8 @@ local dataStoreService = {
 -- Marketplace / badges / analytics -------------------------------------------------------------
 
 Mock.Prompts = {} -- { Kind, Player, Id }
+Mock.BadgeAwards = {} -- { UserId, Id }
+Mock.BadgeFailures = 0 -- the next N AwardBadge calls throw (throttling / outage)
 Mock.Analytics = {}
 -- AnalyticsService customFields: nil or { CustomField01..03 = string }.
 function Mock.CheckAnalyticsFields(fields)
@@ -2650,8 +2652,13 @@ local function buildGame()
 			assert(id ~= 0, "badge id 0")
 			return false
 		end,
-		AwardBadge = function(_s, _u, id)
+		AwardBadge = function(_s, userId, id)
 			assert(id ~= 0, "badge id 0")
+			if Mock.BadgeFailures > 0 then
+				Mock.BadgeFailures -= 1
+				error("mock badge throttled")
+			end
+			table.insert(Mock.BadgeAwards, { UserId = userId, Id = id })
 			return true
 		end,
 		GetBadgeInfoAsync = function()
@@ -3258,6 +3265,7 @@ function Mock.Init(generated, opts)
 	end
 	Mock.Enum = Enum
 	Mock.Vector3 = Vector3
+	Mock.Vector2 = Vector2
 	Mock.CFrame = CFrame
 	Mock.Game = g
 

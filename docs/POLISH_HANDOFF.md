@@ -1,5 +1,18 @@
 # Visual polish handoff — 7 October 2026
 
+## Production-readiness batch (Claude, cloud session) — 7 October 2026
+
+The owner asked for everything that can move the game toward going live. This session ran in a Linux cloud container without Studio, so every item below has **headless evidence only**; each needs the ordinary-input Studio check listed in `docs/LAUNCH.md` §1 before it counts toward a release gate. Branch `claude/friendly-goldberg-55gojy`, based on `bf89b00`. Full validation: `tools/check.sh` ALL CHECKS PASSED; `tests/run.sh` ALL TESTS PASSED (util 8, server smoke 2,158 and 2,144 in Studio mode, client 1,354).
+
+- **Off-screen guidance:** `GuideController` adds a screen-edge badge with a pointer when the guide target is outside the view or behind the camera (sell stand, shovel shop, tutorial). Hidden at the target and when the target is on screen; no pulse with Reduced Motion. World markers now use AtlasIcon (standing rule 3).
+- **Chat covering Shop:** new `ChatLayoutController` docks the TextChatService window bottom-left on keyboard devices; touch-only devices keep the default.
+- **Toasts over reveal headline:** non-urgent toasts wait while a Reveal is showing (max 6 s); errors/warnings still show at once.
+- **Badges:** failed awards retry after 30 s / 2 min / 10 min. **Ambience:** loop lifecycle wired (surface only, follows SFX); still needs owned audio.
+- **Launch tooling:** `Services/LaunchCheck` + `tools/preflight.sh` (placeholder ids/assets, blocking Studio switches), `docs/LAUNCH.md` runbook, `.github/workflows/ci.yml`, `tools/setup_toolchain.sh` (pinned rojo/stylua/luau-lsp/luau and luau-lsp 1.45.0 definitions; newer upstream definitions drop enum items the test mock uses).
+- **Store art:** Thumb 2 shows the Magma Egg; Thumbs 3/4 titles have safe padding; Thumb 4 shows the real Rebirth Shrine. Generated illustrations, not gameplay captures.
+
+Not done (needs the owner or Studio): live verification of the above, Creator Hub ids, owned audio, hardware, performance profiling, fresh-player feedback. No publication or uploads.
+
 ## Discovery reveal checkpoint — 7 October 2026
 
 This entry supersedes the next-chat starting point below. Fresh origin fetch confirmed clean local/remote base `ccf13f0`, with PR #11 merged and no intervening work. Implementation `76f0ef0` on `codex/discovery-reveal-readability` is pushed and merged through [PR #12](https://github.com/hownoms/roblox-dev/pull/12), merge `9ada1dd461fe2a36b36ea1b7a0f8188235bc23bb`. Local `claude/pensive-meitner-6jx4u4` was fast-forwarded to that merge. GitHub returned no commit status checks; local validation and qualified ordinary gameplay evidence support this stage. This final documentation checkpoint follows the merge. Stop after this one issue. Scan direction, sell guidance, chat covering Shop, audio, upgrade feel and contact remain separate stages; collection/scenery sweeps remain complete and hardware deferred.
