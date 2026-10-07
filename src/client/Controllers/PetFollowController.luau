@@ -518,8 +518,25 @@ local function update(dt: number)
 			else
 				local slot = flat:PointToWorldSpace(slotOffset(creatureIndex, creatures))
 				local bob = if reducedMotion then 0 else math.sin(now * 3 + pet.Phase) * 0.35
-				local height = if pet.Flying then 2.2 + bob * 1.4 else -2.6 + math.max(bob, 0) * 1.2
-				target = slot + Vector3.new(0, height, 0)
+				if pet.Flying then
+					target = slot + Vector3.new(0, 2.2 + bob * 1.4, 0)
+				else
+					-- Creature feet need their own surface, not the owner's height.
+					-- Bound raycasts to the same cadence used for vehicle followers.
+					if now >= pet.NextGround or pet.GroundY == nil then
+						pet.NextGround = now + GROUND_REFRESH + math.random() * 0.05
+						local far = groundBelow(slot)
+						pet.Near = far == nil or math.abs((far :: number) - feetY) > NEAR_HEIGHT
+						pet.GroundY = if pet.Near
+							then groundBelow(flat:PointToWorldSpace(slotOffset(creatureIndex, creatures) * NEAR_SCALE))
+								or feetY
+							else far
+					end
+					if pet.Near then
+						slot = flat:PointToWorldSpace(slotOffset(creatureIndex, creatures) * NEAR_SCALE)
+					end
+					target = Vector3.new(slot.X, (pet.GroundY or feetY) + math.max(bob, 0) * 1.2, slot.Z)
+				end
 			end
 			target += pet.Offset
 

@@ -216,10 +216,15 @@ function GuideController.Init()
 			local bounce = if reducedMotion then 0 else math.abs(math.sin(t * 4)) * 1.5
 			marker.StudsOffsetWorldSpace = Vector3.new(0, 4 + bounce, 0)
 		end
-		-- hide the beam when standing on the target (marker stays)
+		-- At the target the objective is enough; the billboard otherwise covers
+		-- the player's head/tool in the normal over-the-shoulder spawn camera.
+		local away = (root.Position - position).Magnitude > 8
+		if marker then
+			marker.Enabled = away
+		end
 		if beam then
 			beam.TextureSpeed = if reducedMotion then 0 else 2
-			beam.Enabled = (root.Position - position).Magnitude > 8
+			beam.Enabled = away
 		end
 	end)
 end

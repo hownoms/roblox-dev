@@ -90,7 +90,9 @@ local function isSatisfied(step: Types.TutorialStep): boolean
 	local data = State.Data
 	local event = step.Complete
 	if event == "AtSand" then
-		return onSand()
+		-- Sand is reachable from the boardwalk. A confirmed dig already proves the
+		-- player found it, even if their feet have not crossed the zone boundary.
+		return onSand() or dugFlag or data.TotalSandDug > 0
 	elseif event == "Dig" then
 		return dugFlag or data.TotalSandDug > 0
 	elseif event == "BackpackFull" then

@@ -1,6 +1,6 @@
 # Visual polish handoff — 6 October 2026
 
-Read this first when continuing in another chat, then read `docs/VISUAL_POLISH.md` for the design direction and historical reviews.
+Read this first when continuing in another chat, then read `docs/POLISH_ROADMAP.md` for the current priority order and `docs/VISUAL_POLISH.md` for design direction and historical reviews.
 
 **Current continuation: 7 October 2026.** The final section below supersedes historical instructions to resume at entry 28 and statements that only six scenery alcoves exist. Earlier entries retain their original evidence; current source is saved on local branch `codex/polish-continuation`, based on `affbe28`.
 
@@ -147,3 +147,23 @@ Howard explicitly requested saving, documenting, pushing and merging the continu
 - Final source validation: 1,308 client / 2,144 normal server / 2,131 Studio-mode server / 8 utility checks pass. Client and utility were rerun for integration. GitHub returned no workflow runs or commit status checks; local checks and the recorded Studio review provide validation.
 - Central-family scenery review is 15/15; Shipwreck barrels and source-built Ancient Ruins lintels passed native retests. All 45 pockets/angles, normal gameplay scrutiny, dynamic fit/contact, complete unassisted sequence/audio and populated/device performance remain unfinished. Phone/controller hardware stays deferred. All remaining release gates stay open; nothing was published, uploaded or assigned new audio/badge IDs.
 - Next work follows the preceding continuation's final bullet. DigTest was stopped with Studio open and Rojo connected on port 34872; recheck live state before restarting. No need to repeat the static collection sweep.
+
+
+## Final stopping point: prioritized roadmap, 7 October 2026
+
+Howard approved prioritizing player impact over exhaustive cosmetic review. `docs/POLISH_ROADMAP.md` is now authoritative for work order: first-player sequence → performance/controls → digging feel/reward feedback → faithful acquisition artwork → targeted scenery/fit cleanup → supporting badges/ambience. This supersedes historical fit/scenery-first instructions without closing release gates.
+
+Start next chat with a complete unassisted DigTest spawn/dig/scan/excavate/discover/sell/upgrade run and fix observed friction. Integrate noticeable dynamic fit/contact checks into that run. Fresh-player feedback is desirable; no outreach is authorized. Static collection and central scenery sweeps are already complete. Preserve merged PR #9 and all intervening work. Hardware remains deferred; no publication, uploads or fabricated IDs/evidence.
+
+Repository before this roadmap update: clean `claude/pensive-meitner-6jx4u4` at `f5fe836`, synced with origin. This roadmap update is saved locally as a documentation checkpoint; check the latest local commit and remote before continuing. Recheck Studio/Rojo state rather than assuming it survived.
+
+## First-player continuation, 7 October 2026
+
+- Resumed clean local `706337b` on `claude/pensive-meitner-6jx4u4`. Fetched origin after a sandbox network retry; no newer remote work appeared. Preserved the merged PR #9 base. Changes below remain local/uncommitted; no push or publication.
+- Used the existing `build/DigTest.rbxl` and default Rojo connection on port 34872. A fresh, ordinary-input session used mouse digging and Roblox Click to Move: spawn, automatic starter-tool equip, scan activation, timed excavation, retained bottle-cap discovery/Index unlock, full 20/20 bag, native sell contact for 84 coins, then Garden Trowel purchase/autoequip for 30 (54 remaining). No dev grants, scripted digs or positioning were used in that run. Automated mouse input is not fresh human-player feedback. Scan direction, excavation hit timing, reveal-name readability and listening were not certified, so the complete-sequence gate stays open.
+- Fixed an observed arrival objective stuck at step 1 after a successful boardwalk dig. Confirmed digging now satisfies arrival; a fresh ordinary-input retest advanced to step 3 while still on the boardwalk. Nearby guide billboards now hide with the beam within eight studs, reducing head/tool obstruction at the target; distant spawn-camera projection can still overlap the avatar.
+- Fixed excavation's prior MISS lingering through the next shrinking ring. Visible rings now show WAIT... then TAP! during the good window; the prior grade remains during the gap. Regression coverage passes; live cue/timing readability still needs a focused retest.
+- Ground-creature follow slots now sample their own surface at the existing bounded refresh cadence, with a closer fallback over large height changes or missing ground. Flying behavior is retained. Separate assisted sessions used Studio `/pet sandy_crab`, normal walking and Reduced Motion; these do not extend the unassisted sequence. The final crab view was partly obscured by full-bag HUD and does not certify contact. Dig/park ground caching, slopes and other pet families remain open.
+- Observed the worn starter bucket and upgraded trowel during gameplay, but did not approve strike/contact timing or all moving fit. Sell guidance became visible after turning/zooming; initial offscreen wayfinding remains a follow-up. Expanded Roblox chat covered the Shop button until dismissed. Upgrade toasts overlapped the reveal headline. These observed UI issues remain unresolved.
+- Validation: **1,317 client checks, zero failures**; affected strict analysis, four production-file formatting checks, fresh Rojo sourcemap/build and diff whitespace passed. Server/utility suites were not rerun for these client changes. Local diagnostic build: `build/FirstPlayerPolish.rbxlx`; DigTest was not overwritten. Play was stopped after the assisted retest; Rojo remains connected, subject to a fresh state check.
+- Next: focused excavation/reveal/scan feedback retest, offscreen sell navigation and chat/reveal overlap, then meaningful digging with the first upgrade and targeted shovel/contact/moving-pet checks. Follow the roadmap; do not restart the completed static collection or central scenery sweeps. Audio, performance, badges/store and deferred hardware gates remain open. No asset IDs were added.

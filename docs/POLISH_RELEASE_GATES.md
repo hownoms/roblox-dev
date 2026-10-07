@@ -1,6 +1,6 @@
 # Remaining polish release gates — 6 October 2026
 
-Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow its order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
+Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md) for the current priority order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
 
 | Stage | Source/headless evidence available | Evidence still required |
 |---|---|---|
@@ -40,3 +40,9 @@ Use [PERFORMANCE.md](PERFORMANCE.md) for the existing `/stress` commands and tar
 `/stress` is Studio-gated in `DevCommands`; it does not simulate fifteen extra real clients or their replication, and silent companion-source digs do not exercise player discovery/reveal effects. PERFORMANCE.md now explicitly documents those silent bot digs and the need for separate real-player finds/reveals. Run actual player discoveries separately and use a real populated session for remote fan-out. Do not expose dev commands in a shipping server to bypass the hardware gate. Historical part counts in PERFORMANCE.md are estimates, not measurements of the newly polished world.
 
 Physical phone checks still need loading, safe areas, dig/scan/excavate/sell, and panel scrolling in the reported orientation. Physical controller checks still need visible focus, traversal, activation, dismissal and restored focus across panels. Source tests and emulators do not close these gates.
+
+## First-player evidence update — 7 October 2026
+
+A fresh DigTest ordinary-input run reached starter autoequip, digging, scan activation, excavation, retained bottle-cap discovery, full 20/20 bag, native sale (84 coins) and Garden Trowel purchase/autoequip (30 coins). This run used mouse clicks and Roblox Click to Move without dev grants or scripted digs/positioning. It still does **not close the complete-sequence gate**: scan direction, precise excavation timing, reward-name readability, audio listening, Reduced Motion across that sequence and meaningful post-upgrade digging remain unverified. Automated ordinary input is not independent fresh-player feedback.
+
+Arrival after a confirmed boardwalk dig was fixed and retested live. Nearby target markers hide; excavation WAIT/TAP feedback and ground-creature follow sampling have regression coverage. Client checks now total 1,317 passing. Live excavation cue readability and full dynamic pet/equipment contact remain open. Separate `/pet sandy_crab` sessions were assisted diagnostics; the final Reduced Motion view was partly HUD-obscured. Offscreen sell navigation, chat covering Shop and overlapping upgrade toasts remain observed follow-ups. Hardware remains deferred, and no other gate is closed by this update.

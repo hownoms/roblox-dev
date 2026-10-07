@@ -116,6 +116,12 @@ check(State.InDigZone(zone.CFrame.Position) and not State.InDigZone(Vector3.new(
 local sand = State.NearestSand(spawnCF.Position, 8)
 check(sand ~= nil and State.InDigZone(sand) and (sand - spawnCF.Position).Magnitude < 40, "NearestSand is close to the spawn")
 
+-- A successful click can reach sand while the character still stands on the boardwalk.
+check(not State.InDigZone(character.HumanoidRootPart.Position), "first-dig regression starts outside the sand footprint")
+Mock.FireClientEvent("DigResult", { Success = true, Position = sand, LayerIndex = 1, SandGained = 1, Sand = 1, Capacity = 20 })
+Mock.Advance(1)
+check(State.GetSetting("Tutorial", 0) == 2, "confirmed boardwalk dig advances arrival and first-dig steps")
+
 -- Deltas
 Mock.FireClientEvent("DataChanged", { Coins = 6000, Sand = 5 })
 Mock.Advance(0.5)
@@ -575,6 +581,12 @@ do
 	check(beam.TextureSpeed == 0 and marker.StudsOffsetWorldSpace.Y == 4, "reduced motion keeps a static world guide")
 	Mock.Advance(0.3)
 	check(marker.StudsOffsetWorldSpace.Y == 4 and marker.Enabled, "static guide remains visible without bouncing")
+	GuideController.Set("StreamTest", root.Position, 99, "S")
+	Mock.Advance(0.2)
+	check(not marker.Enabled and not beam.Enabled, "guide at the player's feet does not obscure the avatar")
+	GuideController.Set("StreamTest", target, 99, "S")
+	Mock.Advance(0.2)
+	check(marker.Enabled and beam.Enabled, "guide reappears when the target is distant again")
 	State.SetSetting("ReducedMotion", false)
 	Mock.Advance(0.2)
 	check(
@@ -990,6 +1002,15 @@ do
 		"reduced motion stops vehicle idle engine bob"
 	)
 	check(jointPose().RightVector:Dot(drillStill.RightVector) > 0.99999, "reduced motion freezes idle drill rotation")
+	Mock.Advance(3)
+	local groundedY = walkingPet.Model:GetPivot().Position.Y
+	local ownerBeforeJump = root.CFrame
+	root.CFrame = root.CFrame + Vector3.new(0, 2, 0)
+	Mock.Advance(2)
+	check(math.abs(walkingPet.Model:GetPivot().Position.Y - groundedY) < 0.05, "walking pet stays on terrain when its owner rises above it")
+	check(flyingPet.Model:GetPivot().Position.Y > flyStill.Position.Y + 1.5, "flying pet keeps following the owner's height")
+	root.CFrame = ownerBeforeJump
+	Mock.Advance(2)
 	Mock.Advance(0.05)
 	State.SetSetting("ReducedMotion", false)
 	local resumePose = jointPose()
@@ -2661,6 +2682,18 @@ do
 	Mock.Advance(5)
 	local miss = sent("Excavate", x2)
 	check(#miss == 1 and miss[1][2][1] == -1 and miss[1][2][3] == -1, "no taps: three misses reported")
+	Mock.Advance(1)
+	-- The last grade belongs to the completed ring, not the next shrinking ring.
+	ExcavationGame.Start(info, 200)
+	local prompt = popups:FindFirstChild("Excavation"):FindFirstChild("Grade")
+	ExcavationGame.Tap(200 + lead + 0.1)
+	check(prompt.Text == "MISS", "early visible tap gives immediate miss feedback")
+	ExcavationGame.Step(200 + lead + 1.15 + 0.1)
+	check(prompt.Text == "WAIT...", "next visible ring clears the previous miss")
+	ExcavationGame.Step(200 + lead + 1.15 + 0.9)
+	check(prompt.Text == "TAP!", "good timing window gives an explicit tap cue")
+	ExcavationGame.Step(210)
+	Mock.Advance(1)
 
 	-- reveal tier selection
 	local function fi(rarity, size, material, isNew, newVariants)
