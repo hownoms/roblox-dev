@@ -2,6 +2,10 @@
 
 This is the current priority order approved by Howard. It supersedes the older exhaustive fit/scenery-first order in historical reviews. Read POLISH_HANDOFF.md for saved evidence and repository state; POLISH_RELEASE_GATES.md remains the inventory of unresolved gates. Changing priorities does not close any gate or authorize publication.
 
+## Delivery stages
+
+Howard requested one issue per stage: observe/reproduce it, fix it, verify the focused result, save progress, push and merge its PR, then continue the next issue in a new chat. Do not batch unrelated polish into future stages. The existing first-player changes are the current checkpoint to finish integrating. The next stage is **excavation WAIT/TAP cue readability and timing**: retest the new cue in DigTest, correct any observed issue, and record what was actually verified. Keep other onboarding, contact and UI follow-ups queued separately. Publishing Roblox remains unauthorized.
+
 ## 1. First-player experience — next work
 
 Use the existing build/DigTest.rbxl with default-project Rojo on port 34872. Recheck Studio/Rojo state and start fresh Play with current source. Run spawn → equip → dig → scan/excavate → readable discovery → full bag → sell → first upgrade/equip using ordinary input. Keep assisted setup separate from unassisted evidence; do not use /max, scripted digs or teleports to claim completion.

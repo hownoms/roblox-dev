@@ -182,6 +182,12 @@ function ExcavationGame.Step(nowArg: number?)
 		ui.Ring.Visible = visible
 		local close = math.abs(t - now) <= g.Info.GoodWindow
 		ui.RingStroke.Color = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
+		-- Keep the last grade during the gap, then explain the next attempt.
+		-- A lingering MISS must not look like the grade of the new shrinking ring.
+		if visible then
+			ui.Grade.Text = if close then "TAP!" else "WAIT..."
+			ui.Grade.TextColor3 = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
+		end
 	end
 end
 
