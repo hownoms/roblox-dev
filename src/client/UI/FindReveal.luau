@@ -145,6 +145,7 @@ function FindReveal.Show(info: Types.FindInfo)
 				NameColor = color,
 				Model = model,
 				Pitch = 20,
+				Spin = info.TreasureId ~= "lost_flip_flop",
 				Rows = rows(info, color),
 				Tag = tag,
 			},

@@ -62,6 +62,7 @@ local function show(entry: Entry)
 				NameColor = color,
 				Model = ModelFactory.Treasure(entry.Id),
 				Pitch = 20,
+				Spin = entry.Id ~= "lost_flip_flop",
 				Rows = rows,
 				Tag = if entry.IsNew then "NEW!" else nil,
 			},

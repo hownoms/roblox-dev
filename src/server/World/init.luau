@@ -32,6 +32,7 @@ local Hub = require(script.Hub)
 local Boardwalk = require(script.Boardwalk)
 local Decor = require(script.Decor)
 local LightingBuilder = require(script.Lighting)
+local Underground = require(script.Underground)
 
 export type DigZone = { CFrame: CFrame, Size: Vector3 }
 
@@ -106,6 +107,9 @@ function World.Build()
 		if err ~= nil then
 			warn("[World] deep terrain fill failed:", err)
 		end
+		step("underground alcoves", function()
+			Underground.Build(Util.Folder("Underground", map))
+		end)
 		ready = true
 		Workspace:SetAttribute("WorldReady", true)
 		print(string.format("[World] map ready in %.2fs", os.clock() - started))

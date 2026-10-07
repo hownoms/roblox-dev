@@ -1,8 +1,7 @@
 --!strict
 -- Isolated art-review place: uses the real builders, never loads economy/datastores/remotes.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
-local Config = require(Shared.Config)
-local Models = require(Shared.Models)
+local Catalog = require(Shared:WaitForChild("GalleryCatalog"))
 local workspace = game:GetService("Workspace")
 local group = Instance.new("Folder")
 group.Name = "AssetGallery"
@@ -26,10 +25,11 @@ local function label(parent: BasePart, text: string)
 	t.Parent = gui
 end
 
-local function row(title: string, items: { any }, build: (string) -> Model, z: number): number
+local function row(title: string, items: { any }, z: number): number
 	for i, item in items do
 		local id = if type(item) == "string" then item else item.Id
-		local model = build(id)
+		local model = item.Build(id)
+		model:SetAttribute("GalleryIndex", item.Index)
 		local _, size = model:GetBoundingBox()
 		local target = CFrame.new((i - 1) % 8 * 24, 0, z + math.floor((i - 1) / 8) * 26)
 		model:PivotTo(target)
@@ -38,6 +38,7 @@ local function row(title: string, items: { any }, build: (string) -> Model, z: n
 		model.Parent = group
 		local pad = Instance.new("Part")
 		pad.Name = title .. "_" .. id
+		pad:SetAttribute("GalleryIndex", item.Index)
 		pad.Anchored = true
 		pad.Size = Vector3.new(20, 1, 20)
 		pad.Position = target.Position + Vector3.new(0, 0.5, 0)
@@ -50,14 +51,19 @@ local function row(title: string, items: { any }, build: (string) -> Model, z: n
 end
 
 local z = 24
-z = row("Tools", Config.Shovels, Models.Shovel, z)
-z = row("Backpacks", Config.Backpacks, Models.Backpack, z)
-z = row("Pets", Config.Pets, Models.Pet, z)
-z = row("Eggs", Config.Eggs, Models.Egg, z)
-z = row("Treasures", Config.Treasures, Models.Treasure, z)
-z = row("Shade", Config.Shades, Models.Shade, z)
-z = row("Consumables", Config.Consumables, Models.Consumable, z)
-z = row("Props", Models.ListProps(), Models.Prop, z)
+local category = ""
+local items = {}
+for index, entry in Catalog do
+	if entry.Category ~= category then
+		if #items > 0 then
+			z = row(category, items, z)
+		end
+		category = entry.Category
+		items = {}
+	end
+	table.insert(items, { Id = entry.Id, Name = entry.Name, Build = entry.Build, Index = index })
+end
+z = row(category, items, z)
 local floor = Instance.new("Part")
 floor.Name = "GalleryFloor"
 floor.Anchored = true

@@ -1,5 +1,11 @@
 # Performance: budgets, profiling and the `/stress` test (v2.3)
 
+## Studio diagnostic, 6 October 2026
+
+Ran `/stress 15 fx` through DigTest chat for about 91 seconds, then `/stress stop` (bot cleanup and tide refill). Whole-run Output: **123.2 digs/terrain edits per second, 88% successful attempts, heartbeat 16.8 ms average / 253.3 ms maximum, reported memory 3,006 MB, send 55 kbps**. Ten-second windows after startup averaged 16.7 ms with maxima 19.5–32.9 ms, except one 42.1 ms spike; the first window had the 253.3 ms spike and 3,039 MB memory. These spikes and memory do not close the budgets below.
+
+This was a Windows Studio server plus one local client, with two isolated gallery editors also open, automatic graphics and a 900×388 gameplay viewport. No phone, real populated server, client frame-time/memory/network capture or MicroProfiler trace was produced. The bots quickly dig deep; their GPU effects were not kept continuously in view. Reported memory is Studio's Stats value and needs an isolated-runtime baseline before attributing it to the game. Silent bots do not cover discovery reveals or actual client fan-out. Preserve these measurements as a diagnostic, not a shipping performance approval.
+
 Goal: **a stable 30 FPS on a mid-range Android phone with 16 players digging** (the server
 maximum). The target we want is 45–60 FPS. This page covers how to measure that, which numbers
 to watch, and what costs we already know about.
@@ -48,10 +54,10 @@ What happens:
   down its own hole, and after 6 failed digs (bottom reached, etc.) it moves to a new column.
 - **Every dig is a real `DigService.DigAt`** for the player who ran `/stress`, with Source `"Ride"`
   (companion rules: no shovel cooldown, range measured from the bot) and `Silent = true`. So
-  validation, `ReadVoxels`, the terrain carve, tide bookkeeping, sand, quests and treasure rolls
-  all cost what they cost for real players. Side effects land on your Studio save: your
-  backpack is emptied whenever it is 90% full, your MaxDepth and quests advance, and treasure
-  finds pop up for you.
+  validation, `ReadVoxels`, the terrain carve, tide bookkeeping, sand and quests run through
+  production code. Side effects land on your Studio save: your backpack is emptied whenever
+  it is 90% full, and your MaxDepth and quests advance. Silent companion digs suppress
+  discovery and treasure popups; exercise real-player finds/reveals separately.
 - Every 10 s the Output shows:
   `[Stress] 15 bots | 150.2 digs/s (97% ok) | 150.2 terrain edits/s | heartbeat 9.8 ms avg / 21.4 ms max | memory 1430 MB | send 210 kbps`
 

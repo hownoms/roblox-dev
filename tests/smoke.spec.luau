@@ -271,6 +271,44 @@ for _, layer in Config.Layers do
 end
 
 -- Join --------------------------------------------------------------------------------------------
+section("protected underground scenery")
+local Underground = Mock.Require(byPath["ServerScriptService/Server/World/Underground"])
+local scenery = Mock.Service("Workspace"):FindFirstChild("Map"):FindFirstChild("Underground")
+check(scenery ~= nil and #scenery:GetChildren() == 6, "six protected pirate/crystal alcoves built")
+local function checkSceneryProtected(context)
+	for _, model in scenery:GetChildren() do
+		local minV, maxV = model:GetAttribute("PocketMin"), model:GetAttribute("PocketMax")
+		local contained, visualOnly, pieces = true, true, 0
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				pieces += 1
+				visualOnly = visualOnly and part.Anchored and not part.CanCollide and not part.CanQuery and not part.CanTouch
+				local h = part.Size / 2
+				for _, x in { -1, 1 } do
+					for _, y in { -1, 1 } do
+						for _, z in { -1, 1 } do
+							local p = part.CFrame * Vector3.new(h.X * x, h.Y * y, h.Z * z)
+							contained = contained and p.X >= minV.X - 0.01 and p.X <= maxV.X + 0.01
+								and p.Y >= minV.Y - 0.01 and p.Y <= maxV.Y + 0.01
+								and p.Z >= minV.Z + 0.49 and p.Z <= maxV.Z + 0.01
+						end
+					end
+				end
+			end
+		end
+		check(contained and minV.Z >= zoneCenter.Z + zoneSize.Z / 2, context .. ": all scenery stays outside carving/refills: " .. model.Name)
+		check(visualOnly and pieces <= 50 and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, context .. ": bounded visual-only streaming group: " .. model.Name)
+		local mid = (minV + maxV) / 2
+		local shelf = model:FindFirstChild("RockShelf")
+		check(shelf ~= nil and math.abs(shelf.Position.Y - shelf.Size.Y / 2 - minV.Y) < 0.01,
+			context .. ": rock shelf visibly rests on terrain floor: " .. model.Name)
+		local air = Mock.GetVoxel(mid)
+		local support = Mock.GetVoxel(Vector3.new(mid.X, minV.Y - 2, mid.Z))
+		check((air == nil or air.Material == Enum.Material.Air or air.Occupancy == 0) and support ~= nil and support.Occupancy > 0, context .. ": open alcove retains terrain floor: " .. model.Name)
+	end
+end
+checkSceneryProtected("initial")
+
 section("join")
 local player = Mock.AddPlayer(1001, "Tester")
 Mock.Advance(0.5)
@@ -1031,6 +1069,27 @@ step("beach", function()
 	check(d.MaxDepth == maxBefore, "standing in undug terrain does not raise MaxDepth")
 
 	-- Tide: holes refill once nobody was near for TIDE_REFILL_SECONDS
+	-- Largest configured tools against each inland alcove must carve the beach while
+	-- retaining the authored air pocket, terrain floor and protected visual parts.
+	local maxRadius = 0
+	for _, shovel in Config.Shovels do
+		maxRadius = math.max(maxRadius, shovel.Radius)
+	end
+	local alcoveDigPoints = {}
+	for _, pocket in Underground.Pockets do
+		local mid = (pocket.Min + pocket.Max) / 2
+		local point = Vector3.new(mid.X, mid.Y, pocket.Min.Z - 2)
+		table.insert(alcoveDigPoints, point - Vector3.new(0, 3, 0))
+		d.Sand = 0
+		stand(point + Vector3.new(0, 3, -4))
+		local result = DigService.DigAt(p, point, {
+			Power = 1e6, Radius = maxRadius, SandMultiplier = 1,
+			Source = "Digger", Silent = true,
+		})
+		check(result ~= nil and result.Success, "maximum-radius dig succeeds beside " .. pocket.Layer .. " alcove at " .. mid.X)
+		check(not solid(point.X, point.Y - 3, point.Z), "maximum-radius dig opens beach beside alcove")
+	end
+	checkSceneryProtected("after maximum-radius alcove digs")
 	p.Character:PivotTo(World.GetSurfacePoint(Vector3.new(-330, S, 0)))
 	Mock.Advance(Config.TIDE_REFILL_SECONDS * 0.5)
 	check(not solid(302, S - 2, zDig), "hole stays open before the tide timer runs out")
@@ -1041,6 +1100,10 @@ step("beach", function()
 		"tide refilled the hole with the layer material"
 	)
 	check(solid(334, S - 6, zDig - 4), "tide refilled the digger hole")
+	for _, point in alcoveDigPoints do
+		check(solid(point.X, point.Y, point.Z), "normal tide refills maximum-radius alcove-adjacent hole")
+	end
+	checkSceneryProtected("after normal tide")
 	check(BeachService.CountDugCells() == 0, "every idle dug cell refilled (" .. BeachService.CountDugCells() .. ")")
 
 	-- ...but not while someone stays near
@@ -1063,6 +1126,7 @@ step("beach", function()
 	check(pos.Y > S + 1 and not World.IsInDigZone(pos), "High Tide lifts the player out of the hole first")
 	check(solid(-98, S - 2, zDig), "High Tide refills the hole")
 	check(BeachService.CountDugCells() == 0, "High Tide smooths every dug cell")
+	checkSceneryProtected("after high tide")
 	workspace:SetAttribute("ActiveEvents", previous or "")
 	Mock.Advance(0.5)
 end)

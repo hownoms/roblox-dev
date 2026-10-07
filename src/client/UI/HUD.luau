@@ -62,8 +62,8 @@ local C = Style.Colors
 local backpackPulse: Tween? = nil
 local backpackHighlight = false
 local sellArrowTween: Tween? = nil
-local backpackBar: ProgressBar.ProgressBar? = nil
 local flashTweens: { [string]: Tween } = {}
+local refreshBackpackMotion: () -> () = function() end
 
 -- Progressive menu disclosure state (see the "Menu gating" section below).
 local gateVisible: { [string]: boolean } = {}
@@ -85,6 +85,9 @@ end
 -- Briefly pulse a HUD button to draw attention (e.g. Shop after "Too hard!"). Never points at
 -- a hidden (still locked) button.
 function HUD.Flash(name: string, seconds: number?)
+	if State.GetSetting("ReducedMotion", false) == true then
+		return
+	end
 	local button = HUD.Buttons[name]
 	if not button or flashTweens[name] then
 		return
@@ -98,23 +101,17 @@ function HUD.Flash(name: string, seconds: number?)
 	local tween = Style.Pulse(button.Holder, 0.14, 0.5)
 	flashTweens[name] = tween
 	task.delay(seconds or 3, function()
-		Style.StopPulse(button.Holder, tween)
-		flashTweens[name] = nil
+		if flashTweens[name] == tween then
+			Style.StopPulse(button.Holder, tween)
+			flashTweens[name] = nil
+		end
 	end)
 end
 
 -- Tutorial: make the backpack bar pulse even before it's full.
 function HUD.SetBackpackHighlight(on: boolean)
 	backpackHighlight = on
-	local bar = backpackBar
-	if bar then
-		if on and not backpackPulse then
-			backpackPulse = Style.Pulse(bar.Frame, 0.06, 0.8)
-		elseif not on and backpackPulse and State.Data.Sand < State.GetCapacity() then
-			Style.StopPulse(bar.Frame, backpackPulse)
-			backpackPulse = nil
-		end
-	end
+	refreshBackpackMotion()
 end
 
 local ROUND = Vector2.new(64, 70) -- round button holder (64 px face + lip)
@@ -584,7 +581,6 @@ local function buildBottom(canvas: Frame)
 		MaxTextSize = 26,
 		Parent = holder,
 	})
-	backpackBar = bar
 	bar.Label.Size = UDim2.new(1, -60, 0.8, 0)
 	bar.Label.Position = UDim2.new(0.5, 18, 0.5, 0)
 	AtlasIcon.new({
@@ -610,6 +606,46 @@ local function buildBottom(canvas: Frame)
 		Parent = holder,
 	})
 	arrow.Visible = false
+	refreshBackpackMotion = function()
+		local full = State.Data.Sand >= State.GetCapacity()
+		local animate = State.GetSetting("ReducedMotion", false) ~= true
+		if animate and (full or backpackHighlight) then
+			if not backpackPulse then
+				backpackPulse = Style.Pulse(bar.Frame, 0.07, 0.6)
+			end
+		elseif backpackPulse then
+			Style.StopPulse(bar.Frame, backpackPulse)
+			backpackPulse = nil
+		end
+		if animate and full then
+			if not sellArrowTween then
+				sellArrowTween = Style.Tween(
+					arrow,
+					0.35,
+					{ Position = UDim2.new(0.5, 0, 1, -62) },
+					Enum.EasingStyle.Sine,
+					Enum.EasingDirection.InOut,
+					-1,
+					true
+				)
+			end
+		else
+			if sellArrowTween then
+				sellArrowTween:Cancel()
+				sellArrowTween = nil
+			end
+			arrow.Position = UDim2.new(0.5, 0, 1, -52)
+		end
+	end
+	State.Changed("Settings"):Connect(function()
+		refreshBackpackMotion()
+		if State.GetSetting("ReducedMotion", false) == true then
+			for name, tween in flashTweens do
+				Style.StopPulse(HUD.Buttons[name].Holder, tween)
+				flashTweens[name] = nil
+			end
+		end
+	end)
 
 	local row = Instance.new("Frame")
 	row.Name = "Actions"
@@ -689,7 +725,6 @@ local function buildBottom(canvas: Frame)
 	end)
 
 	local wasFull = false
-	local lastSand: number? = nil
 	local function update()
 		local sand = State.Data.Sand or 0
 		local capacity = math.max(State.GetCapacity(), 1)
@@ -701,44 +736,12 @@ local function buildBottom(canvas: Frame)
 			arrow.Visible = full
 			if full then
 				SoundController.Play("DigBlocked", 1.4)
-				if not backpackPulse then
-					backpackPulse = Style.Pulse(bar.Frame, 0.07, 0.6)
-				end
-				sellArrowTween = Style.Tween(
-					arrow,
-					0.35,
-					{ Position = UDim2.new(0.5, 0, 1, -62) },
-					Enum.EasingStyle.Sine,
-					Enum.EasingDirection.InOut,
-					-1,
-					true
-				)
 				if State.CanSellAnywhere() then
 					HUD.Flash("Sell", 4)
 				end
-			else
-				if sellArrowTween then
-					sellArrowTween:Cancel()
-					sellArrowTween = nil
-				end
-				arrow.Position = UDim2.new(0.5, 0, 1, -52)
-				if backpackPulse and not backpackHighlight then
-					Style.StopPulse(bar.Frame, backpackPulse)
-					backpackPulse = nil
-				end
 			end
 		end
-		-- Sold! (sand dropped while coins went up): coin rain into the coins counter.
-		if lastSand and sand < lastSand and lastSand > 0 and sand == 0 then
-			SoundController.Play("Sell")
-			local coins = HUD.Coins
-			if coins then
-				UIEffects.FlyTo(Icons.Coins, coins.Badge, 10, nil, function()
-					SoundController.Play("Coin")
-				end)
-			end
-		end
-		lastSand = sand
+		refreshBackpackMotion()
 	end
 	State.ObserveMany({ "Sand", "Backpack", "Rebirths", "Passes" }, update)
 end
@@ -746,6 +749,23 @@ end
 -- Menu gating: progressive disclosure (UI/MenuGate, docs/design/Onboarding.md) -------------------
 
 local newTags: { [string]: TextLabel } = {}
+local newTagTweens: { [string]: Tween } = {}
+
+local function refreshNewTagMotion()
+	for name, tag in newTags do
+		local tween = newTagTweens[name]
+		if State.GetSetting("ReducedMotion", false) == true then
+			if tween then
+				Style.StopPulse(tag, tween)
+				newTagTweens[name] = nil
+			end
+		elseif not tween then
+			newTagTweens[name] = Style.Pulse(tag, 0.1, 0.9)
+		end
+	end
+end
+
+State.Changed("Settings"):Connect(refreshNewTagMotion)
 
 -- Gold "NEW!" tag on the top-left corner until the button's panel is first opened.
 local function setNewTag(name: string, on: boolean)
@@ -775,9 +795,13 @@ local function setNewTag(name: string, on: boolean)
 		ring.Thickness = 2.5
 		ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		ring.Parent = label
-		Style.Pulse(label, 0.1, 0.9)
 		newTags[name] = label
+		refreshNewTagMotion()
 	elseif not on and tag then
+		if newTagTweens[name] then
+			newTagTweens[name]:Cancel()
+			newTagTweens[name] = nil
+		end
 		tag:Destroy()
 		newTags[name] = nil
 	end
@@ -946,6 +970,21 @@ function HUD.Init()
 	buildDepthMeter(canvas)
 	buildBottom(canvas)
 	buildMenuGating()
+	-- A confirmed sale also covers treasure-only sales. Sand resets (e.g. rebirth) are silent.
+	task.spawn(function()
+		Remotes.Get("Notify").OnClientEvent:Connect(function(kind: any, text: any)
+			if kind ~= "Sell" or typeof(text) ~= "string" then
+				return
+			end
+			SoundController.Play("Sell")
+			local coins = HUD.Coins
+			if coins then
+				UIEffects.FlyTo(Icons.Coins, coins.Badge, 10, nil, function()
+					SoundController.Play("Coin")
+				end)
+			end
+		end)
+	end)
 
 	DigController.Feedback:Connect(function(reason: string)
 		if reason == "TooHard" then
