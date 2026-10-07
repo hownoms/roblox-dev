@@ -31,6 +31,7 @@ local Enum = Mock.Enum
 
 local failures = 0
 local passes = 0
+local expectedKicks = 0
 local function check(cond, message)
 	if cond then
 		passes += 1
@@ -1061,6 +1062,66 @@ step("analytics", function()
 end)
 
 -- Leave + rejoin ------------------------------------------------------------------------------------
+section("overlapping save and final release")
+do
+	local saver = Mock.AddPlayer(1009, "SaveRace")
+	Mock.Advance(0.5)
+	DataService.Set(saver, "Coins", 101)
+	local firstResult, queuedResult
+	Mock.Env.task.spawn(function()
+		firstResult = DataService.SaveAsync(saver)
+	end)
+	DataService.Set(saver, "Coins", 202)
+	Mock.Env.task.spawn(function()
+		queuedResult = DataService.SaveAsync(saver)
+	end)
+	Mock.RemovePlayer(saver)
+	Mock.Advance(1)
+	check(firstResult == true, "in-flight autosave finishes before final release")
+	if not STUDIO_NO_API then
+		check(queuedResult == false, "queued autosave cannot save a released session")
+		local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_1009"]
+		check(saved.Data.Coins == 202, "final save preserves newer data after overlapping autosave")
+		check(saved.Lock == nil, "overlapping autosave cannot recreate released session lock")
+	end
+	local rejoined = Mock.AddPlayer(1009, "SaveRace")
+	Mock.Advance(0.5)
+	check(DataService.Get(rejoined).Coins == 202, "rejoin sees final overlapping-save snapshot")
+	Mock.RemovePlayer(rejoined)
+	Mock.Advance(0.5)
+end
+
+if not STUDIO_NO_API then
+	section("same-server rejoin during delayed final save")
+	local saver = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(0.5)
+	DataService.Set(saver, "Coins", 303)
+	local delayed = false
+	Mock.BeforeDataStoreUpdate = function(name, key)
+		if name == Config.DATASTORE_NAME and key == "Player_1010" and not delayed then
+			delayed = true
+			Mock.Env.task.wait(35)
+		end
+	end
+	Mock.RemovePlayer(saver)
+	local blocked = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(31)
+	check(not DataService.IsLoaded(blocked), "rejoin fails closed while previous final save exceeds timeout")
+	local kick = Mock.Kicked[#Mock.Kicked]
+	check(kick and kick.Player == blocked and kick.Message == "Your previous session is still saving. Please rejoin in a minute!", "timed-out rejoin is kicked rather than opening the same profile")
+	expectedKicks += 1
+	Mock.RemovePlayer(blocked)
+	Mock.Advance(5)
+	Mock.BeforeDataStoreUpdate = nil
+	local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_1010"]
+	check(saved.Data.Coins == 303 and saved.Lock == nil, "delayed final save completes and releases lock")
+	local rejoined = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(0.5)
+	check(DataService.Get(rejoined).Coins == 303, "rejoin after delayed final save preserves data")
+	Mock.RemovePlayer(rejoined)
+	Mock.Advance(0.5)
+end
+
 section("leave")
 DataService.Set(player, "Coins", 4242)
 Mock.Advance(0.1)
@@ -3265,6 +3326,7 @@ local EXPECTED_WARNINGS = {
 	"Studio has no DataStore access", -- studio mode only
 	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"
 	"mock badge throttled", -- BadgeService failure, provoked in "badges"
+	"[mock] kicked DelayedSave: Your previous session is still saving. Please rejoin in a minute!", -- delayed final-save regression
 	"[LaunchCheck]", -- the repo ships with placeholder ids; live boot lists them once
 }
 for _, w in Mock.Warnings do
@@ -3282,7 +3344,7 @@ for _, w in unexpected do
 	print("   warning: " .. w)
 end
 check(#unexpected == 0, #unexpected .. " unexpected warnings")
-check(#Mock.Kicked == 0, "nobody was kicked")
+check(#Mock.Kicked == expectedKicks, "only deliberately rejected delayed-save rejoin was kicked")
 
 print(string.format("\nSMOKE: %d passed, %d failed", passes, failures))
 if failures > 0 then

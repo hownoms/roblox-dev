@@ -2388,6 +2388,9 @@ local function newDataStore(name, ordered)
 		data[key] = deepCopy(value)
 	end
 	function store:UpdateAsync(key, fn)
+		if Mock.BeforeDataStoreUpdate then
+			Mock.BeforeDataStoreUpdate(name, key)
+		end
 		asyncYield()
 		if Mock.DataStoreFail then
 			error("502: mock DataStore failure")

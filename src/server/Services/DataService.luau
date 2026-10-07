@@ -51,6 +51,7 @@ type Session = {
 	Dirty: { [string]: boolean },
 	FlushScheduled: boolean,
 	Released: boolean,
+	Saving: boolean,
 	Leaderstats: {
 		Coins: StringValue,
 		Depth: IntValue,
@@ -366,9 +367,19 @@ end
 
 -- Writes the session's data. Returns false if the write failed or the lock was stolen.
 local function saveAsync(session: Session, release: boolean): boolean
+	-- UpdateAsync yields. Serialize snapshots and writes so an old autosave cannot
+	-- overwrite the final save or recreate its released lock after the player leaves.
+	while session.Saving do
+		task.wait(0.05)
+	end
+	if session.Released and not release then
+		return false
+	end
+	session.Saving = true
 	local payload = TableUtil.DeepCopy(session.Data)
 	if useMock or not store then
 		mockStore[session.Key] = payload
+		session.Saving = false
 		return true
 	end
 	local dataStore = store :: DataStore
@@ -408,6 +419,7 @@ local function saveAsync(session: Session, release: boolean): boolean
 		end
 	end
 	activeSaves -= 1
+	session.Saving = false
 	return success
 end
 
@@ -431,6 +443,12 @@ local function onPlayerAdded(player: Player)
 	while releasing[player.UserId] and os.clock() < waitUntil do
 		task.wait(0.25)
 	end
+	if releasing[player.UserId] then
+		if player.Parent then
+			player:Kick("Your previous session is still saving. Please rejoin in a minute!")
+		end
+		return
+	end
 
 	local data, reason = loadAsync(player)
 	if not data then
@@ -452,6 +470,7 @@ local function onPlayerAdded(player: Player)
 		Dirty = {},
 		FlushScheduled = false,
 		Released = false,
+		Saving = false,
 		Leaderstats = nil,
 	}
 
