@@ -2,7 +2,7 @@
 
 ## Excavation cue polish checkpoint — 7 October 2026
 
-This entry supersedes the previous chat status immediately below. Fetched origin successfully; local and remote base both remained `8c14d7a` (PR #10 merged). Preserved the intervening, uncommitted handoff note. Work is focused on `codex/excavation-cue-polish`; integration status follows in this entry after merge.
+This entry supersedes the previous chat status immediately below. Fetched origin successfully; local and remote base both remained `8c14d7a` (PR #10 merged). Preserved the intervening, uncommitted handoff note. Implementation `d736ab4` on `codex/excavation-cue-polish` is pushed and merged through [PR #11](https://github.com/hownoms/roblox-dev/pull/11), merge `62fbc1a24d2305251a0a2867d3759b5c1096e3da`. Local `claude/pensive-meitner-6jx4u4` was fast-forwarded to the remote merge. GitHub returned no commit status checks; local checks and the separately qualified Studio observations provide this stage's validation. DigTest was saved locally after Stop; no temporary diagnostic session was saved into source or place state. Stop after this one focused stage; other issues remain separate.
 
 Native Windows computer use worked in this chat. The actual UI exposed one existing DigTest Studio window and a connected default-project Rojo plugin at `localhost:34872`. Sandboxed process/network queries were incomplete; the native UI and successful source refresh provide the Studio/Rojo evidence. No replacement place or alternate port was used.
 
