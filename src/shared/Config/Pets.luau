@@ -399,7 +399,7 @@ local Pets: { Types.PetDef } = {
 		Multiplier = 3,
 		Exclusive = false,
 		Look = {
-			BodyColor = rgb(70, 40, 40),
+			BodyColor = rgb(100, 65, 60),
 			AccentColor = rgb(255, 120, 30),
 			Shape = "Golem",
 			Size = 1.3,
@@ -498,7 +498,7 @@ local Pets: { Types.PetDef } = {
 		Dig = { Power = 2500, Interval = 2.8, Radius = 2.6, SandMultiplier = 104 },
 		Exclusive = false,
 		Look = {
-			BodyColor = rgb(30, 30, 70),
+			BodyColor = rgb(65, 65, 110),
 			AccentColor = rgb(255, 240, 120),
 			Shape = "Golem",
 			Size = 1.4,

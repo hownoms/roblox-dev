@@ -274,7 +274,61 @@ end
 section("protected underground scenery")
 local Underground = Mock.Require(byPath["ServerScriptService/Server/World/Underground"])
 local scenery = Mock.Service("Workspace"):FindFirstChild("Map"):FindFirstChild("Underground")
-check(scenery ~= nil and #scenery:GetChildren() == 6, "six protected pirate/crystal alcoves built")
+check(
+	scenery ~= nil and #scenery:GetChildren() == #Config.Layers * 3,
+	"three protected alcoves per configured layer built"
+)
+local landmarkNames = {
+	dry_sand = "Bucket",
+	wet_sand = "Driftwood",
+	shell_bed = "ClamFan",
+	tidal_clay = "AnchorShaft",
+	pirate_cove = "BrokenMast",
+	shipwreck = "DoorLintel",
+	fossil_bed = "FossilSpine",
+	bedrock = "FaultSlab",
+	crystal_caverns = "CrystalSpire",
+	frozen_abyss = "TuskBase",
+	ancient_ruins = "StoneTablet",
+	magma_chamber = "BasaltVent",
+	obsidian_depths = "ObsidianMonolith",
+	alien_hive = "HivePod",
+	the_core = "CoreRelief",
+}
+for _, layer in Config.Layers do
+	local count = 0
+	for _, model in scenery:GetChildren() do
+		if model:GetAttribute("SceneryLayer") == layer.Id then
+			count += 1
+			local minV, maxV = model:GetAttribute("PocketMin"), model:GetAttribute("PocketMax")
+			check(
+				minV.Y >= Config.SURFACE_Y - layer.DepthEnd and maxV.Y <= Config.SURFACE_Y - layer.DepthStart,
+				"pocket remains inside its layer: " .. layer.Id
+			)
+			check(
+				minV.Y % 4 == 0 and maxV.Y % 4 == 0 and maxV.Y > minV.Y,
+				"pocket height and floor are voxel aligned: " .. layer.Id
+			)
+			check(model:FindFirstChild(landmarkNames[layer.Id]) ~= nil, "distinct landmark built: " .. layer.Id)
+			local lights, emitters, pieces, shadowless = 0, 0, 0, true
+			for _, child in model:GetDescendants() do
+				if child:IsA("BasePart") then
+					pieces += 1
+				end
+				if child:IsA("PointLight") then
+					lights += 1
+					shadowless = shadowless and not child.Shadows
+				end
+				if child:IsA("ParticleEmitter") then
+					emitters += 1
+				end
+			end
+			check(lights == 1 and shadowless and emitters == 0, "bounded static local lighting: " .. layer.Id)
+			check(pieces <= 40, "scenery stays within target part budget: " .. layer.Id)
+		end
+	end
+	check(count == 3, "exactly three scenery groups for " .. layer.Id)
+end
 local function checkSceneryProtected(context)
 	for _, model in scenery:GetChildren() do
 		local minV, maxV = model:GetAttribute("PocketMin"), model:GetAttribute("PocketMax")
@@ -282,29 +336,99 @@ local function checkSceneryProtected(context)
 		for _, part in model:GetDescendants() do
 			if part:IsA("BasePart") then
 				pieces += 1
-				visualOnly = visualOnly and part.Anchored and not part.CanCollide and not part.CanQuery and not part.CanTouch
+				visualOnly = visualOnly
+					and part.Anchored
+					and not part.CanCollide
+					and not part.CanQuery
+					and not part.CanTouch
 				local h = part.Size / 2
 				for _, x in { -1, 1 } do
 					for _, y in { -1, 1 } do
 						for _, z in { -1, 1 } do
 							local p = part.CFrame * Vector3.new(h.X * x, h.Y * y, h.Z * z)
-							contained = contained and p.X >= minV.X - 0.01 and p.X <= maxV.X + 0.01
-								and p.Y >= minV.Y - 0.01 and p.Y <= maxV.Y + 0.01
-								and p.Z >= minV.Z + 0.49 and p.Z <= maxV.Z + 0.01
+							contained = contained
+								and p.X >= minV.X - 0.01
+								and p.X <= maxV.X + 0.01
+								and p.Y >= minV.Y - 0.01
+								and p.Y <= maxV.Y + 0.01
+								and p.Z >= minV.Z + 0.49
+								and p.Z <= maxV.Z + 0.01
 						end
 					end
 				end
 			end
 		end
-		check(contained and minV.Z >= zoneCenter.Z + zoneSize.Z / 2, context .. ": all scenery stays outside carving/refills: " .. model.Name)
-		check(visualOnly and pieces <= 50 and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, context .. ": bounded visual-only streaming group: " .. model.Name)
+		check(
+			contained and minV.Z >= zoneCenter.Z + zoneSize.Z / 2,
+			context .. ": all scenery stays outside carving/refills: " .. model.Name
+		)
+		check(
+			visualOnly and pieces <= 50 and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic,
+			context .. ": bounded visual-only streaming group: " .. model.Name
+		)
 		local mid = (minV + maxV) / 2
 		local shelf = model:FindFirstChild("RockShelf")
-		check(shelf ~= nil and math.abs(shelf.Position.Y - shelf.Size.Y / 2 - minV.Y) < 0.01,
-			context .. ": rock shelf visibly rests on terrain floor: " .. model.Name)
+		check(
+			shelf ~= nil and math.abs(shelf.Position.Y - shelf.Size.Y / 2 - minV.Y) < 0.01,
+			context .. ": rock shelf visibly rests on terrain floor: " .. model.Name
+		)
+		if model:GetAttribute("SceneryLayer") == "shipwreck" then
+			-- Inspect world-space contact, so a floating upper barrel cannot pass just
+			-- because the landmark's overall bounds and shelf remain protected.
+			local function bounds(part)
+				local minP = Vector3.new(math.huge, math.huge, math.huge)
+				local maxP = Vector3.new(-math.huge, -math.huge, -math.huge)
+				local half = part.Size / 2
+				for _, x in { -1, 1 } do
+					for _, y in { -1, 1 } do
+						for _, z in { -1, 1 } do
+							local point = part.CFrame * Vector3.new(half.X * x, half.Y * y, half.Z * z)
+							minP = Vector3.new(
+								math.min(minP.X, point.X),
+								math.min(minP.Y, point.Y),
+								math.min(minP.Z, point.Z)
+							)
+							maxP = Vector3.new(
+								math.max(maxP.X, point.X),
+								math.max(maxP.Y, point.Y),
+								math.max(maxP.Z, point.Z)
+							)
+						end
+					end
+				end
+				return minP, maxP
+			end
+			local barrels = {}
+			for _, child in model:GetChildren() do
+				if child.Name == "Barrel" then
+					table.insert(barrels, child)
+				end
+			end
+			table.sort(barrels, function(a, b)
+				return a.Position.Y < b.Position.Y
+			end)
+			check(#barrels >= 2, context .. ": shipwreck contains a barrel stack: " .. model.Name)
+			local support = shelf
+			for _, barrel in barrels do
+				local minB, maxB = bounds(barrel)
+				local minS, maxS = bounds(support)
+				check(
+					math.abs(minB.Y - maxS.Y) < 0.01
+						and math.min(maxB.X, maxS.X) > math.max(minB.X, minS.X)
+						and math.min(maxB.Z, maxS.Z) > math.max(minB.Z, minS.Z),
+					context .. ": each barrel touches its overlapping support: " .. model.Name
+				)
+				support = barrel
+			end
+		end
 		local air = Mock.GetVoxel(mid)
 		local support = Mock.GetVoxel(Vector3.new(mid.X, minV.Y - 2, mid.Z))
-		check((air == nil or air.Material == Enum.Material.Air or air.Occupancy == 0) and support ~= nil and support.Occupancy > 0, context .. ": open alcove retains terrain floor: " .. model.Name)
+		check(
+			(air == nil or air.Material == Enum.Material.Air or air.Occupancy == 0)
+				and support ~= nil
+				and support.Occupancy > 0,
+			context .. ": open alcove retains terrain floor: " .. model.Name
+		)
 	end
 end
 checkSceneryProtected("initial")
