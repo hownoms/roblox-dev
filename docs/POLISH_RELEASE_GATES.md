@@ -1,5 +1,9 @@
 # Remaining polish release gates — 6 October 2026
 
+## Focused scan evidence — 7 October 2026
+
+Preserved and fetched intervening merged PRs #13/#14 (`0b1575a`). Ordinary current-source DigTest showed matching ground chevron/radar bearings at Cool/DOWN; movement and downward digs reached a natural fourth-dig excavation, before the sixth-dig guarantee. A separate fresh ordinary baseline run with only the two historical scan presentation files showed a plain white bar partly behind Scan, with no directional head and a round radar dot. Current files were restored exactly and DigTest stopped/saved. Source selection was assisted setup; gameplay used T, Click to Move and mouse digging without scripted actions or grants. Different natural deposits/positions limit the comparison; no HOT arrival, hot-band instruction, live Reduced Motion, controlled success-rate or independent fresh-player evidence is claimed. Current client checks: 1,373 passing; affected strict analysis, Windows-line-ending formatting and Rojo build passed. This supports the focused head/tail readability fix already merged in PR #14, without closing the complete sequence or any other release gate. Hardware remains deferred; no publication/uploads occurred.
+
 Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md) for the current priority order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
 
 | Stage | Source/headless evidence available | Evidence still required |
