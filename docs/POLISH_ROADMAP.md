@@ -44,4 +44,6 @@ Badges and additional ambience have lower priority than the core loop. Audio rig
 
 ## Continuation state
 
+PR #15 integrated the focused scan evidence after successful GitHub CI; local base was synchronized to merge `0e7f7d7`. Read the newest handoff first: PRs #13/#14 are preserved and their other headless-only work still needs its own live stage. The scan chevron ambiguity has ordinary comparison evidence; unobserved hot-band/Reduced Motion cases remain open.
+
 PR #12 is merged. Saved base: `claude/pensive-meitner-6jx4u4`, fast-forwarded to `9ada1dd` before the final discovery handoff documentation checkpoint. Fetch/check local and remote changes and preserve intervening work. Full release gates remain open; no Roblox publication is authorized. The reveal-readability/overlap stage is complete; choose only one remaining issue in a future chat. Scan direction, sell guidance, chat covering Shop, audio, upgrade feel and contact remain separate. Do not restart collection or scenery sweeps.

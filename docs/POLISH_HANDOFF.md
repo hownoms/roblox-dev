@@ -2,6 +2,8 @@
 
 ## Focused scan-direction verification — 7 October 2026
 
+Evidence checkpoint `2b81aac` is integrated through [PR #15](https://github.com/hownoms/roblox-dev/pull/15), merge `0e7f7d7`. GitHub CI run `37693736766` completed successfully before merge. Local `claude/pensive-meitner-6jx4u4` was fast-forwarded to that merge after a fresh fetch; this final documentation commit records integration. Stop after this focused stage. Keep remaining scan live cases and other release limitations explicit; no broader first-player certification is implied.
+
 This entry supersedes historical continuation prompts. Fresh fetch found Howard's intervening PRs #13 and #14; the clean local base was fast-forwarded from `bf89b00` to `0b1575a`. All merged work was preserved. Scan presentation was already implemented by `102d45d` (ground chevron, radar pointer, hot-band dig instructions), so this stage retains that fix and adds evidence rather than duplicating it. Other first-player changes remain separate verification stages.
 
 **Ordinary before/after evidence:** existing `build/DigTest.rbxl`, default-project Rojo visibly connected to `localhost:34872`, fresh Play, starter autoequip, T scans, Roblox Click to Move and mouse digs in an approximately 900 x 680 game viewport. With current source, scans showed Cool/DOWN and matching ground chevron/radar direction; movement changed bearings, and downward digging after following those cues naturally opened excavation on the fourth successful dig (before the guaranteed sixth-dig find). The subsequent Index-unlock toast was observed; the reward card itself was missed between captures. This supports locating/digging toward a natural find, not a proof that each bearing followed one persistent deposit or that the player reached HOT.
