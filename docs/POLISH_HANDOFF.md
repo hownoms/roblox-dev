@@ -6,10 +6,10 @@ Read this first when continuing in another chat, then read `docs/VISUAL_POLISH.m
 
 - Local repository: `C:\Users\howar\Documents\ChatGPT\Roblox UEFN Dev\roblox-dev`.
 - Remote: https://github.com/hownoms/roblox-dev.git.
-- Current continuation branch: `claude/pensive-meitner-6jx4u4`, synchronized with its remote after merge. Preserved checkpoint branch: `codex/atlas-loading-fix`.
+- Current continuation branch: `claude/pensive-meitner-6jx4u4`, synchronized with its remote after merge. Latest preserved checkpoint branch: `codex/native-detail-polish`; earlier checkpoint: `codex/atlas-loading-fix`.
 - Polish implementation commit: `4c0749ea3965fbe74f4570146f04c86bfc44125b`; atlas fix: `bcdb8a6688f7f45fbc6c1e8c0bed9ca12ad9fb77`.
 - Merged PR: https://github.com/hownoms/roblox-dev/pull/7, covering atlas loading plus the sequence/scenery/gallery continuation. Howard explicitly authorized this source checkpoint merge on 6 October 2026. Merge commit: `e20605aa7e03d0d1013f066f4478f5400b89087e`.
-- Base branch: `claude/pensive-meitner-6jx4u4`. PR #1–7 are integrated. GitHub reported no CI workflow runs or commit status checks for the checkpoint; the local tests and Studio evidence below provide its validation. Source integration does not close the remaining release gates or publish the Roblox experience.
+- Base branch: `claude/pensive-meitner-6jx4u4`. PR #1–8 are integrated. Latest PR: https://github.com/hownoms/roblox-dev/pull/8; implementation commit `1a8786e3d4a8f6b431db94331a2df75f09658754`; merge commit `3319520b353027ea9d066577fed4ee798c4655ca`. Howard explicitly authorized saving, pushing and merging this source checkpoint. The local base was fast-forwarded to the merge; a final documentation checkpoint records that status. GitHub reported no CI workflow runs or commit status checks for the checkpoint; the local tests and Studio evidence below provide its validation. Source integration does not close the remaining release gates or publish the Roblox experience.
 - Fetch and inspect remote changes before starting further work: Howard develops between chats. Preserve newer shovel poses/Avatar Joint Upgrade support, crate-tab work and ground-placement fixes. Do not blindly reset or overwrite local changes.
 
 ## Completed and verified
@@ -69,11 +69,11 @@ Next work: finish the native/detail collection review, starting with dark/thin a
 
 ## Suggested opening message in the next chat
 
-“Continue the Roblox polish in `roblox-dev`. Read `docs/POLISH_HANDOFF.md` and `docs/VISUAL_POLISH.md`, check local and remote updates and PR #7's integration status first, and preserve my intervening work. Continue from the updated base after merge. Real phone/controller verification remains deferred. Use my existing DigTest place with git pull and Rojo for testing, and continue the remaining review/kits/profiling work recorded in the handoff.”
+“Continue the Roblox polish in `roblox-dev`. Read `docs/POLISH_HANDOFF.md` and `docs/VISUAL_POLISH.md`, check local and remote updates and PR #8's integration status first, and preserve my intervening work. Continue from the updated base after merge. Real phone/controller verification remains deferred. Use my existing DigTest place with git pull and Rojo for testing, and continue the remaining review/kits/profiling work recorded in the handoff.”
 
 ## Continuation: native/detail collection checkpoint, 6 October 2026
 
-Fetched origin from a clean `c3410bc`; no newer local or remote work was present. Preserved the base branch and existing pose/avatar/crate/placement work. This continuation is saved on `codex/native-detail-polish` for the user-authorized push and integration checkpoint.
+Fetched origin from a clean `c3410bc`; no newer local or remote work was present. Preserved the base branch and existing pose/avatar/crate/placement work. This continuation is committed as `1a8786e`, pushed on `codex/native-detail-polish`, and merged through PR #8 (`3319520`). The local continuation checkout is back on `claude/pensive-meitner-6jx4u4`.
 
 Individually reviewed all 14 tools and 13 backpacks at native scale plus actual 48/120/240 px. Steel Pickaxe, Obsidian Shard, pet-scale Lava Drill and Lamp also received four-angle native inspection; full-size Lava Drill received details and a primary native view. Steel head is now brighter smooth Metal, Lamp has a modestly brighter metal palette, and the shared Obsidian/Plasma Drill housing closes an observed 0.15-stud gap. Fresh Studio builds verified these refinements. No global exposure or economy changes.
 
@@ -82,3 +82,11 @@ Diagnostic now supports exact asset jumps (use numeric 94 for full Lava Drill), 
 Validation on the final drill fix: 1,299 client, 1,091 normal server, 1,078 Studio-mode server and 8 utility checks pass. Studio-mode and utility were rerun for the save checkpoint. Affected strict analysis, formatting, builds and diff whitespace pass. Agent diff/lifecycle review found no actionable defect.
 
 **Resume collection at entry 28 (Pets).** Remaining pets, vehicles/rides, eggs, treasures, shade, consumables and props still need the systematic native/detail sweep, apart from targeted entries above. Static primary-angle review of the 27 tools/backpacks does not approve worn/moving fit. After collection and fit/motion review, continue the unassisted DigTest sequence/audio listening, other thirteen scenery layers, then populated/device profiling in the requested order. All outstanding release gates remain open; phone/controller hardware is deferred without another request. Nothing was published, uploaded or assigned new audio/badge IDs.
+
+## Saved integration and next-chat start
+
+PR #8 is merged: https://github.com/hownoms/roblox-dev/pull/8. GitHub reported no workflow runs or commit statuses; local tests and Studio review are the validation. All four suites pass on the final source (1,299 client / 1,091 normal server / 1,078 Studio-mode / 8 utility). The final isolated CollectionReviewCheckpoint playtest is stopped. Older diagnostic windows may remain in Play; inspect before acting. DigTest was preserved. Build images/places remain ignored local artifacts, so regenerate them if unavailable in another checkout. No experience was published.
+
+Paste this in the next chat:
+
+> Continue Roblox polish in `C:\Users\howar\Documents\ChatGPT\Roblox UEFN Dev\roblox-dev`. Read `docs/POLISH_HANDOFF.md` and `docs/VISUAL_POLISH.md` first, then `docs/GALLERY_REVIEW.md` and `docs/POLISH_RELEASE_GATES.md`. Check local and remote updates and preserve my intervening work. PR #8 is merged; the continuation base is `claude/pensive-meitner-6jx4u4`, with native/detail implementation `1a8786e` and merge `3319520` plus the documentation checkpoint. Use agents where helpful and my existing DigTest/Rojo workflow. Resume the systematic native/detail collection sweep at Pets, catalog entry 28. All 14 tools and 13 backpacks have static native and actual 48/120/240-pixel review; worn/moving fit is still open. After collection and fit/motion review, continue the unassisted sequence/audio listening, remaining thirteen scenery layers, then populated/device profiling in the documented order. Real phone/controller testing stays deferred—don't ask again until hardware is available. Keep remaining release gates open and don't publish without my instruction.
