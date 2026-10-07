@@ -60,7 +60,7 @@ Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md): one issue per stage, ordinary inp
        `MusicBeach`, `MusicDeep` and `Ambience` in `src/shared/Config/Sounds.luau`. Ambience
        loops at the surface and follows the Sound Effects setting; music follows the Music
        setting. Grant the experience permission to use each asset and listen in Studio.
-8. [ ] Re-run `tools/preflight.sh strict` until it passes; commit the ids; republish.
+8. [ ] Run ordinary `tools/preflight.sh` for a reduced-scope core test. Use `tools/preflight.sh strict` for a fully configured launch; fill only enabled/promised feature IDs for reduced scope. Commit the configuration; republishing requires explicit authorization.
 
 ## 3. Store page (owner)
 
