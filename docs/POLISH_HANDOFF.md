@@ -6,10 +6,10 @@ Read this first when continuing in another chat, then read `docs/VISUAL_POLISH.m
 
 - Local repository: `C:\Users\howar\Documents\ChatGPT\Roblox UEFN Dev\roblox-dev`.
 - Remote: https://github.com/hownoms/roblox-dev.git.
-- Polish checkpoint branch: `codex/atlas-loading-fix`; after PR #7 merges, continue from the updated base branch `claude/pensive-meitner-6jx4u4`.
-- Implementation commit: `bcdb8a6688f7f45fbc6c1e8c0bed9ca12ad9fb77` — Fix atlas loading and verify all icon crops in Studio.
-- Integration PR: https://github.com/hownoms/roblox-dev/pull/7, covering atlas loading plus the sequence/scenery/gallery continuation. Howard explicitly authorized saving, pushing and merging this checkpoint on 6 October 2026. Check the linked PR for its final merge status.
-- Base branch: `claude/pensive-meitner-6jx4u4`, last checked at `bf547f0c6bf39c684e3f8551a1d6055e15254cdc`. PR #1 and PR #2–6 were already merged when this work started.
+- Current continuation branch: `claude/pensive-meitner-6jx4u4`, synchronized with its remote after merge. Preserved checkpoint branch: `codex/atlas-loading-fix`.
+- Polish implementation commit: `4c0749ea3965fbe74f4570146f04c86bfc44125b`; atlas fix: `bcdb8a6688f7f45fbc6c1e8c0bed9ca12ad9fb77`.
+- Merged PR: https://github.com/hownoms/roblox-dev/pull/7, covering atlas loading plus the sequence/scenery/gallery continuation. Howard explicitly authorized this source checkpoint merge on 6 October 2026. Merge commit: `e20605aa7e03d0d1013f066f4478f5400b89087e`.
+- Base branch: `claude/pensive-meitner-6jx4u4`. PR #1–7 are integrated. GitHub reported no CI workflow runs or commit status checks for the checkpoint; the local tests and Studio evidence below provide its validation. Source integration does not close the remaining release gates or publish the Roblox experience.
 - Fetch and inspect remote changes before starting further work: Howard develops between chats. Preserve newer shovel poses/Avatar Joint Upgrade support, crate-tab work and ground-placement fixes. Do not blindly reset or overwrite local changes.
 
 ## Completed and verified
