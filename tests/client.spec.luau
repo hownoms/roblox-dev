@@ -2739,7 +2739,7 @@ do
 	check(DiscoveryController.Ping.Band == 1 and DiscoveryController.IsScanning(), "ping stored, scanning")
 	check(scan.Label.Text == "HOT!", "HOT! when the find is close (" .. scan.Label.Text .. ")")
 	local pill = scan.Holder:FindFirstChild("Vertical")
-	check(pill ~= nil and pill.Visible and pill.Text == "DOWN", "DOWN pill when the find is below you")
+	check(pill ~= nil and pill.Visible and pill.Text == "DIG DOWN!", "hot and below: the pill says DIG DOWN!")
 	local dot = scan.Holder:FindFirstChild("Dot", true)
 	check(dot ~= nil and dot.Visible and dot.BackgroundColor3 == D.SIGNAL_COLORS.Gold, "radar dot in the gold signal colour")
 	local radar = scan.Holder:FindFirstChild("Radar")
@@ -2749,6 +2749,15 @@ do
 	check(math.abs(DiscoveryController.ArrowAngle(Vector3.new(0, 0, -1)) - 90) < 1e-6, "camera looking -Z: arrow points right")
 	local arrow = workspace:FindFirstChild("DetectorArrow")
 	check(arrow ~= nil and arrow.Transparency < 1 and arrow.Color == D.SIGNAL_COLORS.Gold, "ground arrow shows while scanning")
+	local headL, headR = arrow and arrow:FindFirstChild("HeadLeft"), arrow and arrow:FindFirstChild("HeadRight")
+	check(headL ~= nil and headR ~= nil and headL.Transparency < 1 and headR.Color == D.SIGNAL_COLORS.Gold, "ground arrow has a visible chevron head")
+	if headL and headR and arrow then
+		-- both arms sit further along the pointing direction than the shaft centre
+		local dirX = Vector3.new(1, 0, 0) -- sector 2 of 8 = +X
+		local shaftAlong = arrow.Position:Dot(dirX)
+		check(headL.Position:Dot(dirX) > shaftAlong and headR.Position:Dot(dirX) > shaftAlong, "chevron head is at the tip end of the arrow")
+	end
+	check(dot:FindFirstChild("Pointer") ~= nil, "radar dot carries an arrowhead")
 	Mock.FireClientEvent("DetectorPing", { Band = 4, Sector = 0, Vertical = "Level", Signal = "Purple", Remaining = 3 })
 	Mock.Advance(0.3)
 	check(scan.Label.Text == "Faint" and not pill.Visible, "Faint at the edge of range, no pill when level")
@@ -2762,6 +2771,13 @@ do
 	Mock.Advance(D.SCAN_SECONDS + 1)
 	check(not DiscoveryController.IsScanning() and (arrow.Transparency == 1), "scan over: arrow hidden")
 	check(DetectorHUD.Caption({ Band = 2, Sector = 0, Vertical = "", Signal = "", Remaining = 1 }, true, 0) == "Warm", "Caption: Warm")
+	local function instr(band, vertical, scanning)
+		return DetectorHUD.Instruction({ Band = band, Sector = 0, Vertical = vertical, Signal = "", Remaining = 1 }, scanning)
+	end
+	check(instr(1, "Level", true) == "DIG HERE!", "Instruction: hot and level -> DIG HERE!")
+	check(instr(1, "Down", true) == "DIG DOWN!" and instr(1, "Up", true) == "UP HERE!", "Instruction: hot below / above")
+	check(instr(2, "Down", true) == "DOWN" and instr(3, "Up", true) == "UP" and instr(3, "Level", true) == "", "Instruction: farther away keeps DOWN / UP")
+	check(instr(1, "Down", false) == "" and instr(0, "Down", true) == "", "Instruction: nothing when not scanning or nothing in range")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 2.2) == "3s", "Caption: cooldown seconds")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 0) == "Scan", "Caption: ready")
 
