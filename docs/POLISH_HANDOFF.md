@@ -1,3 +1,21 @@
+# Playtest preparation checkpoint — 7 October 2026
+
+This entry supersedes historical stop-after-one-stage/new-chat instructions. Howard authorized multiple focused stages in this chat and source saving/pushing/merging; publication, uploads, audience changes, spending and tester contact remain unauthorized. Intervening merged PRs #13–#15 were preserved after fetch from checkpoint `2e58982`.
+
+Integrated preparation stages: `655dc15` adds guarded reproducible packaging, the short player script and current official account/access runbook; `46833d7` serializes profile saves and rejects rejoin while a final save remains stalled. Both were pushed to the repository default branch `claude/pensive-meitner-6jx4u4`. This documentation stage records qualified evidence. The final package manifest identifies the exact synchronized revision and SHA-256; rebuild with `./tools/package-playtest.ps1` from clean Git. See [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md).
+
+Ordinary DigTest with Rojo localhost:34872: starter autoequip, mouse digs, natural excavation/discovery, 20/20 bag, native sell to 88 coins, 30-coin Garden Trowel purchase/autoequip (58 coins), readable upgrade gain and a subsequent dig. Own nameplate hid during readable reward cards. Chat was bottom-left with Shop unobscured. Reduced Motion toggled ON and subsequent scan showed Cool/DOWN. No grants, teleports or dev commands in this run. Shell Bed was not reached; HOT instructions, full Reduced Motion sequence, off-screen Sell guidance and dynamic pet/equipment contact are not certified. Quest/Index toasts crossed a later excavation heading, a presentation follow-up. No audio listening or fresh-player feedback occurred.
+
+Four actual Studio clients spawned; two received ordinary movement/dig inputs. Shared goal increments appeared. Separately, assisted `/stress 15 fx` ran ~74.5 s (bots are not extra real clients): 123.8 edits/s, heartbeat 16.7 ms average / 82 ms max, reported server memory 1,833 MB and send 62 kbps. Goal completion replicated; `/stress stop` cleaned bots and forced tide/refill with the operator returned to surface. This does not certify natural tide, coordinated four-player shared holes or real persistence. Universe 0 used in-memory saves. Engine social/localization HTTP errors were present.
+
+Saved client MicroProfiler: `build/limited-playtest/evidence/microprofile-20261007-183019.html`, SHA-256 `94C5CF9A75C129AF1DF4D6457541904A5096BAD4F8B5A8B486C1D4FB310F8D44`; adjacent analysis and filtered stress log. 128 CPU frames average 16.658 ms, p95 17.998, max 18.764; dump memory 2,056–2,060 MB. Largest worker scopes involved terrain meshing; no clear script bottleneck. Client capture cannot attribute the server's 82 ms startup or 49.6 ms later spike. Server window capture failed outside the captured monitor even after owner assistance; server profiling remains open. Physical hardware remains deferred.
+
+Validation: interrupted client rerun 1,373 passed; utility 8; after the persistence fix server 2,167 / Studio-mode 2,146 passed, zero failures. Targeted regressions cover overlapping autosave/final save and delayed final-save rejoin rejection. Mock results are not real DataStore tests. Formatting, affected strict analysis, source map/build and whitespace checks passed; full strict analysis had existing social API deprecation warnings. Preflight: zero blocking flags, five optional configuration groups. Final-save exhausted retries, shutdown deadline and loading-session behavior still need real-service verification.
+
+Next owner action: complete Roblox account age check. No experience/account identity is verified. Finish the remaining local invitation checks, then request explicit authorization to publish a dedicated test experience and set Limited → Playtesters; complete questionnaire and permitted-account join/save checks before invitations. Public launch remains unapproved. Optional passes/products/badges/group/music do not block the silent core test when disabled and unpromised. Completed scenery/collection sweeps must not restart.
+
+---
+
 # Visual polish handoff — 7 October 2026
 
 ## Focused scan-direction verification — 7 October 2026

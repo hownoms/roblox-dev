@@ -1,3 +1,19 @@
+# Current launch readiness — 7 October 2026
+
+This entry is authoritative over historical stage instructions below. Packaging is complete; external invitation and public launch are not yet approved. See [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) for the exact owner setup/player script and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) for qualified evidence.
+
+| Priority | Remaining gate |
+|---|---|
+| Must resolve before inviting testers | Owner age check/questionnaire, explicit test publication/access authorization, experience identity and permitted-account join; ordinary deeper post-upgrade sequence/HOT/Reduced Motion; coordinated four-client shared digging/natural tide; real save/rejoin if saved progression is promised |
+| Must verify before public launch | Real lock contention/interrupted writes/shutdown saves; independent player evidence; populated server spike attribution and budgets; deferred supported-device checks; faithful copy/media, rights and policy; enabled feature IDs/receipts/awards; rollback/monitoring and explicit launch authorization |
+| Can follow after launch when disabled/unpromised | Passes/products, badges, group perks, owned ambience, further cosmetic scenery/collection refinements |
+
+Ordinary input now covers natural discovery, full bag, sell, trowel purchase/autoequip and one subsequent dig, plus Reduced Motion toggle and Cool/DOWN scan. Deeper layer and hot-band/full settings sequence remain open. Four actual Studio clients and separate 15-bot stress add partial reliability evidence. Fresh server heartbeat 16.7 ms average / 82 ms max still exceeds the historical max target; saved client profiler does not attribute it. No real DataStore, listening, fresh-player or physical-device sign-off is claimed.
+
+Profile save serialization/stalled-rejoin rejection fix has passing targeted mock regressions (server 2,167 / Studio 2,146, client 1,373, utility 8). Final saves still have retry/deadline limits requiring service-level evidence. Preflight zero blocking flags/five optional groups supports a reduced-scope core candidate, not public launch.
+
+---
+
 # Remaining polish release gates — 6 October 2026
 
 ## Focused scan evidence — 7 October 2026
