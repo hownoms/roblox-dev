@@ -51,6 +51,7 @@ type UiRefs = {
 	Ring: Frame,
 	RingStroke: UIStroke,
 	Target: Frame,
+	Cue: TextLabel,
 	Grade: TextLabel,
 	Dots: { Frame },
 }
@@ -82,8 +83,11 @@ local function showGrade(ring: number, grade: string)
 		return
 	end
 	local ui = maybeUi :: UiRefs
-	ui.Grade.Text = if grade == "Perfect" then "PERFECT!" elseif grade == "Good" then "GOOD!" else "MISS"
+	local result = if grade == "Perfect" then "PERFECT!" elseif grade == "Good" then "GOOD!" else "MISS"
+	ui.Grade.Text = string.format("%d/%d: %s", ring, #ui.Dots, result)
 	ui.Grade.TextColor3 = GRADE_COLORS[grade]
+	ui.Cue.Text = ""
+	ui.Ring.Visible = false
 	Style.Pop(ui.Grade, 0.35)
 	local dot = ui.Dots[ring]
 	if dot then
@@ -182,12 +186,9 @@ function ExcavationGame.Step(nowArg: number?)
 		ui.Ring.Visible = visible
 		local close = math.abs(t - now) <= g.Info.GoodWindow
 		ui.RingStroke.Color = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
-		-- Keep the last grade during the gap, then explain the next attempt.
-		-- A lingering MISS must not look like the grade of the new shrinking ring.
-		if visible then
-			ui.Grade.Text = if close then "TAP!" else "WAIT..."
-			ui.Grade.TextColor3 = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
-		end
+		-- The numbered result stays readable while the centre cues the next attempt.
+		ui.Cue.Text = if visible then (if close then "TAP!" else "WAIT...") elseif #g.Errors == 0 then "READY..." else ""
+		ui.Cue.TextColor3 = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
 	end
 end
 
@@ -253,14 +254,25 @@ local function build(info: Types.ExcavationInfo)
 	Style.Corner(ring, UDim.new(1, 0))
 	local ringStroke = Style.Stroke(ring, Color3.new(1, 1, 1), 8)
 
-	local grade = Style.Label({
-		Name = "Grade",
+	local cue = Style.Label({
+		Name = "Cue",
 		Text = "READY...",
 		Size = UDim2.fromOffset(TARGET + 60, 50),
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		MaxTextSize = 40,
 		StrokeThickness = 4,
+		ZIndex = 54,
+		Parent = overlay,
+	})
+	local grade = Style.Label({
+		Name = "Grade",
+		Text = "",
+		Size = UDim2.fromOffset(300, 42),
+		Position = UDim2.new(0.5, 0, 0.5, 125),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		MaxTextSize = 28,
+		StrokeThickness = 3,
 		ZIndex = 54,
 		Parent = overlay,
 	})
@@ -291,7 +303,8 @@ local function build(info: Types.ExcavationInfo)
 	overlay.Activated:Connect(function()
 		ExcavationGame.Tap()
 	end)
-	gui = { Root = overlay, Ring = ring, RingStroke = ringStroke, Target = target, Grade = grade, Dots = dots }
+	gui =
+		{ Root = overlay, Ring = ring, RingStroke = ringStroke, Target = target, Cue = cue, Grade = grade, Dots = dots }
 end
 
 -- Starts the minigame for a server ExcavationStart. `now` lets tests pin the clock.
