@@ -2703,6 +2703,11 @@ do
 	ExcavationGame.Step(200 + lead + 2.3 + 0.9 + info.GoodWindow + 0.001)
 	check(result.Text == "3/3: MISS" and prompt.Text == "" and not ringUi.Visible, "expired final ring never displays a green ring with miss")
 	ExcavationGame.Step(210)
+	check(cueOverlay.Parent ~= nil, "final grade remains until reward or fallback teardown")
+	ExcavationGame.DismissForReveal("unrelated")
+	check(cueOverlay.Parent ~= nil, "another find cannot dismiss this excavation result")
+	ExcavationGame.DismissForReveal(info.Id)
+	check(cueOverlay.Parent == nil, "confirmed matching reward clears retiring target and grade immediately")
 	Mock.Advance(1)
 
 	-- reveal tier selection
@@ -2717,13 +2722,13 @@ do
 	local p = FindReveal.Presentation(fi("Common"))
 	check(p.Tier == "Pop" and p.Card == "None" and p.Float and not p.Camera, "Common repeat: float text only")
 	p = FindReveal.Presentation(fi("Common", "Normal", "None", true))
-	check(p.Card == "Compact", "first Common find: compact card")
+	check(p.Card == "Compact" and not p.Float, "first Common find: card without competing floating name/value")
 	p = FindReveal.Presentation(fi("Common", "Giant"))
 	check(p.Tier == "Beam" and p.Card == "Compact" and p.Sound == "RareTreasure", "Giant common: Beam tier")
 	p = FindReveal.Presentation(fi("Rare"))
 	check(p.Tier == "Beam" and p.Card == "Compact", "Rare: Beam + compact card")
 	p = FindReveal.Presentation(fi("Legendary"))
-	check(p.Tier == "Card" and p.Card == "Full" and p.Camera and not p.Flash, "Legendary: full card + camera moment")
+	check(p.Tier == "Card" and p.Card == "Full" and not p.Float and p.Camera and not p.Flash, "Legendary: full card + camera moment without duplicate text")
 	p = FindReveal.Presentation(fi("Mythic"))
 	check(p.Tier == "Server" and p.Flash and p.Confetti, "Mythic: server tier, flash + confetti")
 	p = FindReveal.Presentation(fi("Relic"))
@@ -2739,6 +2744,8 @@ do
 		end
 	end
 	check(names["Giant Crystal Bottle Cap"] and names["SIZE"] and names["MATERIAL"] and names["QUALITY"], "card shows the variant name and SIZE / MATERIAL / QUALITY rows")
+	local revealStyle = Mock.Require(byPath[CP .. "UI/Components/Style"])
+	check(reveal:FindFirstChild("ItemName", true).TextColor3 == revealStyle.Colors.Text, "discovery name uses readable white instead of rarity tint")
 	Mock.Advance(6)
 	Mock.FireClientEvent("FindRevealed", "junk")
 	Mock.Advance(0.2)

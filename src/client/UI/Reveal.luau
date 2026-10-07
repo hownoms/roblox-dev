@@ -47,6 +47,7 @@ export type Spec = {
 	Caption: string?, -- small line under the headline ("YOU HATCHED", "NEW SHOVEL")
 	Items: { Item },
 	Compact: boolean?,
+	CompactScale: number?, -- discovery cards reserve more room for the item name
 	Hold: number?,
 	Sound: string?, -- "" = silent
 	Confetti: boolean?,
@@ -365,7 +366,7 @@ local function show(spec: Spec)
 	if design.X > 0 and design.Y > 0 then
 		fit = math.min(1, (design.X - 40) / rowWidth, (design.Y - 30) / (cardSize.Y + 110))
 	end
-	local target = fit * (if compact then 0.62 else 1)
+	local target = fit * (if compact then math.clamp(spec.CompactScale or 0.62, 0.5, 1) else 1)
 	groupScale.Scale = target * 0.6
 	Style.Tween(groupScale, 0.35, { Scale = target }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 

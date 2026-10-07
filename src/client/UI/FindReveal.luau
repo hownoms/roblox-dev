@@ -4,7 +4,7 @@
 	(Util/Finds.Tier; the world-side beam / rise is DiscoveryController's job, for every player):
 
 	  Pop        Common / Uncommon: float text over the find ("Bottle Cap! +8"), soft sting.
-	             The compact (non-blocking) card only the first time you find that item.
+	             First finds use a compact card instead of floating name/value text.
 	  Beam       Rare, or any Giant / Golden / Fossilized / Crystal variant: coloured beam in
 	             the world, distinct sting, compact card.
 	  Card       Epic / Legendary: the full Reveal card + a camera moment (shake + FOV punch).
@@ -28,6 +28,7 @@ local Models = require(Shared:WaitForChild("Models"))
 
 local Style = require(script.Parent.Components.Style)
 local Reveal = require(script.Parent.Reveal)
+local ExcavationGame = require(script.Parent.ExcavationGame)
 local EffectsController = require(script.Parent.Parent.Controllers.EffectsController)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 local DiscoveryController = require(script.Parent.Parent.Controllers.DiscoveryController)
@@ -54,13 +55,14 @@ function FindReveal.Presentation(info: Types.FindInfo): Presentation
 		else Finds.Tier(info.Rarity, info.Size, info.Material)
 	local order = Finds.TierOrder(tier)
 	local fresh = info.IsNew or #info.NewVariants > 0
+	local card = if order >= Finds.TierOrder("Card")
+		then "Full"
+		elseif order == Finds.TierOrder("Beam") or fresh then "Compact"
+		else "None"
 	return {
 		Tier = tier,
-		Float = true,
-		Card = if order >= Finds.TierOrder("Card")
-			then "Full"
-			elseif order == Finds.TierOrder("Beam") or fresh then "Compact"
-			else "None",
+		Float = card == "None",
+		Card = card,
 		Sound = if order >= Finds.TierOrder("Beam") then "RareTreasure" else "Treasure",
 		Camera = order >= Finds.TierOrder("Card"),
 		Flash = order >= Finds.TierOrder("Server"),
@@ -105,6 +107,7 @@ local function rows(info: Types.FindInfo, color: Color3): { Reveal.Row }
 end
 
 function FindReveal.Show(info: Types.FindInfo)
+	ExcavationGame.DismissForReveal(info.Id)
 	local p = FindReveal.Presentation(info)
 	local rarity = Config.GetRarity(info.Rarity)
 	local color = if rarity then rarity.Color else C.Text
@@ -142,7 +145,7 @@ function FindReveal.Show(info: Types.FindInfo)
 		Items = {
 			{
 				Name = name,
-				NameColor = color,
+				NameColor = C.Text,
 				Model = model,
 				Pitch = 20,
 				Spin = info.TreasureId ~= "lost_flip_flop",
@@ -151,6 +154,7 @@ function FindReveal.Show(info: Types.FindInfo)
 			},
 		},
 		Compact = p.Card == "Compact",
+		CompactScale = 0.78,
 		Hold = if p.Card == "Full" then 4.5 else 2.6,
 		Sound = p.Sound,
 		Flash = p.Flash,

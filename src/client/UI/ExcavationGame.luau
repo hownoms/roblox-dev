@@ -56,6 +56,7 @@ type UiRefs = {
 	Dots: { Frame },
 }
 local gui: UiRefs? = nil
+local retiring: { [string]: TextButton } = {}
 local initialized = false
 
 local function targetTime(g: Game, ring: number): number
@@ -100,11 +101,29 @@ local function teardown()
 	gui = nil
 	if ui then
 		local root = ui.Root
+		local id = if session then session.Info.Id else ""
+		retiring[id] = root
 		task.delay(0.6, function()
+			if retiring[id] == root then
+				retiring[id] = nil
+			end
 			root:Destroy()
 		end)
 	end
 	DigController.Enabled = true
+end
+
+-- The confirmed reward takes over the screen, even if the final grade is still retiring.
+function ExcavationGame.DismissForReveal(id: string)
+	if session and session.Info.Id == id and not session.Done then
+		session.Done = true
+		teardown()
+	end
+	local root = retiring[id]
+	if root then
+		retiring[id] = nil
+		root:Destroy()
+	end
 end
 
 local function finish(g: Game)
