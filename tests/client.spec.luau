@@ -641,6 +641,28 @@ do
 		check(ChatLayout.DockFor(true, true) ~= nil, "touch laptops with a keyboard dock like PC")
 	end
 
+	-- ambience: loops near the surface when an id is configured, follows the SFX setting
+	do
+		local SoundController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/SoundController"])
+		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		check(not SoundController.Playing().Ambience, "no ambience while its id is empty")
+		local savedSfx = State.GetSetting("SFX", true)
+		SharedConfig.Sounds.Ambience.Id = "rbxassetid://1"
+		SoundController.SetAmbience(true)
+		check(SoundController.Playing().Ambience, "configured ambience plays at the surface")
+		State.SetSetting("SFX", false)
+		Mock.Advance(0.3)
+		check(not SoundController.Playing().Ambience, "ambience stops when sound effects are off")
+		State.SetSetting("SFX", true)
+		Mock.Advance(0.3)
+		check(SoundController.Playing().Ambience, "ambience resumes when sound effects are back on")
+		SoundController.SetAmbience(false)
+		check(not SoundController.Playing().Ambience, "ambience stops underground")
+		State.SetSetting("SFX", savedSfx)
+		SharedConfig.Sounds.Ambience.Id = ""
+		Mock.Advance(0.3)
+	end
+
 	-- off-screen edge indicator: pure placement math
 	do
 		local size = Vector2.new(1280, 720)

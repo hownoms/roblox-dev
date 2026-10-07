@@ -3154,6 +3154,67 @@ step("discovery", function()
 	check(#Mock.Errors == e0, "no errors in discovery")
 end)
 
+section("badges")
+do
+	local e0 = #Mock.Errors
+	local BadgeAwardService = Mock.Require(byPath["ServerScriptService/Server/Services/BadgeAwardService"])
+	local welcome = Config.Badges[1]
+	check(welcome.Kind == "FirstDig", "first badge is the first-dig badge")
+	local savedId, savedDelays = welcome.Id, BadgeAwardService.RETRY_DELAYS
+	welcome.Id = 777
+	BadgeAwardService.RETRY_DELAYS = { 1, 2 }
+	Mock.BadgeFailures = 1
+	local badger = Mock.AddPlayer(5150, "Badger")
+	for _ = 1, 20 do
+		if DataService.IsLoaded(badger) then
+			break
+		end
+		Mock.Advance(0.2)
+	end
+	local function awarded(): boolean
+		for _, a in Mock.BadgeAwards do
+			if a.UserId == 5150 and a.Id == 777 then
+				return true
+			end
+		end
+		return false
+	end
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(not awarded(), "throttled badge award is not recorded")
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(not awarded() and Mock.BadgeFailures == 0, "no retry before the retry delay")
+	Mock.Advance(1)
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(awarded(), "badge award is retried after a transient failure")
+	local before = #Mock.BadgeAwards
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(#Mock.BadgeAwards == before, "an awarded badge is not attempted again this session")
+	-- repeated failures give up after the last retry delay
+	Mock.BadgeFailures = 10
+	local quitter = Mock.AddPlayer(5151, "Quitter")
+	for _ = 1, 20 do
+		if DataService.IsLoaded(quitter) then
+			break
+		end
+		Mock.Advance(0.2)
+	end
+	for _ = 1, 6 do
+		DataService.Increment(quitter, "TotalSandDug", 1)
+		Mock.Advance(2.5)
+	end
+	check(Mock.BadgeFailures == 7, "three attempts (first try + two retries), then gives up")
+	Mock.BadgeFailures = 0
+	welcome.Id, BadgeAwardService.RETRY_DELAYS = savedId, savedDelays
+	Mock.RemovePlayer(badger)
+	Mock.RemovePlayer(quitter)
+	Mock.Advance(1)
+	check(#Mock.Errors == e0, "no errors in badges")
+end
+
 section("shutdown")
 Mock.RunBindToClose()
 Mock.Advance(3)
@@ -3174,6 +3235,7 @@ local EXPECTED_WARNINGS = {
 	"receipt for unknown product id 4242", -- provoked above
 	"Studio has no DataStore access", -- studio mode only
 	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"
+	"mock badge throttled", -- BadgeService failure, provoked in "badges"
 }
 for _, w in Mock.Warnings do
 	local ok = false

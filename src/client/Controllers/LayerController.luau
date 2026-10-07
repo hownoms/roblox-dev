@@ -68,6 +68,7 @@ local function applyTint(depth: number, layerIndex: number)
 		Brightness = -0.05 * strength,
 	}):Play()
 	SoundController.SetMusic(if depth > 20 then "MusicDeep" else "MusicBeach")
+	SoundController.SetAmbience(depth <= 20)
 end
 
 -- Called by DigController when the server says this dig reached a never-seen layer.
