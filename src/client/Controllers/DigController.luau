@@ -33,6 +33,7 @@ local LayerController = require(script.Parent.LayerController)
 local GuideController = require(script.Parent.GuideController)
 local Signal = require(script.Parent.Parent.Util.Signal)
 local Character = require(script.Parent.Parent.Util.Character)
+local ItemStats = require(script.Parent.Parent.UI.ItemStats)
 
 local DigController = {}
 
@@ -174,10 +175,12 @@ function DigController.TryDigAt(position: Vector3): boolean
 		EffectsController.Shake(0.25, 0.15)
 		EffectsController.Burst(position, Color3.fromRGB(200, 200, 200), 4, 0.6)
 	else
-		SoundController.Play("Dig", 0.88 + math.random() * 0.24)
-		EffectsController.Burst(position, layer.Color, 12)
-		EffectsController.Chunks(position, layer.Color, 3)
-		EffectsController.Shake(0.12, 0.1)
+		-- better shovels hit harder: deeper thud, more sand and chunks, a touch more shake
+		local heft = ItemStats.Heft(State.GetShovel().Id)
+		SoundController.Play("Dig", (0.88 + math.random() * 0.24) / heft ^ 0.3, math.min(1.3, heft ^ 0.5))
+		EffectsController.Burst(position, layer.Color, math.floor(12 * heft + 0.5))
+		EffectsController.Chunks(position, layer.Color, math.floor(3 * heft + 0.5))
+		EffectsController.Shake(0.12 * heft ^ 0.5, 0.1)
 	end
 
 	local remote = digRemote

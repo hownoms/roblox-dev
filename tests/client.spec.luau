@@ -632,6 +632,25 @@ do
 	local markerIcon = marker:FindFirstChild("MarkerIcon")
 	check(markerIcon ~= nil and markerIcon:GetAttribute("Icon") == "S", "world marker draws through AtlasIcon")
 
+	-- first upgrade: the reveal says what changed, and better shovels hit visibly harder
+	do
+		local ItemStats = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats"])
+		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		local spade, trowel = SharedConfig.Shovels[1], SharedConfig.Shovels[2]
+		local summary = ItemStats.UpgradeSummary(spade, trowel)
+		check(summary ~= nil and string.find(summary, "NOW DIGS " .. string.upper(SharedConfig.Layers[3].Name), 1, true) ~= nil, "trowel reveal names the new layer it digs (" .. tostring(summary) .. ")")
+		check(summary ~= nil and string.find(summary, "+50% SAND", 1, true) ~= nil, "trowel reveal shows +50% sand")
+		check(summary ~= nil and string.find(summary, "BIGGER DIGS", 1, true) == nil, "no 'bigger digs' claim when the dig cube is the same size")
+		check(ItemStats.UpgradeSummary(nil, trowel) == nil and ItemStats.UpgradeSummary(trowel, trowel) == nil, "no summary without a real upgrade")
+		check(ItemStats.Heft(spade.Id) == 1 and ItemStats.Heft(trowel.Id) > 1, "trowel hits harder than the spade")
+		check(ItemStats.Heft(SharedConfig.Shovels[#SharedConfig.Shovels].Id) == 2, "heft is capped at 2")
+		local MenuGateUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/MenuGate"])
+		local steps = SharedConfig.TUTORIAL_STEPS
+		check(steps[MenuGateUI.TUTORIAL_SHOP + 1].Id == "shop" and steps[MenuGateUI.TUTORIAL_EGGS + 1].Id == "egg", "menu unlocks follow the tutorial step ids")
+		local shopIndex = MenuGateUI.TUTORIAL_SHOP + 1
+		check(steps[shopIndex + 1].Id == "dig_deeper" and steps[shopIndex + 1].Complete == "NewLayer", "after buying a shovel the tutorial sends you down to the new layer")
+	end
+
 	-- chat window: docked bottom-left on keyboard screens (the menu's Shop row is top-left)
 	do
 		local ChatLayout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/ChatLayoutController"])
