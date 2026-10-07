@@ -1,6 +1,6 @@
 # Remaining polish release gates — 6 October 2026
 
-Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow its order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
+Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md) for the current priority order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
 
 | Stage | Source/headless evidence available | Evidence still required |
 |---|---|---|

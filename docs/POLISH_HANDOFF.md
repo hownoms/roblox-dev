@@ -1,6 +1,6 @@
 # Visual polish handoff — 6 October 2026
 
-Read this first when continuing in another chat, then read `docs/VISUAL_POLISH.md` for the design direction and historical reviews.
+Read this first when continuing in another chat, then read `docs/POLISH_ROADMAP.md` for the current priority order and `docs/VISUAL_POLISH.md` for design direction and historical reviews.
 
 **Current continuation: 7 October 2026.** The final section below supersedes historical instructions to resume at entry 28 and statements that only six scenery alcoves exist. Earlier entries retain their original evidence; current source is saved on local branch `codex/polish-continuation`, based on `affbe28`.
 
@@ -147,3 +147,12 @@ Howard explicitly requested saving, documenting, pushing and merging the continu
 - Final source validation: 1,308 client / 2,144 normal server / 2,131 Studio-mode server / 8 utility checks pass. Client and utility were rerun for integration. GitHub returned no workflow runs or commit status checks; local checks and the recorded Studio review provide validation.
 - Central-family scenery review is 15/15; Shipwreck barrels and source-built Ancient Ruins lintels passed native retests. All 45 pockets/angles, normal gameplay scrutiny, dynamic fit/contact, complete unassisted sequence/audio and populated/device performance remain unfinished. Phone/controller hardware stays deferred. All remaining release gates stay open; nothing was published, uploaded or assigned new audio/badge IDs.
 - Next work follows the preceding continuation's final bullet. DigTest was stopped with Studio open and Rojo connected on port 34872; recheck live state before restarting. No need to repeat the static collection sweep.
+
+
+## Final stopping point: prioritized roadmap, 7 October 2026
+
+Howard approved prioritizing player impact over exhaustive cosmetic review. `docs/POLISH_ROADMAP.md` is now authoritative for work order: first-player sequence → performance/controls → digging feel/reward feedback → faithful acquisition artwork → targeted scenery/fit cleanup → supporting badges/ambience. This supersedes historical fit/scenery-first instructions without closing release gates.
+
+Start next chat with a complete unassisted DigTest spawn/dig/scan/excavate/discover/sell/upgrade run and fix observed friction. Integrate noticeable dynamic fit/contact checks into that run. Fresh-player feedback is desirable; no outreach is authorized. Static collection and central scenery sweeps are already complete. Preserve merged PR #9 and all intervening work. Hardware remains deferred; no publication, uploads or fabricated IDs/evidence.
+
+Repository before this roadmap update: clean `claude/pensive-meitner-6jx4u4` at `f5fe836`, synced with origin. This roadmap update is saved locally as a documentation checkpoint; check the latest local commit and remote before continuing. Recheck Studio/Rojo state rather than assuming it survived.
