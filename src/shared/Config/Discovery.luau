@@ -76,6 +76,11 @@ local Discovery = {
 	BANDS = { 6, 12, 18 } :: { number },
 	SECTORS = 8, -- horizontal direction is quantised to this many compass sectors
 	VERTICAL_LEVEL = 4, -- |dy| under this many studs reads "Level"
+	-- "Dig straight down here": the find is below (or above) and its horizontal offset is under
+	-- max(OVERHEAD_MIN, |dy| x OVERHEAD_SLOPE). Walking would not help, so the detector says so
+	-- instead of showing a wobbling compass sector.
+	OVERHEAD_MIN = 3,
+	OVERHEAD_SLOPE = 0.5,
 	-- Detector signal colour by rarity (hints the tier, never the item).
 	SIGNAL_BY_RARITY = {
 		Common = "White",

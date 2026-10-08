@@ -17,7 +17,7 @@ luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
 echo "== client.spec =="
 luau tests/client.spec.luau -a "$@" || status=1
-for scenario in tutorial-loop tutorial-resume-full tutorial-resume-sold tutorial-complete tutorial-veteran tutorial-scan-used; do
+for scenario in tutorial-loop tutorial-resume-full tutorial-resume-sold tutorial-complete tutorial-veteran tutorial-scan-used tutorial-short-coins; do
   luau tests/client.spec.luau -a "$scenario" "$@" || status=1
 done
 [ $status -eq 0 ] && echo "ALL TESTS PASSED" || echo "TESTS FAILED"

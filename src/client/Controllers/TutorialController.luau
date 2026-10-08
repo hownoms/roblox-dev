@@ -13,6 +13,8 @@
 	  BuyShovel     own a 2nd shovel               HatchEgg   hatched / own a pet
 	  NewLayer      reached the first layer the starter shovel cannot dig (the upgrade's payoff)
 	The checks are state-based (polled), so the tutorial resumes correctly after rejoining.
+	While the "shop" step's shovel is unaffordable, the banner shows coins/price and the guide
+	points back to the sand (or the sell stand when the bucket is full) instead of the shop.
 	On join, steps that are already satisfied are skipped silently, so inserting a step never
 	re-runs the tutorial (or its completion fanfare) for players who had finished it.
 ]]
@@ -48,6 +50,8 @@ local hatchedFlag = false
 
 local built = false
 local showingScanTip = false
+local shortText: string? = nil -- "shop" step banner while the next shovel is unaffordable
+local cameraTurnKey: string? = nil -- the selling moment the camera already turned for
 
 -- Banner icon per step (atlas key, emoji fallback).
 local STEP_ICONS: { [string]: string } = {
@@ -79,6 +83,39 @@ end
 
 local function buildBar()
 	built = true
+end
+
+local function bucketFull(): boolean
+	return (State.Data.Sand or 0) >= State.GetCapacity()
+end
+
+-- The shovel the "shop" step is asking for: the cheapest coin shovel not owned yet.
+local function nextShovel(): Types.ShovelDef?
+	local owned = State.Data.OwnedShovels or {}
+	local best: Types.ShovelDef? = nil
+	for _, def in Config.Shovels do
+		if def.Price > 0 and not owned[def.Id] and (best == nil or def.Price < (best :: Types.ShovelDef).Price) then
+			best = def
+		end
+	end
+	return best
+end
+
+-- A first bucket without passes can sell for a few coins less than the first upgrade (missed
+-- excavations lower find value). Sending that player to a shop they cannot use stalls the
+-- second minute, so until they can afford it the step sends them back to the sand instead.
+-- Returns the banner text while short of coins, else nil.
+function TutorialController.ShortOfShovelText(step: Types.TutorialStep): string?
+	if step.Complete ~= "BuyShovel" then
+		return nil
+	end
+	local def = nextShovel()
+	local coins = State.Data.Coins or 0
+	if not def or coins >= def.Price then
+		return nil
+	end
+	local verb = if bucketFull() then "Bucket full! Sell it" else "Dig & sell more"
+	return string.format("%s for the %s! (%d/%d)", verb, def.Name, math.floor(coins), def.Price)
 end
 
 local function currentStep(): Types.TutorialStep?
@@ -132,6 +169,10 @@ local function updateGuide(step: Types.TutorialStep)
 		return
 	end
 	local target = step.Target
+	if TutorialController.ShortOfShovelText(step) then
+		-- not enough coins yet: back to digging (or selling a full bucket), not to the shop
+		target = if bucketFull() then "SellZone" else "Sand"
+	end
 	if not target then
 		GuideController.Clear(GUIDE_KEY)
 		return
@@ -164,17 +205,32 @@ local function showStep()
 	showingScanTip = (s.Complete == "BackpackFull" or s.Complete == "NewLayer")
 		and count(State.Data.Index) > 0
 		and State.GetSetting(SCAN_SETTING, false) ~= true
-	ObjectiveBanner.Show(if showingScanTip then SCAN_TEXT else s.Text, STEP_ICONS[s.Complete] or "Star", {
+	shortText = TutorialController.ShortOfShovelText(s)
+	local text = if showingScanTip then SCAN_TEXT else shortText or s.Text
+	ObjectiveBanner.Show(text, STEP_ICONS[s.Complete] or "Star", {
 		Step = (completed + 1) .. "/" .. #STEPS,
 		Arrow = not showingScanTip and s.Target ~= nil,
 	})
 	HUD.SetBackpackHighlight(s.Complete == "BackpackFull")
-	if s.Complete == "BuyShovel" then
+	if s.Complete == "BuyShovel" and not shortText then
 		HUD.Flash("Shop", 6)
 	elseif s.Complete == "HatchEgg" then
 		HUD.Flash("Eggs", 6)
 	end
 	updateGuide(s)
+	-- A full bucket usually leaves the camera facing the sea with the stand behind: swing it
+	-- round once per selling moment (never repeatedly, so it cannot fight the player).
+	if s.Complete == "Sell" or (shortText ~= nil and bucketFull()) then
+		local key = completed .. ":" .. tostring(shortText ~= nil) .. ":" .. tostring(bucketFull())
+		if key ~= cameraTurnKey then
+			cameraTurnKey = key
+			local root = Character.GetRoot()
+			local sell = GuideController.FindTagged("SellZone", if root then root.Position else nil)
+			if sell then
+				GuideController.TurnCameraToward(sell)
+			end
+		end
+	end
 end
 
 local function finish()
@@ -210,7 +266,10 @@ local function loop()
 			local wantsScanTip = (step.Complete == "BackpackFull" or step.Complete == "NewLayer")
 				and count(State.Data.Index) > 0
 				and State.GetSetting(SCAN_SETTING, false) ~= true
-			if wantsScanTip ~= showingScanTip then
+			if
+				wantsScanTip ~= showingScanTip
+				or TutorialController.ShortOfShovelText(step :: Types.TutorialStep) ~= shortText
+			then
 				showStep()
 			end
 			updateGuide(step :: Types.TutorialStep)

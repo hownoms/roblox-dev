@@ -318,3 +318,7 @@ Owner now authorizes publication. See [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HA
 ## Publication confirmed, 8 October 2026
 
 Owner-approved save/direct publish from the Rojo-connected owner session succeeded. Studio Output and Version History confirm v15 Published; screenshots and limits recorded in PUBLISH_HANDOFF_2026-10-08.md. Actual cloud-script equivalence and live Player/persistence still need verification. Separate generated-build replacement was not completed. No access or asset uploads. Rojo disconnected, Play stopped; applying-script-changes closure notice persists, so no forced termination.
+
+## Verification and second-minute fixes, 8 October 2026 (afternoon)
+
+See [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md): published v15 scripts match merged source 157/157; live save/rejoin preserved coins, bag, shovel, finds and tutorial; detector overhead/visibility, onboarding sell camera turn and unaffordable-upgrade guidance fixed and retested in Studio. Audio measured, not listened. Fixes unpublished.

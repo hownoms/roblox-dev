@@ -2956,6 +2956,15 @@ step("discovery", function()
 	check(Finds.Sector(0, 5) == 0 and Finds.Sector(5, 0) == 2 and Finds.Sector(0, -5) == 4 and Finds.Sector(-5, 0) == 6, "compass sectors")
 	local dir = Finds.SectorDirection(2)
 	check(math.abs(dir.X - 1) < 1e-6 and math.abs(dir.Z) < 1e-6, "SectorDirection inverts Sector")
+	-- overhead: (nearly) straight below / above means "dig here", not "walk that way"
+	check(Finds.Overhead(Vector3.new(1, -14, 2)) and Finds.Overhead(Vector3.new(2.5, -5, 0)), "find below with a small offset is overhead")
+	check(not Finds.Overhead(Vector3.new(9, -14, 0)), "steep but clearly off to the side is not overhead")
+	check(not Finds.Overhead(Vector3.new(1, -2, 0)), "level finds are never overhead")
+	check(Finds.Overhead(Vector3.new(0, 8, 1)), "straight above is overhead too")
+	local below = Finds.Ping(Vector3.new(1, -14, 1), "Common", 3)
+	check(below.Band == 3 and below.Vertical == "Down" and below.Overhead == true, "ping carries Overhead for a deep find below")
+	check(Finds.Ping(Vector3.new(10, -8, 0), "Common", 3).Overhead == false, "ping off to the side is not overhead")
+	check(Finds.Ping(nil, nil, 3).Overhead == nil, "empty ping has no Overhead")
 
 	-- seeding: density, cap, positions -------------------------------------------------------------
 	local digZone = World.GetDigZone()
@@ -3183,7 +3192,8 @@ step("discovery", function()
 		keys += 1
 		check(typeof(v) ~= "Vector3", "ping field " .. k .. " is not a position")
 	end
-	check(keys == 5, "ping has exactly Band/Sector/Vertical/Signal/Remaining")
+	check(keys == 6, "ping has exactly Band/Sector/Vertical/Signal/Remaining/Overhead")
+	check(pg and type(pg.Overhead) == "boolean", "Overhead is a coarse yes/no, never a distance")
 	Mock.Advance(1.2)
 	check(countToClient(p1, "DetectorPing", s0) >= 3, "pings repeat during the scan")
 	local s1 = #Mock.Remote.ToClient

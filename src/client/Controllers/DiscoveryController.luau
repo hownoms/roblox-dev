@@ -11,9 +11,10 @@
 	  DiscoveryController.PingChanged      (ping)
 	  DiscoveryController.CooldownLeft()   seconds until Scan works again (client mirror)
 	  Beeps faster as the band gets hotter (Finds.BeepInterval) while a scan runs, and a
-	  world-space arrow (shaft "DetectorArrow" + chevron head) by the character's feet points at
+	  world-space arrow (shaft "DetectorArrow" + chevron head) at the character's hip points at
 	  the sector in the signal colour; it pulses when the find is in the hot band (not with
-	  Reduced Motion).
+	  Reduced Motion). When the find is straight below / above (Ping.Overhead) it stands up in
+	  front of the character pointing down / up instead: dig right here.
 
 	Excavation
 	  ExcavationStarted (Types.ExcavationInfo) -> UI/ExcavationGame plays the rings
@@ -104,10 +105,11 @@ function DiscoveryController.Excavate(id: string, errors: { number })
 	Remotes.Get("Excavate"):FireServer(id, errors)
 end
 
--- Direction (world, horizontal unit) of the latest ping, or nil.
+-- Direction (world, horizontal unit) of the latest ping, or nil. Nil too when the find is
+-- straight below / above (Overhead): its compass sector is noise, the answer is to dig vertically.
 function DiscoveryController.PingDirection(): Vector3?
 	local ping = DiscoveryController.Ping
-	if ping.Band <= 0 or ping.Sector < 0 then
+	if ping.Band <= 0 or ping.Sector < 0 or ping.Overhead == true then
 		return nil
 	end
 	return Finds.SectorDirection(ping.Sector)
@@ -143,6 +145,7 @@ local function sanitizePing(raw: any): Types.DetectorPing?
 		Vertical = if type(raw.Vertical) == "string" then raw.Vertical else "",
 		Signal = if type(raw.Signal) == "string" then raw.Signal else "",
 		Remaining = if type(raw.Remaining) == "number" then math.max(raw.Remaining, 0) else 0,
+		Overhead = raw.Overhead == true,
 	}
 end
 
@@ -172,7 +175,25 @@ local function arrowPart(name: string, size: Vector3, parent: Instance): Part
 	part.Material = Enum.Material.Neon
 	part.Transparency = 1
 	part.Parent = parent
+	-- Dark outline: a white (common) signal is otherwise lost on pale sand.
+	local outline = Instance.new("SelectionBox")
+	outline.Name = "Outline"
+	outline.Adornee = part
+	outline.Color3 = Color3.fromRGB(29, 42, 68)
+	outline.LineThickness = 0.06
+	outline.SurfaceTransparency = 1
+	outline.Visible = false
+	outline.Parent = part
 	return part
+end
+
+local function setArrowVisible(part: Part, transparency: number, color: Color3)
+	part.Transparency = transparency
+	part.Color = color
+	local outline = part:FindFirstChild("Outline") :: SelectionBox?
+	if outline then
+		outline.Visible = transparency < 1
+	end
 end
 
 -- Shaft part (its Color/Transparency are the arrow's) plus two chevron arms as its children.
@@ -181,10 +202,10 @@ local function getArrow(): Part
 	if current and current.Parent then
 		return current
 	end
-	local part = arrowPart("DetectorArrow", Vector3.new(0.5, 0.15, 2.4), Workspace)
+	local part = arrowPart("DetectorArrow", Vector3.new(0.7, 0.2, 3), Workspace)
 	arrowHead = {
-		arrowPart("HeadLeft", Vector3.new(0.5, 0.15, 1.5), part),
-		arrowPart("HeadRight", Vector3.new(0.5, 0.15, 1.5), part),
+		arrowPart("HeadLeft", Vector3.new(0.7, 0.2, 1.8), part),
+		arrowPart("HeadRight", Vector3.new(0.7, 0.2, 1.8), part),
 	}
 	arrow = part
 	return part
@@ -192,10 +213,10 @@ end
 
 local function hideArrow()
 	if arrow then
-		arrow.Transparency = 1
+		setArrowVisible(arrow, 1, arrow.Color)
 	end
 	for _, arm in arrowHead do
-		arm.Transparency = 1
+		setArrowVisible(arm, 1, arm.Color)
 	end
 end
 
@@ -213,31 +234,50 @@ local function updateWorld()
 			SoundController.Play("DetectorBeep", 1 + (4 - ping.Band) * 0.12, 0.6)
 		end
 	end
-	-- ground arrow
-	if not scanning or not dir or not root then
+	-- ground arrow: points along the compass sector, or straight down / up in front of the
+	-- character when the find is overhead (Ping.Overhead: "dig right here")
+	local vertical = scanning and ping.Band > 0 and ping.Overhead == true and ping.Vertical ~= "Level"
+	if not scanning or not (dir or vertical) or not root then
 		hideArrow()
 		return
 	end
+	local rootPart = root :: BasePart
 	local part = getArrow()
-	local base = (root :: BasePart).Position - Vector3.new(0, 2.6, 0)
-	local d = dir :: Vector3
 	local hot = ping.Band == 1
 	local pulse = if hot and State.GetSetting("ReducedMotion", false) ~= true
 		then 1 + 0.15 * math.sin(os.clock() * 8)
 		else 1
 	local color = DiscoveryController.SignalColor(ping.Signal)
-	local transparency = 0.2 + (ping.Band - 1) * 0.12
-	part.CFrame = CFrame.lookAt(base + d * 3.2 * pulse, base + d * 6 * pulse)
-	part.Color = color
-	part.Transparency = transparency
+	-- Stays clearly visible at every band; colour and size carry the signal, not fading.
+	local transparency = 0.1 + (ping.Band - 1) * 0.06
+	local d: Vector3
+	local base: Vector3
+	local axis: Vector3 -- the chevron arms sweep back around this axis
+	if vertical then
+		d = if ping.Vertical == "Up" then Vector3.yAxis else -Vector3.yAxis
+		local forward = Vector3.new(rootPart.CFrame.LookVector.X, 0, rootPart.CFrame.LookVector.Z)
+		forward = if forward.Magnitude > 1e-3 then forward.Unit else Vector3.zAxis
+		-- stands in front of the feet, tip toward the ground (or the sky), so it reads "here"
+		base = rootPart.Position + forward * 3 + Vector3.new(0, 1.2, 0) - d * 3.2
+		axis = forward
+	else
+		d = dir :: Vector3
+		-- hip height, not the feet: in the default over-the-shoulder camera the bottom action
+		-- row covers the ground at the character's feet (observed in playtest)
+		base = rootPart.Position + Vector3.new(0, 0.4, 0)
+		axis = Vector3.yAxis
+	end
+	-- `axis` is perpendicular to the shaft, so it is a safe up vector for a vertical arrow too
+	local up = if vertical then axis else Vector3.yAxis
+	part.CFrame = CFrame.lookAt(base + d * 3.6 * pulse, base + d * 6 * pulse, up)
+	setArrowVisible(part, transparency, color)
 	-- chevron: two arms meeting at the tip, swept back 40 degrees either side
-	local tip = base + d * 4.6 * pulse
+	local tip = base + d * 5.4 * pulse
 	for i, arm in arrowHead do
-		local sweep = CFrame.Angles(0, math.rad(if i == 1 then 40 else -40), 0):VectorToWorldSpace(-d)
-		local centre = tip + sweep * 0.7
-		arm.CFrame = CFrame.lookAt(centre, centre + sweep)
-		arm.Color = color
-		arm.Transparency = transparency
+		local sweep = CFrame.fromAxisAngle(axis, math.rad(if i == 1 then 40 else -40)):VectorToWorldSpace(-d)
+		local centre = tip + sweep * 0.85
+		arm.CFrame = CFrame.lookAt(centre, centre + sweep, up)
+		setArrowVisible(arm, transparency, color)
 	end
 end
 
