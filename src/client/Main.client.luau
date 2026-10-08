@@ -78,6 +78,8 @@ local ExcavationGame = require(UI:WaitForChild("ExcavationGame"))
 local FindReveal = require(UI:WaitForChild("FindReveal"))
 local Reveal = require(UI:WaitForChild("Reveal"))
 local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
+-- Map overhaul: client-side ambient motion for tagged decor (Ferris wheel, boats, gulls, flags...)
+local AmbientController = require(Controllers:WaitForChild("AmbientController"))
 
 local function start(name: string, fn: () -> ())
 	local ok, err = xpcall(function(): any
@@ -154,3 +156,4 @@ start("Ride", RideController.Init)
 start("RideButton", RideButton.Init)
 start("Status", StatusController.Init)
 start("Discovery", DiscoveryController.Init)
+start("Ambient", AmbientController.Init)
