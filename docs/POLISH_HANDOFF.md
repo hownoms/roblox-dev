@@ -314,3 +314,7 @@ See [VERIFICATION_2026-10-08.md](VERIFICATION_2026-10-08.md) for fresh ordinary 
 ## Publishing request, 8 October 2026
 
 Owner now authorizes publication. See [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md) for prepared merged build, active-session publication blocker, pending closure approval, and ordered next-chat priorities. No successful Roblox publication or asset upload claimed.
+
+## Publication confirmed, 8 October 2026
+
+Owner-approved save/direct publish from the Rojo-connected owner session succeeded. Studio Output and Version History confirm v15 Published; screenshots and limits recorded in PUBLISH_HANDOFF_2026-10-08.md. Actual cloud-script equivalence and live Player/persistence still need verification. Separate generated-build replacement was not completed. No access or asset uploads. Rojo disconnected, Play stopped; applying-script-changes closure notice persists, so no forced termination.
