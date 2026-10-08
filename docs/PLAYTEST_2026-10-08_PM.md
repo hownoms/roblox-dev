@@ -78,4 +78,13 @@ Measurement-based mix notes for the listening pass: the engine loop is ~5 dB lou
 
 ## Remaining gates
 
-Listening and cue selection; owned/uploaded audio IDs; live engine-mute check; real multi-account multiplayer, natural tide/recovery and populated profiling; independent newcomer playtest; animated shovel/pet contact and underground discovery review; full-resolution native launch media; Max Players still 50 (intended 16) — unchanged, needs authorization. None of today's fixes are published; v15 remains live.
+Listening and cue selection; owned/uploaded audio IDs; live engine-mute check; real multi-account multiplayer, natural tide/recovery and populated profiling; independent newcomer playtest; animated shovel/pet contact and underground discovery review; full-resolution native launch media; Max Players still 50 (intended 16) — unchanged, needs authorization. Superseded below: the fixes were published as v17 on owner request.
+
+## Publication v17 and store artwork (owner-authorized, 8 Oct ~15:37 local)
+
+Owner asked to update the game images from `marketing/` and publish everything for a playtest with a friend.
+
+- Rojo (this checkout, merged `375625c`) synced into the existing owner Team Create place; published with notes **"Second-minute fixes - source 375625c"**. Studio Output: "Published new changes… Place published. Playtesters can now play this place." Version History shows **v17 Published**.
+- Verified like v15: v17 → Open local copy → saved `build/v17-published-2026-10-08.rbxl` → **157/157 scripts byte-identical** to a fresh `rojo build` of `375625c`.
+- Creator Hub (owner's signed-in Chrome): **icon** replaced with `publish-kit-2026-10-08/icon-512.png` (saved; shown in the dashboard sidebar). **Thumbnails** (Experience Detail Page list): `thumbnail-01-dig.jpg` (first), `thumbnail-03-deep.jpg`, `thumbnail-02-find.jpg` uploaded and order saved; they persisted after reload. Roblox moderation status not confirmed; Home Page personalised thumbnails were not set. These are illustrations, not gameplay captures.
+- Not changed: access (Limited; dashboard shows "Ages 16+ and trusted friends"), Max Players (50), title, prices, badges, audio. A friend can join only if they are permitted under the current Limited/playtester setup; adding them needs the owner's decision.
