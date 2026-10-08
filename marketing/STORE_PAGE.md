@@ -1,4 +1,4 @@
-# Store Page & Launch Kit: Dig to the Core! Beach Simulator
+# Store Page & Launch Kit: Dig to the Core!
 
 Everything here matches `docs/GDD.md` and `src/shared/Config/*` as of launch (15 layers, 43 pets,
 51 treasures, 14 shovels, 13 backpacks, codes RELEASE / SANDY / DIGDEEP / 1KLIKES). If Config
@@ -9,13 +9,19 @@ false claims.
 
 ## 1. Experience title
 
-**`Dig to the Core! Beach Simulator`** (32 / 50 chars)
+**`Dig to the Core!`** (15 characters)
 
-- It keeps the three search words players type: **Dig**, **Beach**, **Simulator**.
-- A/B alternates (Creator Hub allows one rename at a time, so test for about a week each):
-  `Beach Dig Simulator: Dig to the Core` (36), `Dig to the Core! [Beach Simulator]` (34).
-- Optional prefix during updates, which most simulators do: `[UPDATE 1] Dig to the Core! Beach Sim` (38).
-  Only use it while the update is less than about a week old, and only if it really is an update.
+Repository branding now leads with the digging destination; beach treasure hunting belongs
+in the opening description. The live Creator Hub title remains unchanged until a separate
+publishing action. No audience experiment or title-availability result is claimed.
+
+Discovery-led opening copy for the next description review:
+
+> What's buried under the beach? Follow signals, uncover strange treasures, and dig through
+> 15 layers toward the Core. Share a beach with other diggers and see what you find next.
+
+The new illustrations and their fidelity notes are in `publish-kit-2026-10-08/`. The historical
+description below still needs its final enabled-scope/live-copy check before upload.
 
 ## 2. Description (paste into Creator Hub → Configure → Description)
 

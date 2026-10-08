@@ -1,3 +1,15 @@
+# Discovery, branding and audio checkpoint — 8 October 2026
+
+Current continuation: read [NEXT_STEPS.md](NEXT_STEPS.md). First-find Scan guidance and the ride SFX-toggle fix are applied, along with a separate generated publishing kit and twelve original WAV auditions. Repository-facing branding is Dig to the Core!; no live rename, republish or uploads were performed in this chat. Gameplay changes need ordinary Studio verification; audio candidates need listening and owned/permitted upload before integration. Cooperative excavation remains a design experiment, not a shipped feature.
+
+Fetched default branch `a5f99b2` and preserved PRs #21–#24: configured passes/products, five live badge IDs, wave-2 badge/store art, playtester access notes and egg-label anchor fixes. This supersedes older no-experience/no-access/unconfigured-store claims below. Existing published experience/start place and access are documented in CHANGELOG; this chat did not independently verify those live settings.
+
+Integrated local checks: client **1,398**, server **2,174**, Studio-mode **2,153**, utility **8**, zero failures. Full strict analysis passed with two existing deprecated API warnings; fresh source map and Rojo build passed. Changed controllers pass formatting; local StyLua 2.5.2 differs from the pinned CI formatter on the existing BadgeKind declaration only. Core preflight: zero blocking groups, three remaining optional groups (ten badge IDs, GROUP_ID, owned audio). CI remains the merge gate.
+
+Prior native/physical/service/performance limits remain open. Do not restart completed static gallery/scenery reviews. Do not use the older package manifest's unconfigured-store description for the latest source. The request authorizes repository commit/push/merge; it does not upload/publish or change access.
+
+---
+
 # Integrated repository stages — 8 October 2026
 
 PRs #17–#20 are merged; each passed CI before merge. Documentation PR #20 source `c31629b` passed CI `37774722560` and merged as `7563265`. The default branch was fetched and fast-forwarded without discarding intervening work. Gameplay source remains the reviewed `aa22ebb` code checkpoint.

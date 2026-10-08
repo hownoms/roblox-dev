@@ -1,4 +1,4 @@
-# Dig to the Core! Beach Simulator
+# Dig to the Core!
 
 A Roblox digging simulator. Players dig anywhere along a shared beach, down through 15
 layers, from Dry Sand to Pirate Cove, Fossil Bed, Crystal Caverns, Magma and The Core. Sand gets
@@ -10,6 +10,7 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
 | Doc | What it covers |
 |---|---|
+| [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) | Current discovery, audio, publishing and playtest checkpoint |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **Start here:** what changed in each version, playtest fixes, decisions and standing rules |
 | [`docs/LAUNCH.md`](docs/LAUNCH.md) | Ordered go-live runbook; `tools/preflight.sh` lists every id and asset still to fill in |
 | [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |

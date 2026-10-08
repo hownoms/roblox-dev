@@ -15,7 +15,7 @@ Created with the built-in image generation tool. These are promotional illustrat
 
 All upload exports are below 3 MB. Exported dimensions were checked. The contact sheet and 64-pixel icon were visually inspected: subject/action remain recognizable and thumbnail headlines remain readable. This is not audience click-through testing.
 
-Recommended branding is **Dig to the Core!**; the actual experience and repository title have not been renamed. The existing ten badge images remain available in `marketing/badges`; this kit does not duplicate or approve their artwork or configure their zero IDs.
+Repository branding is **Dig to the Core!**; the live experience title has not been renamed by this work. The latest default branch supplies fifteen badge images and fourteen store images. Five badges and all passes/products have configured IDs; the other ten badge IDs remain zero. This kit preserves that work and does not upload or approve those assets.
 
 ## Fidelity limits
 

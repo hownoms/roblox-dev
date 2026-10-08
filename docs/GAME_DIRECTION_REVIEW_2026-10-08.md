@@ -1,5 +1,7 @@
 # Game direction and publishing review — 8 October 2026
 
+Integration update: `NEXT_STEPS.md` is the current continuation checkpoint. Latest default branch `a5f99b2` adds live pass/product IDs, five configured badges, playtester access records and corrected egg-label anchors; those changes are preserved. Earlier baseline observations remain historical. Repository-facing title/copy now adopts **Dig to the Core!**; the live experience is unchanged by this work. The saved artwork kit includes five originals and six upload-sized exports.
+
 The supplied essays argue for a memorable core interaction and player-generated variety. Our game already has a promising core: follow a signal, carve actual terrain, uncover a surprising object, and descend toward the Core. Feature breadth alone does not establish fun or retention.
 
 ## Recommended direction
@@ -46,4 +48,4 @@ Sources consulted:
 - Both changed controllers passed focused strict analysis and formatting checks; `git diff --check` passed. Rojo build produced `build/DirectionReview.rbxlx`.
 - Twelve original procedural WAV auditions were generated and measured, with generator/manifest in the repo. They are not integrated or listened to. Five generated image originals yielded a square icon, three thumbnails and two social exports; sizes and small previews were checked.
 
-No fresh Studio session was run. These fixes still need ordinary live readability/mute checks. No commit, push, experience rename, publication or upload was performed.
+No fresh Studio session was run. These fixes still need ordinary live readability/mute checks. Changes are now committed for the user-requested push/merge; no live experience rename, publication or upload was performed.
