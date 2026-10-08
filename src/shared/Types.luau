@@ -251,6 +251,7 @@ export type DetectorPing = {
 	Vertical: string, -- "Down" | "Level" | "Up" | ""
 	Signal: string, -- DetectorSignal or ""
 	Remaining: number, -- seconds left in this scan
+	Overhead: boolean?, -- true: the find is (nearly) straight below / above, dig vertically here
 }
 
 -- server -> owner "ExcavationStart"

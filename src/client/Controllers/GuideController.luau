@@ -17,6 +17,8 @@
 	Off-screen: when the target is outside the camera view (or behind it) an arrow badge pinned
 	to the screen edge points the way, carrying the same marker icon. Markers are icon keys for
 	AtlasIcon ("Coins", "Arrow", "pickaxe|🛠️"), never emoji in a TextScaled label.
+	TurnCameraToward(target) is an onboarding-only nudge (the tutorial calls it): one smooth
+	camera swing around the character when the target is far off-screen.
 ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -211,6 +213,81 @@ function GuideController.EdgePlacement(
 	local position = centre + direction * math.min(scaleX, scaleY)
 	local rotation = math.deg(math.atan2(direction.Y, direction.X)) - 90
 	return false, position, rotation
+end
+
+--[[
+	Signed horizontal angle (degrees) from the camera's flat look direction to `target` seen
+	from `focus`; positive turns right (clockwise from above). nil when either is degenerate.
+]]
+function GuideController.YawToward(look: Vector3, focus: Vector3, target: Vector3): number?
+	local flatLook = Vector3.new(look.X, 0, look.Z)
+	local flatTarget = Vector3.new(target.X - focus.X, 0, target.Z - focus.Z)
+	if flatLook.Magnitude < 1e-3 or flatTarget.Magnitude < 1 then
+		return nil
+	end
+	local a, b = flatLook.Unit, flatTarget.Unit
+	local cross = a.X * b.Z - a.Z * b.X -- > 0: target is to the right (camera right = look x up)
+	return math.deg(math.atan2(cross, a:Dot(b)))
+end
+
+local TURN_MIN_DEGREES = 60 -- roughly on screen already: leave the camera alone
+local TURN_SECONDS = 0.7
+local turning = false
+
+--[[
+	Onboarding helper: when `target` is well off-screen, swing the default (Custom) camera around
+	the character to face it once, so a full bucket does not leave a newcomer looking at the sea
+	with the sell stand behind them. Composes with the player's own camera input (small per-frame
+	yaw steps) and is instant with Reduced Motion. Returns true when a turn started.
+]]
+function GuideController.TurnCameraToward(target: Target): boolean
+	local camera = Workspace.CurrentCamera
+	local root = Character.GetRoot()
+	if turning or not camera or not root or camera.CameraType ~= Enum.CameraType.Custom then
+		return false
+	end
+	local position = GuideController.Resolve(target, root.Position)
+	if not position then
+		return false
+	end
+	local focus = root.Position
+	local maybeYaw = GuideController.YawToward(camera.CFrame.LookVector, focus, position)
+	if not maybeYaw or math.abs(maybeYaw) < TURN_MIN_DEGREES then
+		return false
+	end
+	local yaw = maybeYaw :: number
+	local function rotate(degrees: number)
+		local cam = Workspace.CurrentCamera
+		local maybeRoot = Character.GetRoot()
+		if not cam or not maybeRoot then
+			return
+		end
+		local pivot = maybeRoot.Position
+		-- a positive yaw turns right = clockwise from above = negative rotation about +Y
+		cam.CFrame = CFrame.new(pivot) * CFrame.Angles(0, -math.rad(degrees), 0) * CFrame.new(-pivot) * cam.CFrame
+	end
+	if State.GetSetting("ReducedMotion", false) == true then
+		rotate(yaw)
+		return true
+	end
+	turning = true
+	local total = yaw
+	local progress = 0
+	local applied = 0
+	local connection: RBXScriptConnection? = nil
+	connection = RunService.RenderStepped:Connect(function(dt: number)
+		progress = math.min(progress + dt / TURN_SECONDS, 1)
+		local eased = 1 - (1 - progress) ^ 2 -- ease out
+		rotate(total * eased - applied)
+		applied = total * eased
+		if progress >= 1 then
+			turning = false
+			if connection then
+				connection:Disconnect()
+			end
+		end
+	end)
+	return true
 end
 
 local function hideEdge()

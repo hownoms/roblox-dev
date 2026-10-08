@@ -1,5 +1,7 @@
 # Next steps — discovery, sound and publishing
 
+Latest continuation (8 Oct afternoon): [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md) verifies published v15 scripts = merged source (157/157), a real live save → leave → rejoin, and adds detector/sell/upgrade fixes from a fresh no-pass playtest. Those fixes are not published.
+
 Latest outcome: **v15 is Published**, confirmed in Studio Output and Version History after owner-approved save and direct publication from the Rojo-connected owner session. See the latest section of [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md). Verify actual published-script equivalence and Player/save behavior next; separate generated-build replacement did not complete. Audio/media uploads and live service checks remain open. Earlier pending-approval/blocker wording below is historical.
 
 Latest publishing request and ordered plan: [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md). Owner now authorizes publication. Fresh merged `faa5d8e` build is prepared; Roblox refused replacement while the owner Team Create session is active. Automatic approval review blocked closing that session; explicit closure approval is pending. No successful Roblox publication is claimed. Earlier no-publication authorization wording below is historical.

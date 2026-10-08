@@ -11,7 +11,9 @@
 	  - a dot orbits the button pointing at the find, relative to the camera
 	  - the caption reads the distance band (HOT! / Warm / Cool / Faint / Nothing)
 	  - a pill above it says what to do: DIG HERE! / DIG DOWN! when the find is within the hot
-	    band, otherwise DOWN / UP when it is below / above you (DetectorHUD.Instruction)
+	    band, DIG DOWN HERE! when it is straight below you (Ping.Overhead: the dot hides, since
+	    walking would not help), otherwise DOWN / UP when it is below / above you
+	    (DetectorHUD.Instruction)
 	  - the orbiting dot carries an arrowhead pointing away from the button, toward the find
 	Between scans the caption counts the cooldown down. Everything is driven by the coarse
 	DetectorPing (band, sector, vertical, signal); DetectorHUD.Render(ping, scanning, cooldown)
@@ -48,6 +50,10 @@ function DetectorHUD.Instruction(ping: Types.DetectorPing, scanning: boolean): s
 	end
 	if ping.Band == 1 then
 		return if ping.Vertical == "Up" then "UP HERE!" elseif ping.Vertical == "Down" then "DIG DOWN!" else "DIG HERE!"
+	end
+	if ping.Overhead == true then
+		-- straight below / above: no compass arrow, say exactly what to do
+		return if ping.Vertical == "Down" then "DIG DOWN HERE!" elseif ping.Vertical == "Up" then "UP HERE!" else ""
 	end
 	return if ping.Vertical == "Down" then "DOWN" elseif ping.Vertical == "Up" then "UP" else ""
 end
@@ -165,11 +171,13 @@ function DetectorHUD.Init()
 		Parent = d,
 	})
 	dot = d
+	-- Raised clear of the orbiting dot's arrowhead, which sits above the button when the find is
+	-- straight ahead (the pill used to cover exactly that direction).
 	local pill = Style.Label({
 		Name = "Vertical",
 		Text = "",
-		Size = UDim2.fromOffset(96, 24),
-		Position = UDim2.new(0.5, 0, 0, -16),
+		Size = UDim2.fromOffset(136, 26),
+		Position = UDim2.new(0.5, 0, 0, -46),
 		AnchorPoint = Vector2.new(0.5, 1),
 		MaxTextSize = 16,
 		ZIndex = 9,

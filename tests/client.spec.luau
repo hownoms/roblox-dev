@@ -116,6 +116,8 @@ if tutorialCase then
 		data.OwnedShovels[Config.Shovels[2].Id] = true
 	elseif tutorialCase == "tutorial-scan-used" then
 		data.Settings.TutorialScanUsed = true
+	elseif tutorialCase == "tutorial-short-coins" then
+		data.Settings.Tutorial = 4 -- sold once, now at the shop step
 	end
 end
 Mock.ServerFunctions.GetData = function()
@@ -169,6 +171,23 @@ if tutorialCase then
 		if tutorialCase == "tutorial-resume-sold" then
 			check(State.GetSetting("Tutorial", 0) == 4, "empty saved sell step resumes at upgrade")
 			check(text and text.Text:find("better shovel"), "resumed sale gives the shop objective")
+		elseif tutorialCase == "tutorial-short-coins" then
+			local trowel = Config.Shovels[2]
+			check(text and text.Text:find("better shovel"), "affordable upgrade: shop objective")
+			Mock.FireClientEvent("DataChanged", { Coins = trowel.Price - 2 })
+			Mock.Advance(1)
+			check(
+				text and text.Text:find(trowel.Name, 1, true) and text.Text:find(`({trowel.Price - 2}/{trowel.Price})`, 1, true),
+				"short of the first upgrade: banner shows the shovel and coins/price"
+			)
+			check(text and text.Text:find("Dig & sell", 1, true), "short of coins: back to digging, not the shop")
+			check(State.GetSetting("Tutorial", 0) == 4, "short-of-coins hint keeps the numbered step")
+			Mock.FireClientEvent("DataChanged", { Sand = State.GetCapacity() })
+			Mock.Advance(1)
+			check(text and text.Text:find("Bucket full! Sell it", 1, true), "short and full: sell the bucket first")
+			Mock.FireClientEvent("DataChanged", { Sand = 0, Coins = trowel.Price + 18 })
+			Mock.Advance(1)
+			check(text and text.Text:find("better shovel"), "affordable again: back to the shop objective")
 		else
 			if tutorialCase == "tutorial-scan-used" then
 				check(text and not text.Text:find("SCAN"), "saved Scan acknowledgment suppresses repeat hint")
@@ -2927,9 +2946,28 @@ do
 	Mock.FireClientEvent("DetectorPing", { Band = 4, Sector = 0, Vertical = "Level", Signal = "Purple", Remaining = 3 })
 	Mock.Advance(0.3)
 	check(scan.Label.Text == "Faint" and not pill.Visible, "Faint at the edge of range, no pill when level")
+	-- find straight below: no wobbling compass, the arrow stands up pointing down, the pill says so
+	Mock.FireClientEvent(
+		"DetectorPing",
+		{ Band = 3, Sector = 5, Vertical = "Down", Signal = "White", Remaining = 3, Overhead = true }
+	)
+	Mock.Advance(0.3)
+	check(scan.Label.Text == "Cool" and pill.Visible and pill.Text == "DIG DOWN HERE!", "overhead: pill says DIG DOWN HERE!")
+	check(not dot.Visible and DiscoveryController.PingDirection() == nil, "overhead: no compass dot")
+	check(
+		arrow ~= nil and arrow.Transparency < 0.5 and arrow.CFrame.LookVector.Y < -0.99,
+		"overhead: the ground arrow points straight down and stays clearly visible"
+	)
+	local outline = arrow and arrow:FindFirstChild("Outline")
+	check(outline ~= nil and outline.Visible, "arrow has a visible dark outline while scanning")
+	if headL and headR and arrow then
+		check(headL.Position.Y < arrow.Position.Y and headR.Position.Y < arrow.Position.Y, "overhead: chevron at the lower tip")
+		check((headL.Position - headR.Position).Magnitude > 0.5, "overhead: chevron arms spread apart")
+	end
 	Mock.FireClientEvent("DetectorPing", { Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 2 })
 	Mock.Advance(0.3)
 	check(scan.Label.Text == "Nothing" and not dot.Visible, "Nothing in range")
+	check(outline == nil or not outline.Visible, "outline hides with the arrow")
 	Mock.FireClientEvent("DetectorPing", "junk")
 	Mock.FireClientEvent("DetectorPing", { Band = 99, Sector = "x" })
 	Mock.Advance(0.2)
@@ -2944,6 +2982,22 @@ do
 	check(instr(1, "Down", true) == "DIG DOWN!" and instr(1, "Up", true) == "UP HERE!", "Instruction: hot below / above")
 	check(instr(2, "Down", true) == "DOWN" and instr(3, "Up", true) == "UP" and instr(3, "Level", true) == "", "Instruction: farther away keeps DOWN / UP")
 	check(instr(1, "Down", false) == "" and instr(0, "Down", true) == "", "Instruction: nothing when not scanning or nothing in range")
+	local function overhead(band, vertical)
+		return DetectorHUD.Instruction(
+			{ Band = band, Sector = 0, Vertical = vertical, Signal = "", Remaining = 1, Overhead = true },
+			true
+		)
+	end
+	check(overhead(3, "Down") == "DIG DOWN HERE!" and overhead(2, "Up") == "UP HERE!", "Instruction: overhead says dig here")
+	check(overhead(1, "Down") == "DIG DOWN!", "Instruction: hot band wording unchanged when overhead")
+	do
+		local Guide = Mock.Require(byPath[CP .. "Controllers/GuideController"])
+		local yawRight = Guide.YawToward(Vector3.new(0, 0, -1), Vector3.zero, Vector3.new(10, 0, 0))
+		local yawBehind = Guide.YawToward(Vector3.new(0, 0, -1), Vector3.zero, Vector3.new(-1, 0, 10))
+		check(yawRight ~= nil and math.abs(yawRight - 90) < 1e-6, "YawToward: target on camera right is +90")
+		check(yawBehind ~= nil and yawBehind < -170, "YawToward: behind-left is close to -180")
+		check(Guide.YawToward(Vector3.new(0, 0, -1), Vector3.zero, Vector3.new(0, 5, 0)) == nil, "YawToward: straight above is undefined")
+	end
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 2.2) == "3s", "Caption: cooldown seconds")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 0) == "Scan", "Caption: ready")
 

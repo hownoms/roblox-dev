@@ -331,6 +331,16 @@ function Finds.Vertical(dy: number): string
 	return "Level"
 end
 
+-- True when the find at `offset` is (nearly) straight below / above: digging vertically from here
+-- reaches it, while the compass sector of a tiny horizontal offset would only send you wandering.
+function Finds.Overhead(offset: Vector3): boolean
+	if Finds.Vertical(offset.Y) == "Level" then
+		return false
+	end
+	local horizontal = Vector3.new(offset.X, 0, offset.Z).Magnitude
+	return horizontal <= math.max(D.OVERHEAD_MIN, math.abs(offset.Y) * D.OVERHEAD_SLOPE)
+end
+
 -- The coarse ping for a deposit at `offset` (deposit - player) of this rarity.
 function Finds.Ping(offset: Vector3?, rarity: string?, remaining: number, range: number?): Types.DetectorPing
 	if not offset or not rarity then
@@ -347,6 +357,7 @@ function Finds.Ping(offset: Vector3?, rarity: string?, remaining: number, range:
 		Vertical = Finds.Vertical(o.Y),
 		Signal = Finds.Signal(rarity :: string),
 		Remaining = remaining,
+		Overhead = Finds.Overhead(o),
 	}
 end
 
