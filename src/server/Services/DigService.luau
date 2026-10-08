@@ -140,7 +140,9 @@ local function carveDent(target: Vector3): (Vector3, Vector3)
 		math.max(target.Y + DENT_RISE, S - TOTAL_DEPTH + BOTTOM_FLOOR + margin),
 		math.clamp(target.Z, ZONE_CENTER.Z - ZONE_HALF_Z + margin, ZONE_CENTER.Z + ZONE_HALF_Z - margin)
 	)
+	debug.profilebegin("DigTheBeach.Dig.FillBall")
 	terrain:FillBall(center, r, Enum.Material.Air)
+	debug.profileend()
 	local half = Vector3.new(r, r, r)
 	local max = center + half
 	return center - half, Vector3.new(max.X, math.min(max.Y, S), max.Z)
@@ -167,7 +169,9 @@ local function carve(target: Vector3, radius: number): (Vector3, Vector3)
 	local max = min + size
 	local clearTop = if max.Y >= S then S + VOXEL else max.Y
 	local box = Vector3.new(size.X, clearTop - min.Y, size.Z)
+	debug.profilebegin("DigTheBeach.Dig.FillBlock")
 	terrain:FillBlock(CFrame.new(min + box / 2), box, Enum.Material.Air)
+	debug.profileend()
 	return min, Vector3.new(max.X, math.min(max.Y, S), max.Z)
 end
 
@@ -195,9 +199,11 @@ end
 local function hasSolidTerrainNear(position: Vector3): boolean
 	local half = Vector3.new(2, 2, 2)
 	local region = Region3.new(position - half, position + half):ExpandToGrid(4)
+	debug.profilebegin("DigTheBeach.Dig.ReadVoxels")
 	local ok, materials, occupancies = pcall(function()
 		return terrain:ReadVoxels(region, 4)
 	end)
+	debug.profileend()
 	if not ok then
 		return true -- don't block digging on an engine hiccup
 	end

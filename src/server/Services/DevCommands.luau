@@ -412,6 +412,7 @@ local function stressStep(dt: number)
 	local player = maybePlayer :: Player
 	local now = os.clock()
 	local top = Config.Shovels[#Config.Shovels]
+	debug.profilebegin("DigTheBeach.Stress.BotStep")
 	for _, bot in stress.Bots do
 		if now >= bot.NextDig then
 			bot.NextDig = now + top.Cooldown
@@ -460,6 +461,7 @@ local function stressStep(dt: number)
 			end
 		end
 	end
+	debug.profileend()
 end
 
 local function stressSummary(c: StressCounters, seconds: number): string
@@ -519,9 +521,11 @@ function DevCommands.StartStress(player: Player, count: number?, fx: boolean?): 
 	stress.Started = os.clock()
 	stress.WindowStart = os.clock()
 	local pets = topDiggingPets()
+	debug.profilebegin("DigTheBeach.Stress.CreateBots")
 	for i = 1, n do
 		table.insert(stress.Bots, newBot(i, folder, pets, fx == true))
 	end
+	debug.profileend()
 	stress.Connection = RunService.Heartbeat:Connect(stressStep)
 	local runFolder = folder
 	task.spawn(function()

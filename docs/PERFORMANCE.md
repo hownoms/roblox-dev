@@ -33,6 +33,12 @@ to watch, and what costs we already know about.
 | Client memory | **< 1.2 GB** total on a 3–4 GB Android | Developer Console → Memory. Watch the `PlaceMemory` / `Instances` / `Terrain` lines grow while you walk the whole beach. |
 | Server memory | **< 3 GB** | `/stress` prints `Stats:GetTotalMemoryUsageMb()`. |
 
+The stress heartbeat measurement is `Heartbeat`'s `dt`: the elapsed interval between beats,
+not the execution duration of the bot loop or a specific script. Its average/maximum can
+flag a stall but cannot attribute the stall to terrain, scripts, physics or Studio. The
+ten-second summaries do not identify the precise spiking frame. Studio Stats memory/send
+values also require a runtime baseline before interpreting them as shipping-server costs.
+
 ## 3. Running `/stress` (Studio only)
 
 `/stress` is a chat command (see `src/server/Services/DevCommands.luau`).
@@ -84,6 +90,37 @@ approximation on the client (terrain re-meshing, parts and particles near you).
 5. Server profile: open the Developer Console (**F9**) → **MicroProfiler** tab → *Server*, set the
    frame count and click **Start Recording**. The dump is saved on your machine.
 
+### Studio single-window server capture
+
+In the current single-window Play UI, select the **Server** tab before enabling Ctrl+F6.
+Capture an idle server baseline first. Leave the profiler running before starting `/stress`
+from the Client tab, then return to Server, pause at a visible spike with Ctrl+P and dump the
+largest available frame range. Verify the saved dump contains server task/script activity;
+a client Render/terrain-meshing capture does not explain a server heartbeat spike. Save
+separate startup, steady digging and stop/refill captures with the run's Output logs and
+source revision. A dump covers only its selected frame window, not the whole stress run.
+
+`StartStress` creates models before connecting its heartbeat callback, and it first calls
+`StopStress`; when a previous run exists, that stop forces tide refill. Keep cleanup/refill
+separate from new-run startup when interpreting spikes. Do not infer tide or leaderboard
+causation solely from an approximate cadence: their loops yield and work can overlap.
+
+Synchronous server work now has MicroProfiler labels:
+`DigTheBeach.Stress.CreateBots`, `DigTheBeach.Stress.BotStep`,
+`DigTheBeach.Dig.ReadVoxels`, `DigTheBeach.Dig.FillBall`,
+`DigTheBeach.Dig.FillBlock` and `DigTheBeach.Tide.FillChunk`.
+The tide label covers one synchronous layered fill and ends before the chunk-budget yield;
+no label spans DataStore calls or an entire yielding tide pass. Compare the spiking frame's
+exclusive labeled CPU time with engine terrain, physics, replication and GC tasks, including
+worker threads. A long engine task after a short terrain API scope is different evidence
+from expensive synchronous Lua/API work. Labels enable attribution; they do not prove it.
+
+The official [MicroProfiler guide](https://create.roblox.com/docs/performance-optimization/microprofiler)
+was checked 7 October 2026: Studio uses Ctrl+F6, Ctrl+P pauses, Dump saves HTML to the Roblox
+logs directory. Its desktop Developer Console server recording route requires Edit access
+and supports at most 60 frames with up to four seconds' start delay. Use that route if
+available; verify the resulting capture is server data before drawing conclusions.
+
 ### Mobile (a real Android phone, which is what matters)
 1. Publish the place and join from the phone (the Roblox app).
 2. Studio cannot run on a phone, so `/stress` cannot be started there: dev commands only run in
@@ -106,9 +143,9 @@ approximation on the client (terrain re-meshing, parts and particles near you).
 - **Server:** `Heartbeat` time and the `Script` time inside it (DigService, PetDigService,
   BeachService tide steps, LeaderboardService), and `Terrain` writes from `FillBlock` and
   `FillBall`.
-- **Spikes every 4 minutes** come from the tide refill (`BeachService.TideStep`, which refills
-  columns from the bottom up). **Spikes every 60 s** come from leaderboard writes. Both run on
-  the server.
+- Tide refill (`BeachService.TideStep`, which refills columns from the bottom up) and periodic
+  leaderboard work are server activity to inspect in the capture. Their timing is a clue,
+  not attribution: verify the exact spiking frame and expensive child scopes first.
 
 ## 5. Streaming-safe client code (rules)
 
