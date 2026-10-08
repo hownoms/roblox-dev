@@ -23,6 +23,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Finds = require(Shared:WaitForChild("Util"):WaitForChild("Finds"))
 
 local Root = require(script.Parent.Root)
+local Toasts = require(script.Parent.Toasts)
 local Style = require(script.Parent.Components.Style)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 local DiscoveryController = require(script.Parent.Parent.Controllers.DiscoveryController)
@@ -97,6 +98,12 @@ local function showGrade(ring: number, grade: string)
 end
 
 local function teardown()
+	-- Keep notices clear until the final grade actually leaves the screen.
+	task.delay(0.6, function()
+		if not ExcavationGame.IsActive() then
+			Toasts.SetExcavating(false)
+		end
+	end)
 	local ui = gui
 	gui = nil
 	if ui then
@@ -345,6 +352,7 @@ function ExcavationGame.Start(info: Types.ExcavationInfo, nowArg: number?, headl
 	}
 	session = { Info = safe, StartAt = nowArg or os.clock(), Errors = {}, Done = false }
 	DigController.Enabled = false
+	Toasts.SetExcavating(true)
 	if not headless then
 		build(safe)
 	end

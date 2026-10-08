@@ -470,6 +470,28 @@ do
 			end
 			return false
 		end
+		Toasts.Show("Index collection notice", "Info", 4)
+		check(hasToast("Index collection"), "notice visible before excavation")
+		Toasts.SetExcavating(true)
+		check(not hasToast("Index collection"), "excavation removes already visible notice")
+		Toasts.Show("Excavation warning", "Warning", 12)
+		check(hasToast("Excavation warning"), "urgent warning visible during excavation")
+		Toasts.Show("Quest excavation notice", "Success")
+		Mock.Advance(8)
+		check(not hasToast("Quest excavation"), "excavation holds incoming notice beyond reveal cap")
+		Toasts.SetExcavating(false)
+		Mock.Advance(0.1)
+		check(hasToast("Index collection") and hasToast("Quest excavation"), "visible and incoming notices resume after excavation")
+		Mock.Advance(6)
+		Toasts.SetExcavating(true)
+		for i = 1, 20 do
+			Toasts.Show("Bounded excavation notice " .. i, "Info")
+		end
+		Toasts.SetExcavating(false)
+		Mock.Advance(0.1)
+		check(not hasToast("Bounded excavation notice 1"), "excavation queue discards oldest overflow")
+		check(countToasts() <= 3, "resumed queue respects visible limit")
+		Mock.Advance(15)
 		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
 		local base = countToasts()
 		RevealUI.Show({ Headline = "RARE!", Color = Mock.Env.Color3.new(0, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 3 })
@@ -2807,6 +2829,47 @@ do
 		GoodWindow = D.GOOD_WINDOW,
 		Timeout = 9,
 	}
+	-- Actual excavation lifecycle owns toast suppression, including the retiring grade.
+	do
+		local Toasts = Mock.Require(byPath[CP .. "UI/Toasts"])
+		local toastRoot = playerGui:FindFirstChild("Dig_Toasts"):FindFirstChild("Canvas"):FindFirstChild("Toasts")
+		local function hasLifecycleToast()
+			for _, descendant in toastRoot:GetDescendants() do
+				if descendant:IsA("TextLabel") and descendant.Text == "Lifecycle collection notice" then
+					return true
+				end
+			end
+			return false
+		end
+		Toasts.Show("Lifecycle collection notice", "Info", 8)
+		check(hasLifecycleToast(), "lifecycle notice visible before actual Start")
+		local startAt = Mock.Now()
+		ExcavationGame.Start(info, startAt)
+		check(not hasLifecycleToast(), "actual Start suppresses existing notice")
+		ExcavationGame.Step(startAt + 20)
+		Mock.Advance(0.3)
+		check(not ExcavationGame.IsActive() and not hasLifecycleToast(), "finished rings keep notices held during final-grade retirement")
+		Mock.Advance(0.4)
+		check(hasLifecycleToast(), "finished excavation resumes notice after final-grade retirement")
+
+		local nextInfo = table.clone(info)
+		nextInfo.Id = "toast-replacement"
+		startAt = Mock.Now()
+		ExcavationGame.Start(info, startAt)
+		ExcavationGame.Step(startAt + 20)
+		Mock.Advance(0.3)
+		ExcavationGame.Start(nextInfo, Mock.Now())
+		Mock.Advance(0.4)
+		check(ExcavationGame.IsActive() and not hasLifecycleToast(), "stale teardown cannot release notices during replacement excavation")
+		ExcavationGame.DismissForReveal("unrelated-toast-find")
+		check(ExcavationGame.IsActive() and not hasLifecycleToast(), "unrelated reveal leaves replacement excavation hold intact")
+		ExcavationGame.DismissForReveal(nextInfo.Id)
+		check(not ExcavationGame.IsActive(), "matching reveal dismisses active replacement excavation")
+		Mock.Advance(0.7)
+		check(hasLifecycleToast(), "matching reveal dismissal releases excavation notice hold")
+		Mock.Advance(9)
+	end
+
 	local x0 = #Mock.Remote.ToServer
 	ExcavationGame.Start(info, 100, true)
 	check(ExcavationGame.IsActive() and DigController.Enabled == false, "minigame active, digging paused")

@@ -12,6 +12,8 @@
 	Kinds: Success, Error, Info, Warning, Reward, Announce (anything else -> Info).
 	Routes (v2.2): Toasts.SetRoute(kind, fn) hands every message of that kind to another
 	presenter instead (UI/Announcements takes "Announce" -> big gold top banner).
+	Excavation: existing and incoming nonurgent notices wait until the rings and final grade
+	leave the screen, then resume their remaining reading time without replaying sound.
 	Reveals: while a Reveal popup is on screen, new non-urgent toasts (anything but Error and
 	Warning) wait in the queue so they never cover its rarity headline; they appear when it
 	closes, or after REVEAL_HOLD_MAX seconds if reveals keep chaining.
@@ -29,6 +31,8 @@ local Reveal = require(script.Parent.Reveal)
 local Toasts = {}
 
 local MAX_VISIBLE = 3
+local MAX_QUEUED = 7
+local excavating = false
 local DEFAULT_DURATION = 3.2
 local DEDUPE_WINDOW = 2
 local MIN_PREFIX = 10 -- normalised chars needed before a prefix counts as "the same message"
@@ -49,8 +53,9 @@ local KINDS: { [string]: KindStyle } = {
 	event = { Color = C.Sunset, Icon = "star", Sound = "RareTreasure" },
 }
 
-type Entry = { Text: string, Kind: string, Duration: number, Queued: number }
-type Active = { Text: string, Key: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
+type Entry = { Text: string, Kind: string, Duration: number, Queued: number, Silent: boolean? }
+type Active =
+	{ Kind: string, Text: string, Key: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
 
 local container: Frame? = nil
 local queue: { Entry } = {}
@@ -173,6 +178,7 @@ local function display(entry: Entry)
 	})
 
 	local item: Active = {
+		Kind = entry.Kind,
 		Text = entry.Text,
 		Key = normalise(entry.Text),
 		Frame = frame,
@@ -182,7 +188,7 @@ local function display(entry: Entry)
 	}
 	table.insert(active, item)
 	Style.PopIn(frame, 0.3)
-	if kind.Sound then
+	if kind.Sound and not entry.Silent then
 		SoundController.Play(kind.Sound, 1, 0.8)
 	end
 	task.delay(entry.Duration, function()
@@ -202,7 +208,8 @@ function Toasts.IsUrgent(kind: string): boolean
 end
 
 local function waitsForReveal(entry: Entry, now: number): boolean
-	return Reveal.IsShowing() and not Toasts.IsUrgent(entry.Kind) and now - entry.Queued < REVEAL_HOLD_MAX
+	return not Toasts.IsUrgent(entry.Kind)
+		and (excavating or (Reveal.IsShowing() and now - entry.Queued < REVEAL_HOLD_MAX))
 end
 
 local holdTimer = false
@@ -224,6 +231,38 @@ pump = function()
 			holdTimer = false
 			pump()
 		end)
+	end
+end
+
+-- Excavation pushes presentation state, avoiding a Toasts -> ExcavationGame require cycle.
+function Toasts.SetExcavating(value: boolean)
+	if excavating == value then
+		return
+	end
+	excavating = value
+	if value then
+		local now = os.clock()
+		for i = #active, 1, -1 do
+			local item = active[i]
+			if not Toasts.IsUrgent(item.Kind) then
+				table.remove(active, i)
+				item.Frame:Destroy()
+				if #queue >= MAX_QUEUED then
+					table.remove(queue)
+				end
+				table.insert(queue, 1, {
+					Text = item.Label.Text,
+					Kind = item.Kind,
+					Duration = math.max(0.5, item.Expires - now),
+					Queued = now,
+					Silent = true,
+				})
+			end
+		end
+		pump()
+	else
+		-- A confirmed find reveal may take over during this same event.
+		task.defer(pump)
 	end
 end
 
@@ -270,7 +309,7 @@ function Toasts.Show(text: string, kind: string?, duration: number?)
 	if isRecent then
 		return -- already shown and dismissed a moment ago
 	end
-	if #queue > 6 then
+	if #queue >= MAX_QUEUED then
 		table.remove(queue, 1)
 	end
 	table.insert(
