@@ -1,3 +1,12 @@
+# Integrated repository stages — 8 October 2026
+
+PRs #17–#20 are merged; each passed CI before merge. Documentation PR #20 source `c31629b` passed CI `37774722560` and merged as `7563265`. The default branch was fetched and fast-forwarded without discarding intervening work. Gameplay source remains the reviewed `aa22ebb` code checkpoint.
+
+The clean candidate was rebuilt and its manifest/source and SHA-256 verified. Place SHA-256: `0CCE34DB4E761A8B4642A2FE453819CA75B4834107251A691459F8741491D1AB`. The manifest records the exact clean repository revision, including these integration notes when repackaged. Earlier `8328340` artifacts are preserved under `build/limited-playtest/history/8328340`; profiler evidence remains intact. Zero blocking preflight findings and five disabled optional groups do not certify gameplay or persistence.
+
+Repository preparation stages are complete. Studio was last observed in fresh active Play on DigTest with Rojo 34872; input remains paused at the owner's request, and Stop/save is pending. Resume with a fresh source Play session when the desktop is available. Shell Bed/HOT/full Reduced Motion, consequential contact/live toast overlap, coordinated four-client natural tide/reward isolation and server spike attribution remain open. Real services/access await explicit Private publication authorization and identity; audio, independent feedback and hardware remain unperformed/deferred. The concrete proposal is in TEST_EXPERIENCE_PROPOSAL.md. No publication, upload, access change, spending or tester contact occurred; no invitation/public-launch readiness is claimed.
+
+---
 # Current evidence update — 8 October 2026
 
 This update preserves historical evidence below and separates ordinary gameplay, assisted diagnostics and mock tests. No publication/access change, uploads, spending or tester contact occurred.
