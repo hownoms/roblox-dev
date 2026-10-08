@@ -1,0 +1,111 @@
+{
+  "status": "AUDITION ONLY \u2014 generated and measured, not listened to or Roblox-uploaded",
+  "origin": "Original deterministic procedural synthesis; no third-party samples",
+  "generator": "tools/audio/generate_original_v1.py",
+  "seed": 8102026,
+  "format": "48 kHz 16-bit PCM mono WAV",
+  "sounds": [
+    {
+      "file": "shovel_sand_01.wav",
+      "role": "Soft sand shovel contact variation; audition with visible impact",
+      "seconds": 0.39,
+      "peak_dbfs": -8.87,
+      "rms_dbfs": -24.89,
+      "loop": false
+    },
+    {
+      "file": "shovel_sand_02.wav",
+      "role": "Soft sand shovel contact variation; audition with visible impact",
+      "seconds": 0.39,
+      "peak_dbfs": -8.87,
+      "rms_dbfs": -25.92,
+      "loop": false
+    },
+    {
+      "file": "shovel_sand_03.wav",
+      "role": "Soft sand shovel contact variation; audition with visible impact",
+      "seconds": 0.39,
+      "peak_dbfs": -8.87,
+      "rms_dbfs": -26.05,
+      "loop": false
+    },
+    {
+      "file": "excavate_tap.wav",
+      "role": "Short tactile excavation hit",
+      "seconds": 0.2,
+      "peak_dbfs": -11.06,
+      "rms_dbfs": -27.08,
+      "loop": false
+    },
+    {
+      "file": "ui_click.wav",
+      "role": "Restrained UI click",
+      "seconds": 0.075,
+      "peak_dbfs": -13.98,
+      "rms_dbfs": -28.24,
+      "loop": false
+    },
+    {
+      "file": "blocked_clank.wav",
+      "role": "Short blocked tool contact; deliberately distinct from rewards",
+      "seconds": 0.3,
+      "peak_dbfs": -11.06,
+      "rms_dbfs": -25.77,
+      "loop": false
+    },
+    {
+      "file": "detector_tick.wav",
+      "role": "Quiet detector tick; proximity pitch can still be applied",
+      "seconds": 0.09,
+      "peak_dbfs": -13.56,
+      "rms_dbfs": -25.5,
+      "loop": false
+    },
+    {
+      "file": "excavate_perfect.wav",
+      "role": "Two-note excavation timing confirmation",
+      "seconds": 0.3,
+      "peak_dbfs": -11.06,
+      "rms_dbfs": -23.25,
+      "loop": false
+    },
+    {
+      "file": "find_reveal.wav",
+      "role": "Original rising discovery motif; reserve for finds",
+      "seconds": 1.2,
+      "peak_dbfs": -9.37,
+      "rms_dbfs": -21.13,
+      "loop": false
+    },
+    {
+      "file": "sell.wav",
+      "role": "Brief sell confirmation, quieter than reveal",
+      "seconds": 0.4,
+      "peak_dbfs": -11.7,
+      "rms_dbfs": -23.95,
+      "loop": false
+    },
+    {
+      "file": "engine_soft_loop.wav",
+      "role": "Soft synthesized motor audition; 4 second cyclic loop",
+      "seconds": 4.0,
+      "peak_dbfs": -13.98,
+      "rms_dbfs": -20.43,
+      "loop": true,
+      "loop_boundary_step_pcm": 101,
+      "maximum_interior_step_pcm": 145,
+      "boundary_under_maximum_interior": true
+    },
+    {
+      "file": "beach_surf_loop.wav",
+      "role": "Filtered noise surf-bed sketch; does not contain gulls, wind recordings, or music",
+      "seconds": 12.0,
+      "peak_dbfs": -16.48,
+      "rms_dbfs": -33.11,
+      "loop": true,
+      "loop_boundary_step_pcm": 187,
+      "maximum_interior_step_pcm": 956,
+      "boundary_under_maximum_interior": true
+    }
+  ]
+}

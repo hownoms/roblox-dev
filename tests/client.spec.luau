@@ -134,6 +134,29 @@ Mock.FireClientEvent("DigResult", { Success = true, Position = sand, LayerIndex 
 Mock.Advance(1)
 check(State.GetSetting("Tutorial", 0) == 2, "confirmed boardwalk dig advances arrival and first-dig steps")
 
+-- Discovery introduction uses the existing objective without renumbering saved steps.
+do
+	local objectiveText = playerGui:FindFirstChild("Objective", true):FindFirstChild("Text")
+	check(not objectiveText.Text:find("SCAN"), "before first find the fill-bucket objective stays focused")
+	Mock.FireClientEvent("DataChanged", { Index = { [Config.Treasures[1].Id] = true } })
+	Mock.Advance(0.5)
+	check(objectiveText.Text:find("SCAN") ~= nil, "first indexed find introduces Scan in existing objective")
+	check(State.GetSetting("Tutorial", 0) == 2, "Scan introduction preserves numeric tutorial progress")
+	Mock.FireClientEvent("DetectorPing", { Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 })
+	Mock.Advance(0.5)
+	check(objectiveText.Text:find("SCAN") ~= nil, "expired detector ping does not acknowledge first scan")
+	Mock.FireClientEvent("DetectorPing", { Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 6 })
+	Mock.Advance(0.5)
+	check(
+		State.GetSetting("TutorialScanUsed", false) == true,
+		"server scan response persists introduction completion even without a find signal"
+	)
+	check(not objectiveText.Text:find("SCAN"), "acknowledged scan restores fill-bucket objective")
+	check(State.GetSetting("Tutorial", 0) == 2, "first scan does not advance a numbered tutorial step")
+	Mock.FireClientEvent("DataChanged", { Index = {} })
+	Mock.FireClientEvent("DetectorPing", { Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 })
+end
+
 -- Deltas
 Mock.FireClientEvent("DataChanged", { Coins = 6000, Sand = 5 })
 Mock.Advance(0.5)
@@ -1863,6 +1886,16 @@ do
 	check(RideController.Riding == true, "riding detected from the seat")
 	check(ride.Label.Text == "Exit", "button turns into Exit while riding")
 	check(DigController.Enabled == false, "shovel digging paused while riding")
+	local rideEngine = vehicle.PrimaryPart:FindFirstChild("RideEngine")
+	local savedRideSfx = State.GetSetting("SFX", true)
+	check(rideEngine ~= nil, "ride engine is created")
+	State.SetSetting("SFX", false)
+	Mock.Advance(0.3)
+	check(rideEngine.Volume == 0, "SFX off mutes the engine while seated")
+	State.SetSetting("SFX", true)
+	Mock.Advance(0.3)
+	check(rideEngine.Volume > 0, "SFX on restores the engine while seated")
+	State.SetSetting("SFX", savedRideSfx)
 
 	-- hold dig -> RideDig at the vehicle's DigInterval
 	s0 = #Mock.Remote.ToServer
