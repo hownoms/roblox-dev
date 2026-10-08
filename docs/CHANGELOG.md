@@ -11,6 +11,17 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## v17: second-minute fixes, published 8 October 2026
+**Live as Roblox place version 17 (source `375625c`; 157/157 published scripts verified identical). Details: `docs/PLAYTEST_2026-10-08_PM.md`.**
+- **Why:** a fresh no-pass playtest found four second-minute stalls: the detector pointed sideways at a find directly below, its arrows were hard to see, a full bag left the camera facing the sea (about 75 s to reach Sell), and the first bucket could sell for less than the 30-coin Garden Trowel the tutorial asked for.
+- **Detector:** the server ping adds a coarse `Overhead` flag (horizontal offset at most max(3, |dy| x 0.5)). The client then says **DIG DOWN HERE!**, hides the compass dot and stands the world arrow up pointing down. The world arrow is larger, dark-outlined and at hip height, because the bottom action row covered it at the feet. The DOWN/UP pill is raised clear of the radar dot.
+- **Selling (onboarding only):** when a tutorial selling moment starts and the stand is more than 60 degrees off view, the camera turns once (0.7 s, instant with Reduced Motion). Retest: full bag to sold in under 4 s of walking.
+- **First upgrade:** while the next coin shovel is unaffordable, the shop step reads "Dig & sell more for the Garden Trowel! (22/30)", or "Bucket full! Sell it..." when the bag is full. It guides back to sand or Sell; numbered tutorial progress is unchanged.
+- **Store page:** new icon and three illustrated thumbnails from `marketing/publish-kit-2026-10-08/` (Roblox moderation not confirmed).
+- **Verified live before the change:** v15 scripts matched source, and a real save, leave and rejoin on a new server preserved coins, bag, shovel, finds and tutorial.
+- **Tests:** `tutorial-short-coins` scenario, overhead and camera-yaw checks, and the ping field whitelist now allows the boolean `Overhead`.
+- **Still open:** audio listening and uploads, live engine-mute check, real multi-account multiplayer and profiling, launch media from real gameplay, and access/Max Players (unchanged: Limited, 50).
+
 ## v1: first playable (initial build)
 **Built by parallel agents (design, server, client/UI, map, models, marketing, QA).**
 - **Toolchain:**
