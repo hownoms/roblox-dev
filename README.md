@@ -10,8 +10,11 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
 | Doc | What it covers |
 |---|---|
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **Start here:** what changed in each version, playtest fixes, decisions and standing rules |
+| [`docs/STATUS.md`](docs/STATUS.md) | **Start here:** where the project is now, what's verified, what's open and what's next |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What changed in each version, playtest fixes, decisions and standing rules |
 | [`docs/LAUNCH.md`](docs/LAUNCH.md) | Ordered go-live runbook; `tools/preflight.sh` lists every id and asset still to fill in |
+| [`docs/LIMITED_PLAYTEST.md`](docs/LIMITED_PLAYTEST.md) | Building the playtest candidate, player script, tester checklist |
+| [`docs/PLAYTEST_EVIDENCE.md`](docs/PLAYTEST_EVIDENCE.md) | Dated log of playtest observations and measurements |
 | [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |
 | [`docs/UI_STYLE.md`](docs/UI_STYLE.md) | UI style guide and layout map |
 | [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |

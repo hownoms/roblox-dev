@@ -1,6 +1,6 @@
-# Dedicated test-experience proposal — 8 October 2026
+# Dedicated test-experience proposal
 
-Prepared for Howard's explicit approval; no publication, upload, audience change, spending or tester contact has occurred. Owner reports the account age check **complete**. Roblox username/account standing, questionnaire completion and published experience identity remain unverified. This supersedes older instructions to complete the age check, but does not establish other eligibility.
+Written 8 October 2026 for Howard's explicit approval. Nothing here has been carried out: no publication, upload, audience change, spending or tester contact. Eligibility status is tracked in [STATUS.md](STATUS.md).
 
 ## Proposed configuration
 
@@ -55,5 +55,3 @@ Service-level failure/lock diagnostics need a separately reviewed method confine
 This proposal is reviewable but does not certify invitation readiness. Finish ordinary Shell Bed/HOT/Reduced Motion/off-screen guidance, consequential contact/overlap and coordinated four-client natural tide checks; establish identity and real persistence before promising saved progression. Resolve populated server spike attribution and obtain independent fresh-player feedback before public sign-off. Audio listening and physical phone/controller checks remain unperformed. Optional disabled/unpromised features can stay off. Public launch, broader device support, uploads, paid features and spending require additional explicit approval and their applicable evidence.
 
 Official publishing/access, collaboration, DataStore and Kids and Select pages rechecked 8 October 2026; requirements unchanged. Recheck requirements at execution if the dashboard differs or time has passed; no account/security/audience setting was changed during preparation.
-
-Code-source checkpoint: `aa22ebb` (PRs #17–#19 integrated). Regenerate the candidate after the documentation-only stage merges on the clean synchronized default branch; the generated manifest will identify its exact final revision and SHA-256. No regenerated package or publication is claimed by this proposal.
