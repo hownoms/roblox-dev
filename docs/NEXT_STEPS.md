@@ -1,5 +1,7 @@
 # Next steps — discovery, sound and publishing
 
+Latest continuation: [VERIFICATION_2026-10-08.md](VERIFICATION_2026-10-08.md) supersedes the evidence status below. Ordinary Studio Scan → intentional second excavation → 40/40 → native Sell → Garden Trowel completed; live dashboard records were checked read-only. Max Players is still 50. Saved-step, engine mute and persistence startup fixes are covered by expanded passing tests. Audio listening, real persistence, multiplayer/profile measurements and final native publishing media remain open. No Roblox changes were published.
+
 Updated 8 October 2026. This checkpoint supersedes older claims that no published test experience or live store IDs exist. The latest fetched default branch `a5f99b2` records experience `10769863381`, start place `135511260983800`, Limited → Playtesters access, eight configured passes, six configured products and five configured badges. These are repository records, not fresh live service checks in this chat.
 
 ## Applied and saved

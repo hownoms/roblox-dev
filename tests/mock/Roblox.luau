@@ -2457,6 +2457,9 @@ end
 
 local dataStoreService = {
 	GetDataStore = function(_s, name)
+		if Mock.DataStoreAcquireFail then
+			error("mock DataStore acquisition failure")
+		end
 		return newDataStore(name, false)
 	end,
 	GetOrderedDataStore = function(_s, name)

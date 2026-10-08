@@ -303,8 +303,12 @@ local function detectStore()
 		return DataStoreService:GetDataStore(Config.DATASTORE_NAME)
 	end)
 	if not ok then
-		useMock = true
-		warn("[DataService] DataStores unavailable (" .. tostring(result) .. "); using in-memory data.")
+		useMock = RunService:IsStudio()
+		warn(
+			"[DataService] DataStores unavailable ("
+				.. tostring(result)
+				.. (if useMock then "); using in-memory data." else "); refusing player loads.")
+		)
 		return
 	end
 	if RunService:IsStudio() then
@@ -323,8 +327,11 @@ end
 -- Returns (data, failReason). failReason is "locked" or "error" when data is nil.
 local function loadAsync(player: Player): (PlayerData?, string?)
 	local key = keyFor(player.UserId)
-	if useMock or not store then
+	if useMock then
 		return sanitize(TableUtil.DeepCopy(mockStore[key])), nil
+	end
+	if not store then
+		return nil, "error"
 	end
 	local dataStore = store :: DataStore
 	local lastReason = "error"
@@ -377,10 +384,14 @@ local function saveAsync(session: Session, release: boolean): boolean
 	end
 	session.Saving = true
 	local payload = TableUtil.DeepCopy(session.Data)
-	if useMock or not store then
+	if useMock then
 		mockStore[session.Key] = payload
 		session.Saving = false
 		return true
+	end
+	if not store then
+		session.Saving = false
+		return false
 	end
 	local dataStore = store :: DataStore
 	activeSaves += 1

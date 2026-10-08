@@ -277,6 +277,11 @@ local function approach(value: number, target: number, step: number): number
 end
 
 local function drive(ride: Ride, dt: number)
+	local engine = ride.Engine
+	if engine then
+		-- Settings still apply while the dig zone is unavailable (for example during streaming).
+		engine.Volume = if State.GetSetting("SFX", true) == false then 0 else Config.Sounds.Dig.Volume * 0.45
+	end
 	local b = getBounds()
 	if not b then
 		return
@@ -304,10 +309,7 @@ local function drive(ride: Ride, dt: number)
 	ride.AlignPosition.Position = pivot.Position
 	ride.AlignOrientation.CFrame = pivot.Rotation
 
-	local engine = ride.Engine
 	if engine then
-		-- This spatial loop bypasses SoundController, so honour changes while seated too.
-		engine.Volume = if State.GetSetting("SFX", true) == false then 0 else Config.Sounds.Dig.Volume * 0.45
 		engine.PlaybackSpeed = 0.35 + 0.3 * math.abs(ride.Speed) / R.MaxSpeed
 	end
 end

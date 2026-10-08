@@ -95,6 +95,29 @@ local zone = World.GetDigZone()
 local spawnCF = World.GetSpawnCFrame(1)
 local data = Config.NewPlayerData()
 data.Coins = 5000
+local tutorialCase
+for _, arg in { ... } do
+	if arg:sub(1, 9) == "tutorial-" then
+		tutorialCase = arg
+	end
+end
+if tutorialCase then
+	data.Index = { [Config.Treasures[1].Id] = true }
+	data.TotalSandDug = 1
+	data.Settings.Tutorial = 2
+	if tutorialCase == "tutorial-resume-full" then
+		data.Sand = Config.Backpacks[1].Capacity
+	elseif tutorialCase == "tutorial-resume-sold" then
+		data.Settings.Tutorial = 3
+	elseif tutorialCase == "tutorial-complete" then
+		data.Settings.Tutorial = #Config.TUTORIAL_STEPS
+	elseif tutorialCase == "tutorial-veteran" then
+		data.Settings.Tutorial = nil
+		data.OwnedShovels[Config.Shovels[2].Id] = true
+	elseif tutorialCase == "tutorial-scan-used" then
+		data.Settings.TutorialScanUsed = true
+	end
+end
 Mock.ServerFunctions.GetData = function()
 	return data
 end
@@ -117,7 +140,9 @@ check(#Mock.Errors == 0, "no errors during client boot")
 local playerGui = player:FindFirstChild("PlayerGui")
 check(#playerGui:GetChildren() >= 4, "ScreenGuis created")
 
-Mock.FireClientEvent("DataChanged", data)
+if not tutorialCase then
+	Mock.FireClientEvent("DataChanged", data)
+end
 Mock.FireClientEvent("EventChanged", {})
 Mock.Advance(1)
 local State = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/State"])
@@ -126,7 +151,54 @@ local zcf, zsize = State.GetDigZone()
 check(zcf ~= nil and zsize == zone.Size, "State reads the dig zone from workspace attributes")
 check(State.InDigZone(zone.CFrame.Position) and not State.InDigZone(Vector3.new(0, Config.SURFACE_Y, 40)), "State.InDigZone")
 local sand = State.NearestSand(spawnCF.Position, 8)
-check(sand ~= nil and State.InDigZone(sand) and (sand - spawnCF.Position).Magnitude < 40, "NearestSand is close to the spawn")
+check(
+	sand ~= nil and State.InDigZone(sand) and (sand - spawnCF.Position).Magnitude < 40,
+	"NearestSand is close to the spawn"
+)
+
+-- Separate processes preserve the controller's real one-time boot and save-resume behavior.
+if tutorialCase then
+	local tutorial = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/TutorialController"])
+	local objective = playerGui:FindFirstChild("Objective", true)
+	local text = if objective then objective:FindFirstChild("Text") else nil
+	if tutorialCase == "tutorial-complete" or tutorialCase == "tutorial-veteran" then
+		check(not tutorial.IsActive(), "completed and veteran saves skip onboarding")
+		check(State.GetSetting("Tutorial", 0) == #Config.TUTORIAL_STEPS, "finished save keeps numbered completion")
+	else
+		check(tutorial.IsActive(), "unfinished save resumes onboarding")
+		if tutorialCase == "tutorial-resume-sold" then
+			check(State.GetSetting("Tutorial", 0) == 4, "empty saved sell step resumes at upgrade")
+			check(text and text.Text:find("better shovel"), "resumed sale gives the shop objective")
+		else
+			if tutorialCase == "tutorial-scan-used" then
+				check(text and not text.Text:find("SCAN"), "saved Scan acknowledgment suppresses repeat hint")
+			elseif tutorialCase ~= "tutorial-resume-full" then
+				check(text and text.Text:find("SCAN"), "existing unfinished save receives optional Scan hint")
+			end
+			if tutorialCase ~= "tutorial-resume-full" then
+				Mock.FireClientEvent("DataChanged", { Sand = State.GetCapacity() })
+				Mock.Advance(1)
+			end
+			check(State.GetSetting("Tutorial", 0) == 3, "full bucket advances without requiring Scan")
+			check(text and text.Text:find("SELL"), "sell objective takes priority over treasure hint")
+			Mock.FireClientEvent("DataChanged", { Sand = 0, Coins = 5020 })
+			Mock.Advance(1)
+			check(State.GetSetting("Tutorial", 0) == 4, "selling advances to upgrade")
+		end
+		Mock.FireClientEvent("DataChanged", {
+			OwnedShovels = { [Config.Shovels[1].Id] = true, [Config.Shovels[2].Id] = true },
+		})
+		Mock.Advance(1)
+		check(State.GetSetting("Tutorial", 0) == 5, "upgrade advances to existing new-layer step")
+	end
+	check(#Mock.Errors == 0, "no resume or loop errors")
+	check(#Mock.Warnings == 0, "no resume or loop warnings")
+	print(string.format("CLIENT %s: %d passed, %d failed", tutorialCase, passes, failures))
+	if failures > 0 then
+		error("TUTORIAL RESUME TEST FAILED", 0)
+	end
+	return
+end
 
 -- A successful click can reach sand while the character still stands on the boardwalk.
 check(not State.InDigZone(character.HumanoidRootPart.Position), "first-dig regression starts outside the sand footprint")
@@ -1881,17 +1953,30 @@ do
 	vehicle.Parent = folder
 	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 	local digWasEnabled = DigController.Enabled
+	local savedRideSfx = State.GetSetting("SFX", true)
+	local savedGetDigZone = State.GetDigZone
+	State.GetDigZone = function()
+		return nil, nil
+	end
+	State.SetSetting("SFX", false)
 	vehicle.RideSeat:Sit(humanoid)
 	Mock.Advance(0.3)
 	check(RideController.Riding == true, "riding detected from the seat")
 	check(ride.Label.Text == "Exit", "button turns into Exit while riding")
 	check(DigController.Enabled == false, "shovel digging paused while riding")
 	local rideEngine = vehicle.PrimaryPart:FindFirstChild("RideEngine")
-	local savedRideSfx = State.GetSetting("SFX", true)
 	check(rideEngine ~= nil, "ride engine is created")
+	check(rideEngine.Volume == 0, "boarding with SFX off creates a muted engine")
+	State.SetSetting("SFX", true)
+	Mock.Advance(0.3)
+	check(
+		rideEngine.Volume == Config.Sounds.Dig.Volume * 0.45,
+		"SFX on restores configured gain even without dig bounds"
+	)
 	State.SetSetting("SFX", false)
 	Mock.Advance(0.3)
-	check(rideEngine.Volume == 0, "SFX off mutes the engine while seated")
+	check(rideEngine.Volume == 0, "SFX off mutes the engine while seated without dig bounds")
+	State.GetDigZone = savedGetDigZone
 	State.SetSetting("SFX", true)
 	Mock.Advance(0.3)
 	check(rideEngine.Volume > 0, "SFX on restores the engine while seated")
@@ -1945,6 +2030,7 @@ do
 	Mock.LeaveSeat(humanoid)
 	Mock.Advance(0.3)
 	check(RideController.Riding == false, "leaving the seat stops riding")
+	check(rideEngine.Parent == nil, "leaving the seat destroys the engine loop")
 	check(ride.Label.Text == "Ride", "button back to Ride")
 	check(DigController.Enabled == digWasEnabled, "shovel digging restored")
 	vehicle:Destroy()
