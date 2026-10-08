@@ -194,6 +194,35 @@ do
 	check(math.abs(stallBottom - deckTop) < 0.05, "boardwalk stalls stand on the deck (" .. stallBottom - deckTop .. ")")
 end
 check(#Mock.Tagged("Garage") == 0, "the Garage is gone (v2.1: vehicles are pets from crates)")
+do
+	-- Map art overhaul budgets (docs/MAP_ART_DIRECTION.md): surface parts, lights and emitters,
+	-- and no scenery standing over the open dig strip.
+	local map = workspace:FindFirstChild("Map")
+	local parts, lights, emitters, overStrip = 0, 0, 0, {}
+	local S = Config.SURFACE_Y
+	for _, d in if map then map:GetDescendants() else {} do
+		if d:FindFirstAncestor("Underground") then
+			continue
+		end
+		if d:IsA("BasePart") then
+			parts += 1
+			local p = d.Position
+			local inStrip = math.abs(p.X) < 380 and p.Z > -62 and p.Z < -10 and p.Y > S and p.Y < S + 16
+			if inStrip and d.Transparency < 1 and not d:FindFirstAncestor("Effects") then
+				table.insert(overStrip, d:GetFullName())
+			end
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") or d:IsA("SurfaceLight") then
+			lights += 1
+		elseif d:IsA("ParticleEmitter") then
+			emitters += 1
+		end
+	end
+	print(string.format("[budget] surface parts %d, lights %d, emitters %d", parts, lights, emitters))
+	check(parts <= 10500, "surface part budget (" .. parts .. " <= 10500)")
+	check(lights <= 40, "surface light budget (" .. lights .. " <= 40)")
+	check(emitters <= 24, "surface particle emitter budget (" .. emitters .. " <= 24)")
+	check(#overStrip == 0, "no scenery over the dig strip (" .. (overStrip[1] or "none") .. ")")
+end
 for t, action in { WaterFountain = "Drink", CrateShop = "Open", BeachShop = "Shop" } do
 	local part = Mock.Tagged(t)[1]
 	local prompt = part and part:FindFirstChildWhichIsA("ProximityPrompt", true)
