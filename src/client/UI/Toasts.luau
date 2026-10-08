@@ -54,8 +54,15 @@ local KINDS: { [string]: KindStyle } = {
 }
 
 type Entry = { Text: string, Kind: string, Duration: number, Queued: number, Silent: boolean? }
-type Active =
-	{ Kind: string, Text: string, Key: string, Frame: Frame, Count: number, Label: TextLabel, Expires: number }
+type Active = {
+	Kind: string,
+	Text: string,
+	Key: string,
+	Frame: Frame,
+	Count: number,
+	Label: TextLabel,
+	Expires: number,
+}
 
 local container: Frame? = nil
 local queue: { Entry } = {}
