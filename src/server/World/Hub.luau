@@ -346,7 +346,12 @@ local function buildEggs(parent: Instance)
 		local bb = Instance.new("BillboardGui")
 		bb.Name = "EggInfo"
 		bb.Size = UDim2.fromScale(6, 2.4)
-		bb.StudsOffsetWorldSpace = Vector3.new(0, 8.5, 0)
+		-- Pedestals are ~4.6 studs apart and labels 6 wide. From the plaza the camera looks down
+		-- across the arc, so each label was hidden behind the next pedestal and egg ("in the sand").
+		-- Draw them over the world (MaxDistance keeps that local), just above the eggs, and stagger
+		-- every other one by more than a label's height so neighbours don't overlap.
+		bb.AlwaysOnTop = true
+		bb.StudsOffsetWorldSpace = Vector3.new(0, if i % 2 == 0 then 10.6 else 8, 0)
 		bb.MaxDistance = 40
 		bb.LightInfluence = 0
 		bb.Parent = pedestal
