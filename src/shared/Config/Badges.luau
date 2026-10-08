@@ -16,9 +16,21 @@ export type BadgeDef = {
 local Badges: { BadgeDef } = {
 	{ Key = "Welcome", Id = 305615989875213, Name = "Welcome to the Beach!", Kind = "FirstDig" },
 	{ Key = "FirstPet", Id = 1399687731914868, Name = "New Best Friend", Kind = "FirstPet" },
-	{ Key = "PirateCove", Id = 3721202346547107, Name = "Arrr, Pirate Cove!", Kind = "ReachLayer", Layer = "Pirate Cove" },
+	{
+		Key = "PirateCove",
+		Id = 3721202346547107,
+		Name = "Arrr, Pirate Cove!",
+		Kind = "ReachLayer",
+		Layer = "Pirate Cove",
+	},
 	{ Key = "FossilBed", Id = 1841450014262918, Name = "Dino Digger", Kind = "ReachLayer", Layer = "Fossil Bed" },
-	{ Key = "CrystalCaverns", Id = 3808710393122420, Name = "Crystal Clear", Kind = "ReachLayer", Layer = "Crystal Caverns" },
+	{
+		Key = "CrystalCaverns",
+		Id = 3808710393122420,
+		Name = "Crystal Clear",
+		Kind = "ReachLayer",
+		Layer = "Crystal Caverns",
+	},
 	{ Key = "FrozenAbyss", Id = 0, Name = "Underground Ice Age", Kind = "ReachLayer", Layer = "Frozen Abyss" },
 	{ Key = "MagmaChamber", Id = 0, Name = "Too Hot to Handle", Kind = "ReachLayer", Layer = "Magma Chamber" },
 	{ Key = "AlienHive", Id = 0, Name = "Close Encounter", Kind = "ReachLayer", Layer = "Alien Hive" },
