@@ -1,6 +1,10 @@
 # Publish and next-chat handoff — 8 October 2026
 
-## Latest outcome — publication confirmed
+## Current state (latest), v17 live
+
+**v17 Published** ("Second-minute fixes - source 375625c"), verified 157/157 scripts identical to merged source. New icon and three thumbnails uploaded via Creator Hub. Access remains Limited ("Ages 16+ and trusted friends"), and Max Players is 50. A friend must be permitted under the Limited setup before they can join; that is the owner's call. See `PLAYTEST_2026-10-08_PM.md` and the v17 entry in `CHANGELOG.md`. The sections below are history.
+
+## Earlier outcome: v15 publication confirmed
 
 Owner explicitly approved saving pending edits, closing the session and publishing. Normal save was accepted. Studio continued reporting “Applying script changes” on closure, so no forced termination was used. Reconnected the existing owner place to the current Rojo repository, then published directly from that session. Studio Output at 14:25:36 confirmed “Published new changes” and “Place published. Playtesters can now play this place in Roblox.” Version History shows **v15 Published**, titled **Discovery verification - source faa5d8e (PR 26)**. Evidence: `marketing/publication-evidence-2026-10-08/`.
 
