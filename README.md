@@ -1,4 +1,4 @@
-# Dig to the Core!
+# Dig to the Core! Beach Simulator
 
 A Roblox digging simulator. Players dig anywhere along a shared beach, down through 15
 layers, from Dry Sand to Pirate Cove, Fossil Bed, Crystal Caverns, Magma and The Core. Sand gets
@@ -10,9 +10,11 @@ game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
 | Doc | What it covers |
 |---|---|
-| [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) | Current discovery, audio, publishing and playtest checkpoint |
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **Start here:** what changed in each version, playtest fixes, decisions and standing rules |
+| [`docs/STATUS.md`](docs/STATUS.md) | **Start here:** where the project is now, what's verified, what's open and what's next |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What changed in each version, playtest fixes, decisions and standing rules |
 | [`docs/LAUNCH.md`](docs/LAUNCH.md) | Ordered go-live runbook; `tools/preflight.sh` lists every id and asset still to fill in |
+| [`docs/LIMITED_PLAYTEST.md`](docs/LIMITED_PLAYTEST.md) | Building the playtest candidate, player script, tester checklist |
+| [`docs/PLAYTEST_EVIDENCE.md`](docs/PLAYTEST_EVIDENCE.md) | Dated log of playtest observations and measurements |
 | [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |
 | [`docs/UI_STYLE.md`](docs/UI_STYLE.md) | UI style guide and layout map |
 | [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
@@ -43,12 +45,6 @@ In `src/server/Services/MonetizationService.luau`, set `STUDIO_GRANT_ALL_PASSES 
 every game pass for free. It only works in Studio.
 
 ## 2. Before you publish (needs your account)
-
-> **Status (2026-10-08):** published as experience `10769863381`, audience **Limited →
-> Playtesters** (tester: RazorWolf4, Playtest permission). All game passes and
-> developer products are created and priced, and their ids are in config. Badges 1–5 are live;
-> badges 6–15 still need creating (5 free per day). Remaining: steps 1 (Max Players), 4
-> (badges 6–15), 5–8. See `docs/CHANGELOG.md` → "Store & badges go live".
 
 1. **Publish** the place (File → Publish to Roblox). Set **Max Players = 16** (one shared dig beach).
 2. **Game passes.** Create these in Creator Hub (Monetization → Passes), then paste each id into
@@ -90,10 +86,8 @@ every game pass for free. It only works in Studio.
    are still marked "paid random" (`PaidRandom = true`), because they buy currency that buys
    eggs. Players whose Roblox policy restricts paid random items never see them
    (`Services/PolicyService.luau`).
-4. **Badges.** Create the 15 badges listed in `src/shared/Config/Badges.luau` (the art is in
-   `marketing/badges/`, names and descriptions in `marketing/STORE_PAGE.md` §6) and paste their
-   ids there. Creator Hub allows 5 free badge creations per experience per GMT day.
-   Icons for every pass and product are in `marketing/store/` (see `marketing/README.md`).
+4. **Badges.** Create the 10 badges listed in `src/shared/Config/Badges.luau` (the art is in
+   `marketing/badges/`) and paste their ids there.
 5. **Group.** Create a Roblox group and put its id in `GROUP_ID` in
    `src/shared/Config/init.luau`. That turns on the group sand bonus and the group-only code
    `DIGDEEP`.
