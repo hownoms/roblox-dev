@@ -290,6 +290,7 @@ First publish to Roblox, plus the second badge wave and art for every store item
 | Badge name became `01_welcome.png` | Creator Hub's badge form fills Name with the image file name a moment after the upload, overwriting typed text | Type the name and description again after the upload, and check before clicking Create |
 | "Place '0' currently has an active Team Create Session" on publish | Publishing over a place is blocked while any Studio window has it open in Team Create, and the session lingers a minute or two after the window closes | Close every Studio window on the published place, wait about 2 minutes, then Retry |
 | Headless tests assume an unconfigured store ("no prompt for id 0") | Config now holds the live ids | `smoke.spec` and `client.spec` zero every pass, product and badge id before boot; tests that need ids still set their own test ids |
+| (playtest) Pet egg labels looked sunk into the sand | Pedestals are ~4.6 studs apart and labels 6 wide at only +8.5; from the plaza the camera looks down across the arc, so each label sat behind the next pedestal and egg and neighbours overlapped | `EggInfo` billboards are `AlwaysOnTop` (still `MaxDistance` 40) and alternate between +8 and +10.6 so neighbours don't overlap. Checked in a Studio Run of the built place |
 | Regenerating badges rewrote badges 01–10 | A newer Pillow re-encodes PNGs byte-differently | Only commit art that actually changed; restore the rest with `git checkout` |
 
 ---
