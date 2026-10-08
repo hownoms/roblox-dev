@@ -272,6 +272,12 @@ First publish to Roblox, plus the second badge wave and art for every store item
 - **Live ids in config:** badges 1–5 (`Config/Badges.luau`), all 8 passes and all 6 dev products
   (`Config/Monetization.luau`). Passes and products are on sale at the README §2 prices,
   Managed Pricing off.
+- **Playtest access (requested for RazorWolf4):** Creator Hub → Configure → Audience → Limited →
+  **Playtesters** only (untick Friends, which would admit all of the owner's friends). Saving is
+  refused until the experience has a content maturity label (Configure → "Add label", the
+  Experience Questionnaire; expected answers in `marketing/STORE_PAGE.md`), which the owner must
+  answer. Then add the tester with **Play** permission (Studio → Collaborate, or Creator Hub →
+  Collaborators). See `docs/LIMITED_PLAYTEST.md` for the full route.
 - **Still to do:** badges 6–15 (Creator Hub allows 5 free badge creations per experience per GMT
   day, then 100 R$ each), dev product icons in Creator Hub, Max Players = 16, and going public
   after playtests.
