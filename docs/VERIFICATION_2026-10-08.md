@@ -12,6 +12,8 @@ Filled 40/40, used Surface, walked onto the native Sell pad, sold for 145 coins,
 
 Raw native captures are in `marketing/gameplay-review-2026-10-08/`. They are evidence, not final full-resolution publication media.
 
+Restored the temporary camera preference to Default (Classic) and verified Studio Play stopped. A subsequent ordinary Play launch from the existing public place page reached the loading overlay but no verified Roblox Player session. Computer Use then stopped because it could not establish the browser URL confidently; no further desktop control was attempted. Real save/rejoin therefore remains unperformed.
+
 ## Fresh read-only live records
 
 Creator Dashboard and the public place page confirm experience **10769863381**, start place **135511260983800**, and the unchanged live title **Dig to the Core! Beach Simulator**. Access is **Limited → Playtesters**; Friends is unchecked. Dashboard audience reach reads Ages 16+ and trusted friends. Studio access to API services is unchecked. These observations do not prove permitted-account joining.
