@@ -1,8 +1,24 @@
+# Current launch route — 8 October 2026
+
+Owner account age check is **COMPLETE** by owner report; no published test experience identity exists. Older age-check/no-setup wording below is historical. No publication, uploads, audience/access changes, spending or tester contact is authorized. [TEST_EXPERIENCE_PROPOSAL.md](TEST_EXPERIENCE_PROPOSAL.md) is the concrete reviewable proposal: new dedicated owner-only Private test experience, Computer initially, Max Players 16/first coordinated test four, existing data names isolated by universe, optional IDs disabled. Later Limited → Playtesters plus named Play-only grants requires separate explicit access authorization.
+
+Finish the remaining ordinary Shell Bed/HOT/full Reduced Motion, off-screen guidance/contact and four-client natural tide/reward checks. A successful Wet Sand dig banner at the target boundary while the avatar root was near 17 m and Reduced Motion ON digging/selling are partial evidence. Excavation/toast fix has 1,388 client mock passes but needs fresh live retest. Server profiler labels are ready; spike attribution remains open. Real save/rejoin/lock/interruption/shutdown checks await authorized identity; Universe 0/in-memory fallback does not pass them. Audio listening, independent feedback and physical phone/controller checks remain unperformed, hardware deferred.
+
+The linked proposal records official Roblox publishing/access requirements rechecked 8 October 2026 with unchanged requirements; recheck before account setup changes. Confirm standing/account age/questionnaire, truthful devices and audience reach. Optional disabled/unpromised features need not block limited core testing. No invitation or public-launch readiness is claimed.
+
+8 October fresh Studio setup reconnected DigTest/Rojo 34872 and enabled Reduced Motion before digging, then paused at the owner's request to finish repository/CI while the desktop was in use. No new successful dig/live toast retest is claimed. Combined local client/server/Studio/utility checks **1,388 / 2,174 / 2,153 / 8** passed; PR #17/#18 merged as `b07bb97`/`904d6a7` after successful CI runs `37773554284`/`37773641661`. PR #19 source `8633dc0` passed CI `37774410859` and merged as code-source checkpoint `aa22ebb`; seven terrain-error regressions verify balanced labels and preserved original errors.
+
+The concrete owner-only Private publication proposal is ready for explicit approval and may proceed before remaining local gameplay gates to enable real persistence testing. External access/invitations remain gated by the outstanding gameplay, service and permitted-account checks. Last Studio observation was active Play; Stop/save remains pending while desktop input is paused at the owner's request.
+
+Latest integrated validation: client **1,388**, server **2,174**, Studio-mode **2,153**, utility **8**, all passed. Full formatting, strict analysis (two existing deprecated API warnings), sourcemap and build passed. The documentation-only stage follows code-source checkpoint `aa22ebb`; merge it before packaging from the clean synchronized default branch. The generated manifest will identify the exact final documentation/source revision and SHA-256; package regeneration is not yet claimed. Gameplay, service, capture and access gates above remain open.
+
+---
+
 # Launch runbook: Dig to the Core! Beach Simulator
 
 ## Current limited-test route — 7 October 2026
 
-Start with [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md). Owner reports no Roblox setup yet. No publication/access authorization has been given. Missing optional passes/products/badges/group/ambience do not block a useful core-loop test while disabled and unpromised.
+Start with [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md). Owner reports account age check COMPLETE; no published test identity exists. No publication/access authorization has been given. Missing optional passes/products/badges/group/ambience do not block a useful core-loop test while disabled and unpromised.
 
 Current [Roblox publishing documentation](https://create.roblox.com/docs/production/publishing/publish-games-and-places) supersedes older private-test advice below: Private is owner/Edit only; Playtest permission requires **Limited → Playtesters**. The initial 16+ / Trusted Friends route requires good standing, a two-day-old account, age check and completed maturity/compliance questionnaire. All-ages reach has additional eligibility/evaluation; see [Kids and Select](https://create.roblox.com/docs/production/publishing/kids-and-select). Owner performs account verification. No payment is necessary for the initial 16+ route.
 

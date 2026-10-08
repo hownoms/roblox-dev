@@ -1,3 +1,24 @@
+# Current evidence update — 8 October 2026
+
+This update preserves historical evidence below and separates ordinary gameplay, assisted diagnostics and mock tests. No publication/access change, uploads, spending or tester contact occurred.
+
+| Evidence type | New result / limit |
+|---|---|
+| Owner report | Roblox account age check **COMPLETE**; questionnaire/standing/account identity not independently verified, no published test experience identity |
+| Ordinary DigTest, 7 October continuation | A successful post-upgrade dig displayed Wet Sand at the target boundary while the avatar root was near 17 m; this does not establish traversal into Wet Sand or arrival in Shell Bed. Reduced Motion ON digging and native selling seen. Shell Bed, HOT and full Reduced Motion sequence remain open; no grants/teleports/scripted digs claimed for this ordinary segment |
+| Client mock tests | Focused excavation/toast queue fix: **1,388 passed**, zero failures. Fresh ordinary live retest pending; headless results do not prove final overlap appearance |
+| Server mock tests | New synchronous profiling labels: **2,174 normal / 2,153 Studio-mode**, zero failures. CLI mock tracks profiler marker nesting; this is not capture or real-service evidence |
+| Profiling preparation | Labels identify stress bot creation/step, terrain read/write and tide fill chunks without intentional yields. Server capture/spike attribution remains open; prior client dump cannot attribute historical server 82 ms/253.3 ms heartbeat stalls. Heartbeat dt measures interval, not bot execution time |
+| Access/service proposal | [TEST_EXPERIENCE_PROPOSAL.md](TEST_EXPERIENCE_PROPOSAL.md) prepared with official sources; owner-only Private publication and later exact Play-only access approvals remain outstanding |
+
+Remaining: ordinary Shell Bed/HOT/full Reduced Motion/off-screen guidance, consequential contact and live overlap retest; coordinated four-client shared digging/reward isolation/natural tide; authorized identity and real saving/rejoining/locks/interrupted writes/shutdown/access checks; server/populated performance, listening and independent fresh-player feedback. Physical phone/controller checks remain unperformed/deferred. Completed collection/scenery sweeps remain complete. Final Studio saved state, integration checkpoint and regenerated candidate manifest must be recorded after ongoing work; no invitation/public-launch readiness is claimed.
+
+8 October setup only: reopened actual `build/DigTest.rbxl`, Rojo visibly connected on 34872; fresh Play, ordinary Click to Move onto sand and Reduced Motion enabled before digging. Owner requested repository/CI work first while using the desktop, so no new successful dig or completed live toast retest occurred. Combined local client/server/Studio/utility **1,388 / 2,174 / 2,153 / 8** passed with zero failures; formatting/strict passed with two existing deprecated API warnings. PR #17 CI type-layout mismatch (pinned StyLua 2.0.2 versus local 2.5.2) was corrected at `7ad27eb`; CI run `37773554284` passed and PR #17 merged as `b07bb97`. Profiling PR #18 at `75a1f4e` passed CI `37773641661` and merged as `904d6a7`. PR #19 terrain-exception profiler-label balance preserves original errors and passes seven regressions; source `8633dc0` passed CI `37774410859` and merged as code-source checkpoint `aa22ebb`.
+
+Latest integrated validation: client **1,388**, server **2,174**, Studio-mode **2,153**, utility **8**, all passed. Full formatting, strict analysis (two existing deprecated API warnings), sourcemap and build passed. The documentation-only stage follows code-source checkpoint `aa22ebb`; merge it before packaging from the clean synchronized default branch. The generated manifest will identify the exact final documentation/source revision and SHA-256; package regeneration is not yet claimed. Gameplay, service, capture and access gates above remain open.
+
+---
+
 # Playtest evidence and issues — 7 October 2026
 
 Observations, assisted diagnostics and simulations are separate. No public-launch gate is closed by packaging.
@@ -23,7 +44,7 @@ Observations, assisted diagnostics and simulations are separate. No public-launc
 |---|---|
 | Ordinary first session ends before new layer; HOT/full Reduced Motion unverified | Before invitation: finish ordinary sequence and resolve concrete progression/control blockers |
 | Four-client shared digging/natural tide incomplete | Before invitation: coordinated input, replicated holes, safe refill and cross-player reward isolation |
-| No test experience/account setup | Owner age check now; later explicit publication/access authorization, questionnaire, identity and permitted join |
+| No published test experience | Owner age check COMPLETE; explicit publication/access authorization, questionnaire/remaining eligibility, identity and permitted join still needed |
 | Real save/rejoin untested | Before saved-progress invitations; locking/interruption/shutdown before public launch. Fix serialized saves and fails closed after 30 s stalled release; retry exhaustion/shutdown deadline/loading remain service-test concerns |
 | Server spikes | Public gate open: first window 82 ms, later 49.6 ms; obtain server profiler spanning spike/refill. Earlier 253.3 ms capture remains historical unresolved evidence |
 | Quest/Index toasts crossing later excavation heading | Presentation follow-up; readable reward cards observed. Reproduce queue timing impact before choosing fix |
@@ -36,3 +57,5 @@ Saved local evidence (ignored build files):
 - CPU intervals, GPU dump fields and separately observed UI memory/GPU values differ in scope/time; do not combine them. Worker scopes overlap and must not be summed. Client capture cannot attribute server heartbeat spikes.
 
 Screenshots were inspected inline, not saved. Candidate source/toolchain/hash is in the generated manifest. No Roblox publication/uploads/access changes, spending or tester contact occurred. Hardware remains deferred. See LIMITED_PLAYTEST.md for player script, owner actions and prioritized checklist.
+
+Current Studio state, 8 October: last observed in active fresh Play; desktop input paused at owner request. Stop/save is pending; no stopped/saved final state is claimed.
