@@ -1976,6 +1976,16 @@ local materialColors = {}
 Mock.Voxels = voxels
 local MAX_REGION_VOXELS = 4 * 1024 * 1024 -- WriteVoxels / ReadVoxels region cap (4M)
 Mock.TerrainCalls = {}
+Mock.TerrainFailure = nil -- one-shot { Kind, Error } fault injection
+Mock.ProfileStack = {}
+Mock.ProfileEvents = {}
+local function failTerrainIfRequested(kind)
+	local failure = Mock.TerrainFailure
+	if failure and failure.Kind == kind then
+		Mock.TerrainFailure = nil
+		error(failure.Error, 0)
+	end
+end
 
 local TERRAIN_MATERIALS = {}
 for _, n in
@@ -2039,6 +2049,7 @@ end
 
 classMethods.Terrain = {
 	FillBlock = function(_t, cframe, size, material)
+		failTerrainIfRequested("FillBlock")
 		checkTerrainMaterial(material, "FillBlock")
 		assert(isCF(cframe) and isV3(size), "FillBlock(CFrame, Vector3, Material)")
 		local r = cframe[4]
@@ -2065,6 +2076,7 @@ classMethods.Terrain = {
 		end
 	end,
 	FillBall = function(_t, center, radius, material)
+		failTerrainIfRequested("FillBall")
 		checkTerrainMaterial(material, "FillBall")
 		assert(isV3(center) and type(radius) == "number", "FillBall(Vector3, number, Material)")
 		table.insert(
@@ -3216,8 +3228,14 @@ function Mock.Init(generated, opts)
 		os = mockOs,
 		-- MicroProfiler markers are engine-only; retain CLI debug helpers for stack traces.
 		debug = setmetatable({
-			profilebegin = function(_label) end,
-			profileend = function() end,
+			profilebegin = function(label)
+				table.insert(Mock.ProfileStack, label)
+				table.insert(Mock.ProfileEvents, { Begin = label })
+			end,
+			profileend = function()
+				assert(#Mock.ProfileStack > 0, "unmatched profileend")
+				table.insert(Mock.ProfileEvents, { End = table.remove(Mock.ProfileStack) })
+			end,
 		}, { __index = debug }),
 		typeof = mockTypeof,
 		warn = mockWarn,
