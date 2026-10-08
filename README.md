@@ -42,6 +42,11 @@ every game pass for free. It only works in Studio.
 
 ## 2. Before you publish (needs your account)
 
+> **Status (2026-10-08):** published privately as experience `10769863381`. All game passes and
+> developer products are created and priced, and their ids are in config. Badges 1–5 are live;
+> badges 6–15 still need creating (5 free per day). Remaining: steps 1 (Max Players), 4
+> (badges 6–15), 5–8. See `docs/CHANGELOG.md` → "Store & badges go live".
+
 1. **Publish** the place (File → Publish to Roblox). Set **Max Players = 16** (one shared dig beach).
 2. **Game passes.** Create these in Creator Hub (Monetization → Passes), then paste each id into
    `src/shared/Config/Monetization.luau`. Prices are v2.3 suggestions in the competitor band
@@ -82,8 +87,10 @@ every game pass for free. It only works in Studio.
    are still marked "paid random" (`PaidRandom = true`), because they buy currency that buys
    eggs. Players whose Roblox policy restricts paid random items never see them
    (`Services/PolicyService.luau`).
-4. **Badges.** Create the 10 badges listed in `src/shared/Config/Badges.luau` (the art is in
-   `marketing/badges/`) and paste their ids there.
+4. **Badges.** Create the 15 badges listed in `src/shared/Config/Badges.luau` (the art is in
+   `marketing/badges/`, names and descriptions in `marketing/STORE_PAGE.md` §6) and paste their
+   ids there. Creator Hub allows 5 free badge creations per experience per GMT day.
+   Icons for every pass and product are in `marketing/store/` (see `marketing/README.md`).
 5. **Group.** Create a Roblox group and put its id in `GROUP_ID` in
    `src/shared/Config/init.luau`. That turns on the group sand bonus and the group-only code
    `DIGDEEP`.

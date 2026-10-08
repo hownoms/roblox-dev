@@ -247,6 +247,33 @@ pass also raised the towel fabric to stop it flickering against the sand (a sepa
 | (regression) Boardwalk stalls floating | Round 1's prop lift also applied to props standing on the deck | `Util.Prop(..., onPart = true)` for deck/pier props |
 | Spade still in the default hold on the owner's **R15** avatar (confirmed in Studio: deck, spawn pads, rebirth shrine and sell pad are fixed) | Studio's new diagnostics said every joint was missing: Roblox's **Avatar Joint Upgrade** (`StarterPlayer.AvatarJointUpgrade`) builds characters with `AnimationConstraint` joints, not `Motor6D`s | The pose controller wraps both joint types as one `Joint` (constraint C0/C1 = Attachment0/1.CFrame, same Transform rule), finds joints by name or by the two parts they connect, re-resolves when any joint is replaced, and prints `[ShovelPose] <name>: posing ...` or what is missing in Studio |
 
+## Store & badges go live (2026-10-08)
+First publish to Roblox, plus the second badge wave and art for every store item.
+
+- **Published** as a private experience: **Dig to the Core! Beach Simulator**, experience id
+  `10769863381` (owner account xxLoyalAcExx). Gen AI data sharing is off. Max Players is not set
+  yet (README §2 asks for 16).
+- **Badges, wave 2 (code + art):** Mythic Luck (any Mythic or Relic in the Index), Collector (every
+  non-Relic treasure of one layer), Lost Civilization (Ancient Ruins, 495 m), Beach Regular
+  (7-day daily streak), Core Breaker (10 rebirths). New `BadgeKind`s `FindRarity`,
+  `CompleteLayer` and `DailyStreak`; `BadgeAwardService` now also re-checks on `Index` and
+  `DailyStreak` changes. "Completed layer" excludes Relics, matching the Index panel's count.
+- **Store icons:** `marketing/store/` has a 512x512 icon for each of the 8 passes and
+  6 dev products. They come from `tools/marketing/generate.py store` and use the new emblems in
+  `art.py` (sand pile, bolt, backpack, book, column, calendar, hourglass, gear, fast-forward).
+- **Live ids in config:** badges 1–5 (`Config/Badges.luau`), all 8 passes and all 6 dev products
+  (`Config/Monetization.luau`). Passes and products are on sale at the README §2 prices,
+  Managed Pricing off.
+- **Still to do:** badges 6–15 (Creator Hub allows 5 free badge creations per experience per GMT
+  day, then 100 R$ each), dev product icons in Creator Hub, Max Players = 16, and going public
+  after playtests.
+
+| Problem | Cause | Fix |
+|---|---|---|
+| Badge name became `01_welcome.png` | Creator Hub's badge form fills Name with the image file name a moment after the upload, overwriting typed text | Type the name and description again after the upload, and check before clicking Create |
+| "Place '0' currently has an active Team Create Session" on publish | Publishing over a place is blocked while any Studio window has it open in Team Create, and the session lingers a minute or two after the window closes | Close every Studio window on the published place, wait about 2 minutes, then Retry |
+| Regenerating badges rewrote badges 01–10 | A newer Pillow re-encodes PNGs byte-differently | Only commit art that actually changed; restore the rest with `git checkout` |
+
 ---
 
 ## Standing rules (learned the hard way)

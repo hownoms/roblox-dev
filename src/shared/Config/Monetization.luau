@@ -51,7 +51,7 @@ local rgb = Color3.fromRGB
 local Monetization: Types.MonetizationConfig = {
 	GamePasses = {
 		VIP = {
-			Id = 0,
+			Id = 2018534367,
 			Name = "VIP",
 			Price = 349,
 			-- v2.3: the +25% luck was removed (luck sold for Robux is a paid probability modifier);
@@ -62,7 +62,7 @@ local Monetization: Types.MonetizationConfig = {
 			CoinMultiplier = 1.1,
 		},
 		DoubleSand = {
-			Id = 0,
+			Id = 2019326377,
 			Name = "2x Sand",
 			Price = 399,
 			Description = "Double sand from every single dig. Forever!",
@@ -70,7 +70,7 @@ local Monetization: Types.MonetizationConfig = {
 			SandMultiplier = 2,
 		},
 		SellAnywhere = {
-			Id = 0,
+			Id = 2019386387,
 			Name = "Sell Anywhere",
 			Price = 249,
 			-- v2.2: also earnable for free with the Sell Anywhere rebirth perk (Config.RebirthPerks)
@@ -78,7 +78,7 @@ local Monetization: Types.MonetizationConfig = {
 			Color = rgb(60, 200, 110),
 		},
 		AutoDig = {
-			Id = 0,
+			Id = 2017796369,
 			Name = "Auto Dig",
 			Price = 299,
 			Description = "+1 Pet slot & auto-swing: your character keeps digging by itself.",
@@ -87,7 +87,7 @@ local Monetization: Types.MonetizationConfig = {
 		},
 		-- v2.3: replaces the Lucky Shovel pass (removed: paid luck). Deterministic speed only.
 		FastDig = {
-			Id = 0,
+			Id = 2019320389,
 			Name = "Turbo Shovel",
 			Price = 249,
 			Description = "Dig 25% faster with every shovel. Forever!",
@@ -95,14 +95,14 @@ local Monetization: Types.MonetizationConfig = {
 			SpeedMultiplier = 1.25,
 		},
 		TripleHatch = {
-			Id = 0,
+			Id = 2019608364,
 			Name = "Triple Hatch",
 			Price = 249,
 			Description = "Hatch 3 eggs at once.",
 			Color = rgb(255, 120, 200),
 		},
 		ExtraPets = {
-			Id = 0,
+			Id = 2018012384,
 			Name = "+2 Pet Slots",
 			Price = 349,
 			Description = "Equip 2 more pets at the same time.",
@@ -110,7 +110,7 @@ local Monetization: Types.MonetizationConfig = {
 			ExtraPetSlots = 2,
 		},
 		MegaBackpack = {
-			Id = 0,
+			Id = 2017934384,
 			Name = "Mega Backpack",
 			Price = 299,
 			Description = "2x backpack capacity on every backpack. Fewer trips, more digging!",
@@ -121,7 +121,7 @@ local Monetization: Types.MonetizationConfig = {
 
 	Products = {
 		CoinsSmall = {
-			Id = 0,
+			Id = 3717251713,
 			Name = "Pile of Coins",
 			Price = 49,
 			Description = "5 minutes worth of coins at your deepest layer.",
@@ -129,7 +129,7 @@ local Monetization: Types.MonetizationConfig = {
 			PaidRandom = true,
 		},
 		CoinsMedium = {
-			Id = 0,
+			Id = 3717251822,
 			Name = "Bag of Coins",
 			Price = 149,
 			Description = "25 minutes worth of coins at your deepest layer.",
@@ -137,7 +137,7 @@ local Monetization: Types.MonetizationConfig = {
 			PaidRandom = true,
 		},
 		CoinsLarge = {
-			Id = 0,
+			Id = 3717251873,
 			Name = "Chest of Coins",
 			Price = 399,
 			Description = "2 hours worth of coins at your deepest layer.",
@@ -145,7 +145,7 @@ local Monetization: Types.MonetizationConfig = {
 			PaidRandom = true,
 		},
 		CoinsHuge = {
-			Id = 0,
+			Id = 3717251948,
 			Name = "Sunken Ship of Coins",
 			Price = 999,
 			Description = "6 hours worth of coins at your deepest layer!",
@@ -153,14 +153,14 @@ local Monetization: Types.MonetizationConfig = {
 			PaidRandom = true,
 		},
 		SandBoost15 = {
-			Id = 0,
+			Id = 3717252005,
 			Name = "2x Sand (15 min)",
 			Price = 49,
 			Description = "Double sand for 15 minutes. Stacks time.",
 			Grant = { Boost = "SandBoost", BoostSeconds = 900 },
 		},
 		SkipRebirth = {
-			Id = 0,
+			Id = 3717252052,
 			Name = "Skip Rebirth",
 			Price = 199,
 			Description = "Rebirth right now without paying the coin cost.",
