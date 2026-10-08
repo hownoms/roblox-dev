@@ -3214,6 +3214,11 @@ function Mock.Init(generated, opts)
 		require = mockRequire,
 		task = task,
 		os = mockOs,
+		-- MicroProfiler markers are engine-only; retain CLI debug helpers for stack traces.
+		debug = setmetatable({
+			profilebegin = function(_label) end,
+			profileend = function() end,
+		}, { __index = debug }),
 		typeof = mockTypeof,
 		warn = mockWarn,
 		print = mockPrint,

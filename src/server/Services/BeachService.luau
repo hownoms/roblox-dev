@@ -140,7 +140,9 @@ local function refillCell(cell: Cell, force: boolean): boolean
 		end
 		liftFromCell(cell)
 		local top = math.min(S, y + CHUNK)
+		debug.profilebegin("DigTheBeach.Tide.FillChunk")
 		World.FillLayered(Vector3.new(x0, y, z0), Vector3.new(x0 + CELL, top, z0 + CELL))
+		debug.profileend()
 		if cell.Version == version then
 			cell.Deepest = math.max(0, S - top)
 		end
