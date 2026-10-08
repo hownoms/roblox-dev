@@ -2817,6 +2817,18 @@ step("stress", function()
 	end
 	check(pets == 3, "each bot has 3 digging pets")
 	check(bot and bot:FindFirstChild("DigBurst", true) ~= nil, "fx: particle stream on bots")
+	local markerStart = #Mock.ProfileEvents
+	Mock.TerrainFailure = { Kind = "FillBlock", Error = "mock profiled stress terrain failure" }
+	Mock.Advance(0.6)
+	check(Mock.TerrainFailure == nil, "stress path exercised injected FillBlock failure")
+	check(#Mock.ProfileStack == 0, "caught stress terrain error leaves no open profiler scopes")
+	local sawFill, sawBotEnd = false, false
+	for i = markerStart + 1, #Mock.ProfileEvents do
+		local event = Mock.ProfileEvents[i]
+		sawFill = sawFill or event.End == "DigTheBeach.Dig.FillBlock"
+		sawBotEnd = sawBotEnd or event.End == "DigTheBeach.Stress.BotStep"
+	end
+	check(sawFill and sawBotEnd, "failed terrain scope and enclosing stress scope both close")
 	Mock.Advance(3)
 	local stats = DevCommands.GetStressStats()
 	check(stats.Bots == 3 and stats.Attempts > 20, "bots dig at the shovel rate (" .. stats.Attempts .. " attempts in 3 s)")
@@ -2828,6 +2840,25 @@ step("stress", function()
 	check(summary ~= nil and string.find(summary, "digs/s", 1, true) ~= nil and string.find(summary, "heartbeat", 1, true) ~= nil, "summary line: " .. tostring(summary))
 	check(workspace:FindFirstChild("StressBots") == nil, "/stress stop removes the bots")
 	check(DevCommands.StopStress() == nil, "stop twice is harmless")
+	-- A directly caught dent failure retains the original thrown value.
+	Mock.Advance(1)
+	DataService.Set(sp, "Sand", 0)
+	local at = zc + Vector3.new(20, 0, 20)
+	local originalError = { Message = "mock profiled dent failure" }
+	Mock.TerrainFailure = { Kind = "FillBall", Error = originalError }
+	local ok, err = pcall(DigService.DigAt, sp, at, {
+		Power = 1e6, Radius = 2, SandMultiplier = 1, Source = "Ride", Origin = at, Silent = true,
+	})
+	check(not ok and err == originalError and Mock.TerrainFailure == nil, "dent failure preserves original thrown error")
+	check(#Mock.ProfileStack == 0, "dent failure closes profiler scope before propagating")
+
+	-- Tide catches layered-fill failures and can continue without a leaked marker.
+	BeachService.RecordCarve(at - Vector3.new(4, 12, 4), at + Vector3.new(4, 0, 4))
+	Mock.TerrainFailure = { Kind = "FillBlock", Error = "mock profiled tide terrain failure" }
+	BeachService.TideStep(true)
+	check(Mock.TerrainFailure == nil, "tide layered fill exercised injected terrain failure")
+	check(#Mock.ProfileStack == 0, "caught tide terrain error leaves no open profiler scopes")
+	BeachService.TideStep(true)
 	Mock.RemovePlayer(sp)
 	Mock.Advance(1)
 	check(#Mock.Errors == e0, "no errors during /stress")
@@ -3322,6 +3353,7 @@ check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))
 local unexpected = {}
 local EXPECTED_WARNINGS = {
+	"mock profiled tide terrain failure", -- caught tide terrain failure regression
 	"receipt for unknown product id 4242", -- provoked above
 	"Studio has no DataStore access", -- studio mode only
 	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"

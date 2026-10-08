@@ -141,8 +141,11 @@ local function carveDent(target: Vector3): (Vector3, Vector3)
 		math.clamp(target.Z, ZONE_CENTER.Z - ZONE_HALF_Z + margin, ZONE_CENTER.Z + ZONE_HALF_Z - margin)
 	)
 	debug.profilebegin("DigTheBeach.Dig.FillBall")
-	terrain:FillBall(center, r, Enum.Material.Air)
+	local ok, err = pcall(terrain.FillBall, terrain, center, r, Enum.Material.Air)
 	debug.profileend()
+	if not ok then
+		error(err, 0)
+	end
 	local half = Vector3.new(r, r, r)
 	local max = center + half
 	return center - half, Vector3.new(max.X, math.min(max.Y, S), max.Z)
@@ -170,8 +173,11 @@ local function carve(target: Vector3, radius: number): (Vector3, Vector3)
 	local clearTop = if max.Y >= S then S + VOXEL else max.Y
 	local box = Vector3.new(size.X, clearTop - min.Y, size.Z)
 	debug.profilebegin("DigTheBeach.Dig.FillBlock")
-	terrain:FillBlock(CFrame.new(min + box / 2), box, Enum.Material.Air)
+	local ok, err = pcall(terrain.FillBlock, terrain, CFrame.new(min + box / 2), box, Enum.Material.Air)
 	debug.profileend()
+	if not ok then
+		error(err, 0)
+	end
 	return min, Vector3.new(max.X, math.min(max.Y, S), max.Z)
 end
 
