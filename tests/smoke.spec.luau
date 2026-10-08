@@ -3265,7 +3265,7 @@ do
 	check(#report.Blocking == 0, "no blocking launch issues in the repo config")
 	local text = LaunchCheck.Format(report)
 	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
-	check(string.find(text, "Badge ids (10)", 1, true) ~= nil, "launch check lists unset badge ids")
+	check(string.find(text, "Badge ids (" .. #Config.Badges .. ")", 1, true) ~= nil, "launch check lists unset badge ids")
 	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
 	MonetizationService.STUDIO_GRANT_ALL_PASSES = true
 	check(#LaunchCheck.Report().Blocking == 1, "Studio grant-all switch is blocking")
