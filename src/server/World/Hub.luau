@@ -346,7 +346,17 @@ local function buildEggs(parent: Instance)
 		local bb = Instance.new("BillboardGui")
 		bb.Name = "EggInfo"
 		bb.Size = UDim2.fromScale(6, 2.4)
-		bb.StudsOffsetWorldSpace = Vector3.new(0, 8.5, 0)
+		-- Anchor to an unrotated attachment above the pedestal, not the pedestal itself: the
+		-- pedestal is a cylinder rotated 90° about Z, and its rotation turned the billboard's
+		-- "+Y" offset sideways, so the labels sat at pedestal-centre height in the sand, next to
+		-- the wrong eggs. Pedestals are ~4.6 studs apart and labels 6 wide, so every other one is
+		-- raised by more than a label's height to keep neighbours from overlapping.
+		local anchor = Instance.new("Attachment")
+		anchor.Name = "EggInfoAnchor"
+		anchor.Parent = pedestal
+		local labelHeight = if i % 2 == 0 then 10.6 else 8
+		anchor.Position = pedestal.CFrame:PointToObjectSpace(pedestal.Position + Vector3.new(0, labelHeight, 0))
+		bb.Adornee = anchor
 		bb.MaxDistance = 40
 		bb.LightInfluence = 0
 		bb.Parent = pedestal

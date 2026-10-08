@@ -2,7 +2,7 @@
 Generate all marketing art for "Dig to the Core! Beach Simulator".
 
     python3 tools/marketing/generate.py            # everything
-    python3 tools/marketing/generate.py icon thumbs # subsets: icon thumbs social badges
+    python3 tools/marketing/generate.py icon thumbs # subsets: icon thumbs social badges store
 
 Outputs go to marketing/ (see marketing/README.md). Deterministic: same seed -> same art.
 """
@@ -509,6 +509,12 @@ BADGES = [
     ("08_alien_hive", A.pet_alien, (120, 255, 150), (40, 90, 60), "780 m"),
     ("09_the_core", A.tr_core, (255, 220, 80), (255, 120, 30), "THE CORE!"),
     ("10_first_rebirth", A.tr_rebirth, (120, 255, 200), (90, 50, 180), "REBIRTH"),
+    # wave 2 (Config/Badges.luau keys MythicLuck, Collector, AncientRuins, BeachRegular, CoreBreaker)
+    ("11_mythic_luck", A.tr_rainbow_diamond, (255, 70, 120), (120, 40, 160), "MYTHIC!"),
+    ("12_collector", A.tr_book, (255, 205, 40), (60, 120, 220), "COLLECTOR"),
+    ("13_ancient_ruins", A.tr_column, (230, 210, 160), LAYERS[10][1], "495 m"),
+    ("14_beach_regular", A.tr_calendar, (255, 120, 90), (90, 200, 255), "7 DAYS"),
+    ("15_core_breaker", A.tr_core, (255, 90, 40), (60, 20, 90), "10 REBIRTHS"),
 ]
 
 
@@ -537,9 +543,64 @@ def badge(emblem, ring, bg, ribbon) -> Image.Image:
     return c.final()
 
 
+# ============================================================ store icons (game passes & dev products)
+# 512x512 for Creator Hub -> Monetization. Square art, but everything important sits inside the
+# centre circle so it still reads when Roblox shows the icon round.
+def _coins(n):
+    spots = [(0, 30), (-70, 50), (70, 50), (-35, -10), (35, -10), (0, -60)][:n]
+    return [(lambda cc: A.tr_coin(cc), 150, 256 + x, 230 + y, (x * 0.2)) for x, y in reversed(spots)]
+
+
+STORE = [
+    # file, colour (Config/Monetization Color), ribbon, emblems [(fn, size, x, y, rot)]
+    ("pass_vip", (255, 200, 40), "VIP", [(A.tr_crown, 280, 256, 225, -6)]),
+    ("pass_2x_sand", (255, 170, 40), "2x SAND", [(A.tr_sand_pile, 270, 256, 240, 0)], "x2"),
+    ("pass_sell_anywhere", (60, 200, 110), "SELL ANYWHERE",
+     [(A.tr_sand_pile, 190, 190, 255, 0), (A.tr_coin, 170, 330, 205, 12)]),
+    ("pass_auto_dig", (60, 170, 255), "AUTO DIG",
+     [(A.tr_gear, 200, 320, 280, 0), (A.tr_shovel, 260, 220, 215, -25)]),
+    ("pass_turbo_shovel", (60, 190, 255), "TURBO",
+     [(A.tr_shovel, 260, 230, 225, -25), (A.tr_bolt, 170, 340, 190, 10)]),
+    ("pass_triple_hatch", (255, 120, 200), "TRIPLE HATCH",
+     [(A.tr_egg, 150, 150, 250, -12), (A.tr_egg, 150, 362, 250, 12), (A.tr_egg, 175, 256, 215, 0)]),
+    ("pass_extra_pets", (180, 100, 255), "+2 PETS",
+     [(A.pet_seal, 180, 160, 250, 0), (A.pet_crab, 180, 350, 250, 0)], "+2"),
+    ("pass_mega_backpack", (255, 120, 60), "MEGA PACK", [(A.tr_backpack, 270, 256, 225, -4)], "x2"),
+    ("product_coins_small", (255, 205, 40), "PILE", _coins(1)),
+    ("product_coins_medium", (255, 205, 40), "BAG", _coins(3)),
+    ("product_coins_large", (255, 205, 40), "CHEST",
+     [(A.tr_chest, 270, 256, 240, 0), (A.tr_coin, 110, 160, 150, -15), (A.tr_coin, 110, 350, 140, 15)]),
+    ("product_coins_huge", (60, 140, 220), "SUNKEN SHIP",
+     [(A.tr_anchor, 200, 170, 220, -15), (A.tr_chest, 230, 300, 255, 0), (A.tr_coin, 100, 360, 135, 15)]),
+    ("product_2x_sand_15m", (255, 170, 40), "15 MIN",
+     [(A.tr_sand_pile, 220, 210, 250, 0), (A.tr_hourglass, 150, 350, 205, 10)], "x2"),
+    ("product_skip_rebirth", (120, 255, 200), "SKIP REBIRTH",
+     [(A.tr_rebirth, 230, 225, 225, 0), (A.tr_fast_forward, 120, 360, 280, 0)]),
+]
+
+
+def store_icon(col, ribbon, emblems, sticker=None) -> Image.Image:
+    S = 512
+    c = Canvas(S, S, s=2)
+    bg = A.rgradient(S * 2, S * 2, 256 * 2, 220 * 2, 360 * 2, rgba(lighten(col, .3)), rgba(darken(col, .45)), 1)
+    c.over(bg)
+    A.sunburst(c, 256, 230, 14, 380, (255, 255, 255), 28)
+    c.glow(256, 230, 200, (255, 255, 230), 140, 1.4)
+    for fn, size, x, y, rot in emblems:
+        c.paste(sprite(fn, size, outline=11), x, y, rot=rot)
+    if sticker:
+        st = title_text(sticker, 92, rot=12)
+        c.paste(st, 395, 110)
+    lab = pill_label(ribbon, 50, bg=darken(col, .15) if sum(col) < 560 else (255, 90, 80))
+    if lab.width > 400 * 2:
+        lab = lab.resize((400 * 2, int(lab.height * 400 * 2 / lab.width)), Image.LANCZOS)
+    c.paste(lab, 256, 410)
+    return c.final()
+
+
 # ============================================================ main
 def main(argv):
-    which = set(argv) or {"icon", "thumbs", "social", "badges"}
+    which = set(argv) or {"icon", "thumbs", "social", "badges", "store"}
     if "thumbs" in which or "t1" in which:
         save(thumb_hero(), "thumbnails/thumb_1.png")
     if "thumbs" in which or "t2" in which:
@@ -557,6 +618,9 @@ def main(argv):
     if "badges" in which:
         for name, emblem, ring, bg, ribbon in BADGES:
             save_rgba(badge(emblem, ring, bg, ribbon), f"badges/{name}.png")
+    if "store" in which:
+        for name, col, ribbon, emblems, *sticker in STORE:
+            save(store_icon(col, ribbon, emblems, *sticker), f"store/{name}.png")
 
 
 if __name__ == "__main__":

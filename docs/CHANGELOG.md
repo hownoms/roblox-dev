@@ -255,6 +255,44 @@ the sell pad still sells; Eggs / Crates tabs work.
 excavation minigame, Reduced Motion, the server dig goal with several players, streaming at the
 far ends of the beach, the R6 spade pose.
 
+## Store & badges go live (2026-10-08)
+First publish to Roblox, plus the second badge wave and art for every store item.
+
+- **Published** as a private experience: **Dig to the Core! Beach Simulator**, experience id
+  `10769863381` (owner account xxLoyalAcExx). Gen AI data sharing is off. Max Players is not set
+  yet (README §2 asks for 16).
+- **Badges, wave 2 (code + art):** Mythic Luck (any Mythic or Relic in the Index), Collector (every
+  non-Relic treasure of one layer), Lost Civilization (Ancient Ruins, 495 m), Beach Regular
+  (7-day daily streak), Core Breaker (10 rebirths). New `BadgeKind`s `FindRarity`,
+  `CompleteLayer` and `DailyStreak`; `BadgeAwardService` now also re-checks on `Index` and
+  `DailyStreak` changes. "Completed layer" excludes Relics, matching the Index panel's count.
+- **Store icons:** `marketing/store/` has a 512x512 icon for each of the 8 passes and
+  6 dev products. They come from `tools/marketing/generate.py store` and use the new emblems in
+  `art.py` (sand pile, bolt, backpack, book, column, calendar, hourglass, gear, fast-forward).
+- **Live ids in config:** badges 1–5 (`Config/Badges.luau`), all 8 passes and all 6 dev products
+  (`Config/Monetization.luau`). Passes and products are on sale at the README §2 prices,
+  Managed Pricing off.
+- **Playtest access (done):** RazorWolf4 is a collaborator with **Playtest** permission only
+  (Studio → Manage Collaborators; it defaults to Edit, so change it). The owner completed the
+  maturity questionnaire, and the audience is **Limited → Playtesters** with Friends unticked (it
+  defaults on and would admit all of the owner's friends). Limited would not save until the
+  maturity label existed. Game link: https://www.roblox.com/games/135511260983800 (start place
+  `135511260983800`). Saves from this test share the experience's DataStore with the future
+  public game; see `docs/LIMITED_PLAYTEST.md` before launch.
+- **Republished from the merged branch** (PR #21, merge `1f56b30`), so the live place includes the
+  Codex PRs #15–#20 as well as this work.
+- **Still to do:** badges 6–15 (Creator Hub allows 5 free badge creations per experience per GMT
+  day, then 100 R$ each), dev product icons in Creator Hub, Max Players = 16, and going public
+  after playtests.
+
+| Problem | Cause | Fix |
+|---|---|---|
+| Badge name became `01_welcome.png` | Creator Hub's badge form fills Name with the image file name a moment after the upload, overwriting typed text | Type the name and description again after the upload, and check before clicking Create |
+| "Place '0' currently has an active Team Create Session" on publish | Publishing over a place is blocked while any Studio window has it open in Team Create, and the session lingers a minute or two after the window closes | Close every Studio window on the published place, wait about 2 minutes, then Retry |
+| Headless tests assume an unconfigured store ("no prompt for id 0") | Config now holds the live ids | `smoke.spec` and `client.spec` zero every pass, product and badge id before boot; tests that need ids still set their own test ids |
+| (playtest) Pet egg labels sat on the sand, next to the wrong eggs | The `EggInfo` billboards were parented to the pedestal, a cylinder rotated 90° about Z; that rotation turned their "+Y" `StudsOffsetWorldSpace` sideways, so labels sat at pedestal-centre height beside the arc. (PR #23 only made them `AlwaysOnTop`, which drew the misplaced labels over everything.) | Each billboard is adorned to an `EggInfoAnchor` attachment placed straight above its pedestal; `AlwaysOnTop` is off again; alternate labels at +8 / +10.6 so neighbours don't overlap. Verified in Studio Play from the sign, the playtest viewpoint |
+| Regenerating badges rewrote badges 01–10 | A newer Pillow re-encodes PNGs byte-differently | Only commit art that actually changed; restore the rest with `git checkout` |
+
 ---
 
 ## Standing rules (learned the hard way)

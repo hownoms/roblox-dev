@@ -85,6 +85,18 @@ end
 -- Boot --------------------------------------------------------------------------------------------
 section("boot")
 local byPath = Mock.ByPath
+local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+-- Config holds the owner's live Creator Hub ids; these specs start from "nothing configured"
+-- and set test ids where they need them.
+for _, pass in Config.Monetization.GamePasses do
+	pass.Id = 0
+end
+for _, product in Config.Monetization.Products do
+	product.Id = 0
+end
+for _, badge in Config.Badges do
+	badge.Id = 0
+end
 local main = byPath["ServerScriptService/Server/Main"]
 assert(main, "Main script missing")
 Mock.RunScript(main)
@@ -92,7 +104,6 @@ Mock.Advance(1)
 check(#Mock.Errors == 0, "no errors during boot")
 
 local Shared = byPath["ReplicatedStorage/Shared"]
-local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
 local DataService = Mock.Require(byPath["ServerScriptService/Server/Services/DataService"])
 local BeachService = Mock.Require(byPath["ServerScriptService/Server/Services/BeachService"])
 local DigService = Mock.Require(byPath["ServerScriptService/Server/Services/DigService"])
@@ -3254,7 +3265,7 @@ do
 	check(#report.Blocking == 0, "no blocking launch issues in the repo config")
 	local text = LaunchCheck.Format(report)
 	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
-	check(string.find(text, "Badge ids (10)", 1, true) ~= nil, "launch check lists unset badge ids")
+	check(string.find(text, "Badge ids (" .. #Config.Badges .. ")", 1, true) ~= nil, "launch check lists unset badge ids")
 	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
 	MonetizationService.STUDIO_GRANT_ALL_PASSES = true
 	check(#LaunchCheck.Report().Blocking == 1, "Studio grant-all switch is blocking")

@@ -47,6 +47,17 @@ local function sent(name, since)
 end
 
 local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+-- Config holds the owner's live Creator Hub ids; these specs start from "nothing configured"
+-- and set test ids where they need them.
+for _, pass in Config.Monetization.GamePasses do
+	pass.Id = 0
+end
+for _, product in Config.Monetization.Products do
+	product.Id = 0
+end
+for _, badge in Config.Badges do
+	badge.Id = 0
+end
 
 -- "Server" side ---------------------------------------------------------------------------------
 section("world + remotes")

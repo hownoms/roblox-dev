@@ -1101,3 +1101,85 @@ def tr_egg_top(c: Canvas, col=(255, 215, 60), spots=(255, 150, 40)):
 def tr_arrow_down(c: Canvas, col=(255, 90, 60)):
     c.poly([(65, 10), (135, 10), (135, 100), (185, 100), (100, 192), (15, 100), (65, 100)], col, STROKE, 7)
     c.poly([(75, 18), (100, 18), (100, 108), (40, 108)], lighten(col, .3), None)
+
+
+# ---------------------------------------------------------------- store & wave-2 badge emblems
+def tr_sand_pile(c: Canvas, col=SAND):
+    c.poly([(10, 175), (40, 110), (75, 70), (100, 55), (125, 70), (160, 110), (190, 175)], col, STROKE, 6)
+    c.poly([(40, 175), (70, 120), (100, 95), (130, 120), (160, 175)], lighten(col, .25))
+    for (x, y, r) in ((60, 150, 5), (100, 130, 6), (140, 155, 5), (85, 165, 4), (120, 100, 4)):
+        c.circle(x, y, r, darken(col, .2))
+    c.rrect((10, 168, 190, 188), 10, darken(col, .1), STROKE, 6)
+
+
+def tr_bolt(c: Canvas, col=(255, 230, 60)):
+    pts = [(120, 5), (40, 110), (95, 110), (70, 195), (165, 75), (108, 75), (140, 5)]
+    c.poly(pts, col, STROKE, 7)
+    c.poly([(118, 20), (62, 100), (85, 100)], lighten(col, .5))
+
+
+def tr_backpack(c: Canvas, body=(255, 120, 60), pocket=(255, 190, 70)):
+    c.d.arc(c.B((60, 5, 140, 75)), 180, 360, fill=rgba(STROKE), width=c.W(24))
+    c.d.arc(c.B((60, 5, 140, 75)), 180, 360, fill=rgba(darken(body, .25)), width=c.W(12))
+    c.rrect((30, 40, 170, 190), 40, body, STROKE, 7)
+    c.rrect((50, 110, 150, 175), 18, pocket, STROKE, 5)
+    c.line([(60, 128), (140, 128)], STROKE, 5)
+    c.rrect((90, 120, 110, 140), 5, GOLD, STROKE, 3)
+    shine(c, (48, 52, 95, 85), 140)
+
+
+def tr_book(c: Canvas, cover=(70, 150, 255), pages=(255, 248, 225)):
+    c.rrect((25, 30, 180, 185), 16, darken(cover, .3), STROKE, 7)
+    c.rrect((35, 40, 178, 172), 10, pages, STROKE, 4)
+    c.rrect((20, 20, 165, 172), 16, cover, STROKE, 7)
+    c.rrect((32, 20, 48, 172), 4, darken(cover, .2))
+    c.circle(105, 92, 38, GOLD, STROKE, 5)
+    c.poly([(105, 66), (114, 85), (134, 88), (119, 101), (123, 121), (105, 111), (87, 121), (91, 101),
+            (76, 88), (96, 85)], WHITE)
+    shine(c, (60, 30, 140, 50), 120)
+
+
+def tr_column(c: Canvas, stone=(225, 205, 160)):
+    c.rrect((30, 20, 170, 50), 8, stone, STROKE, 6)
+    c.rrect((45, 50, 155, 165), 4, lighten(stone, .1), STROKE, 6)
+    for x in (68, 92, 116, 140):
+        c.line([(x - 6, 58), (x - 6, 158)], darken(stone, .18), 7)
+    c.poly([(120, 50), (135, 95), (125, 120), (140, 165), (155, 165), (155, 50)], darken(stone, .12))
+    c.rrect((20, 165, 180, 192), 8, darken(stone, .1), STROKE, 6)
+    c.line([(50, 50), (75, 90), (65, 120)], STROKE, 4)
+
+
+def tr_calendar(c: Canvas, head=(255, 90, 80), num="7"):
+    c.rrect((20, 30, 180, 190), 22, WHITE, STROKE, 7)
+    c.rrect((20, 30, 180, 80), 22, head, None)
+    c.rrect((20, 58, 180, 80), 0, head, None)
+    for x in (60, 140):
+        c.rrect((x - 9, 10, x + 9, 52), 9, (200, 205, 220), STROKE, 5)
+    c.d.text((100 * c.s, 138 * c.s), num, font=font("title", int(95 * c.s)), anchor="mm", fill=rgba(head),
+             stroke_width=int(6 * c.s), stroke_fill=rgba(STROKE))
+
+
+def tr_hourglass(c: Canvas, glass=(200, 240, 255), wood=(170, 105, 50)):
+    c.poly([(45, 30), (155, 30), (110, 100), (155, 170), (45, 170), (90, 100)], glass, STROKE, 6)
+    c.poly([(70, 140), (130, 140), (150, 168), (50, 168)], SAND)
+    c.poly([(62, 45), (138, 45), (104, 88), (96, 88)], SAND)
+    c.line([(100, 88), (100, 140)], SAND, 5)
+    c.rrect((25, 12, 175, 34), 8, wood, STROKE, 6)
+    c.rrect((25, 166, 175, 188), 8, wood, STROKE, 6)
+
+
+def tr_gear(c: Canvas, col=(150, 165, 190)):
+    teeth = []
+    for i in range(16):
+        a = i * math.pi / 8
+        r = 92 if i % 2 == 0 else 72
+        for da in (-0.17, 0.17):
+            teeth.append((100 + r * math.cos(a + da), 100 + r * math.sin(a + da)))
+    c.poly(teeth, col, STROKE, 6)
+    c.circle(100, 100, 30, darken(col, .3), STROKE, 6)
+
+
+def tr_fast_forward(c: Canvas, col=(120, 255, 200)):
+    c.poly([(15, 30), (100, 100), (15, 170)], col, STROKE, 7)
+    c.poly([(95, 30), (185, 100), (95, 170)], col, STROKE, 7)
+    c.poly([(30, 55), (70, 88), (30, 90)], lighten(col, .5))
