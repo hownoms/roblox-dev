@@ -43,7 +43,8 @@ every game pass for free. It only works in Studio.
 
 ## 2. Before you publish (needs your account)
 
-> **Status (2026-10-08):** published privately as experience `10769863381`. All game passes and
+> **Status (2026-10-08):** published as experience `10769863381`, audience **Limited →
+> Playtesters** (tester: RazorWolf4, Playtest permission). All game passes and
 > developer products are created and priced, and their ids are in config. Badges 1–5 are live;
 > badges 6–15 still need creating (5 free per day). Remaining: steps 1 (Max Players), 4
 > (badges 6–15), 5–8. See `docs/CHANGELOG.md` → "Store & badges go live".

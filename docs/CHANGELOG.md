@@ -272,12 +272,15 @@ First publish to Roblox, plus the second badge wave and art for every store item
 - **Live ids in config:** badges 1–5 (`Config/Badges.luau`), all 8 passes and all 6 dev products
   (`Config/Monetization.luau`). Passes and products are on sale at the README §2 prices,
   Managed Pricing off.
-- **Playtest access (requested for RazorWolf4):** Creator Hub → Configure → Audience → Limited →
-  **Playtesters** only (untick Friends, which would admit all of the owner's friends). Saving is
-  refused until the experience has a content maturity label (Configure → "Add label", the
-  Experience Questionnaire; expected answers in `marketing/STORE_PAGE.md`), which the owner must
-  answer. Then add the tester with **Play** permission (Studio → Collaborate, or Creator Hub →
-  Collaborators). See `docs/LIMITED_PLAYTEST.md` for the full route.
+- **Playtest access (done):** RazorWolf4 is a collaborator with **Playtest** permission only
+  (Studio → Manage Collaborators; it defaults to Edit, so change it). The owner completed the
+  maturity questionnaire, and the audience is **Limited → Playtesters** with Friends unticked (it
+  defaults on and would admit all of the owner's friends). Limited would not save until the
+  maturity label existed. Game link: https://www.roblox.com/games/135511260983800 (start place
+  `135511260983800`). Saves from this test share the experience's DataStore with the future
+  public game; see `docs/LIMITED_PLAYTEST.md` before launch.
+- **Republished from the merged branch** (PR #21, merge `1f56b30`), so the live place includes the
+  Codex PRs #15–#20 as well as this work.
 - **Still to do:** badges 6–15 (Creator Hub allows 5 free badge creations per experience per GMT
   day, then 100 R$ each), dev product icons in Creator Hub, Max Players = 16, and going public
   after playtests.
