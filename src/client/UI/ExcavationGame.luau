@@ -23,6 +23,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Finds = require(Shared:WaitForChild("Util"):WaitForChild("Finds"))
 
 local Root = require(script.Parent.Root)
+local Toasts = require(script.Parent.Toasts)
 local Style = require(script.Parent.Components.Style)
 local SoundController = require(script.Parent.Parent.Controllers.SoundController)
 local DiscoveryController = require(script.Parent.Parent.Controllers.DiscoveryController)
@@ -51,10 +52,12 @@ type UiRefs = {
 	Ring: Frame,
 	RingStroke: UIStroke,
 	Target: Frame,
+	Cue: TextLabel,
 	Grade: TextLabel,
 	Dots: { Frame },
 }
 local gui: UiRefs? = nil
+local retiring: { [string]: TextButton } = {}
 local initialized = false
 
 local function targetTime(g: Game, ring: number): number
@@ -82,8 +85,11 @@ local function showGrade(ring: number, grade: string)
 		return
 	end
 	local ui = maybeUi :: UiRefs
-	ui.Grade.Text = if grade == "Perfect" then "PERFECT!" elseif grade == "Good" then "GOOD!" else "MISS"
+	local result = if grade == "Perfect" then "PERFECT!" elseif grade == "Good" then "GOOD!" else "MISS"
+	ui.Grade.Text = string.format("%d/%d: %s", ring, #ui.Dots, result)
 	ui.Grade.TextColor3 = GRADE_COLORS[grade]
+	ui.Cue.Text = ""
+	ui.Ring.Visible = false
 	Style.Pop(ui.Grade, 0.35)
 	local dot = ui.Dots[ring]
 	if dot then
@@ -92,15 +98,39 @@ local function showGrade(ring: number, grade: string)
 end
 
 local function teardown()
+	-- Keep notices clear until the final grade actually leaves the screen.
+	task.delay(0.6, function()
+		if not ExcavationGame.IsActive() then
+			Toasts.SetExcavating(false)
+		end
+	end)
 	local ui = gui
 	gui = nil
 	if ui then
 		local root = ui.Root
+		local id = if session then session.Info.Id else ""
+		retiring[id] = root
 		task.delay(0.6, function()
+			if retiring[id] == root then
+				retiring[id] = nil
+			end
 			root:Destroy()
 		end)
 	end
 	DigController.Enabled = true
+end
+
+-- The confirmed reward takes over the screen, even if the final grade is still retiring.
+function ExcavationGame.DismissForReveal(id: string)
+	if session and session.Info.Id == id and not session.Done then
+		session.Done = true
+		teardown()
+	end
+	local root = retiring[id]
+	if root then
+		retiring[id] = nil
+		root:Destroy()
+	end
 end
 
 local function finish(g: Game)
@@ -182,6 +212,9 @@ function ExcavationGame.Step(nowArg: number?)
 		ui.Ring.Visible = visible
 		local close = math.abs(t - now) <= g.Info.GoodWindow
 		ui.RingStroke.Color = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
+		-- The numbered result stays readable while the centre cues the next attempt.
+		ui.Cue.Text = if visible then (if close then "TAP!" else "WAIT...") elseif #g.Errors == 0 then "READY..." else ""
+		ui.Cue.TextColor3 = if close then GRADE_COLORS.Perfect else Color3.new(1, 1, 1)
 	end
 end
 
@@ -247,14 +280,25 @@ local function build(info: Types.ExcavationInfo)
 	Style.Corner(ring, UDim.new(1, 0))
 	local ringStroke = Style.Stroke(ring, Color3.new(1, 1, 1), 8)
 
-	local grade = Style.Label({
-		Name = "Grade",
+	local cue = Style.Label({
+		Name = "Cue",
 		Text = "READY...",
 		Size = UDim2.fromOffset(TARGET + 60, 50),
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		MaxTextSize = 40,
 		StrokeThickness = 4,
+		ZIndex = 54,
+		Parent = overlay,
+	})
+	local grade = Style.Label({
+		Name = "Grade",
+		Text = "",
+		Size = UDim2.fromOffset(300, 42),
+		Position = UDim2.new(0.5, 0, 0.5, 125),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		MaxTextSize = 28,
+		StrokeThickness = 3,
 		ZIndex = 54,
 		Parent = overlay,
 	})
@@ -285,7 +329,8 @@ local function build(info: Types.ExcavationInfo)
 	overlay.Activated:Connect(function()
 		ExcavationGame.Tap()
 	end)
-	gui = { Root = overlay, Ring = ring, RingStroke = ringStroke, Target = target, Grade = grade, Dots = dots }
+	gui =
+		{ Root = overlay, Ring = ring, RingStroke = ringStroke, Target = target, Cue = cue, Grade = grade, Dots = dots }
 end
 
 -- Starts the minigame for a server ExcavationStart. `now` lets tests pin the clock.
@@ -307,6 +352,7 @@ function ExcavationGame.Start(info: Types.ExcavationInfo, nowArg: number?, headl
 	}
 	session = { Info = safe, StartAt = nowArg or os.clock(), Errors = {}, Done = false }
 	DigController.Enabled = false
+	Toasts.SetExcavating(true)
 	if not headless then
 		build(safe)
 	end

@@ -180,7 +180,7 @@ heads.Trident = function(m, c, mat, look, hb)
 end
 
 heads.Drill = function(m, c, mat, look, hb)
-	local housing = Build.cyl(m, "Housing", 0.5, 0.9, CFrame.new(0, hb + 0.2, 0), look.HandleColor)
+	local housing = Build.cyl(m, "Housing", 0.8, 0.9, CFrame.new(0, hb + 0.35, 0), look.HandleColor)
 	local ac, am = accent(look)
 	local tiers = { 1.0, 0.8, 0.6, 0.4 }
 	for i, d in tiers do

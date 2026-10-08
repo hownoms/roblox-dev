@@ -67,7 +67,9 @@ group name, Discord, video titles and ad copy, because Roblox search matches all
 - **Genre:** Simulation
 - **Subgenre:** Incremental Simulator. This is where Pet Sim, Mining Sim and Dig It sit, which helps
   the "similar experiences" recommendations.
-- Devices: Phone, Tablet, Computer, Console. VR off. Server size 12 (= plots).
+- Devices: Phone, Tablet, Computer, Console. VR off. Verify the configured server maximum
+  in Creator Hub; the shared beach has no individual plots. Profile the 16-player scenario
+  documented in `docs/PERFORMANCE.md` before finalizing capacity.
 
 ## 5. Maturity & Compliance Questionnaire (expected label: **Minimal**)
 
@@ -91,14 +93,14 @@ Result should be **Minimal** (all ages), with the paid-random-items disclosure s
 
 ## 6. Badges (15) — art in `marketing/badges/`
 
-Award them with `BadgeService:AwardBadge` from the server-side code that already tracks depth, hatches and rebirths.
-`Services/BadgeAwardService` already awards all 15 from `Config/Badges.luau`. Paste each badge id
-there once created; a badge left at `Id = 0` is skipped.
+The server's `BadgeAwardService` awards all 15 from `src/shared/Config/Badges.luau` (dig, pet,
+depth, rebirth, Mythic find, completed Index layer and daily-streak milestones). Paste each badge
+id there once created; a badge left at `Id = 0` is skipped. Verify each award in the intended experience.
 
 | # | File | Badge name | Description (shown on page) | How to earn (trigger) |
 |---|---|---|---|---|
-| 1 | `01_welcome.png` | **Welcome to the Beach!** | Grab a shovel and start digging! | First join (after the first successful dig) |
-| 2 | `02_first_pet.png` | **New Best Friend** | Hatch your very first pet. | First egg hatch |
+| 1 | `01_welcome.png` | **Welcome to the Beach!** | Grab a shovel and start digging! | First successful dig |
+| 2 | `02_first_pet.png` | **New Best Friend** | Meet your very first pet. | Own at least one pet |
 | 3 | `03_pirate_cove.png` | **Arrr, Pirate Cove!** | Dig down to Captain Sandbeard's loot at 110 m. | `MaxDepth >= 110` (Pirate Cove) |
 | 4 | `04_fossil_bed.png` | **Dino Digger** | Uncover the Fossil Bed at 200 m. | `MaxDepth >= 200` |
 | 5 | `05_crystal_caverns.png` | **Crystal Clear** | Reach the glowing Crystal Caverns at 330 m. | `MaxDepth >= 330` |
@@ -199,7 +201,8 @@ hooks. Title formula: `<hook> #roblox #robloxsimulator #digtothecore`.
       NaN/negative args, redeem a code twice, receipt replay
 - [ ] Codes: RELEASE, SANDY, DIGDEEP redeem once each; 1KLIKES disabled until 1K likes
 - [ ] Events: High Tide and Golden Hour banners and timers agree across two servers
-- [ ] Performance: 12 players digging on a mid-range phone ≥ 30 FPS, server heartbeat ~60
+- [ ] Performance: configured maximum population, including the 16-player profiling scenario,
+      digging on a mid-range phone ≥ 30 FPS, server heartbeat ~60
 - [ ] Economy playtest: 1 hour on a fresh account, compare against GDD §4 timings
 - [ ] Analytics funnel events fire (joined, first dig, first sell, first shovel, first egg, first rebirth)
 

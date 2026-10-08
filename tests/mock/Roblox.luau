@@ -1976,6 +1976,16 @@ local materialColors = {}
 Mock.Voxels = voxels
 local MAX_REGION_VOXELS = 4 * 1024 * 1024 -- WriteVoxels / ReadVoxels region cap (4M)
 Mock.TerrainCalls = {}
+Mock.TerrainFailure = nil -- one-shot { Kind, Error } fault injection
+Mock.ProfileStack = {}
+Mock.ProfileEvents = {}
+local function failTerrainIfRequested(kind)
+	local failure = Mock.TerrainFailure
+	if failure and failure.Kind == kind then
+		Mock.TerrainFailure = nil
+		error(failure.Error, 0)
+	end
+end
 
 local TERRAIN_MATERIALS = {}
 for _, n in
@@ -2039,6 +2049,7 @@ end
 
 classMethods.Terrain = {
 	FillBlock = function(_t, cframe, size, material)
+		failTerrainIfRequested("FillBlock")
 		checkTerrainMaterial(material, "FillBlock")
 		assert(isCF(cframe) and isV3(size), "FillBlock(CFrame, Vector3, Material)")
 		local r = cframe[4]
@@ -2065,6 +2076,7 @@ classMethods.Terrain = {
 		end
 	end,
 	FillBall = function(_t, center, radius, material)
+		failTerrainIfRequested("FillBall")
 		checkTerrainMaterial(material, "FillBall")
 		assert(isV3(center) and type(radius) == "number", "FillBall(Vector3, number, Material)")
 		table.insert(
@@ -2388,6 +2400,9 @@ local function newDataStore(name, ordered)
 		data[key] = deepCopy(value)
 	end
 	function store:UpdateAsync(key, fn)
+		if Mock.BeforeDataStoreUpdate then
+			Mock.BeforeDataStoreUpdate(name, key)
+		end
 		asyncYield()
 		if Mock.DataStoreFail then
 			error("502: mock DataStore failure")
@@ -2460,6 +2475,8 @@ local dataStoreService = {
 -- Marketplace / badges / analytics -------------------------------------------------------------
 
 Mock.Prompts = {} -- { Kind, Player, Id }
+Mock.BadgeAwards = {} -- { UserId, Id }
+Mock.BadgeFailures = 0 -- the next N AwardBadge calls throw (throttling / outage)
 Mock.Analytics = {}
 -- AnalyticsService customFields: nil or { CustomField01..03 = string }.
 function Mock.CheckAnalyticsFields(fields)
@@ -2650,8 +2667,13 @@ local function buildGame()
 			assert(id ~= 0, "badge id 0")
 			return false
 		end,
-		AwardBadge = function(_s, _u, id)
+		AwardBadge = function(_s, userId, id)
 			assert(id ~= 0, "badge id 0")
+			if Mock.BadgeFailures > 0 then
+				Mock.BadgeFailures -= 1
+				error("mock badge throttled")
+			end
+			table.insert(Mock.BadgeAwards, { UserId = userId, Id = id })
 			return true
 		end,
 		GetBadgeInfoAsync = function()
@@ -3085,6 +3107,13 @@ function Mock.FireEvent(inst, eventName, ...)
 	getEventSignal(instances[inst], eventName):_fire(...)
 end
 
+-- Engine texture completion may not emit a property-change event for cached images.
+function Mock.LoadImage(inst)
+	local node = instances[inst]
+	assert(isA(node.className, "ImageLabel") or isA(node.className, "ImageButton"))
+	node.props.IsLoaded = true
+end
+
 local function setupClient(workspace)
 	local camera = newInstance("Camera")
 	local cam = instances[camera]
@@ -3197,6 +3226,17 @@ function Mock.Init(generated, opts)
 		require = mockRequire,
 		task = task,
 		os = mockOs,
+		-- MicroProfiler markers are engine-only; retain CLI debug helpers for stack traces.
+		debug = setmetatable({
+			profilebegin = function(label)
+				table.insert(Mock.ProfileStack, label)
+				table.insert(Mock.ProfileEvents, { Begin = label })
+			end,
+			profileend = function()
+				assert(#Mock.ProfileStack > 0, "unmatched profileend")
+				table.insert(Mock.ProfileEvents, { End = table.remove(Mock.ProfileStack) })
+			end,
+		}, { __index = debug }),
 		typeof = mockTypeof,
 		warn = mockWarn,
 		print = mockPrint,
@@ -3251,6 +3291,7 @@ function Mock.Init(generated, opts)
 	end
 	Mock.Enum = Enum
 	Mock.Vector3 = Vector3
+	Mock.Vector2 = Vector2
 	Mock.CFrame = CFrame
 	Mock.Game = g
 

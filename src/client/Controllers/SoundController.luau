@@ -1,5 +1,7 @@
 --!strict
 -- Plays Config.Sounds by key (skips entries whose Id is ""), honours the SFX / Music settings.
+-- Music: "MusicBeach" / "MusicDeep" by depth (Music setting). Ambience: the looping beach bed
+-- plays only near the surface and follows the SFX setting; both stay silent until ids exist.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
@@ -14,6 +16,8 @@ local cache: { [string]: Sound } = {}
 local currentMusic: string? = nil
 local musicSound: Sound? = nil
 local wantedMusic = "MusicBeach"
+local ambienceWanted = true -- at the surface (LayerController)
+local ambienceSound: Sound? = nil
 
 local function getFolder(): Folder
 	if not folder then
@@ -79,15 +83,45 @@ local function refreshMusic()
 	end
 end
 
+local function refreshAmbience()
+	local play = ambienceWanted and State.GetSetting("SFX", true) ~= false
+	local sound = if play then getSound("Ambience") else nil
+	if sound == ambienceSound then
+		return
+	end
+	if ambienceSound then
+		ambienceSound:Stop()
+	end
+	ambienceSound = sound
+	if sound then
+		sound:Play()
+	end
+end
+
 -- "MusicBeach" near the surface, "MusicDeep" underground (LayerController decides).
 function SoundController.SetMusic(name: string)
 	wantedMusic = name
 	refreshMusic()
 end
 
+-- Beach ambience on near the surface, off underground (LayerController decides).
+function SoundController.SetAmbience(on: boolean)
+	ambienceWanted = on
+	refreshAmbience()
+end
+
+-- What is looping right now (tests / diagnostics).
+function SoundController.Playing(): { Music: string?, Ambience: boolean }
+	return { Music = if musicSound then currentMusic else nil, Ambience = ambienceSound ~= nil }
+end
+
 function SoundController.Init()
-	State.Changed("Settings"):Connect(refreshMusic)
+	State.Changed("Settings"):Connect(function()
+		refreshMusic()
+		refreshAmbience()
+	end)
 	refreshMusic()
+	refreshAmbience()
 end
 
 return SoundController

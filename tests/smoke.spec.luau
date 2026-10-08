@@ -31,6 +31,7 @@ local Enum = Mock.Enum
 
 local failures = 0
 local passes = 0
+local expectedKicks = 0
 local function check(cond, message)
 	if cond then
 		passes += 1
@@ -84,6 +85,18 @@ end
 -- Boot --------------------------------------------------------------------------------------------
 section("boot")
 local byPath = Mock.ByPath
+local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+-- Config holds the owner's live Creator Hub ids; these specs start from "nothing configured"
+-- and set test ids where they need them.
+for _, pass in Config.Monetization.GamePasses do
+	pass.Id = 0
+end
+for _, product in Config.Monetization.Products do
+	product.Id = 0
+end
+for _, badge in Config.Badges do
+	badge.Id = 0
+end
 local main = byPath["ServerScriptService/Server/Main"]
 assert(main, "Main script missing")
 Mock.RunScript(main)
@@ -91,7 +104,6 @@ Mock.Advance(1)
 check(#Mock.Errors == 0, "no errors during boot")
 
 local Shared = byPath["ReplicatedStorage/Shared"]
-local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
 local DataService = Mock.Require(byPath["ServerScriptService/Server/Services/DataService"])
 local BeachService = Mock.Require(byPath["ServerScriptService/Server/Services/BeachService"])
 local DigService = Mock.Require(byPath["ServerScriptService/Server/Services/DigService"])
@@ -271,6 +283,191 @@ for _, layer in Config.Layers do
 end
 
 -- Join --------------------------------------------------------------------------------------------
+section("protected underground scenery")
+local Underground = Mock.Require(byPath["ServerScriptService/Server/World/Underground"])
+local scenery = Mock.Service("Workspace"):FindFirstChild("Map"):FindFirstChild("Underground")
+check(
+	scenery ~= nil and #scenery:GetChildren() == #Config.Layers * 3,
+	"three protected alcoves per configured layer built"
+)
+local landmarkNames = {
+	dry_sand = "Bucket",
+	wet_sand = "Driftwood",
+	shell_bed = "ClamFan",
+	tidal_clay = "AnchorShaft",
+	pirate_cove = "BrokenMast",
+	shipwreck = "DoorLintel",
+	fossil_bed = "FossilSpine",
+	bedrock = "FaultSlab",
+	crystal_caverns = "CrystalSpire",
+	frozen_abyss = "TuskBase",
+	ancient_ruins = "StoneTablet",
+	magma_chamber = "BasaltVent",
+	obsidian_depths = "ObsidianMonolith",
+	alien_hive = "HivePod",
+	the_core = "CoreRelief",
+}
+for _, layer in Config.Layers do
+	local count = 0
+	for _, model in scenery:GetChildren() do
+		if model:GetAttribute("SceneryLayer") == layer.Id then
+			count += 1
+			local minV, maxV = model:GetAttribute("PocketMin"), model:GetAttribute("PocketMax")
+			check(
+				minV.Y >= Config.SURFACE_Y - layer.DepthEnd and maxV.Y <= Config.SURFACE_Y - layer.DepthStart,
+				"pocket remains inside its layer: " .. layer.Id
+			)
+			check(
+				minV.Y % 4 == 0 and maxV.Y % 4 == 0 and maxV.Y > minV.Y,
+				"pocket height and floor are voxel aligned: " .. layer.Id
+			)
+			check(model:FindFirstChild(landmarkNames[layer.Id]) ~= nil, "distinct landmark built: " .. layer.Id)
+			local lights, emitters, pieces, shadowless = 0, 0, 0, true
+			for _, child in model:GetDescendants() do
+				if child:IsA("BasePart") then
+					pieces += 1
+				end
+				if child:IsA("PointLight") then
+					lights += 1
+					shadowless = shadowless and not child.Shadows
+				end
+				if child:IsA("ParticleEmitter") then
+					emitters += 1
+				end
+			end
+			check(lights == 1 and shadowless and emitters == 0, "bounded static local lighting: " .. layer.Id)
+			check(pieces <= 40, "scenery stays within target part budget: " .. layer.Id)
+		end
+	end
+	check(count == 3, "exactly three scenery groups for " .. layer.Id)
+end
+local function checkSceneryProtected(context)
+	for _, model in scenery:GetChildren() do
+		local minV, maxV = model:GetAttribute("PocketMin"), model:GetAttribute("PocketMax")
+		local contained, visualOnly, pieces = true, true, 0
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				pieces += 1
+				visualOnly = visualOnly
+					and part.Anchored
+					and not part.CanCollide
+					and not part.CanQuery
+					and not part.CanTouch
+				local h = part.Size / 2
+				for _, x in { -1, 1 } do
+					for _, y in { -1, 1 } do
+						for _, z in { -1, 1 } do
+							local p = part.CFrame * Vector3.new(h.X * x, h.Y * y, h.Z * z)
+							contained = contained
+								and p.X >= minV.X - 0.01
+								and p.X <= maxV.X + 0.01
+								and p.Y >= minV.Y - 0.01
+								and p.Y <= maxV.Y + 0.01
+								and p.Z >= minV.Z + 0.49
+								and p.Z <= maxV.Z + 0.01
+						end
+					end
+				end
+			end
+		end
+		check(
+			contained and minV.Z >= zoneCenter.Z + zoneSize.Z / 2,
+			context .. ": all scenery stays outside carving/refills: " .. model.Name
+		)
+		check(
+			visualOnly and pieces <= 50 and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic,
+			context .. ": bounded visual-only streaming group: " .. model.Name
+		)
+		local mid = (minV + maxV) / 2
+		local shelf = model:FindFirstChild("RockShelf")
+		check(
+			shelf ~= nil and math.abs(shelf.Position.Y - shelf.Size.Y / 2 - minV.Y) < 0.01,
+			context .. ": rock shelf visibly rests on terrain floor: " .. model.Name
+		)
+		if model:GetAttribute("SceneryLayer") == "shipwreck" then
+			-- Inspect world-space contact, so a floating upper barrel cannot pass just
+			-- because the landmark's overall bounds and shelf remain protected.
+			local function bounds(part)
+				local minP = Vector3.new(math.huge, math.huge, math.huge)
+				local maxP = Vector3.new(-math.huge, -math.huge, -math.huge)
+				local half = part.Size / 2
+				for _, x in { -1, 1 } do
+					for _, y in { -1, 1 } do
+						for _, z in { -1, 1 } do
+							local point = part.CFrame * Vector3.new(half.X * x, half.Y * y, half.Z * z)
+							minP = Vector3.new(
+								math.min(minP.X, point.X),
+								math.min(minP.Y, point.Y),
+								math.min(minP.Z, point.Z)
+							)
+							maxP = Vector3.new(
+								math.max(maxP.X, point.X),
+								math.max(maxP.Y, point.Y),
+								math.max(maxP.Z, point.Z)
+							)
+						end
+					end
+				end
+				return minP, maxP
+			end
+			local barrels = {}
+			for _, child in model:GetChildren() do
+				if child.Name == "Barrel" then
+					table.insert(barrels, child)
+				end
+			end
+			table.sort(barrels, function(a, b)
+				return a.Position.Y < b.Position.Y
+			end)
+			check(#barrels >= 2, context .. ": shipwreck contains a barrel stack: " .. model.Name)
+			local support = shelf
+			for _, barrel in barrels do
+				local minB, maxB = bounds(barrel)
+				local minS, maxS = bounds(support)
+				check(
+					math.abs(minB.Y - maxS.Y) < 0.01
+						and math.min(maxB.X, maxS.X) > math.max(minB.X, minS.X)
+						and math.min(maxB.Z, maxS.Z) > math.max(minB.Z, minS.Z),
+					context .. ": each barrel touches its overlapping support: " .. model.Name
+				)
+				support = barrel
+			end
+		end
+		if model:GetAttribute("SceneryLayer") == "ancient_ruins" then
+			local lintels = 0
+			for _, lintel in model:GetChildren() do
+				if lintel.Name == "BrokenLintel" then
+					lintels += 1
+					local supported = false
+					for _, pillar in model:GetChildren() do
+						if pillar.Name == "RuinsPillar" then
+							local delta = lintel.Position - pillar.Position
+							if
+								math.abs(delta.Y - (lintel.Size.Y + pillar.Size.Y) / 2) < 0.01
+								and math.abs(delta.X) < (lintel.Size.X + pillar.Size.X) / 2
+								and math.abs(delta.Z) < (lintel.Size.Z + pillar.Size.Z) / 2
+							then
+								supported = true
+							end
+						end
+					end
+					check(supported, context .. ": broken lintel rests on a pillar: " .. model.Name)
+				end
+			end
+			check(lintels == 2, context .. ": ruins retain both broken lintels: " .. model.Name)
+		end
+		local air = Mock.GetVoxel(mid)
+		local support = Mock.GetVoxel(Vector3.new(mid.X, minV.Y - 2, mid.Z))
+		check(
+			(air == nil or air.Material == Enum.Material.Air or air.Occupancy == 0)
+				and support ~= nil
+				and support.Occupancy > 0,
+			context .. ": open alcove retains terrain floor: " .. model.Name
+		)
+	end
+end
+checkSceneryProtected("initial")
+
 section("join")
 local player = Mock.AddPlayer(1001, "Tester")
 Mock.Advance(0.5)
@@ -876,6 +1073,66 @@ step("analytics", function()
 end)
 
 -- Leave + rejoin ------------------------------------------------------------------------------------
+section("overlapping save and final release")
+do
+	local saver = Mock.AddPlayer(1009, "SaveRace")
+	Mock.Advance(0.5)
+	DataService.Set(saver, "Coins", 101)
+	local firstResult, queuedResult
+	Mock.Env.task.spawn(function()
+		firstResult = DataService.SaveAsync(saver)
+	end)
+	DataService.Set(saver, "Coins", 202)
+	Mock.Env.task.spawn(function()
+		queuedResult = DataService.SaveAsync(saver)
+	end)
+	Mock.RemovePlayer(saver)
+	Mock.Advance(1)
+	check(firstResult == true, "in-flight autosave finishes before final release")
+	if not STUDIO_NO_API then
+		check(queuedResult == false, "queued autosave cannot save a released session")
+		local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_1009"]
+		check(saved.Data.Coins == 202, "final save preserves newer data after overlapping autosave")
+		check(saved.Lock == nil, "overlapping autosave cannot recreate released session lock")
+	end
+	local rejoined = Mock.AddPlayer(1009, "SaveRace")
+	Mock.Advance(0.5)
+	check(DataService.Get(rejoined).Coins == 202, "rejoin sees final overlapping-save snapshot")
+	Mock.RemovePlayer(rejoined)
+	Mock.Advance(0.5)
+end
+
+if not STUDIO_NO_API then
+	section("same-server rejoin during delayed final save")
+	local saver = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(0.5)
+	DataService.Set(saver, "Coins", 303)
+	local delayed = false
+	Mock.BeforeDataStoreUpdate = function(name, key)
+		if name == Config.DATASTORE_NAME and key == "Player_1010" and not delayed then
+			delayed = true
+			Mock.Env.task.wait(35)
+		end
+	end
+	Mock.RemovePlayer(saver)
+	local blocked = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(31)
+	check(not DataService.IsLoaded(blocked), "rejoin fails closed while previous final save exceeds timeout")
+	local kick = Mock.Kicked[#Mock.Kicked]
+	check(kick and kick.Player == blocked and kick.Message == "Your previous session is still saving. Please rejoin in a minute!", "timed-out rejoin is kicked rather than opening the same profile")
+	expectedKicks += 1
+	Mock.RemovePlayer(blocked)
+	Mock.Advance(5)
+	Mock.BeforeDataStoreUpdate = nil
+	local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_1010"]
+	check(saved.Data.Coins == 303 and saved.Lock == nil, "delayed final save completes and releases lock")
+	local rejoined = Mock.AddPlayer(1010, "DelayedSave")
+	Mock.Advance(0.5)
+	check(DataService.Get(rejoined).Coins == 303, "rejoin after delayed final save preserves data")
+	Mock.RemovePlayer(rejoined)
+	Mock.Advance(0.5)
+end
+
 section("leave")
 DataService.Set(player, "Coins", 4242)
 Mock.Advance(0.1)
@@ -1031,6 +1288,27 @@ step("beach", function()
 	check(d.MaxDepth == maxBefore, "standing in undug terrain does not raise MaxDepth")
 
 	-- Tide: holes refill once nobody was near for TIDE_REFILL_SECONDS
+	-- Largest configured tools against each inland alcove must carve the beach while
+	-- retaining the authored air pocket, terrain floor and protected visual parts.
+	local maxRadius = 0
+	for _, shovel in Config.Shovels do
+		maxRadius = math.max(maxRadius, shovel.Radius)
+	end
+	local alcoveDigPoints = {}
+	for _, pocket in Underground.Pockets do
+		local mid = (pocket.Min + pocket.Max) / 2
+		local point = Vector3.new(mid.X, mid.Y, pocket.Min.Z - 2)
+		table.insert(alcoveDigPoints, point - Vector3.new(0, 3, 0))
+		d.Sand = 0
+		stand(point + Vector3.new(0, 3, -4))
+		local result = DigService.DigAt(p, point, {
+			Power = 1e6, Radius = maxRadius, SandMultiplier = 1,
+			Source = "Digger", Silent = true,
+		})
+		check(result ~= nil and result.Success, "maximum-radius dig succeeds beside " .. pocket.Layer .. " alcove at " .. mid.X)
+		check(not solid(point.X, point.Y - 3, point.Z), "maximum-radius dig opens beach beside alcove")
+	end
+	checkSceneryProtected("after maximum-radius alcove digs")
 	p.Character:PivotTo(World.GetSurfacePoint(Vector3.new(-330, S, 0)))
 	Mock.Advance(Config.TIDE_REFILL_SECONDS * 0.5)
 	check(not solid(302, S - 2, zDig), "hole stays open before the tide timer runs out")
@@ -1041,6 +1319,10 @@ step("beach", function()
 		"tide refilled the hole with the layer material"
 	)
 	check(solid(334, S - 6, zDig - 4), "tide refilled the digger hole")
+	for _, point in alcoveDigPoints do
+		check(solid(point.X, point.Y, point.Z), "normal tide refills maximum-radius alcove-adjacent hole")
+	end
+	checkSceneryProtected("after normal tide")
 	check(BeachService.CountDugCells() == 0, "every idle dug cell refilled (" .. BeachService.CountDugCells() .. ")")
 
 	-- ...but not while someone stays near
@@ -1063,6 +1345,7 @@ step("beach", function()
 	check(pos.Y > S + 1 and not World.IsInDigZone(pos), "High Tide lifts the player out of the hole first")
 	check(solid(-98, S - 2, zDig), "High Tide refills the hole")
 	check(BeachService.CountDugCells() == 0, "High Tide smooths every dug cell")
+	checkSceneryProtected("after high tide")
 	workspace:SetAttribute("ActiveEvents", previous or "")
 	Mock.Advance(0.5)
 end)
@@ -2545,6 +2828,18 @@ step("stress", function()
 	end
 	check(pets == 3, "each bot has 3 digging pets")
 	check(bot and bot:FindFirstChild("DigBurst", true) ~= nil, "fx: particle stream on bots")
+	local markerStart = #Mock.ProfileEvents
+	Mock.TerrainFailure = { Kind = "FillBlock", Error = "mock profiled stress terrain failure" }
+	Mock.Advance(0.6)
+	check(Mock.TerrainFailure == nil, "stress path exercised injected FillBlock failure")
+	check(#Mock.ProfileStack == 0, "caught stress terrain error leaves no open profiler scopes")
+	local sawFill, sawBotEnd = false, false
+	for i = markerStart + 1, #Mock.ProfileEvents do
+		local event = Mock.ProfileEvents[i]
+		sawFill = sawFill or event.End == "DigTheBeach.Dig.FillBlock"
+		sawBotEnd = sawBotEnd or event.End == "DigTheBeach.Stress.BotStep"
+	end
+	check(sawFill and sawBotEnd, "failed terrain scope and enclosing stress scope both close")
 	Mock.Advance(3)
 	local stats = DevCommands.GetStressStats()
 	check(stats.Bots == 3 and stats.Attempts > 20, "bots dig at the shovel rate (" .. stats.Attempts .. " attempts in 3 s)")
@@ -2556,6 +2851,25 @@ step("stress", function()
 	check(summary ~= nil and string.find(summary, "digs/s", 1, true) ~= nil and string.find(summary, "heartbeat", 1, true) ~= nil, "summary line: " .. tostring(summary))
 	check(workspace:FindFirstChild("StressBots") == nil, "/stress stop removes the bots")
 	check(DevCommands.StopStress() == nil, "stop twice is harmless")
+	-- A directly caught dent failure retains the original thrown value.
+	Mock.Advance(1)
+	DataService.Set(sp, "Sand", 0)
+	local at = zc + Vector3.new(20, 0, 20)
+	local originalError = { Message = "mock profiled dent failure" }
+	Mock.TerrainFailure = { Kind = "FillBall", Error = originalError }
+	local ok, err = pcall(DigService.DigAt, sp, at, {
+		Power = 1e6, Radius = 2, SandMultiplier = 1, Source = "Ride", Origin = at, Silent = true,
+	})
+	check(not ok and err == originalError and Mock.TerrainFailure == nil, "dent failure preserves original thrown error")
+	check(#Mock.ProfileStack == 0, "dent failure closes profiler scope before propagating")
+
+	-- Tide catches layered-fill failures and can continue without a leaked marker.
+	BeachService.RecordCarve(at - Vector3.new(4, 12, 4), at + Vector3.new(4, 0, 4))
+	Mock.TerrainFailure = { Kind = "FillBlock", Error = "mock profiled tide terrain failure" }
+	BeachService.TideStep(true)
+	check(Mock.TerrainFailure == nil, "tide layered fill exercised injected terrain failure")
+	check(#Mock.ProfileStack == 0, "caught tide terrain error leaves no open profiler scopes")
+	BeachService.TideStep(true)
 	Mock.RemovePlayer(sp)
 	Mock.Advance(1)
 	check(#Mock.Errors == e0, "no errors during /stress")
@@ -2943,6 +3257,96 @@ step("discovery", function()
 	check(#Mock.Errors == e0, "no errors in discovery")
 end)
 
+section("launch check")
+do
+	local LaunchCheck = Mock.Require(byPath["ServerScriptService/Server/Services/LaunchCheck"])
+	local MonetizationService = Mock.Require(byPath["ServerScriptService/Server/Services/MonetizationService"])
+	local report = LaunchCheck.Report()
+	check(#report.Blocking == 0, "no blocking launch issues in the repo config")
+	local text = LaunchCheck.Format(report)
+	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
+	check(string.find(text, "Badge ids (10)", 1, true) ~= nil, "launch check lists unset badge ids")
+	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
+	MonetizationService.STUDIO_GRANT_ALL_PASSES = true
+	check(#LaunchCheck.Report().Blocking == 1, "Studio grant-all switch is blocking")
+	MonetizationService.STUDIO_GRANT_ALL_PASSES = false
+	local pass = Config.Monetization.GamePasses.VIP
+	local saved = pass.Id
+	pass.Id = 123
+	check(string.find(LaunchCheck.Format(LaunchCheck.Report()), "VIP", 1, true) == nil, "a configured pass drops off the list")
+	pass.Id = saved
+	if not STUDIO_NO_API then
+		local warned = false
+		for _, w in Mock.Warnings do
+			if string.find(w, "[LaunchCheck]", 1, true) then
+				warned = true
+			end
+		end
+		check(warned, "live server boot warns once about unconfigured placeholders")
+	end
+end
+
+section("badges")
+do
+	local e0 = #Mock.Errors
+	local BadgeAwardService = Mock.Require(byPath["ServerScriptService/Server/Services/BadgeAwardService"])
+	local welcome = Config.Badges[1]
+	check(welcome.Kind == "FirstDig", "first badge is the first-dig badge")
+	local savedId, savedDelays = welcome.Id, BadgeAwardService.RETRY_DELAYS
+	welcome.Id = 777
+	BadgeAwardService.RETRY_DELAYS = { 1, 2 }
+	Mock.BadgeFailures = 1
+	local badger = Mock.AddPlayer(5150, "Badger")
+	for _ = 1, 20 do
+		if DataService.IsLoaded(badger) then
+			break
+		end
+		Mock.Advance(0.2)
+	end
+	local function awarded(): boolean
+		for _, a in Mock.BadgeAwards do
+			if a.UserId == 5150 and a.Id == 777 then
+				return true
+			end
+		end
+		return false
+	end
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(not awarded(), "throttled badge award is not recorded")
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(not awarded() and Mock.BadgeFailures == 0, "no retry before the retry delay")
+	Mock.Advance(1)
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(awarded(), "badge award is retried after a transient failure")
+	local before = #Mock.BadgeAwards
+	DataService.Increment(badger, "TotalSandDug", 1)
+	Mock.Advance(0.3)
+	check(#Mock.BadgeAwards == before, "an awarded badge is not attempted again this session")
+	-- repeated failures give up after the last retry delay
+	Mock.BadgeFailures = 10
+	local quitter = Mock.AddPlayer(5151, "Quitter")
+	for _ = 1, 20 do
+		if DataService.IsLoaded(quitter) then
+			break
+		end
+		Mock.Advance(0.2)
+	end
+	for _ = 1, 6 do
+		DataService.Increment(quitter, "TotalSandDug", 1)
+		Mock.Advance(2.5)
+	end
+	check(Mock.BadgeFailures == 7, "three attempts (first try + two retries), then gives up")
+	Mock.BadgeFailures = 0
+	welcome.Id, BadgeAwardService.RETRY_DELAYS = savedId, savedDelays
+	Mock.RemovePlayer(badger)
+	Mock.RemovePlayer(quitter)
+	Mock.Advance(1)
+	check(#Mock.Errors == e0, "no errors in badges")
+end
+
 section("shutdown")
 Mock.RunBindToClose()
 Mock.Advance(3)
@@ -2960,9 +3364,13 @@ check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))
 local unexpected = {}
 local EXPECTED_WARNINGS = {
+	"mock profiled tide terrain failure", -- caught tide terrain failure regression
 	"receipt for unknown product id 4242", -- provoked above
 	"Studio has no DataStore access", -- studio mode only
 	"mock policy failure", -- PolicyService lookup failure, provoked in "hatching + compliance"
+	"mock badge throttled", -- BadgeService failure, provoked in "badges"
+	"[mock] kicked DelayedSave: Your previous session is still saving. Please rejoin in a minute!", -- delayed final-save regression
+	"[LaunchCheck]", -- the repo ships with placeholder ids; live boot lists them once
 }
 for _, w in Mock.Warnings do
 	local ok = false
@@ -2979,7 +3387,7 @@ for _, w in unexpected do
 	print("   warning: " .. w)
 end
 check(#unexpected == 0, #unexpected .. " unexpected warnings")
-check(#Mock.Kicked == 0, "nobody was kicked")
+check(#Mock.Kicked == expectedKicks, "only deliberately rejected delayed-save rejoin was kicked")
 
 print(string.format("\nSMOKE: %d passed, %d failed", passes, failures))
 if failures > 0 then

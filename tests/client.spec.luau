@@ -18,6 +18,7 @@ Mock.Init(Generated, { Client = true })
 
 local Vector3 = Mock.Vector3
 local CFrame = Mock.CFrame
+local Vector2 = Mock.Vector2
 local Enum = Mock.Enum
 local byPath = Mock.ByPath
 
@@ -46,6 +47,17 @@ local function sent(name, since)
 end
 
 local Config = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+-- Config holds the owner's live Creator Hub ids; these specs start from "nothing configured"
+-- and set test ids where they need them.
+for _, pass in Config.Monetization.GamePasses do
+	pass.Id = 0
+end
+for _, product in Config.Monetization.Products do
+	product.Id = 0
+end
+for _, badge in Config.Badges do
+	badge.Id = 0
+end
 
 -- "Server" side ---------------------------------------------------------------------------------
 section("world + remotes")
@@ -115,6 +127,12 @@ check(zcf ~= nil and zsize == zone.Size, "State reads the dig zone from workspac
 check(State.InDigZone(zone.CFrame.Position) and not State.InDigZone(Vector3.new(0, Config.SURFACE_Y, 40)), "State.InDigZone")
 local sand = State.NearestSand(spawnCF.Position, 8)
 check(sand ~= nil and State.InDigZone(sand) and (sand - spawnCF.Position).Magnitude < 40, "NearestSand is close to the spawn")
+
+-- A successful click can reach sand while the character still stands on the boardwalk.
+check(not State.InDigZone(character.HumanoidRootPart.Position), "first-dig regression starts outside the sand footprint")
+Mock.FireClientEvent("DigResult", { Success = true, Position = sand, LayerIndex = 1, SandGained = 1, Sand = 1, Capacity = 20 })
+Mock.Advance(1)
+check(State.GetSetting("Tutorial", 0) == 2, "confirmed boardwalk dig advances arrival and first-dig steps")
 
 -- Deltas
 Mock.FireClientEvent("DataChanged", { Coins = 6000, Sand = 5 })
@@ -307,8 +325,13 @@ do
 	local loadingFallback = loadingIcon.Frame:FindFirstChild("Emoji")
 	check(loadingImage ~= nil and loadingFallback ~= nil, "configured atlas retains a loading fallback")
 	check(loadingFallback ~= nil and loadingFallback.Visible, "unavailable atlas leaves the control icon readable")
+	check(loadingImage ~= nil and loadingImage.Visible, "loading atlas image stays renderable to start the texture request")
+	Mock.LoadImage(loadingImage)
+	Mock.Advance(0.3)
+	check(loadingFallback ~= nil and not loadingFallback.Visible, "cached image completion clears fallback without a property signal")
 	loadingIcon:Set("🛰️")
 	check(loadingImage ~= nil and not loadingImage.Visible, "switching to a raw icon hides the atlas image")
+	check(loadingFallback ~= nil and loadingFallback.Visible, "switching away from a loaded atlas restores the raw icon")
 	loadingIcon.Frame:Destroy()
 	local icons = 0
 	for _, d in hudCanvas:GetDescendants() do
@@ -325,8 +348,30 @@ do
 	local objectiveText = objective and objective:FindFirstChild("Text")
 	check(objectiveText ~= nil and objectiveText.Text ~= "", "objective pill has a line (" .. tostring(objectiveText and objectiveText.Text) .. ")")
 	check(playerGui:FindFirstChild("Tutorial", true) == nil, "old big tutorial bar is gone")
+	local savedSand = State.Data.Sand
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", false)
+	Mock.FireClientEvent("DataChanged", { Sand = State.GetCapacity() })
+	Mock.Advance(0.1)
+	local bag = hudCanvas:FindFirstChild("Backpack", true)
+	local sellArrow = hudCanvas:FindFirstChild("SellArrow", true)
+	check(sellArrow.Visible and bag:FindFirstChild("Pop").Scale > 1, "full bag draws attention with motion enabled")
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.2)
+	check(sellArrow.Visible and sellArrow.Position.Y.Offset == -52 and bag:FindFirstChild("Pop").Scale == 1, "reduced motion keeps full-bag warning visible and static")
+	HUD.Flash("Settings", 1)
+	check(HUD.Buttons.Settings.Holder:FindFirstChild("Pop") == nil or HUD.Buttons.Settings.Holder.Pop.Scale == 1, "reduced motion suppresses HUD attention pulse")
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.1)
+	check(sellArrow.Position.Y.Offset == -62 and bag:FindFirstChild("Pop").Scale > 1, "full-bag motion resumes after preference changes")
+	Mock.FireClientEvent("DataChanged", { Sand = savedSand })
+	State.SetSetting("ReducedMotion", savedMotion)
+	Mock.Advance(0.2)
 
 	-- Shop: upgrade rows (icon | current | arrow | next | price), one per item
+	local ItemStats = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats"])
+	check(ItemStats.SandMult(1.5) == "x1.5", "first shovel upgrade retains its fractional sand bonus")
+	check(ItemStats.SandMult(2) == "x2" and ItemStats.SandMult(1500) == "x1.5K", "sand bonus keeps compact whole and large values")
 	Mock.FireClientEvent("DataChanged", { Coins = 1e9 })
 	Mock.Advance(0.3)
 	for tab, list in { Shovels = Config.Shovels, Backpacks = Config.Backpacks } do
@@ -421,6 +466,69 @@ do
 	Mock.Advance(0.5)
 	check(countToasts() == before + 1, "duplicate backpack-full notices dedupe to one toast")
 	Mock.Advance(6)
+
+	-- Toasts wait while a reveal is on screen (never cover its headline); urgent ones do not.
+	do
+		local function hasToast(text: string): boolean
+			for _, child in toastRoot:GetChildren() do
+				if child.Name == "Toast" then
+					for _, d in child:GetDescendants() do
+						if d:IsA("TextLabel") and string.find(d.Text, text, 1, true) then
+							return true
+						end
+					end
+				end
+			end
+			return false
+		end
+		Toasts.Show("Index collection notice", "Info", 4)
+		check(hasToast("Index collection"), "notice visible before excavation")
+		Toasts.SetExcavating(true)
+		check(not hasToast("Index collection"), "excavation removes already visible notice")
+		Toasts.Show("Excavation warning", "Warning", 12)
+		check(hasToast("Excavation warning"), "urgent warning visible during excavation")
+		Toasts.Show("Quest excavation notice", "Success")
+		Mock.Advance(8)
+		check(not hasToast("Quest excavation"), "excavation holds incoming notice beyond reveal cap")
+		Toasts.SetExcavating(false)
+		Mock.Advance(0.1)
+		check(hasToast("Index collection") and hasToast("Quest excavation"), "visible and incoming notices resume after excavation")
+		Mock.Advance(6)
+		Toasts.SetExcavating(true)
+		for i = 1, 20 do
+			Toasts.Show("Bounded excavation notice " .. i, "Info")
+		end
+		Toasts.SetExcavating(false)
+		Mock.Advance(0.1)
+		check(not hasToast("Bounded excavation notice 1"), "excavation queue discards oldest overflow")
+		check(countToasts() <= 3, "resumed queue respects visible limit")
+		Mock.Advance(15)
+		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
+		local base = countToasts()
+		RevealUI.Show({ Headline = "RARE!", Color = Mock.Env.Color3.new(0, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 3 })
+		Mock.Advance(0.3)
+		check(RevealUI.IsShowing(), "reveal is showing for the toast hold test")
+		Toasts.Show("You can afford the Garden Trowel!", "Success")
+		Mock.Advance(0.5)
+		check(countToasts() == base, "non-urgent toast waits while a reveal is showing")
+		Toasts.Show("Too hard! Upgrade your shovel", "Warning")
+		Mock.Advance(0.5)
+		check(countToasts() == base + 1, "warning toasts still show during a reveal")
+		Mock.Advance(3)
+		check(not RevealUI.IsShowing() and hasToast("Garden Trowel"), "held toast appears once the reveal closes")
+		Mock.Advance(6)
+		-- chained reveals cannot hold a toast forever
+		for _ = 1, 4 do
+			RevealUI.Show({ Headline = "COMMON!", Color = Mock.Env.Color3.new(1, 1, 1), Items = { { Name = "Cap", Rows = {} } }, Hold = 3 })
+		end
+		Mock.Advance(0.3)
+		Toasts.Show("Quest complete!", "Success")
+		Mock.Advance(5)
+		check(RevealUI.IsShowing() and not hasToast("Quest complete"), "toast still waits early in a reveal chain")
+		Mock.Advance(2.5)
+		check(RevealUI.IsShowing() and hasToast("Quest complete"), "a toast held behind chained reveals shows after the cap")
+		Mock.Advance(15)
+	end
 
 	-- Viewport: a 1 x 6 x 1 stick fills ~75% of a square frame's height.
 	local Viewport = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Components/Viewport"])
@@ -541,6 +649,146 @@ do
 	local sellBack = Mock.StreamIn(sellToken)
 	Mock.Advance(0.3)
 	check(sellBack ~= sellPart and (GuideController.Resolve(target, root.Position) - sellTop).Magnitude < 1e-6, "guide locks onto the streamed-in part")
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.2)
+	local marker = to:FindFirstChild("GuideMarker")
+	check(beam.TextureSpeed == 0 and marker.StudsOffsetWorldSpace.Y == 4, "reduced motion keeps a static world guide")
+	Mock.Advance(0.3)
+	check(marker.StudsOffsetWorldSpace.Y == 4 and marker.Enabled, "static guide remains visible without bouncing")
+	GuideController.Set("StreamTest", root.Position, 99, "S")
+	Mock.Advance(0.2)
+	check(not marker.Enabled and not beam.Enabled, "guide at the player's feet does not obscure the avatar")
+	GuideController.Set("StreamTest", target, 99, "S")
+	Mock.Advance(0.2)
+	check(marker.Enabled and beam.Enabled, "guide reappears when the target is distant again")
+	local markerIcon = marker:FindFirstChild("MarkerIcon")
+	check(markerIcon ~= nil and markerIcon:GetAttribute("Icon") == "S", "world marker draws through AtlasIcon")
+
+	-- first upgrade: the reveal says what changed, and better shovels hit visibly harder
+	do
+		local ItemStats = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats"])
+		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		local spade, trowel = SharedConfig.Shovels[1], SharedConfig.Shovels[2]
+		local summary = ItemStats.UpgradeSummary(spade, trowel)
+		check(summary ~= nil and string.find(summary, "NOW DIGS " .. string.upper(SharedConfig.Layers[3].Name), 1, true) ~= nil, "trowel reveal names the new layer it digs (" .. tostring(summary) .. ")")
+		check(summary ~= nil and string.find(summary, "+50% SAND", 1, true) ~= nil, "trowel reveal shows +50% sand")
+		check(summary ~= nil and string.find(summary, "BIGGER DIGS", 1, true) == nil, "no 'bigger digs' claim when the dig cube is the same size")
+		check(ItemStats.UpgradeSummary(nil, trowel) == nil and ItemStats.UpgradeSummary(trowel, trowel) == nil, "no summary without a real upgrade")
+		check(ItemStats.Heft(spade.Id) == 1 and ItemStats.Heft(trowel.Id) > 1, "trowel hits harder than the spade")
+		check(ItemStats.Heft(SharedConfig.Shovels[#SharedConfig.Shovels].Id) == 2, "heft is capped at 2")
+		local MenuGateUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/MenuGate"])
+		local steps = SharedConfig.TUTORIAL_STEPS
+		check(steps[MenuGateUI.TUTORIAL_SHOP + 1].Id == "shop" and steps[MenuGateUI.TUTORIAL_EGGS + 1].Id == "egg", "menu unlocks follow the tutorial step ids")
+		local shopIndex = MenuGateUI.TUTORIAL_SHOP + 1
+		check(steps[shopIndex + 1].Id == "dig_deeper" and steps[shopIndex + 1].Complete == "NewLayer", "after buying a shovel the tutorial sends you down to the new layer")
+	end
+
+	-- chat window: docked bottom-left on keyboard screens (the menu's Shop row is top-left)
+	do
+		local ChatLayout = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/ChatLayoutController"])
+		local pc = ChatLayout.DockFor(false, true)
+		check(pc and pc.Horizontal == Enum.HorizontalAlignment.Left and pc.Vertical == Enum.VerticalAlignment.Bottom, "chat docks bottom-left on PC")
+		check(ChatLayout.DockFor(true, false) == nil, "phones keep the default chat position (thumbstick is bottom-left)")
+		check(ChatLayout.DockFor(true, true) ~= nil, "touch laptops with a keyboard dock like PC")
+	end
+
+	-- ambience: loops near the surface when an id is configured, follows the SFX setting
+	do
+		local SoundController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/SoundController"])
+		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		check(not SoundController.Playing().Ambience, "no ambience while its id is empty")
+		local savedSfx = State.GetSetting("SFX", true)
+		SharedConfig.Sounds.Ambience.Id = "rbxassetid://1"
+		SoundController.SetAmbience(true)
+		check(SoundController.Playing().Ambience, "configured ambience plays at the surface")
+		State.SetSetting("SFX", false)
+		Mock.Advance(0.3)
+		check(not SoundController.Playing().Ambience, "ambience stops when sound effects are off")
+		State.SetSetting("SFX", true)
+		Mock.Advance(0.3)
+		check(SoundController.Playing().Ambience, "ambience resumes when sound effects are back on")
+		SoundController.SetAmbience(false)
+		check(not SoundController.Playing().Ambience, "ambience stops underground")
+		State.SetSetting("SFX", savedSfx)
+		SharedConfig.Sounds.Ambience.Id = ""
+		Mock.Advance(0.3)
+	end
+
+	-- off-screen edge indicator: pure placement math
+	do
+		local size = Vector2.new(1280, 720)
+		local onScreen, at = GuideController.EdgePlacement(Vector3.new(0, 0, -10), Vector3.new(640, 360, 10), size, 50)
+		check(onScreen and at == Vector2.new(640, 360), "edge: target in view needs no edge arrow")
+		local off, right, rotRight = GuideController.EdgePlacement(Vector3.new(50, 0, -10), Vector3.new(4000, 360, 10), size, 50)
+		check(not off and math.abs(right.X - 1230) < 1e-6 and math.abs(right.Y - 360) < 1e-6, "edge: off to the right pins to the right margin")
+		check(math.abs(rotRight + 90) < 1e-6, "edge: right-pointing rotation is -90 (down arrow turned anticlockwise)")
+		local _, left = GuideController.EdgePlacement(Vector3.new(-50, 0, -10), Vector3.new(-4000, 360, 10), size, 50)
+		check(math.abs(left.X - 50) < 1e-6, "edge: off to the left pins to the left margin")
+		local _, up, rotUp = GuideController.EdgePlacement(Vector3.new(0, 50, -10), Vector3.new(640, -4000, 10), size, 50)
+		check(math.abs(up.Y - 50) < 1e-6 and math.abs(math.abs(rotUp) - 180) < 1e-6, "edge: above the view pins to the top and points up")
+		local behindOn, behind, rotBehind = GuideController.EdgePlacement(Vector3.new(30, 0, 20), Vector3.new(640, 360, -20), size, 50)
+		check(not behindOn and math.abs(behind.X - 1230) < 1e-6 and math.abs(rotBehind + 90) < 1e-6, "edge: behind and to the right uses the right edge")
+		local _, straight, rotStraight = GuideController.EdgePlacement(Vector3.new(0, 0, 20), Vector3.new(640, 360, -20), size, 50)
+		check(math.abs(straight.Y - 670) < 1e-6 and math.abs(rotStraight) < 1e-6, "edge: directly behind points down (turn around)")
+		local _, corner = GuideController.EdgePlacement(Vector3.new(80, 80, -10), Vector3.new(9000, -9000, 10), size, 50)
+		check(corner.X <= 1230 + 1e-6 and corner.Y >= 50 - 1e-6, "edge: diagonal targets stay inside the margin box")
+	end
+
+	-- off-screen edge indicator: live, target behind the camera
+	do
+		local camera = Mock.Service("Workspace").CurrentCamera
+		local savedCF = camera.CFrame
+		local edgeGui = player.PlayerGui:FindFirstChild("Dig_GuideEdge")
+		local edge = edgeGui and edgeGui:FindFirstChild("EdgeArrow")
+		local behindPoint = root.Position + Vector3.new(0, 0, 60)
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, -15), root.Position + Vector3.new(0, 0, -100))
+		GuideController.Set("StreamTest", behindPoint, 99, "Coins")
+		Mock.Advance(0.2)
+		edgeGui = player.PlayerGui:FindFirstChild("Dig_GuideEdge")
+		edge = edgeGui and edgeGui:FindFirstChild("EdgeArrow")
+		check(edge ~= nil and edge.Visible, "edge arrow shows for a target behind the camera")
+		check(edge and edge:FindFirstChild("MarkerIcon") and edge.MarkerIcon:GetAttribute("Icon") == "Coins", "edge arrow carries the guide's marker icon")
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, 15), behindPoint)
+		Mock.Advance(0.2)
+		check(edge and not edge.Visible, "edge arrow hides once the target is in view")
+		camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 10, -15), root.Position + Vector3.new(0, 0, -100))
+		Mock.Advance(0.2)
+		check(edge and edge.Visible, "edge arrow returns when the camera turns away again")
+		local savedReduced = State.GetSetting("ReducedMotion", false)
+		State.SetSetting("ReducedMotion", true)
+		Mock.Advance(0.2)
+		local s1 = edge.Size.X.Offset
+		Mock.Advance(0.13)
+		check(edge.Size.X.Offset == s1, "reduced motion: edge arrow does not pulse")
+		State.SetSetting("ReducedMotion", savedReduced)
+		GuideController.Set("StreamTest", root.Position, 99, "Coins")
+		Mock.Advance(0.2)
+		check(edge and not edge.Visible, "edge arrow hides when the player is at the target")
+		camera.CFrame = savedCF
+		GuideController.Set("StreamTest", target, 99, "S")
+		Mock.Advance(0.2)
+	end
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.2)
+	check(
+		beam.TextureSpeed == 2 and marker.StudsOffsetWorldSpace.Y > 4,
+		"world guide motion resumes when preference is disabled"
+	)
+	local ObjectiveBanner = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/ObjectiveBanner"])
+	ObjectiveBanner.Show("Sell your sand!", "Sell", { Arrow = true })
+	local arrow = ObjectiveBanner.Get():FindFirstChild("Arrow")
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.6)
+	check(arrow.Visible and arrow.Position.Y.Offset == -2, "enabling reduced motion stops an active objective arrow")
+	ObjectiveBanner.Hide()
+	State.SetSetting("ReducedMotion", false)
+	Mock.Advance(0.6)
+	check(
+		not ObjectiveBanner.Get().Visible and arrow.Position.Y.Offset == -2,
+		"hidden objective arrow stays stopped when settings change"
+	)
+	State.SetSetting("ReducedMotion", savedMotion)
 	GuideController.Clear("StreamTest")
 	Mock.Advance(0.2)
 
@@ -651,8 +899,14 @@ Mock.FireClientEvent(
 	Config.Treasures[#Config.Treasures].Rarity
 )
 Mock.Advance(6)
+State.SetSetting("ReducedMotion", true)
 Mock.FireClientEvent("EggHatched", { Config.Pets[1].Id })
+Mock.Advance(0.1)
+local hatch = playerGui:FindFirstChild("Hatch", true)
+local hatchEgg = hatch and hatch:FindFirstChild("Egg", true)
+check(hatchEgg ~= nil and (hatchEgg.Rotation or 0) == 0 and hatchEgg.Size.X.Offset == 180, "reduced-motion hatch keeps egg still at its original size")
 Mock.Advance(8)
+State.SetSetting("ReducedMotion", false)
 Mock.FireClientEvent("EggHatched", { Config.Pets[1].Id, Config.Pets[2].Id, Config.Pets[#Config.Pets].Id })
 Mock.Advance(10)
 for _, kind in { "Info", "Success", "Error", "Reward", "Sell", "Announce", "Event", "Weird" } do
@@ -882,6 +1136,108 @@ do
 		check(#Mock.Errors == e0, "PetDug animation runs without errors")
 	end
 	Mock.FireClientEvent("PetDug", player, 9, "unknown", root.Position, 1)
+	-- Decorative pet motion stops on a live setting toggle; follow and digging still work.
+	local savedPetMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", true)
+	player:SetAttribute("EquippedPets", "")
+	root.CFrame = CFrame.new(root.Position)
+	player:SetAttribute("EquippedPets", "mining_drill,seagull,sandy_crab")
+	Mock.Advance(0.05)
+	local motionPets = PetFollowController.GetVisuals(player)
+	local drillPet, flyingPet, walkingPet
+	for _, v in motionPets do
+		if v.Id == "mining_drill" then
+			drillPet = v
+		elseif v.Id == "seagull" then
+			flyingPet = v
+		else
+			walkingPet = v
+		end
+	end
+	local drillJoint
+	for _, d in drillPet.Model:GetDescendants() do
+		if d:IsA("Model") and (d:GetAttribute("Motion") == "Drill" or d:GetAttribute("Motion") == "Spin") then
+			drillJoint = d
+			break
+		end
+	end
+	local function jointPose()
+		return drillPet.Model:GetPivot():ToObjectSpace(drillJoint:GetPivot())
+	end
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.05)
+	local flyStill, walkStill, vehicleStill =
+		flyingPet.Model:GetPivot(), walkingPet.Model:GetPivot(), drillPet.Model:GetPivot()
+	local drillStill = jointPose()
+	Mock.Advance(0.1)
+	check(
+		(flyingPet.Model:GetPivot().Position - flyStill.Position).Magnitude < 0.001
+			and flyingPet.Model:GetPivot().UpVector:Dot(flyStill.UpVector) > 0.99999,
+		"reduced motion stops pet flight bob and roll"
+	)
+	check(
+		(walkingPet.Model:GetPivot().Position - walkStill.Position).Magnitude < 0.001,
+		"reduced motion stops ground creature idle bob"
+	)
+	check(
+		(drillPet.Model:GetPivot().Position - vehicleStill.Position).Magnitude < 0.001,
+		"reduced motion stops vehicle idle engine bob"
+	)
+	check(jointPose().RightVector:Dot(drillStill.RightVector) > 0.99999, "reduced motion freezes idle drill rotation")
+	Mock.Advance(3)
+	local groundedY = walkingPet.Model:GetPivot().Position.Y
+	local ownerBeforeJump = root.CFrame
+	root.CFrame = root.CFrame + Vector3.new(0, 2, 0)
+	Mock.Advance(2)
+	check(math.abs(walkingPet.Model:GetPivot().Position.Y - groundedY) < 0.05, "walking pet stays on terrain when its owner rises above it")
+	check(flyingPet.Model:GetPivot().Position.Y > flyStill.Position.Y + 1.5, "flying pet keeps following the owner's height")
+	root.CFrame = ownerBeforeJump
+	Mock.Advance(2)
+	Mock.Advance(0.05)
+	State.SetSetting("ReducedMotion", false)
+	local resumePose = jointPose()
+	local resumeFly = flyingPet.Model:GetPivot()
+	Mock.Advance(0.1)
+	check(
+		jointPose().RightVector:Dot(resumePose.RightVector) < 0.999,
+		"idle drill rotation resumes after disabling reduced motion"
+	)
+	check(
+		(flyingPet.Model:GetPivot().Position - resumeFly.Position).Magnitude > 0.01,
+		"pet flight bob resumes after disabling reduced motion"
+	)
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.02)
+	local toggledDrill = jointPose()
+	Mock.Advance(0.02)
+	check(
+		jointPose().RightVector:Dot(toggledDrill.RightVector) > 0.99999
+			and flyingPet.Model:GetPivot().UpVector.Y > 0.99999,
+		"enabling reduced motion immediately stops active idle drill spin and flight roll"
+	)
+	root.CFrame = CFrame.new(root.Position + Vector3.new(-8, 0, 0))
+	Mock.Advance(0.15)
+	check(
+		(drillPet.Model:GetPivot().Position - vehicleStill.Position).Magnitude > 0.1
+			and (flyingPet.Model:GetPivot().Position - flyStill.Position).Magnitude > 0.1,
+		"reduced motion preserves pet follow locomotion"
+	)
+	local actionPose = jointPose()
+	Mock.FireClientEvent(
+		"PetDug",
+		player,
+		drillPet.Slot,
+		drillPet.Id,
+		drillPet.Model:GetPivot().Position - Vector3.new(0, 1, 0) + Vector3.new(0, 0, -2.4),
+		12
+	)
+	Mock.Advance(0.25)
+	check(
+		jointPose().RightVector:Dot(actionPose.RightVector) < 0.999
+			or (jointPose().Position - actionPose.Position).Magnitude > 0.01,
+		"reduced motion preserves active drill feedback"
+	)
+	State.SetSetting("ReducedMotion", savedPetMotion)
 	Mock.FireClientEvent("PetDug", "junk")
 	Mock.Advance(0.5)
 	check(#Mock.Errors == e0, "bad PetDug payloads are ignored")
@@ -2106,6 +2462,20 @@ do
 	local d = StatusController.Describe(other)
 	check(d.Title == "Core Breaker" and d.Stars == "" and d.Tag == nil, "Describe(other)")
 
+	-- a reveal headline sits where your own plate floats: it hides only yours, only meanwhile
+	do
+		local RevealUI = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/Reveal"])
+		local mine = StatusController.GetPlate(me)
+		Mock.Advance(15)
+		check(mine ~= nil and mine.Enabled, "own nameplate shown before the reveal")
+		RevealUI.Show({ Headline = "EPIC!", Color = Mock.Env.Color3.new(1, 0, 1), Items = { { Name = "Shell", Rows = {} } }, Hold = 2 })
+		Mock.Advance(0.3)
+		check(mine ~= nil and not mine.Enabled, "own nameplate hidden while a reveal is showing")
+		check(otherPlate ~= nil and otherPlate.Enabled, "other players' nameplates stay visible")
+		Mock.Advance(3)
+		check(not RevealUI.IsShowing() and mine ~= nil and mine.Enabled, "own nameplate returns after the reveal")
+	end
+
 	-- worn backpack sand level (client-side visual)
 	local pack = Models.Backpack(Config.Backpacks[1].Id)
 	pack.Name = "WornBackpack"
@@ -2416,7 +2786,7 @@ do
 	check(DiscoveryController.Ping.Band == 1 and DiscoveryController.IsScanning(), "ping stored, scanning")
 	check(scan.Label.Text == "HOT!", "HOT! when the find is close (" .. scan.Label.Text .. ")")
 	local pill = scan.Holder:FindFirstChild("Vertical")
-	check(pill ~= nil and pill.Visible and pill.Text == "DOWN", "DOWN pill when the find is below you")
+	check(pill ~= nil and pill.Visible and pill.Text == "DIG DOWN!", "hot and below: the pill says DIG DOWN!")
 	local dot = scan.Holder:FindFirstChild("Dot", true)
 	check(dot ~= nil and dot.Visible and dot.BackgroundColor3 == D.SIGNAL_COLORS.Gold, "radar dot in the gold signal colour")
 	local radar = scan.Holder:FindFirstChild("Radar")
@@ -2426,6 +2796,15 @@ do
 	check(math.abs(DiscoveryController.ArrowAngle(Vector3.new(0, 0, -1)) - 90) < 1e-6, "camera looking -Z: arrow points right")
 	local arrow = workspace:FindFirstChild("DetectorArrow")
 	check(arrow ~= nil and arrow.Transparency < 1 and arrow.Color == D.SIGNAL_COLORS.Gold, "ground arrow shows while scanning")
+	local headL, headR = arrow and arrow:FindFirstChild("HeadLeft"), arrow and arrow:FindFirstChild("HeadRight")
+	check(headL ~= nil and headR ~= nil and headL.Transparency < 1 and headR.Color == D.SIGNAL_COLORS.Gold, "ground arrow has a visible chevron head")
+	if headL and headR and arrow then
+		-- both arms sit further along the pointing direction than the shaft centre
+		local dirX = Vector3.new(1, 0, 0) -- sector 2 of 8 = +X
+		local shaftAlong = arrow.Position:Dot(dirX)
+		check(headL.Position:Dot(dirX) > shaftAlong and headR.Position:Dot(dirX) > shaftAlong, "chevron head is at the tip end of the arrow")
+	end
+	check(dot:FindFirstChild("Pointer") ~= nil, "radar dot carries an arrowhead")
 	Mock.FireClientEvent("DetectorPing", { Band = 4, Sector = 0, Vertical = "Level", Signal = "Purple", Remaining = 3 })
 	Mock.Advance(0.3)
 	check(scan.Label.Text == "Faint" and not pill.Visible, "Faint at the edge of range, no pill when level")
@@ -2439,6 +2818,13 @@ do
 	Mock.Advance(D.SCAN_SECONDS + 1)
 	check(not DiscoveryController.IsScanning() and (arrow.Transparency == 1), "scan over: arrow hidden")
 	check(DetectorHUD.Caption({ Band = 2, Sector = 0, Vertical = "", Signal = "", Remaining = 1 }, true, 0) == "Warm", "Caption: Warm")
+	local function instr(band, vertical, scanning)
+		return DetectorHUD.Instruction({ Band = band, Sector = 0, Vertical = vertical, Signal = "", Remaining = 1 }, scanning)
+	end
+	check(instr(1, "Level", true) == "DIG HERE!", "Instruction: hot and level -> DIG HERE!")
+	check(instr(1, "Down", true) == "DIG DOWN!" and instr(1, "Up", true) == "UP HERE!", "Instruction: hot below / above")
+	check(instr(2, "Down", true) == "DOWN" and instr(3, "Up", true) == "UP" and instr(3, "Level", true) == "", "Instruction: farther away keeps DOWN / UP")
+	check(instr(1, "Down", false) == "" and instr(0, "Down", true) == "", "Instruction: nothing when not scanning or nothing in range")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 2.2) == "3s", "Caption: cooldown seconds")
 	check(DetectorHUD.Caption({ Band = 0, Sector = -1, Vertical = "", Signal = "", Remaining = 0 }, false, 0) == "Scan", "Caption: ready")
 
@@ -2454,6 +2840,47 @@ do
 		GoodWindow = D.GOOD_WINDOW,
 		Timeout = 9,
 	}
+	-- Actual excavation lifecycle owns toast suppression, including the retiring grade.
+	do
+		local Toasts = Mock.Require(byPath[CP .. "UI/Toasts"])
+		local toastRoot = playerGui:FindFirstChild("Dig_Toasts"):FindFirstChild("Canvas"):FindFirstChild("Toasts")
+		local function hasLifecycleToast()
+			for _, descendant in toastRoot:GetDescendants() do
+				if descendant:IsA("TextLabel") and descendant.Text == "Lifecycle collection notice" then
+					return true
+				end
+			end
+			return false
+		end
+		Toasts.Show("Lifecycle collection notice", "Info", 8)
+		check(hasLifecycleToast(), "lifecycle notice visible before actual Start")
+		local startAt = Mock.Now()
+		ExcavationGame.Start(info, startAt)
+		check(not hasLifecycleToast(), "actual Start suppresses existing notice")
+		ExcavationGame.Step(startAt + 20)
+		Mock.Advance(0.3)
+		check(not ExcavationGame.IsActive() and not hasLifecycleToast(), "finished rings keep notices held during final-grade retirement")
+		Mock.Advance(0.4)
+		check(hasLifecycleToast(), "finished excavation resumes notice after final-grade retirement")
+
+		local nextInfo = table.clone(info)
+		nextInfo.Id = "toast-replacement"
+		startAt = Mock.Now()
+		ExcavationGame.Start(info, startAt)
+		ExcavationGame.Step(startAt + 20)
+		Mock.Advance(0.3)
+		ExcavationGame.Start(nextInfo, Mock.Now())
+		Mock.Advance(0.4)
+		check(ExcavationGame.IsActive() and not hasLifecycleToast(), "stale teardown cannot release notices during replacement excavation")
+		ExcavationGame.DismissForReveal("unrelated-toast-find")
+		check(ExcavationGame.IsActive() and not hasLifecycleToast(), "unrelated reveal leaves replacement excavation hold intact")
+		ExcavationGame.DismissForReveal(nextInfo.Id)
+		check(not ExcavationGame.IsActive(), "matching reveal dismisses active replacement excavation")
+		Mock.Advance(0.7)
+		check(hasLifecycleToast(), "matching reveal dismissal releases excavation notice hold")
+		Mock.Advance(9)
+	end
+
 	local x0 = #Mock.Remote.ToServer
 	ExcavationGame.Start(info, 100, true)
 	check(ExcavationGame.IsActive() and DigController.Enabled == false, "minigame active, digging paused")
@@ -2508,6 +2935,33 @@ do
 	Mock.Advance(5)
 	local miss = sent("Excavate", x2)
 	check(#miss == 1 and miss[1][2][1] == -1 and miss[1][2][3] == -1, "no taps: three misses reported")
+	Mock.Advance(1)
+	-- The last grade belongs to the completed ring, not the next shrinking ring.
+	ExcavationGame.Start(info, 200)
+	local cueOverlay = popups:FindFirstChild("Excavation")
+	local prompt = cueOverlay:FindFirstChild("Cue")
+	local result = cueOverlay:FindFirstChild("Grade")
+	local ringUi = cueOverlay:FindFirstChild("Ring")
+	ExcavationGame.Tap(200 + lead + 0.1)
+	check(result.Text == "1/3: MISS" and prompt.Text == "", "early tap separates numbered miss from next cue")
+	check(not ringUi.Visible, "graded ring hides immediately")
+	ExcavationGame.Step(200 + lead + 1.15 + 0.1)
+	check(prompt.Text == "WAIT..." and result.Text == "1/3: MISS", "next ring cues waiting while preserving the prior result")
+	ExcavationGame.Step(200 + lead + 1.15 + 0.9)
+	check(prompt.Text == "TAP!" and ringUi.Visible, "good timing window gives an explicit tap cue")
+	ExcavationGame.Tap(200 + lead + 1.15 + 0.9)
+	check(result.Text == "2/3: PERFECT!" and prompt.Text == "" and not ringUi.Visible, "hit clears tap cue and green ring immediately")
+	ExcavationGame.Step(200 + lead + 2.3 + 0.9 - info.GoodWindow)
+	check(prompt.Text == "TAP!", "cue starts at the inclusive good-window boundary")
+	ExcavationGame.Step(200 + lead + 2.3 + 0.9 + info.GoodWindow + 0.001)
+	check(result.Text == "3/3: MISS" and prompt.Text == "" and not ringUi.Visible, "expired final ring never displays a green ring with miss")
+	ExcavationGame.Step(210)
+	check(cueOverlay.Parent ~= nil, "final grade remains until reward or fallback teardown")
+	ExcavationGame.DismissForReveal("unrelated")
+	check(cueOverlay.Parent ~= nil, "another find cannot dismiss this excavation result")
+	ExcavationGame.DismissForReveal(info.Id)
+	check(cueOverlay.Parent == nil, "confirmed matching reward clears retiring target and grade immediately")
+	Mock.Advance(1)
 
 	-- reveal tier selection
 	local function fi(rarity, size, material, isNew, newVariants)
@@ -2521,13 +2975,13 @@ do
 	local p = FindReveal.Presentation(fi("Common"))
 	check(p.Tier == "Pop" and p.Card == "None" and p.Float and not p.Camera, "Common repeat: float text only")
 	p = FindReveal.Presentation(fi("Common", "Normal", "None", true))
-	check(p.Card == "Compact", "first Common find: compact card")
+	check(p.Card == "Compact" and not p.Float, "first Common find: card without competing floating name/value")
 	p = FindReveal.Presentation(fi("Common", "Giant"))
 	check(p.Tier == "Beam" and p.Card == "Compact" and p.Sound == "RareTreasure", "Giant common: Beam tier")
 	p = FindReveal.Presentation(fi("Rare"))
 	check(p.Tier == "Beam" and p.Card == "Compact", "Rare: Beam + compact card")
 	p = FindReveal.Presentation(fi("Legendary"))
-	check(p.Tier == "Card" and p.Card == "Full" and p.Camera and not p.Flash, "Legendary: full card + camera moment")
+	check(p.Tier == "Card" and p.Card == "Full" and not p.Float and p.Camera and not p.Flash, "Legendary: full card + camera moment without duplicate text")
 	p = FindReveal.Presentation(fi("Mythic"))
 	check(p.Tier == "Server" and p.Flash and p.Confetti, "Mythic: server tier, flash + confetti")
 	p = FindReveal.Presentation(fi("Relic"))
@@ -2543,9 +2997,68 @@ do
 		end
 	end
 	check(names["Giant Crystal Bottle Cap"] and names["SIZE"] and names["MATERIAL"] and names["QUALITY"], "card shows the variant name and SIZE / MATERIAL / QUALITY rows")
+	local revealStyle = Mock.Require(byPath[CP .. "UI/Components/Style"])
+	check(reveal:FindFirstChild("ItemName", true).TextColor3 == revealStyle.Colors.Text, "discovery name uses readable white instead of rarity tint")
 	Mock.Advance(6)
 	Mock.FireClientEvent("FindRevealed", "junk")
 	Mock.Advance(0.2)
+
+	-- A thin flip-flop must retain its front silhouette throughout both reveal paths.
+	local savedMotion = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", false)
+	local TreasurePopup = Mock.Require(byPath[CP .. "UI/TreasurePopup"])
+	local shown = {}
+	local seenAncestors = {}
+	local function revealModel()
+		local card = popups:FindFirstChild("Reveal")
+		local frame = card and card:FindFirstChild("Model", true)
+		-- Earlier menu tests can leave a popup ancestor hidden. Exercise actual motion.
+		local ancestor = frame
+		while ancestor do
+			local property = if ancestor:IsA("GuiObject") then "Visible" elseif ancestor:IsA("ScreenGui") then "Enabled" else nil
+			if property then
+				if not seenAncestors[ancestor] then
+					seenAncestors[ancestor] = true
+					table.insert(shown, { ancestor, property, ancestor[property] })
+				end
+				ancestor[property] = true
+			end
+			ancestor = ancestor.Parent
+		end
+		return frame and frame:FindFirstChildOfClass("Model")
+	end
+	local flipInfo = fi("Common", "Normal", "None", true)
+	flipInfo.TreasureId = "lost_flip_flop"
+	FindReveal.Show(flipInfo)
+	Mock.Advance(0.2)
+	local flip = revealModel()
+	check(flip ~= nil, "flip-flop discovery has a model preview")
+	local initial = flip and flip:GetPivot()
+	Mock.Advance(0.8)
+	check(flip and flip:GetPivot() == initial, "flip-flop discovery keeps its broad front face without Reduced Motion")
+	Mock.Advance(5)
+	TreasurePopup.Show("lost_flip_flop", "Common")
+	Mock.Advance(0.2)
+	flip = revealModel()
+	initial = flip and flip:GetPivot()
+	Mock.Advance(0.8)
+	check(flip and flip:GetPivot() == initial, "legacy flip-flop popup also stays static")
+	Mock.Advance(5)
+	local Reveal = Mock.Require(byPath[CP .. "UI/Reveal"])
+	local Models = Mock.Require(byPath["ReplicatedStorage/Shared/Models"])
+	Reveal.Show({ Headline = "SPIN DEFAULT", Color = Config.GetRarity("Common").Color, Items = { { Name = "Bottle Cap", Model = Models.Treasure("bottle_cap"), Rows = {} } }, Hold = 3 })
+	Mock.Advance(0.2)
+	local spinning = revealModel()
+	initial = spinning and spinning:GetPivot()
+	Mock.Advance(0.8)
+	check(spinning and spinning:GetPivot() ~= initial, "visible Reveal item without a Spin option preserves rotation")
+	Mock.Advance(5)
+	for _, restored in shown do
+		if restored[1].Parent then
+			restored[1][restored[2]] = restored[3]
+		end
+	end
+	State.SetSetting("ReducedMotion", savedMotion)
 
 	-- world models: streaming-safe tag watching (Stage Excavating -> Revealed, late stream-in)
 	local CollectionService = Mock.Service("CollectionService")
@@ -2618,6 +3131,27 @@ do
 	Panel.CloseAll()
 	Mock.Advance(0.5)
 	check(#Mock.Errors == e0, "no errors in discovery")
+end
+
+section("confirmed sell feedback")
+do
+	local UIEffects = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/UI/UIEffects"])
+	local originalFly = UIEffects.FlyTo
+	local flights = 0
+	UIEffects.FlyTo = function(...)
+		flights += 1
+	end
+	Mock.FireClientEvent("DataChanged", { Sand = 5 })
+	Mock.FireClientEvent("DataChanged", { Sand = 0 })
+	Mock.Advance(0.1)
+	check(flights == 0, "sand reset alone does not celebrate a sale")
+	Mock.FireClientEvent("Notify", "Sell", "+8 Coins!")
+	Mock.Advance(0.1)
+	check(flights == 1, "confirmed treasure-only sale celebrates with an empty sand bag")
+	Mock.FireClientEvent("Notify", "Sell", false)
+	Mock.Advance(0.1)
+	check(flights == 1, "malformed sell notification does not trigger effects")
+	UIEffects.FlyTo = originalFly
 end
 
 section("report")

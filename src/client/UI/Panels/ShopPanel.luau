@@ -51,7 +51,7 @@ local cards: { ItemCard } = {}
 local built = false
 local currentTab: Kind = "Shovels"
 local pendingEquip: { [string]: Kind } = {}
-local revealShovel: (id: string) -> ()
+local revealShovel: (id: string, previous: string?) -> ()
 
 local function shovelStat(def: Types.ShovelDef): UpgradeRow.Stat
 	return {
@@ -263,8 +263,8 @@ local function scrollToNext()
 	end
 end
 
--- New shovel: the shared Reveal popup with its dig stats.
-revealShovel = function(id: string)
+-- New shovel: the shared Reveal popup with its dig stats and what it improves over `previous`.
+revealShovel = function(id: string, previous: string?)
 	local found = Config.GetShovel(id)
 	if not found then
 		return
@@ -272,6 +272,7 @@ revealShovel = function(id: string)
 	local def = found :: Types.ShovelDef
 	Reveal.Show({
 		Headline = "NEW SHOVEL!",
+		Caption = ItemStats.UpgradeSummary(if previous then Config.GetShovel(previous) else nil, def),
 		Color = C.Gold,
 		Items = {
 			{
@@ -325,7 +326,20 @@ function ShopPanel.Init()
 					pendingEquip[id] = nil
 					SoundController.Play("Purchase")
 					if kind == "Shovels" then
-						revealShovel(id)
+						-- compare against the best shovel owned before this purchase (the server may
+						-- already have auto-equipped the new one)
+						local previous: string? = nil
+						if typeof(old) == "table" then
+							for ownedId in old do
+								if
+									previous == nil
+									or ItemStats.ShovelTier(ownedId) > ItemStats.ShovelTier(previous)
+								then
+									previous = ownedId
+								end
+							end
+						end
+						revealShovel(id, previous)
 					else
 						UIEffects.Confetti(30)
 					end

@@ -124,6 +124,12 @@ end
 
 -- Refill one cell bottom-up. Normal tide aborts as soon as someone comes near or digs in it;
 -- `force` (High Tide) lifts people out and carries on. Returns true when the cell is solid.
+-- Return a value so strict pcall typing includes its failure result as well.
+local function fillLayeredForProfile(minV: Vector3, maxV: Vector3): boolean
+	World.FillLayered(minV, maxV)
+	return true
+end
+
 local function refillCell(cell: Cell, force: boolean): boolean
 	local key = cellKey(cell.CX, cell.CZ)
 	local x0, z0 = cell.CX * CELL, cell.CZ * CELL
@@ -140,7 +146,12 @@ local function refillCell(cell: Cell, force: boolean): boolean
 		end
 		liftFromCell(cell)
 		local top = math.min(S, y + CHUNK)
-		World.FillLayered(Vector3.new(x0, y, z0), Vector3.new(x0 + CELL, top, z0 + CELL))
+		debug.profilebegin("DigTheBeach.Tide.FillChunk")
+		local ok, err = pcall(fillLayeredForProfile, Vector3.new(x0, y, z0), Vector3.new(x0 + CELL, top, z0 + CELL))
+		debug.profileend()
+		if not ok then
+			error(err, 0)
+		end
 		if cell.Version == version then
 			cell.Deepest = math.max(0, S - top)
 		end

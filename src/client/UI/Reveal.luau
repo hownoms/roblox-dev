@@ -34,6 +34,7 @@ export type Item = {
 	Yaw: number?,
 	Pitch: number?,
 	Rotation: CFrame?,
+	Spin: boolean?, -- defaults true; flat finds can keep their recognizable front face
 	Rows: { Row },
 	Tag: string?, -- "NEW!"
 	NameColor: Color3?,
@@ -46,6 +47,7 @@ export type Spec = {
 	Caption: string?, -- small line under the headline ("YOU HATCHED", "NEW SHOVEL")
 	Items: { Item },
 	Compact: boolean?,
+	CompactScale: number?, -- discovery cards reserve more room for the item name
 	Hold: number?,
 	Sound: string?, -- "" = silent
 	Confetti: boolean?,
@@ -53,6 +55,7 @@ export type Spec = {
 	OnClosed: (() -> ())?,
 }
 
+Reveal.Opened = Signal.new()
 Reveal.Closed = Signal.new()
 
 local C = Style.Colors
@@ -233,7 +236,7 @@ local function card(parent: Instance, item: Item, spec: Spec, single: boolean, z
 	local view = Viewport.new({
 		Name = "Model",
 		Size = UDim2.fromScale(1, 1),
-		Spin = true,
+		Spin = item.Spin ~= false,
 		SpinSpeed = 1.4,
 		Pitch = item.Pitch or 12,
 		Yaw = item.Yaw,
@@ -313,6 +316,7 @@ local pump: () -> ()
 
 local function show(spec: Spec)
 	showing = true
+	Reveal.Opened:Fire()
 	local canvas = Root.Get("Popups")
 	local compact = spec.Compact == true
 	local items = spec.Items
@@ -364,7 +368,7 @@ local function show(spec: Spec)
 	if design.X > 0 and design.Y > 0 then
 		fit = math.min(1, (design.X - 40) / rowWidth, (design.Y - 30) / (cardSize.Y + 110))
 	end
-	local target = fit * (if compact then 0.62 else 1)
+	local target = fit * (if compact then math.clamp(spec.CompactScale or 0.62, 0.5, 1) else 1)
 	groupScale.Scale = target * 0.6
 	Style.Tween(groupScale, 0.35, { Scale = target }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 

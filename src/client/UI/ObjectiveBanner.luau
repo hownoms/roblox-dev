@@ -12,6 +12,7 @@ local Root = require(script.Parent.Root)
 local Layout = require(script.Parent.Layout)
 local Style = require(script.Parent.Components.Style)
 local AtlasIcon = require(script.Parent.Components.AtlasIcon)
+local State = require(script.Parent.Parent.Controllers.State)
 
 local ObjectiveBanner = {}
 
@@ -26,6 +27,31 @@ local arrowTween: Tween? = nil
 local hiding = 0
 
 ObjectiveBanner.Visible = false
+
+local function refreshArrow()
+	if arrowTween then
+		arrowTween:Cancel()
+		arrowTween = nil
+	end
+	if not frame then
+		return
+	end
+	arrow.Frame.Position = UDim2.new(1, -6, 0.5, -2)
+	if ObjectiveBanner.Visible and arrow.Frame.Visible and State.GetSetting("ReducedMotion", false) ~= true then
+		arrow.Frame.Position = UDim2.new(1, -6, 0.5, -6)
+		arrowTween = Style.Tween(
+			arrow.Frame,
+			0.4,
+			{ Position = UDim2.new(1, -6, 0.5, 4) },
+			Enum.EasingStyle.Sine,
+			Enum.EasingDirection.InOut,
+			-1,
+			true
+		)
+	end
+end
+
+State.Changed("Settings"):Connect(refreshArrow)
 
 local function build(): Frame
 	local existing = frame
@@ -107,31 +133,18 @@ function ObjectiveBanner.Show(text: string, iconKey: string?, options: Options?)
 	step.Text = opts.Step or ""
 	local wantArrow = opts.Arrow == true
 	arrow.Frame.Visible = wantArrow
-	if wantArrow and not arrowTween then
-		arrow.Frame.Position = UDim2.new(1, -6, 0.5, -6)
-		arrowTween = Style.Tween(
-			arrow.Frame,
-			0.4,
-			{ Position = UDim2.new(1, -6, 0.5, 4) },
-			Enum.EasingStyle.Sine,
-			Enum.EasingDirection.InOut,
-			-1,
-			true
-		)
-	elseif not wantArrow and arrowTween then
-		arrowTween:Cancel()
-		arrowTween = nil
-	end
 	label.Size = UDim2.new(1, (if opts.Step then -110 else -60) - (if wantArrow then 34 else 0), 0.78, 0)
 	step.Position = UDim2.new(1, if wantArrow then -44 else -8, 0.5, 0)
 	pill.Visible = true
 	ObjectiveBanner.Visible = true
+	refreshArrow()
 	Style.PopIn(pill, 0.35)
 end
 
 function ObjectiveBanner.Hide()
 	local maybe = frame
 	ObjectiveBanner.Visible = false
+	refreshArrow()
 	if not maybe or not maybe.Visible then
 		return
 	end

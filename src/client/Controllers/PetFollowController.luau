@@ -330,7 +330,7 @@ end
 
 -- Animation ----------------------------------------------------------------------------------
 
-local function poseJoints(pet: PetVisual, pivot: CFrame, digAlpha: number, dt: number)
+local function poseJoints(pet: PetVisual, pivot: CFrame, digAlpha: number, dt: number, reducedMotion: boolean)
 	for _, j in pet.Joints do
 		local active = digAlpha > 0 or j.Motion == "Spin" or j.Motion == "Drill"
 		if not active and not j.Posed then
@@ -345,7 +345,9 @@ local function poseJoints(pet: PetVisual, pivot: CFrame, digAlpha: number, dt: n
 			pose = base * CFrame.Angles(j.Amount * wave * wave, 0, 0)
 		elseif j.Motion == "Spin" or j.Motion == "Drill" then
 			-- idle drills turn slowly, digging drills spin fast
-			j.Spin = (j.Spin + dt * j.Amount * (if digAlpha > 0 then 1 else 0.06)) % (math.pi * 2)
+			if digAlpha > 0 or not reducedMotion then
+				j.Spin = (j.Spin + dt * j.Amount * (if digAlpha > 0 then 1 else 0.06)) % (math.pi * 2)
+			end
 			pose = base * CFrame.new(0, j.Plunge * wave, 0) * CFrame.Angles(0, j.Spin, 0)
 		end
 		j.Model:PivotTo(pose)
@@ -443,6 +445,7 @@ local function update(dt: number)
 	end
 	local cameraPos = camera.CFrame.Position
 	local low = State.GetSetting("LowGraphics", false) == true
+	local reducedMotion = State.GetSetting("ReducedMotion", false) == true
 	local now = os.clock()
 	refreshFilter(now)
 	for player, entry in entries do
@@ -514,9 +517,26 @@ local function update(dt: number)
 				speed = 5
 			else
 				local slot = flat:PointToWorldSpace(slotOffset(creatureIndex, creatures))
-				local bob = math.sin(now * 3 + pet.Phase) * 0.35
-				local height = if pet.Flying then 2.2 + bob * 1.4 else -2.6 + math.max(bob, 0) * 1.2
-				target = slot + Vector3.new(0, height, 0)
+				local bob = if reducedMotion then 0 else math.sin(now * 3 + pet.Phase) * 0.35
+				if pet.Flying then
+					target = slot + Vector3.new(0, 2.2 + bob * 1.4, 0)
+				else
+					-- Creature feet need their own surface, not the owner's height.
+					-- Bound raycasts to the same cadence used for vehicle followers.
+					if now >= pet.NextGround or pet.GroundY == nil then
+						pet.NextGround = now + GROUND_REFRESH + math.random() * 0.05
+						local far = groundBelow(slot)
+						pet.Near = far == nil or math.abs((far :: number) - feetY) > NEAR_HEIGHT
+						pet.GroundY = if pet.Near
+							then groundBelow(flat:PointToWorldSpace(slotOffset(creatureIndex, creatures) * NEAR_SCALE))
+								or feetY
+							else far
+					end
+					if pet.Near then
+						slot = flat:PointToWorldSpace(slotOffset(creatureIndex, creatures) * NEAR_SCALE)
+					end
+					target = Vector3.new(slot.X, (pet.GroundY or feetY) + math.max(bob, 0) * 1.2, slot.Z)
+				end
 			end
 			target += pet.Offset
 
@@ -562,21 +582,21 @@ local function update(dt: number)
 			local pivot = CFrame.lookAt(position, position + look)
 			pet.Current = pivot
 			local shown = pivot
-			if pet.Vehicle then
+			if pet.Vehicle and not reducedMotion then
 				local driving = math.clamp(moved.Magnitude / math.max(dt, 1e-3) / 16, 0, 1)
 				local bob = math.abs(math.sin(now * 9 + pet.Phase)) * (0.04 + 0.12 * driving)
 				local rumble = if digAlpha > 0 then math.sin(now * 40) * 0.03 else 0
 				shown = pivot * CFrame.new(0, bob + rumble, 0) * CFrame.Angles(-driving * 0.04, 0, 0)
-			elseif digAlpha > 0 then
+			elseif not pet.Vehicle and digAlpha > 0 then
 				-- creatures: two quick scooping hops toward the hole
 				local wave = math.abs(math.sin(math.pi * 2 * digAlpha))
 				shown = pivot * CFrame.new(0, wave * 0.5, -wave * 0.2) * CFrame.Angles(-wave * 0.45, 0, 0)
-			elseif pet.Flying then
+			elseif pet.Flying and not reducedMotion then
 				shown = pivot * CFrame.Angles(0, 0, math.sin(now * 2 + pet.Phase) * 0.12)
 			end
 			pet.Model:PivotTo(shown)
 			if pet.Vehicle then
-				poseJoints(pet, shown, digAlpha, dt)
+				poseJoints(pet, shown, digAlpha, dt, reducedMotion)
 			end
 		end
 	end

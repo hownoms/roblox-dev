@@ -3,8 +3,9 @@
 	BadgeAwardService — awards Roblox badges from Config.Badges when PlayerData crosses a
 	milestone (first dig, first pet, reaching a layer, rebirths, a Mythic+ find, a completed
 	layer Index, a daily streak). Badges with Id 0 are skipped.
-	Each badge is attempted at most once per player per session; BadgeService itself ignores
-	repeat awards across sessions.
+	Each badge is awarded at most once per player per session; BadgeService itself ignores
+	repeat awards across sessions. A failed BadgeService call (throttling, outage) is retried
+	on the next relevant change after RETRY_DELAYS[n] seconds, up to #RETRY_DELAYS times.
 ]]
 
 local BadgeService = game:GetService("BadgeService")
@@ -21,7 +22,10 @@ local BadgeAwardService = {}
 local RELEVANT_KEYS =
 	{ TotalSandDug = true, Pets = true, MaxDepth = true, Rebirths = true, Index = true, DailyStreak = true }
 
+BadgeAwardService.RETRY_DELAYS = { 30, 120, 600 }
+
 local attempted: { [Player]: { [string]: boolean } } = {}
+local failures: { [Player]: { [string]: { Count: number, RetryAt: number } } } = {}
 
 local function layerDepth(name: string?): number?
 	for _, layer in Config.Layers do
@@ -94,11 +98,15 @@ end
 local function check(player: Player)
 	local data = DataService.Get(player)
 	local tried = attempted[player]
-	if not data or not tried then
+	local failed = failures[player]
+	if not data or not tried or not failed then
 		return
 	end
+	local now = os.clock()
 	for _, badge in Config.Badges do
-		if badge.Id ~= 0 and not tried[badge.Key] and earned(badge, data :: Types.PlayerData) then
+		local failure = failed[badge.Key]
+		local waiting = failure ~= nil and now < failure.RetryAt
+		if badge.Id ~= 0 and not tried[badge.Key] and not waiting and earned(badge, data :: Types.PlayerData) then
 			tried[badge.Key] = true
 			task.spawn(function()
 				local ok, err = pcall(function()
@@ -106,8 +114,24 @@ local function check(player: Player)
 						BadgeService:AwardBadge(player.UserId, badge.Id)
 					end
 				end)
-				if not ok then
-					warn("[BadgeAwardService] " .. badge.Key .. ": " .. tostring(err))
+				if ok then
+					if failures[player] then
+						failures[player][badge.Key] = nil
+					end
+					return
+				end
+				local count = (if failure then failure.Count else 0) + 1
+				local delay = BadgeAwardService.RETRY_DELAYS[count]
+				warn(
+					"[BadgeAwardService] "
+						.. badge.Key
+						.. ": "
+						.. tostring(err)
+						.. (if delay then " (retrying in " .. delay .. " s)" else " (giving up this session)")
+				)
+				if delay and attempted[player] and failures[player] then
+					attempted[player][badge.Key] = nil
+					failures[player][badge.Key] = { Count = count, RetryAt = os.clock() + delay }
 				end
 			end)
 		end
@@ -116,15 +140,18 @@ end
 
 function BadgeAwardService.OnPlayerAdded(player: Player)
 	attempted[player] = {}
+	failures[player] = {}
 end
 
 function BadgeAwardService.OnPlayerRemoving(player: Player)
 	attempted[player] = nil
+	failures[player] = nil
 end
 
 function BadgeAwardService.Start()
 	DataService.PlayerLoaded:Connect(function(player: Player)
 		attempted[player] = attempted[player] or {}
+		failures[player] = failures[player] or {}
 		check(player)
 	end)
 	DataService.Changed:Connect(function(player: Player, keys: { string })
@@ -137,6 +164,7 @@ function BadgeAwardService.Start()
 	end)
 	for _, player in Players:GetPlayers() do
 		attempted[player] = attempted[player] or {}
+		failures[player] = failures[player] or {}
 		check(player)
 	end
 end

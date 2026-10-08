@@ -69,9 +69,13 @@ def parse_defs():
     cur = None
     cur_enum = None
     for line in open(DEFS):
-        m = re.match(r"^declare class (\w+)(?: extends (\w+))?", line)
+        # Older luau-lsp defs use `declare class X extends Y`; newer ones use
+        # `declare extern type X extends Y with` (and root Instance at Object).
+        m = re.match(r"^declare (?:class|extern type) (\w+)(?: extends (\w+))?", line)
         if m:
             name, sup = m.group(1), m.group(2)
+            if name == "Instance":
+                sup = None
             cur, cur_enum = None, None
             if name.startswith("Enum") and name.endswith("_INTERNAL"):
                 cur_enum = name[len("Enum") : -len("_INTERNAL")]

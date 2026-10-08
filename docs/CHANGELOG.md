@@ -245,7 +245,15 @@ pass also raised the towel fabric to stop it flickering against the sand (a sepa
 | Spawn pads ("towels") in the sand | The boardwalk deck and pier were built at grid + 1, under the visible sand (grid + 2) | `Layout.DECK_TOP` = grid + 3; the promenade and pier are built from it; `Ride.DeckTop` follows |
 | Rebirth shrine partly in the ground | Hub stations were built at grid height | Rebirth shrine, shops, sell stand, beach shop and leaderboards stand on `Util.TerrainY` (the visible sand); the sell pad offset drops back from 2.2 to 0.2 |
 | (regression) Boardwalk stalls floating | Round 1's prop lift also applied to props standing on the deck | `Util.Prop(..., onPart = true)` for deck/pier props |
-| Spade still in the default hold on the owner's **R15** avatar (confirmed in Studio: deck, spawn pads, rebirth shrine and sell pad are fixed) | Studio's new diagnostics said every joint was missing: Roblox's **Avatar Joint Upgrade** (`StarterPlayer.AvatarJointUpgrade`) builds characters with `AnimationConstraint` joints, not `Motor6D`s | The pose controller wraps both joint types as one `Joint` (constraint C0/C1 = Attachment0/1.CFrame, same Transform rule), finds joints by name or by the two parts they connect, re-resolves when any joint is replaced, and prints `[ShovelPose] <name>: posing ...` or what is missing in Studio |
+| Spade still in the default hold on the owner's **R15** avatar | Studio's new diagnostics said every joint was missing: Roblox's **Avatar Joint Upgrade** (`StarterPlayer.AvatarJointUpgrade`) builds characters with `AnimationConstraint` joints, not `Motor6D`s | The pose controller wraps both joint types as one `Joint` (constraint C0/C1 = Attachment0/1.CFrame, same Transform rule), finds joints by name or by the two parts they connect, re-resolves when any joint is replaced, and prints `[ShovelPose] <name>: posing ...` or what is missing in Studio |
+
+**Confirmed in Studio by the owner (after #5):** the hand spade rests at the side and the full
+shovel is held two-handed on an Avatar Joint Upgrade R15 avatar (`[ShovelPose] ...: posing
+one-handed (R15)`); the deck, spawn pads, rebirth shrine and other hub stations sit on the sand;
+the sell pad still sells; Eggs / Crates tabs work.
+**Not yet playtested:** offline pet earnings, rebirth perks, the Legendary banner, Scan and the
+excavation minigame, Reduced Motion, the server dig goal with several players, streaming at the
+far ends of the beach, the R6 spade pose.
 
 ## Store & badges go live (2026-10-08)
 First publish to Roblox, plus the second badge wave and art for every store item.
@@ -272,6 +280,7 @@ First publish to Roblox, plus the second badge wave and art for every store item
 |---|---|---|
 | Badge name became `01_welcome.png` | Creator Hub's badge form fills Name with the image file name a moment after the upload, overwriting typed text | Type the name and description again after the upload, and check before clicking Create |
 | "Place '0' currently has an active Team Create Session" on publish | Publishing over a place is blocked while any Studio window has it open in Team Create, and the session lingers a minute or two after the window closes | Close every Studio window on the published place, wait about 2 minutes, then Retry |
+| Headless tests assume an unconfigured store ("no prompt for id 0") | Config now holds the live ids | `smoke.spec` and `client.spec` zero every pass, product and badge id before boot; tests that need ids still set their own test ids |
 | Regenerating badges rewrote badges 01–10 | A newer Pillow re-encodes PNGs byte-differently | Only commit art that actually changed; restore the rest with `git checkout` |
 
 ---
@@ -283,7 +292,11 @@ First publish to Roblox, plus the second badge wave and art for every store item
 4. **Sounds:** only built-ins we've verified load, plus owned audio.
 5. **Paid randomness:** show true odds including every active modifier, and check `PolicyService`. Since v2.3, never sell a random outcome or luck for Robux directly; `Config` asserts it.
 6. **Studio check:** every gameplay change needs a playtest. Headless tests catch logic errors, not feel or visuals.
+   Studio prints `[ShovelPose]` status lines; when something silently doesn't happen in Studio, add a
+   diagnostic like that before guessing again.
 7. **Agent edits:** agents edit only the files they own, plus small additive edits to shared files.
 8. **Finds come from deposits** (v3): don't add per-dig treasure rolls back. New find sources go
    through `DiscoveryService` so ownership, odds (`Finds.VariantOdds`) and the Index stay consistent.
-8. **Streaming (v2.3):** never assume a Workspace part exists on the client. Use `Util/Tagged` for tags and `Util/Anchors` or Workspace attributes for far positions. Never call `WaitForChild` on Workspace content without a timeout. Test with `Mock.StreamOut` / `StreamIn`.
+9. **Streaming (v2.3):** never assume a Workspace part exists on the client. Use `Util/Tagged` for tags and `Util/Anchors` or Workspace attributes for far positions. Never call `WaitForChild` on Workspace content without a timeout. Test with `Mock.StreamOut` / `StreamIn`.
+10. **Avatar joints:** characters may use `AnimationConstraint` joints (Avatar Joint Upgrade) instead of
+   `Motor6D`s. Never assume `Motor6D`; go through the `Joint` adapter in `ShovelPoseController`.

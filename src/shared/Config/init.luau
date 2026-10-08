@@ -137,6 +137,7 @@ local Config = {
 		{ Id = "fill_up", Text = "Keep digging until your bucket is full!", Complete = "BackpackFull" },
 		{ Id = "sell", Text = "Bucket full! Run to the SELL stand.", Target = "SellZone", Complete = "Sell" },
 		{ Id = "shop", Text = "Buy a better shovel to dig deeper!", Target = "ShovelShop", Complete = "BuyShovel" },
+		{ Id = "dig_deeper", Text = "New shovel! Dig DOWN into a new layer!", Target = "Sand", Complete = "NewLayer" },
 		{ Id = "egg", Text = "Hatch a pet - pets give you more sand!", Target = "EggShop", Complete = "HatchEgg" },
 	} :: { Types.TutorialStep },
 }

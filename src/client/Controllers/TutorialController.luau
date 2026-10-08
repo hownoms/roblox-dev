@@ -11,7 +11,10 @@
 	  AtSand        standing on the dig-zone sand   Dig        first successful dig
 	  BackpackFull  sand >= capacity               Sell       sand emptied after filling
 	  BuyShovel     own a 2nd shovel               HatchEgg   hatched / own a pet
+	  NewLayer      reached the first layer the starter shovel cannot dig (the upgrade's payoff)
 	The checks are state-based (polled), so the tutorial resumes correctly after rejoining.
+	On join, steps that are already satisfied are skipped silently, so inserting a step never
+	re-runs the tutorial (or its completion fanfare) for players who had finished it.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -49,8 +52,16 @@ local STEP_ICONS: { [string]: string } = {
 	BackpackFull = "Backpack",
 	Sell = "Sell",
 	BuyShovel = "Shop",
+	NewLayer = "layer",
 	HatchEgg = "Eggs",
 }
+
+-- Depth of the first layer the starter shovel cannot dig: reaching it proves the upgrade works.
+local function firstLockedLayerDepth(): number
+	local index = Config.GetMaxLayerIndexForPower(Config.Shovels[1].Power) + 1
+	local layer = Config.Layers[index] or Config.Layers[#Config.Layers]
+	return layer.DepthStart
+end
 
 local function count(t: { [string]: any }?): number
 	local n = 0
@@ -90,7 +101,9 @@ local function isSatisfied(step: Types.TutorialStep): boolean
 	local data = State.Data
 	local event = step.Complete
 	if event == "AtSand" then
-		return onSand()
+		-- Sand is reachable from the boardwalk. A confirmed dig already proves the
+		-- player found it, even if their feet have not crossed the zone boundary.
+		return onSand() or dugFlag or data.TotalSandDug > 0
 	elseif event == "Dig" then
 		return dugFlag or data.TotalSandDug > 0
 	elseif event == "BackpackFull" then
@@ -101,6 +114,8 @@ local function isSatisfied(step: Types.TutorialStep): boolean
 		return count(data.OwnedShovels) > 1
 	elseif event == "HatchEgg" then
 		return hatchedFlag or count(data.Pets) > 0
+	elseif event == "NewLayer" then
+		return (data.MaxDepth or 0) >= firstLockedLayerDepth()
 	end
 	return false
 end
@@ -114,14 +129,14 @@ local function updateGuide(step: Types.TutorialStep)
 	if target == "Sand" then
 		local position = sandTarget()
 		if position then
-			GuideController.Set(GUIDE_KEY, position, 10, if step.Complete == "Dig" then "👆" else "⬇️")
+			GuideController.Set(GUIDE_KEY, position, 10, if step.Complete == "Dig" then "Hand" else "Arrow")
 		end
 		return
 	end
 	local root = Character.GetRoot()
 	local part = GuideController.FindTagged(target :: string, if root then root.Position else nil)
 	if part then
-		GuideController.Set(GUIDE_KEY, part, 10, "⬇️")
+		GuideController.Set(GUIDE_KEY, part, 10, "Arrow")
 	else
 		GuideController.Clear(GUIDE_KEY)
 	end
@@ -218,6 +233,15 @@ function TutorialController.Init()
 				completed = #STEPS
 				State.SetSetting("Tutorial", completed)
 			end
+		end
+		-- skip (silently) steps this player has already done, e.g. a step added after they
+		-- passed that point
+		local resumed = completed
+		while completed < #STEPS and isSatisfied(STEPS[completed + 1]) do
+			completed += 1
+		end
+		if completed ~= resumed then
+			State.SetSetting("Tutorial", completed)
 		end
 		if completed >= #STEPS then
 			return
