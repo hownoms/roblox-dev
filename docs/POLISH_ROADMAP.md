@@ -1,3 +1,24 @@
+# Current limited-playtest priorities — 8 October 2026
+
+This priority order supersedes historical stop-after-one-stage instructions below. Source saving/pushing/merging is authorized; publication, uploads, access changes, spending and tester contact are not. Owner account age check is **COMPLETE**; questionnaire/standing and published experience identity remain unverified.
+
+1. Complete ordinary post-upgrade progression into Shell Bed, HOT scan instructions and the full Reduced Motion sequence. Fresh ordinary evidence reaches a successful Wet Sand dig banner at the target boundary while the avatar root was near 17 m and Reduced Motion ON digging/selling; this does not close those cases. Check off-screen sell guidance and consequential equipment/pet contact without restarting collection/scenery sweeps.
+2. Retest the focused excavation/toast queue change through fresh ordinary gameplay. **1,388 client mock checks** passed; live verification remains pending.
+3. Coordinate four actual Studio clients for shared digging, isolated rewards and natural tide/refill. Prior spawned clients and forced stress refill are partial evidence only.
+4. Capture and attribute server spikes using the new synchronous MicroProfiler labels. **2,174 normal / 2,153 Studio mock checks** pass; heartbeat `dt` is interval, not script duration. Prior client capture and bot stress do not close server/population budgets.
+5. Review [TEST_EXPERIENCE_PROPOSAL.md](TEST_EXPERIENCE_PROPOSAL.md), obtain explicit owner-only Private publication authorization, establish identity and test real persistence. Later Limited → Playtesters/named Play permissions need separate explicit access authorization before permitted-account checks/contact.
+6. Record final evidence, clean synchronized checkpoint and candidate manifest after review/integration. Optional passes/products/badges/group/ambience may stay disabled and unpromised.
+
+Real rejoin/locking/interrupted-write/shutdown evidence, listening, independent player feedback and physical phone/controller checks remain open. Hardware remains deferred. No invitation or public-launch readiness is claimed.
+
+8 October fresh Studio setup reconnected DigTest/Rojo 34872 and enabled Reduced Motion before digging, then paused at the owner's request to finish repository/CI while the desktop was in use. No new successful dig/live toast retest is claimed. Combined local client/server/Studio/utility checks **1,388 / 2,174 / 2,153 / 8** passed; PR #17/#18 merged as `b07bb97`/`904d6a7` after successful CI runs `37773554284`/`37773641661`. PR #19 source `8633dc0` passed CI `37774410859` and merged as code-source checkpoint `aa22ebb`; seven terrain-error regressions verify balanced labels and preserved original errors.
+
+The concrete owner-only Private publication proposal is ready for explicit approval and may proceed before remaining local gameplay gates to enable real persistence testing. External access/invitations remain gated by the outstanding gameplay, service and permitted-account checks. Last Studio observation was active Play; Stop/save remains pending while desktop input is paused at the owner's request.
+
+Latest integrated validation: client **1,388**, server **2,174**, Studio-mode **2,153**, utility **8**, all passed. Full formatting, strict analysis (two existing deprecated API warnings), sourcemap and build passed. The documentation-only stage follows code-source checkpoint `aa22ebb`; merge it before packaging from the clean synchronized default branch. The generated manifest will identify the exact final documentation/source revision and SHA-256; package regeneration is not yet claimed. Gameplay, service, capture and access gates above remain open.
+
+---
+
 # Current limited-playtest priorities — 7 October 2026
 
 Howard now authorizes multiple focused, reviewable stages in this chat, including saving/pushing/merging ready source stages. This supersedes historical one-stage/new-chat instructions below. Publishing, uploads, access changes, spending and tester contact require separate explicit authorization.
