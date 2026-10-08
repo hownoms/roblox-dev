@@ -13,7 +13,9 @@ generator and re-run it, so the art stays in sync with the game's layers, colour
 | `thumbnails/thumb_4_update1.png` | 1920x1080 | Same, with an "UPDATE 1" sticker. **Swap it in only once Update 1 ships.** |
 | `social/discord_banner.png` | 960x540 | Discord server banner |
 | `social/x_header.png` | 1500x500 | X/Twitter header (bottom-left is kept quiet for the profile picture) |
-| `badges/01..10_*.png` | 512x512, transparent | Circular badge icons (names, descriptions and triggers are in `STORE_PAGE.md` §6) |
+| `badges/01..15_*.png` | 512x512, transparent | Circular badge icons (names, descriptions and triggers are in `STORE_PAGE.md` §6) |
+| `store/pass_*.png` | 512x512 | Game pass icons, one per `Config/Monetization.luau` GamePasses key |
+| `store/product_*.png` | 512x512 | Developer product icons, one per Products key |
 | `STORE_PAGE.md` | | Title, description, keywords, genre, maturity answers, badges, launch plan, QA checklist |
 
 ## Regenerate
@@ -23,7 +25,7 @@ pip install pillow numpy            # Pillow ≥ 10, numpy ≥ 1.24
 python3 tools/marketing/generate.py                 # everything (~1.5 min)
 python3 tools/marketing/generate.py icon            # just the icon
 python3 tools/marketing/generate.py thumbs          # thumbnails (or t1 / t2 / t3 / t4)
-python3 tools/marketing/generate.py social badges
+python3 tools/marketing/generate.py social badges store
 ```
 
 - `tools/marketing/art.py` is the toolkit: supersampled canvas, outlined sticker sprites (pets,
@@ -50,8 +52,25 @@ Creator Hub menus get renamed now and then; look for *Icon* and *Thumbnails*.
 
 **Badges.** Go to **Creator Hub → (experience) → Associated Items → Badges → Create a Badge**. Upload
 the 512x512 PNG (Roblox crops it to a circle, and the art is designed for that) and paste the name and
-description from `STORE_PAGE.md`. Then put the badge ids in the game's config and award them
-server-side. That last step is code work and isn't done yet.
+description from `STORE_PAGE.md`. Then paste the badge ids into `src/shared/Config/Badges.luau`; the
+server already awards them.
+
+**Game passes & developer products.** Creator Hub → (experience) → Monetization → Passes / Developer
+Products. Upload the matching `store/` icon with each one:
+
+| Icon | Key | Icon | Key |
+|---|---|---|---|
+| `pass_vip.png` | VIP | `product_coins_small.png` | CoinsSmall |
+| `pass_2x_sand.png` | DoubleSand | `product_coins_medium.png` | CoinsMedium |
+| `pass_sell_anywhere.png` | SellAnywhere | `product_coins_large.png` | CoinsLarge |
+| `pass_auto_dig.png` | AutoDig | `product_coins_huge.png` | CoinsHuge |
+| `pass_turbo_shovel.png` | FastDig | `product_2x_sand_15m.png` | SandBoost15 |
+| `pass_triple_hatch.png` | TripleHatch | `product_skip_rebirth.png` | SkipRebirth |
+| `pass_extra_pets.png` | ExtraPets | | |
+| `pass_mega_backpack.png` | MegaBackpack | | |
+
+The icons are square, with everything important inside the centre circle, so they read whether
+Roblox shows them square or round.
 
 **Social.** Discord: Server Settings → Server Profile/Overview → Banner (needs Boost level 2), using
 `discord_banner.png`. X: Edit profile → header, using `x_header.png`.

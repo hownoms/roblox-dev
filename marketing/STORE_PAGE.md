@@ -91,11 +91,11 @@ Answer honestly. These are the expected answers for the game *as built*. Re-chec
 
 Result should be **Minimal** (all ages), with the paid-random-items disclosure shown on the page.
 
-## 6. Badges (10) — art in `marketing/badges/`
+## 6. Badges (15) — art in `marketing/badges/`
 
-The server's `BadgeAwardService` tracks dig, pet ownership, depth and rebirth milestones.
-Create the experience badges and paste their IDs into `src/shared/Config/Badges.luau`; all
-ten currently use zero IDs and are disabled. Verify each award in the intended experience.
+The server's `BadgeAwardService` awards all 15 from `src/shared/Config/Badges.luau` (dig, pet,
+depth, rebirth, Mythic find, completed Index layer and daily-streak milestones). Paste each badge
+id there once created; a badge left at `Id = 0` is skipped. Verify each award in the intended experience.
 
 | # | File | Badge name | Description (shown on page) | How to earn (trigger) |
 |---|---|---|---|---|
@@ -109,11 +109,16 @@ ten currently use zero IDs and are disabled. Verify each award in the intended e
 | 8 | `08_alien_hive.png` | **Close Encounter** | Discover the Alien Hive at 780 m. | `MaxDepth >= 780` |
 | 9 | `09_the_core.png` | **I Reached the Core!** | You dug 885 m to the golden heart of the planet! | `MaxDepth >= 885` (The Core) |
 | 10 | `10_first_rebirth.png` | **Born Again** | Rebirth for the first time. | `Rebirths >= 1` |
+| 11 | `11_mythic_luck.png` | **Mythic Luck** | Dig up a Mythic treasure. Lucky you! | Any Mythic or Relic treasure in the Index |
+| 12 | `12_collector.png` | **Collector** | Find every treasure in one layer's Index. | All non-Relic treasures of any one layer in the Index |
+| 13 | `13_ancient_ruins.png` | **Lost Civilization** | Uncover the Ancient Ruins at 495 m. | `MaxDepth >= 495` |
+| 14 | `14_beach_regular.png` | **Beach Regular** | Claim your daily reward 7 days in a row. | `DailyStreak >= 7` |
+| 15 | `15_core_breaker.png` | **Core Breaker** | Rebirth 10 times. You're a legend! | `Rebirths >= 10` |
 
-More badge ideas for later updates: *Mythic Luck* (find a Mythic treasure), *Collector* (complete any
-layer's Index), *Rebirth x10* (Core Breaker unlocked), *7-Day Streak*, *Sandlantis Explorer* (495 m).
+More badge ideas for later updates: *Golden Touch* (hatch a Golden pet), *Full Index* (every layer's
+Index complete), *Shipwrecked* (Sunken Shipwreck), *Obsidian Miner* (Obsidian Depths), *30-Day Streak*.
 Badge creation costs 100 Robux each after the free daily quota (check Creator Hub's current rule).
-Upload all 10 before launch.
+Upload 1–10 before launch; 11–15 can ship with launch or as an early update.
 
 ## 7. Launch marketing plan
 
@@ -181,7 +186,7 @@ hooks. Title formula: `<hook> #roblox #robloxsimulator #digtothecore`.
 - [ ] Genre = Simulation / Incremental Simulator; devices Phone/Tablet/Computer/Console
 - [ ] Maturity questionnaire done, label = Minimal, paid random items disclosed, egg odds visible in-game
 - [ ] Social links: Roblox group (and Discord/YouTube/X, 13+ rules)
-- [ ] 10 badges created, ids in config, each one awarded correctly in a test server
+- [ ] Badges created (10 for launch, 15 with wave 2), ids in config, each one awarded correctly in a test server
 - [ ] Game passes and dev products created, ids pasted into `Config/Monetization.luau`, prices as the README table (v2.3)
 - [ ] After launch: Roblox Managed Pricing turned on for developer products
 - [ ] `GROUP_ID` set, group bonus tested with a member and a non-member account
