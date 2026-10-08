@@ -1,55 +1,16 @@
-# Current launch readiness — 8 October 2026
+# Polish release gates
 
-Owner reports the Roblox account age check **COMPLETE**. No test experience identity/publication or access authorization exists. This entry supersedes stale age-check and older stage instructions below; it closes no gameplay, persistence or launch gate.
+Inventory of what each area still needs before release, plus source findings and the store-art
+comparison. The short list of what's open right now is in [STATUS.md](STATUS.md); dated
+observations are in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md).
 
-| Priority | Current evidence and remaining gate |
-|---|---|
-| Before inviting external testers | Ordinary a successful Wet Sand dig banner at the target boundary while the avatar root was near 17 m and Reduced Motion ON digging/selling add partial progression; Shell Bed, HOT/full Reduced Motion, off-screen guidance/contact and coordinated four-client shared digging/reward isolation/natural tide remain open. Complete identity/questionnaire, explicit publication/access authorization and permitted-account join; verify real save/rejoin before promising saved progression |
-| Focused presentation stage | Excavation/toast queue fix has **1,388 client mock passes**, zero failures; fresh ordinary live retest pending |
-| Before public launch | Real session locks/interrupted writes/shutdown saves; fresh-player evidence, listening and applicable physical-device checks; populated server performance/spike attribution; faithful enabled-scope copy/media/rights/policy; rollback/monitoring and explicit public-launch authorization |
-| Disabled/unpromised scope | Eight passes, six products, ten badges, GROUP_ID and owned ambience remain optional and need not block useful core testing |
-
-New synchronous server MicroProfiler labels and **2,174 normal / 2,153 Studio mock passes** support diagnostics. Historical 82 ms/253.3 ms heartbeat spikes remain unresolved; heartbeat interval is not script execution duration, and the saved client capture does not attribute server stalls. Universe-0 saves are in-memory fallback, not actual persistence. Hardware remains deferred. See [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) and [TEST_EXPERIENCE_PROPOSAL.md](TEST_EXPERIENCE_PROPOSAL.md). No invitation/public-launch sign-off.
-
-8 October fresh Studio setup reconnected DigTest/Rojo 34872 and enabled Reduced Motion before digging, then paused at the owner's request to finish repository/CI while the desktop was in use. No new successful dig/live toast retest is claimed. Combined local client/server/Studio/utility checks **1,388 / 2,174 / 2,153 / 8** passed; PR #17/#18 merged as `b07bb97`/`904d6a7` after successful CI runs `37773554284`/`37773641661`. PR #19 source `8633dc0` passed CI `37774410859` and merged as code-source checkpoint `aa22ebb`; seven terrain-error regressions verify balanced labels and preserved original errors.
-
-The concrete owner-only Private publication proposal is ready for explicit approval and may proceed before remaining local gameplay gates to enable real persistence testing. External access/invitations remain gated by the outstanding gameplay, service and permitted-account checks. Last Studio observation was active Play; Stop/save remains pending while desktop input is paused at the owner's request.
-
-Latest integrated validation: client **1,388**, server **2,174**, Studio-mode **2,153**, utility **8**, all passed. Full formatting, strict analysis (two existing deprecated API warnings), sourcemap and build passed. The documentation-only stage follows code-source checkpoint `aa22ebb`; merge it before packaging from the clean synchronized default branch. The generated manifest will identify the exact final documentation/source revision and SHA-256; package regeneration is not yet claimed. Gameplay, service, capture and access gates above remain open.
-
----
-
-# Current launch readiness — 7 October 2026
-
-This entry is authoritative over historical stage instructions below. Packaging is complete; external invitation and public launch are not yet approved. See [LIMITED_PLAYTEST.md](LIMITED_PLAYTEST.md) for the exact owner setup/player script and [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) for qualified evidence.
-
-| Priority | Remaining gate |
-|---|---|
-| Must resolve before inviting testers | Owner age check/questionnaire, explicit test publication/access authorization, experience identity and permitted-account join; ordinary deeper post-upgrade sequence/HOT/Reduced Motion; coordinated four-client shared digging/natural tide; real save/rejoin if saved progression is promised |
-| Must verify before public launch | Real lock contention/interrupted writes/shutdown saves; independent player evidence; populated server spike attribution and budgets; deferred supported-device checks; faithful copy/media, rights and policy; enabled feature IDs/receipts/awards; rollback/monitoring and explicit launch authorization |
-| Can follow after launch when disabled/unpromised | Passes/products, badges, group perks, owned ambience, further cosmetic scenery/collection refinements |
-
-Ordinary input now covers natural discovery, full bag, sell, trowel purchase/autoequip and one subsequent dig, plus Reduced Motion toggle and Cool/DOWN scan. Deeper layer and hot-band/full settings sequence remain open. Four actual Studio clients and separate 15-bot stress add partial reliability evidence. Fresh server heartbeat 16.7 ms average / 82 ms max still exceeds the historical max target; saved client profiler does not attribute it. No real DataStore, listening, fresh-player or physical-device sign-off is claimed.
-
-Profile save serialization/stalled-rejoin rejection fix has passing targeted mock regressions (server 2,167 / Studio 2,146, client 1,373, utility 8). Final saves still have retry/deadline limits requiring service-level evidence. Preflight zero blocking flags/five optional groups supports a reduced-scope core candidate, not public launch.
-
----
-
-# Remaining polish release gates — 6 October 2026
-
-## Focused scan evidence — 7 October 2026
-
-Evidence is integrated through PR #15 (`0e7f7d7`); GitHub CI run `37693736766` passed before merge. Integration closes no additional release gate.
-
-Preserved and fetched intervening merged PRs #13/#14 (`0b1575a`). Ordinary current-source DigTest showed matching ground chevron/radar bearings at Cool/DOWN; movement and downward digs reached a natural fourth-dig excavation, before the sixth-dig guarantee. A separate fresh ordinary baseline run with only the two historical scan presentation files showed a plain white bar partly behind Scan, with no directional head and a round radar dot. Current files were restored exactly and DigTest stopped/saved. Source selection was assisted setup; gameplay used T, Click to Move and mouse digging without scripted actions or grants. Different natural deposits/positions limit the comparison; no HOT arrival, hot-band instruction, live Reduced Motion, controlled success-rate or independent fresh-player evidence is claimed. Current client checks: 1,373 passing; affected strict analysis, Windows-line-ending formatting and Rojo build passed. This supports the focused head/tail readability fix already merged in PR #14, without closing the complete sequence or any other release gate. Hardware remains deferred; no publication/uploads occurred.
-
-Source audit supporting [POLISH_HANDOFF.md](POLISH_HANDOFF.md). Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md) for the current priority order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
+Source audit from 6–7 October 2026. Follow [POLISH_ROADMAP.md](POLISH_ROADMAP.md) for the current priority order; this inventory does not close visual, hardware, rights or performance gates. Hardware testing is deferred by Howard. No assets were uploaded, IDs invented, or publication performed for this audit.
 
 | Stage | Source/headless evidence available | Evidence still required |
 |---|---|---|
 | Complete sequence | Server-authoritative discovery/excavation and shop state transitions have regression coverage. Limited Studio review observed mouse digging, discoveries, full bag, native sell contact and upgrade/autoequip; repeated digs and positioning were script-assisted. | Complete unassisted DigTest spawn → equip → dig → scan/excavate → reveal → full bag → sell → upgrade/equip playthrough; inspect contact timing, reward-name readability, station guides, preview framing and sound by ear, including Reduced Motion. |
 | Underground | 45 protected atomic groups across all 15 layers; source checks cover bounds, floors, maximum-radius carving and tide. Assisted central-family native depth review now covers 15/15; Shipwreck barrel support and corrected Ancient Ruins lintels received native retests. | Other pockets/angles, normal digging/reveal appearance and real-device streaming/performance; central-family appearance coverage does not close this gate. |
-| Collection | All 199 contact thumbnails and individual primary native views plus actual 48/120/240 px reviewed; native digger/ride builders included. Targeted golem contrast and Mole visor refinements retested from four angles in a fresh build. | Worn equipment across avatar bodies, animated motion and ride contact in gameplay; shared-family identity limitations recorded in GALLERY_REVIEW.md. |
+| Collection | All 199 contact thumbnails and individual primary native views plus actual 48/120/240 px reviewed; native digger/ride builders included. Targeted golem contrast and Mole visor refinements retested from four angles in a fresh build. | Worn equipment across avatar bodies, animated motion and ride contact in gameplay; shared-family identity limitations recorded in [history/GALLERY_REVIEW.md](history/GALLERY_REVIEW.md). |
 | Crowded gameplay | 91-second Studio `/stress 15 fx` run: 123.2 edits/s, heartbeat 16.8 ms average / 253.3 ms max, 3,006 MB reported memory. Cleanup/tide command executed. | Spikes/memory need profiling; real-device/full-population frame time, memory, network and spike captures with pets, rides, finds and tide refill. See PERFORMANCE.md for Studio limitations. |
 | Audio/badges/store | Cue map, badge service and local artwork exist. | Owned/licensed audio, experience permission/loading/listening; actual badge IDs/awards; final faithful artwork and screenshots against the finished game. |
 
@@ -83,19 +44,3 @@ Use [PERFORMANCE.md](PERFORMANCE.md) for the existing `/stress` commands and tar
 `/stress` is Studio-gated in `DevCommands`; it does not simulate fifteen extra real clients or their replication, and silent companion-source digs do not exercise player discovery/reveal effects. PERFORMANCE.md now explicitly documents those silent bot digs and the need for separate real-player finds/reveals. Run actual player discoveries separately and use a real populated session for remote fan-out. Do not expose dev commands in a shipping server to bypass the hardware gate. Historical part counts in PERFORMANCE.md are estimates, not measurements of the newly polished world.
 
 Physical phone checks still need loading, safe areas, dig/scan/excavate/sell, and panel scrolling in the reported orientation. Physical controller checks still need visible focus, traversal, activation, dismissal and restored focus across panels. Source tests and emulators do not close these gates.
-
-## Focused excavation cue evidence — 7 October 2026
-
-Natural sixth-dig excavation in fresh ordinary-input DigTest runs visibly showed READY → WAIT → TAP and unanswered expiry, before and after the focused cue fix. Numbered results now remain separate from the next ring's centre cue, and graded rings disappear immediately. A separate synthetic client diagnostic showed pinned early MISS, PERFECT and late GOOD results; this is assisted presentation evidence. Client checks: 1,321 passing; affected strict analysis, formatting and Rojo build passed. Actual reactive successful/early/late ordinary-input timing, independent fresh-player feedback, physical controls, live Reduced Motion and full-sequence approval remain open. No other gate is closed; no publication or uploads occurred.
-
-## First-player evidence update — 7 October 2026
-
-A fresh DigTest ordinary-input run reached starter autoequip, digging, scan activation, excavation, retained bottle-cap discovery, full 20/20 bag, native sale (84 coins) and Garden Trowel purchase/autoequip (30 coins). This run used mouse clicks and Roblox Click to Move without dev grants or scripted digs/positioning. It still does **not close the complete-sequence gate**: scan direction, precise excavation timing, reward-name readability, audio listening, Reduced Motion across that sequence and meaningful post-upgrade digging remain unverified. Automated ordinary input is not independent fresh-player feedback.
-
-Arrival after a confirmed boardwalk dig was fixed and retested live. Nearby target markers hide; excavation WAIT/TAP feedback and ground-creature follow sampling have regression coverage. Client checks now total 1,317 passing. Live excavation cue readability and full dynamic pet/equipment contact remain open. Separate `/pet sandy_crab` sessions were assisted diagnostics; the final Reduced Motion view was partly HUD-obscured. Offscreen sell navigation, chat covering Shop and overlapping upgrade toasts remain observed follow-ups. Hardware remains deferred, and no other gate is closed by this update.
-
-## Focused discovery-name/reveal evidence — 7 October 2026
-
-Ordinary DigTest before/after runs used starter autoequip, Click to Move and mouse digging, without live assisted setup. Before: natural excavation teardown target/result UI covered the Bottle Cap name/card while duplicate floating name text crossed the rarity headline; the Index toast appeared concurrently. After: natural Giant Bottle Cap (Common/Giant/Damaged, 24 coins) displayed its complete white name in a larger compact card alongside the Index toast, without excavation UI or duplicate name/value floats. Normal unanswered excavation cues and card auto-close were visible. Inline captures were inspected; no screenshot file is claimed. The rarity headline can still cross the avatar overhead label; all item names/viewports are not certified.
-
-1,325 client checks, affected strict analysis, formatting, Rojo build and whitespace checks passed. No assisted live diagnostic was used; headless evidence is simulated. This closes only the observed focused discovery confusion, not the complete-sequence or any other release gate. Reactive successful/early/late ordinary-input timing, Reduced Motion, independent feedback, audio, hardware and broader dynamic contact remain open. No publication or uploads occurred.

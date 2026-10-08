@@ -1,3 +1,5 @@
+> Historical review log. Current state is in [../STATUS.md](../STATUS.md).
+
 # Collection review diagnostic — 6 October 2026
 
 ## Current continuation coverage
