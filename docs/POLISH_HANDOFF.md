@@ -310,3 +310,7 @@ Repository before this roadmap update: clean `claude/pensive-meitner-6jx4u4` at 
 ## Discovery continuation, 8 October 2026
 
 See [VERIFICATION_2026-10-08.md](VERIFICATION_2026-10-08.md) for fresh ordinary Studio gameplay, read-only live configuration, focused fixes and validation. Started from clean d9259ea and preserved all prior work. Client 1,401, server 2,186, Studio 2,153, utility 8, isolated tutorial 73 and persistence startup tests pass; strict analysis/format/build/PCM audit pass. Native captures are evidence-only. No audio listening, real save/rejoin, crowd/profile result or publication is claimed. Cooperative excavation remains future work. Static reviews remain closed. Live Max Players is 50 and unchanged; intended 16 requires authorization.
+
+## Publishing request, 8 October 2026
+
+Owner now authorizes publication. See [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md) for prepared merged build, active-session publication blocker, pending closure approval, and ordered next-chat priorities. No successful Roblox publication or asset upload claimed.
