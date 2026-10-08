@@ -23,6 +23,7 @@ local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Typ
 local State = require(script.Parent.State)
 local GuideController = require(script.Parent.GuideController)
 local DigController = require(script.Parent.DigController)
+local DiscoveryController = require(script.Parent.DiscoveryController)
 local SoundController = require(script.Parent.SoundController)
 local Character = require(script.Parent.Parent.Util.Character)
 local ObjectiveBanner = require(script.Parent.Parent.UI.ObjectiveBanner)
@@ -34,6 +35,8 @@ local HatchAnimation = require(script.Parent.Parent.UI.HatchAnimation)
 local TutorialController = {}
 
 local GUIDE_KEY = "Tutorial"
+local SCAN_SETTING = "TutorialScanUsed"
+local SCAN_TEXT = "Tap SCAN; follow the arrow to buried treasure!"
 local STEPS = Config.TUTORIAL_STEPS
 
 local completed = 0
@@ -44,6 +47,7 @@ local soldFlag = false
 local hatchedFlag = false
 
 local built = false
+local showingScanTip = false
 
 -- Banner icon per step (atlas key, emoji fallback).
 local STEP_ICONS: { [string]: string } = {
@@ -121,6 +125,10 @@ local function isSatisfied(step: Types.TutorialStep): boolean
 end
 
 local function updateGuide(step: Types.TutorialStep)
+	if showingScanTip then
+		GuideController.Clear(GUIDE_KEY)
+		return
+	end
 	local target = step.Target
 	if not target then
 		GuideController.Clear(GUIDE_KEY)
@@ -148,9 +156,15 @@ local function showStep()
 		return
 	end
 	local s = step :: Types.TutorialStep
-	ObjectiveBanner.Show(s.Text, STEP_ICONS[s.Complete] or "Star", {
+	-- Keep the saved numeric steps intact. Introduce intentional treasure hunting in the
+	-- existing objective once the first find has demonstrated the reward. Selling/upgrading
+	-- still takes priority, and a scan is optional rather than a new progression gate.
+	showingScanTip = (s.Complete == "BackpackFull" or s.Complete == "NewLayer")
+		and count(State.Data.Index) > 0
+		and State.GetSetting(SCAN_SETTING, false) ~= true
+	ObjectiveBanner.Show(if showingScanTip then SCAN_TEXT else s.Text, STEP_ICONS[s.Complete] or "Star", {
 		Step = (completed + 1) .. "/" .. #STEPS,
-		Arrow = s.Target ~= nil,
+		Arrow = not showingScanTip and s.Target ~= nil,
 	})
 	HUD.SetBackpackHighlight(s.Complete == "BackpackFull")
 	if s.Complete == "BuyShovel" then
@@ -191,6 +205,12 @@ local function loop()
 		if isSatisfied(step :: Types.TutorialStep) then
 			advance()
 		else
+			local wantsScanTip = (step.Complete == "BackpackFull" or step.Complete == "NewLayer")
+				and count(State.Data.Index) > 0
+				and State.GetSetting(SCAN_SETTING, false) ~= true
+			if wantsScanTip ~= showingScanTip then
+				showStep()
+			end
 			updateGuide(step :: Types.TutorialStep)
 		end
 		task.wait(0.4)
@@ -202,6 +222,12 @@ function TutorialController.IsActive(): boolean
 end
 
 function TutorialController.Init()
+	DiscoveryController.PingChanged:Connect(function(ping: Types.DetectorPing)
+		-- A server response confirms the player used Scan; an empty signal still counts.
+		if running and ping.Remaining > 0 and State.GetSetting(SCAN_SETTING, false) ~= true then
+			State.SetSetting(SCAN_SETTING, true)
+		end
+	end)
 	DigController.Dug:Connect(function(result: Types.DigResult)
 		dugFlag = true
 		if result.Capacity and result.Sand >= result.Capacity then

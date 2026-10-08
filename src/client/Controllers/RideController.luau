@@ -184,7 +184,7 @@ local function startRiding(model: Model, seat: Seat)
 		sound.Name = "RideEngine"
 		sound.SoundId = def.Id
 		sound.Looped = true
-		sound.Volume = def.Volume * 0.45
+		sound.Volume = if State.GetSetting("SFX", true) == false then 0 else def.Volume * 0.45
 		sound.PlaybackSpeed = 0.35
 		sound.RollOffMaxDistance = 80
 		sound.Parent = root
@@ -306,6 +306,8 @@ local function drive(ride: Ride, dt: number)
 
 	local engine = ride.Engine
 	if engine then
+		-- This spatial loop bypasses SoundController, so honour changes while seated too.
+		engine.Volume = if State.GetSetting("SFX", true) == false then 0 else Config.Sounds.Dig.Volume * 0.45
 		engine.PlaybackSpeed = 0.35 + 0.3 * math.abs(ride.Speed) / R.MaxSpeed
 	end
 end

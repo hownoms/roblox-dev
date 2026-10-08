@@ -1,0 +1,49 @@
+{
+  "status": "Prepared illustrations; not uploaded or a native gameplay capture",
+  "generation": "Built-in image_gen; exact prompts in PROMPTS.json",
+  "recommended_title": "Dig to the Core!",
+  "exports": [
+    {
+      "file": "icon-512.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 422784,
+      "sha256": "9bd822baf2064bcab83a3a1629265946a7d931654cd9cfc1f2fb9be9ffd287bb"
+    },
+    {
+      "file": "thumbnail-01-dig.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 702069,
+      "sha256": "ed548e03ca2f14417dc3843922af456150bf16144dde6e6fab0e2e70596fecd3"
+    },
+    {
+      "file": "thumbnail-02-find.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 705311,
+      "sha256": "012318e27ffa6b42c7ed85f8ef5fcc9abcddf39088602ddc5be9b355e98829dd"
+    },
+    {
+      "file": "thumbnail-03-deep.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 633168,
+      "sha256": "25f5dd95247265677d3c700ddbc025aa455522b48e22550aa14cfd1345ce53c4"
+    },
+    {
+      "file": "social-header-1500x500.jpg",
+      "width": 1500,
+      "height": 500,
+      "bytes": 413533,
+      "sha256": "399522106d2883c431e79ac562b40b09b516bb684bb5483e7a4059196861ccd6"
+    },
+    {
+      "file": "social-banner-960x540.jpg",
+      "width": 960,
+      "height": 540,
+      "bytes": 268823,
+      "sha256": "961dc96b43a6c1cac127ef492425734e80b73e8d53abcefba6861bbb9487f46d"
+    }
+  ]
+}

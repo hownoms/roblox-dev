@@ -1,5 +1,21 @@
 # Onboarding: progressive menu disclosure (v2.2, A7)
 
+## First Scan introduction (8 October 2026)
+
+After the first indexed find, the existing fill-bucket or new-layer objective briefly reads
+"Tap SCAN; follow the arrow to buried treasure!" until a positive-duration server detector
+response acknowledges a scan. An empty signal counts: using the detector is the lesson, not
+guaranteeing a nearby deposit. `Settings.TutorialScanUsed` remembers that acknowledgement.
+The numbered tutorial steps and existing saved `Tutorial` values are unchanged. Scanning
+is optional: a full bucket, selling, buying an upgrade and reaching a layer still advance
+normally. No extra modal or toast is added. The sand guide is cleared while the tip is shown,
+leaving direction to the detector. The first guaranteed find demonstrates the reward; this
+tip introduces intentional hunting for the next one before the egg objective.
+
+Headless regressions cover introduction after an Index update, rejecting an expired ping,
+accepting an empty active scan, restoring the original objective and preserving numeric
+progress. Real first-session readability and timing still require a Studio playtest.
+
 **Goal:** a new player should never see ten systems before earning their first coin. Each HUD
 menu button appears at the moment it becomes useful. Once a button has appeared, it never
 disappears again.
