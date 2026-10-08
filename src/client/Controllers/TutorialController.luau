@@ -113,7 +113,9 @@ local function isSatisfied(step: Types.TutorialStep): boolean
 	elseif event == "BackpackFull" then
 		return fullFlag or data.Sand >= State.GetCapacity()
 	elseif event == "Sell" then
-		return soldFlag
+		-- A saved fill-up step proves the bucket was full before this session. If it
+		-- is already empty, the sale finished before tutorial progress was saved.
+		return soldFlag or (completed >= 3 and data.Sand == 0)
 	elseif event == "BuyShovel" then
 		return count(data.OwnedShovels) > 1
 	elseif event == "HatchEgg" then

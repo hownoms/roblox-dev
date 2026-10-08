@@ -22,7 +22,7 @@ No plots: everyone digs in **one shared dig zone** along the shoreline. Max 16 p
   +92            EGG ARC (9)        LB$  LBdepth
   +72                                                     REBIRTH shrine
   +54                          ( hub plaza r=30, FOUNTAIN at centre )
-  +44   GARAGE                                                          BEACH SHOP (+76,+40)
+  +44   CRATE YARD                                                      BEACH SHOP (+76,+40)
   +34          SHOVEL hut (-36)                       BACKPACK hut (+36)
   +28                               SELL stand (faces the sand), pad at z ~+21.5
   +12  |rail=================== BOARDWALK deck (spawns at z +4) ==== no rail |x|<96 =====rail|
@@ -59,12 +59,12 @@ break. The tide refills dug 8x8 columns (see BeachService).
 
 | Station | Position (X, Y, Z) | Tag / prompt |
 |---|---|---|
-| Spawns (3x `SpawnLocation`, 8x8, on the deck, face -Z) | (0,1025,4), (-14,1025,4), (14,1025,4) | `SpawnLocation` |
+| Spawns (3x `SpawnLocation`, 8x8, on the deck, face -Z) | pad centres (0,1027.5,4), (-14,1027.5,4), (14,1027.5,4) | `SpawnLocation` |
 | Sell stand (faces the sand) | (0, 1024, 28) | pad `SellZone` (16x1x8, CanTouch) at ≈(0,1026.2,21.5) |
 | Water fountain (plaza centre) | (0, 1024, 54) | basin `WaterFountain` + prompt "Drink" |
 | Shovel hut | (-36, 1024, 34) | counter `ShovelShop` + prompt "Shop" |
 | Backpack hut | (36, 1024, 34) | counter `BackpackShop` + prompt "Shop" |
-| Garage (24x20 building, toy digger inside) | (-78, 1024, 44) | workbench `Garage` + prompt "Garage" |
+| Construction Crate yard (four pallets; legacy `Layout.GARAGE` anchor) | (-78, 1024, 44) | each pallet `CrateShop`, attribute `EggId`, prompt "Open" |
 | Beach Shop stall | (76, 1024, 40) | counter `BeachShop` + prompt "Shop" |
 | Leaderboard coins / depth | (-14, 1037, 92) / (14, 1037, 92) | `LeaderboardCoins` / `LeaderboardDepth` (sign "TOP DIGGERS" / "DEEPEST"; boards cycle ALL TIME / THIS WEEK / THIS SERVER every 10 s) |
 | Egg arc (9 pedestals, r = 19, 110°, bulging towards the plaza) | centre (-50, 1024, 92) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" |
@@ -73,7 +73,9 @@ break. The tide refills dug 8x8 columns (see BeachService).
 | Pier | x -6..6, z -68..-200, deck top Y 1025; end platform 28x24 at z -200..-224 | — |
 
 Hub structures face the boardwalk spawns (`Layout.HUB_LOOK_TARGET = (0, 1024, 4)`).
-`World.GetSurfacePoint(near)` = a pivot on the boardwalk deck (z +4, Y 1028.5) at `near.X`
+`Layout.DECK_TOP` is 1027 (voxel surface + 2 visible-surface offset + 1). Spawn pad tops
+are 1028; `World.GetSpawnCFrame` uses a standing root pivot at Y 1031.5.
+`World.GetSurfacePoint(near)` = a pivot on the boardwalk deck (z +4, Y 1030.5) at `near.X`
 (clamped to ±390), looking at the sand — used for spawns, ReturnToSurface and tide lifts.
 
 ## Events (visual)

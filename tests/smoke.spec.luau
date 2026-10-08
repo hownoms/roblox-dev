@@ -3347,6 +3347,79 @@ do
 	check(#Mock.Errors == e0, "no errors in badges")
 end
 
+-- These are injected mock-service regressions, not real cross-server/DataStore evidence.
+if not STUDIO_NO_API then
+	section("persistence contention and transient failures")
+	local records = Mock.DataStores[Config.DATASTORE_NAME]
+	local foreign = { Owner = "another-live-server", Time = Mock.Env.os.time() }
+	records["Player_6011"] = { Data = { Coins = 711 }, Lock = foreign }
+	local blocked = Mock.AddPlayer(6011, "ForeignLock")
+	Mock.Advance(70)
+	check(not DataService.IsLoaded(blocked), "fresh foreign session lock refuses loading")
+	local kick = Mock.Kicked[#Mock.Kicked]
+	check(kick and kick.Player == blocked and kick.Message == "Your save is still in use by another server. Please rejoin in a minute!", "foreign lock reports contention after retries")
+	check(records["Player_6011"].Data.Coins == 711 and records["Player_6011"].Lock.Owner == foreign.Owner, "failed contention leaves foreign record intact")
+	expectedKicks += 1
+	Mock.RemovePlayer(blocked)
+	Mock.Advance(0.5)
+
+	-- Once the competing session actually releases its lock, normal loading resumes.
+	records["Player_6011"].Lock = nil
+	local recovered = Mock.AddPlayer(6011, "ForeignLock")
+	Mock.Advance(0.5)
+	check(DataService.Get(recovered).Coins == 711, "released foreign lock permits loading existing data")
+	DataService.Set(recovered, "Coins", 999)
+	records["Player_6011"] = { Data = { Coins = 812 }, Lock = foreign }
+	local saved
+	Mock.Env.task.spawn(function()
+		saved = DataService.SaveAsync(recovered)
+	end)
+	Mock.Advance(0.5)
+	check(saved == false, "save refuses a lock taken by another server")
+	kick = Mock.Kicked[#Mock.Kicked]
+	check(kick and kick.Player == recovered and kick.Message == "Your data was opened on another server. Please rejoin.", "stolen-lock save disconnects the stale session")
+	expectedKicks += 1
+	Mock.RemovePlayer(recovered)
+	Mock.Advance(0.5)
+	check(records["Player_6011"].Data.Coins == 812 and records["Player_6011"].Lock.Owner == foreign.Owner, "stale autosave and final release cannot overwrite or unlock the new owner")
+
+	local attempts = 0
+	Mock.BeforeDataStoreUpdate = function(name, key)
+		if name == Config.DATASTORE_NAME and key == "Player_6012" then
+			attempts += 1
+			if attempts == 1 then
+				error("mock persistence transient load")
+			end
+		end
+	end
+	records["Player_6012"] = { Data = { Coins = 913 } }
+	local retry = Mock.AddPlayer(6012, "RetrySave")
+	Mock.Advance(5)
+	check(attempts == 2 and DataService.IsLoaded(retry), "transient load retries before opening a session")
+	check(DataService.Get(retry).Coins == 913, "transient load retains stored progression")
+	attempts = 0
+	Mock.BeforeDataStoreUpdate = function(name, key)
+		if name == Config.DATASTORE_NAME and key == "Player_6012" then
+			attempts += 1
+			if attempts == 1 then
+				error("mock persistence transient save")
+			end
+		end
+	end
+	DataService.Set(retry, "Coins", 1014)
+	saved = nil
+	Mock.Env.task.spawn(function()
+		saved = DataService.SaveAsync(retry)
+	end)
+	Mock.Advance(5)
+	check(attempts == 2 and saved == true, "transient save retries and reports success")
+	check(records["Player_6012"].Data.Coins == 1014 and records["Player_6012"].Lock ~= nil, "recovered save persists progression and retains active lock")
+	Mock.BeforeDataStoreUpdate = nil
+	Mock.RemovePlayer(retry)
+	Mock.Advance(0.5)
+	check(records["Player_6012"].Lock == nil, "recovered session releases lock on leave")
+end
+
 section("shutdown")
 Mock.RunBindToClose()
 Mock.Advance(3)
@@ -3364,6 +3437,9 @@ check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))
 local unexpected = {}
 local EXPECTED_WARNINGS = {
+	"mock persistence transient", -- targeted injected load/save failures
+	"session lock for Player_6011 was taken by another server", -- stolen-lock protection
+	"[mock] kicked ForeignLock:", -- deliberate contention/stolen-lock kicks
 	"mock profiled tide terrain failure", -- caught tide terrain failure regression
 	"receipt for unknown product id 4242", -- provoked above
 	"Studio has no DataStore access", -- studio mode only
@@ -3387,7 +3463,7 @@ for _, w in unexpected do
 	print("   warning: " .. w)
 end
 check(#unexpected == 0, #unexpected .. " unexpected warnings")
-check(#Mock.Kicked == expectedKicks, "only deliberately rejected delayed-save rejoin was kicked")
+check(#Mock.Kicked == expectedKicks, "only deliberately rejected persistence sessions were kicked")
 
 print(string.format("\nSMOKE: %d passed, %d failed", passes, failures))
 if failures > 0 then
