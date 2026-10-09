@@ -1,0 +1,24 @@
+{
+  "kind": "API-aware headless runtime regression; no Studio input acceptance",
+  "before": {
+    "service": "HEAD merged runtime",
+    "result": "fails Leave equipment: return preserves intended equipment",
+    "cause": "Destroying equipped adventure loan leaves the original shovel stowed"
+  },
+  "after": {
+    "return_checks": 99,
+    "runtime_checks": 47,
+    "actual_production_wiring_on_checks": 42,
+    "failures": 0
+  },
+  "behavior": "Restore exact previously equipped Tool only if same character, alive, still in own backpack, and no later equipped choice. No recreated possession or changed ownership.",
+  "covered": [
+    "Leave",
+    "standalone optional trial exit",
+    "automatic unready reset",
+    "later equipment choice",
+    "removed possession",
+    "respawn"
+  ],
+  "limitations": "Mocks validate actual runtime and merged boot modules; no physics, ordinary UI input, networked Studio, live save or production acceptance."
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "Source inspection and API-aware mocks only; no Studio or physical input acceptance",
+  "before": {
+    "method": "Merged-source inspection",
+    "controller": "AdventureController.begin invokes Client.Start and BroadwaveEquip.Start",
+    "runtimeControl": "SpringVaultClient renders BroadwaveEquip alongside shared Dig_Broadwave; its Activated callback unconditionally changes equipment",
+    "consequence": "Two controls can equip different preferred tools, and the runtime review Stow does not perform shared HUD shovel restoration"
+  },
+  "after": {
+    "method": "Actual production controller and client mock; no fixture resolver or production wiring patch",
+    "runtimeControl": "Hides and ignores Activated when actual Dig_Broadwave GUI exists; dedicated review fallback returns if it is absent",
+    "sharedControl": "Existing production Z, R1 and button tool-selection and shovel-restoration behavior remains authoritative",
+    "checks": {
+      "springVaultInput": 281,
+      "productionWiringClient": 61,
+      "springVaultPresentation": 53
+    }
+  },
+  "limits": "Mock callbacks and tool movement establish shared source behavior, not ordinary UI acceptance in a production candidate. Review fallback remains equipped-tool input only; server validation is unchanged."
+}

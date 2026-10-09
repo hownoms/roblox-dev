@@ -286,9 +286,17 @@ function Client.Start(remotes: Folder, scene: Instance)
 	equip.TextColor3 = Color3.fromRGB(24, 47, 66)
 	equip.Visible = false
 	equip.Parent = gui
+	local function sharedEquipPresent(): boolean
+		-- Production already owns equip/stow, tool preference and shovel restoration.
+		-- The dedicated review scene has no shared HUD and keeps this fallback control.
+		return player.PlayerGui:FindFirstChild("Dig_Broadwave") ~= nil
+	end
 	table.insert(
 		connections,
 		equip.Activated:Connect(function()
+			if sharedEquipPresent() then
+				return
+			end
 			local character = player.Character
 			local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 			if not humanoid then
@@ -482,6 +490,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end
 			local tool = equipped()
 			equip.Visible = sceneAvailable
+				and not sharedEquipPresent()
 				and (tool ~= nil or broadwave(player:FindFirstChildOfClass("Backpack")) ~= nil)
 			-- Keep touch controls in the scrollable panel; desktop equip stays clear of the objective.
 			-- While aiming, neither the card nor the equip button should cover the footprint.
