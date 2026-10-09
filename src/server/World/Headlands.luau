@@ -4,7 +4,7 @@
 	and the offshore sea stacks. Pure data (deterministic, own Random): no instances.
 
 	Every blob is built twice:
-	  * Terrain.luau fills it as smooth terrain (Rock base, Limestone cliff, Grass cap), which is
+	  * Terrain.luau fills it as smooth terrain (Rock base and cliff, Grass cap), which is
 	    what a player standing near the map ends sees;
 	  * Vistas.luau builds a slightly smaller part ellipsoid inside it (Persistent model), which is
 	    what everyone else sees: with StreamingEnabled (TargetRadius 320) terrain more than ~320
@@ -22,7 +22,7 @@ local Headlands = {}
 export type Blob = {
 	Center: Vector3,
 	Radius: number,
-	Material: Enum.Material, -- terrain material (Rock / Limestone / Grass / LeafyGrass)
+	Material: Enum.Material, -- terrain material (Rock / Grass / LeafyGrass)
 	Layer: number, -- fill order: 1 rock, 2 cliff, 3 cap
 }
 
@@ -93,14 +93,14 @@ local function build(): Data
 		end
 	end
 
-	-- One cliff column: rock ball at the waterline, limestone cliff above it, grass cap on top.
+	-- One cliff column: rock ball at the waterline, rock cliff above it, grass cap on top.
 	-- Returns the cap top Y.
 	local function column(x: number, z: number, h: number, r: number, grassy: number, capMat: Enum.Material): number
 		local top = W + h
 		add(V(x, W - 8, z), r, Enum.Material.Rock, 1)
 		local ru = r * 0.78
 		local cy = math.max(top - ru, W - 8)
-		add(V(x, cy, z), ru, Enum.Material.Limestone, 2)
+		add(V(x, cy, z), ru, Enum.Material.Rock, 2)
 		local rc = ru * grassy
 		add(V(x, top - rc + 3, z), rc, capMat, 3)
 		return top + 3
@@ -150,21 +150,35 @@ local function build(): Data
 		add(V(s[1], W + s[3] - s[4], s[2]), s[4], Enum.Material.Rock, 1)
 	end
 
-	-- Sea stacks: stacked balls, a grass tuft on the tallest.
+	-- Sea stacks: one tapered pillar of closely overlapping rock balls (a coarse stack of
+	-- separate balls read as snowmen in Studio), leaning slightly, a grass tuft on the tallest.
 	local function stack(x: number, z: number, radii: { number }, tuft: boolean)
 		local y = W - 6
-		for i, r in radii do
-			add(
-				V(x + (i - 1) * 1.5, y, z - (i - 1)),
-				r,
-				if i == 1 then Enum.Material.Rock else Enum.Material.Limestone,
-				i == 1 and 1 or 2
-			)
-			y += r * 1.15
+		local lean = rng:NextNumber(0, math.pi * 2)
+		local lx, lz = math.cos(lean), math.sin(lean)
+		local top = y
+		for i = 1, #radii - 1 do
+			local r0, r1 = radii[i], radii[i + 1]
+			for k = 0, 2 do
+				local t = k / 3
+				local r = r0 + (r1 - r0) * t
+				local h = (i - 1 + t) * 3
+				add(
+					V(x + lx * h + rng:NextNumber(-1.5, 1.5), y, z + lz * h + rng:NextNumber(-1.5, 1.5)),
+					r,
+					Enum.Material.Rock,
+					i == 1 and k == 0 and 1 or 2
+				)
+				top = y + r
+				y += r * 0.42
+			end
 		end
+		local rLast = radii[#radii]
+		local h = (#radii - 1) * 3
+		add(V(x + lx * h, y, z + lz * h), rLast, Enum.Material.Rock, 2)
+		top = y + rLast
 		if tuft then
-			local r = radii[#radii]
-			add(V(x + #radii * 1.5, y - r * 1.15 + r * 0.55, z - #radii), r * 0.55, Enum.Material.LeafyGrass, 3)
+			add(V(x + lx * h, top - rLast * 0.35, z + lz * h), rLast * 0.6, Enum.Material.LeafyGrass, 3)
 		end
 	end
 	stack(-214, -332, { 22, 18, 14, 10 }, true)
@@ -196,7 +210,7 @@ local function build(): Data
 		if walked >= nextAt or k == #pts then
 			local t = (k - 1) / samples
 			local r = 11 + 7 * (1 - math.sin(math.pi * t))
-			add(pts[k], r, if pts[k].Y < W + 8 then Enum.Material.Rock else Enum.Material.Limestone, 2)
+			add(pts[k], r, Enum.Material.Rock, 2)
 			nextAt = walked + 9
 		end
 	end

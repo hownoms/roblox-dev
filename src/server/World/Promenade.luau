@@ -455,9 +455,8 @@ local function festoon(
 		local cap = caps[sx]
 		Kit.stringLights(m, cap.part, cap.pos, twin.anchor, outer, 1.2, { spacing = 2.3 })
 	end
-	-- Bunting across the front of the spawns, twin to twin
-	local w, e = lamps[-1][1], lamps[1][1]
-	Kit.bunting(m, w.anchor, w.heads[2], e.anchor, e.heads[1], 2.0, { spacing = 2.4, h = 1.7 })
+	-- No bunting across the front of the spawns: in Studio it hung at eye height between the
+	-- default camera and the Ferris wheel, the first thing every player should see.
 end
 
 function Promenade.Build(parent: Instance)

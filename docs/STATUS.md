@@ -45,7 +45,7 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 ## Open
 
 - **Map art overhaul (branch `claude/map-overhaul`, not merged or published):** all headless
-  tests pass; needs a Studio visual pass and a mobile frame-time check. See CHANGELOG "Unreleased".
+  tests pass and a Studio visual pass is done; needs a mobile frame-time check. See CHANGELOG "Unreleased".
 - **Audio:** listen to the 12 candidates in `assets/audio/original-v1`, then choose, upload and
   integrate. Loudness was measured, not listened to. Also check engine muting while riding.
 - **Real multiplayer:** shared holes, natural tide, recovery and reward isolation with real

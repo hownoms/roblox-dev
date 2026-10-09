@@ -207,8 +207,7 @@ local function buildDressing(parent: Instance)
 	for k, sx in { -1, 1 } do
 		Kit.flag(m, Kit.onSand(V(sx * 17, HUB.Y, 14)), 13, if sx < 0 then 180 else 0, BANNERS[k], Kit.TRIM)
 	end
-	local gl, gr = Kit.onSand(V(-17, HUB.Y, 14)), Kit.onSand(V(17, HUB.Y, 14))
-	Kit.bunting(m, gl + V(0, 11.5, 0), gr + V(0, 11.5, 0), 3, BANNERS, 13)
+	-- No bunting between the gateway flags: in Studio it hung across the default spawn camera.
 
 	-- benches facing the fountain (one freshly painted)
 	local f = Layout.FOUNTAIN

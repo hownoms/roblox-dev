@@ -154,8 +154,12 @@ local function buildPlanes(parent: Instance)
 	end
 	tile("FarSea", 720, 2768, -620, 150, SEA_Y, SEA, 16)
 	tile("FarSea", -2768, -720, -620, 150, SEA_Y, SEA, 16)
-	-- Hidden under the seabed where the terrain ocean exists; shows where it has streamed out.
-	tile("LowSea", -720, 720, -620, -140, LOW_SEA_Y, SEA, 2)
+	-- Where the terrain ocean has streamed out (more than ~320 studs from the player) these stand
+	-- in for it. Beyond z -300 no player is ever within streaming range of the terrain, so the
+	-- plane sits just under the water line (a deep plane there showed the far-sea slab's edge as
+	-- a dark band in Studio). Nearer shore it stays hidden under the seabed.
+	tile("FarSea", -720, 720, -620, -300, SEA_Y - 0.3, SEA, 2)
+	tile("LowSea", -720, 720, -300, -140, LOW_SEA_Y, SEA, 2)
 	for x = -3000, 1000, 2000 do
 		tile("Land", x, x + 2000, 150, 2198, LAND_Y, GRASS_DARK, 12, Enum.Material.Grass)
 	end
@@ -358,7 +362,7 @@ local function buildHinterland(parent: Instance, rng: Random)
 				V(w, h * 2, rng:NextNumber(240, 340)),
 				CF(pos) * CFrame.Angles(0, rng:NextNumber(-0.4, 0.4), 0),
 				if rocky then rgb(196, 182, 156) else greens[rng:NextInteger(1, #greens)],
-				if rocky then Enum.Material.Limestone else Enum.Material.Grass
+				if rocky then Enum.Material.Rock else Enum.Material.Grass
 			)
 			cx += w * 0.75
 		end
