@@ -335,8 +335,9 @@ These are programming errors on the caller's side. Log them; don't retry blindly
 | `SetReviewPreview(bool)` | Studio only; returns whether preview is on |
 | `TrophyGranted` / `CampChanged` | Signals for UI, analytics or quest hooks such as q_trophies |
 
-`SetEnabled(false)` blocks new grants and camp edits only. Earned trophies stay owned and
-queries keep working.
+`SetEnabled(false)` blocks new grants and camp edits and takes every camp off its pad (layouts
+stay saved). Earned trophies stay owned and queries keep working. `SetEnabled(true)` puts the
+camps back, previous pad holders first (docs/integration/camp-lifecycle.md).
 
 Clients cannot grant trophies:
 

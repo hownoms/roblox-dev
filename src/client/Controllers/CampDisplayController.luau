@@ -240,6 +240,15 @@ local function watchDeck(inst: Instance): (() -> ())?
 		else
 			return
 		end
+		-- The server writes Enabled too (TrophyService.SetEnabled). That replicated write can land
+		-- after the status attribute already re-rendered and would show both prompts, so re-apply
+		-- the local choice whenever Enabled changes. Writing the same value fires nothing.
+		table.insert(
+			connections,
+			prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+				render(entry)
+			end)
+		)
 		render(entry)
 	end
 	for _, child in deck:GetChildren() do

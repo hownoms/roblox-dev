@@ -110,10 +110,14 @@ local function buildPad(parent: Instance, index: number, centre: Vector3): BaseP
 	local sub = gui and gui:FindFirstChild("SubLabel")
 	if sub and sub:IsA("TextLabel") then
 		local label = sub :: TextLabel
-		deck:GetAttributeChangedSignal("OwnerName"):Connect(function()
+		local function showOwner()
 			local name = deck:GetAttribute("OwnerName")
 			label.Text = if type(name) == "string" and name ~= "" then name .. "'s camp" else FREE_TEXT
-		end)
+		end
+		deck:GetAttributeChangedSignal("OwnerName"):Connect(showOwner)
+		-- the deck is tagged above, so a waiting camp can claim it (and set OwnerName) before
+		-- this listener exists: read the current owner once now
+		showOwner()
 	end
 	return deck
 end

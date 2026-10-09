@@ -50,6 +50,7 @@ local Shared = ReplicatedStorage.Shared
 local CampAction = require(Shared.Trophies.CampAction)
 local Catalog = require(Shared.Trophies.Catalog)
 local Rules = require(Shared.Trophies.Rules)
+local RateLimiter = require(Shared.Util.RateLimiter)
 local Signal = require(Shared.Util.Signal)
 local TableUtil = require(Shared.Util.TableUtil)
 
@@ -113,6 +114,15 @@ local reviewPreview = false
 local draining: { [number]: boolean } = {}
 local notifier: any = nil -- the Net module, once ConnectRemotes / ConnectCampPrompts ran
 local campPrompts: { ProximityPrompt } = {}
+-- Camp prompt triggers per player: a burst of 2, refilled 2 per second. A legitimate hold takes
+-- 0.5 s or more; this only stops scripted spam from rebuilding the camp every frame.
+local promptLimiter = RateLimiter.new(2, 1)
+-- Players already through OnPlayerRemoving (weak): nothing may give them a pad again, even if a
+-- late grant or settlement refreshes them while their save is still being released.
+local departed: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+-- Who held or waited for a pad when the feature was switched off, in that order (resume order).
+local resumeOrder: { Player } = {}
+local promptsConnected = false
 
 -- Camp display ----------------------------------------------------------------------------------
 --[[
@@ -128,11 +138,33 @@ local campPrompts: { ProximityPrompt } = {}
 local waiting: { [Player]: number } = {} -- player -> wait-list sequence (lower = earlier)
 local waitSeq = 0
 
+--[[
+	The part of a layout that can actually be shown: placements of trophies the player owns and
+	this server can build. A placement saved by a newer server (unknown id) or for a trophy no
+	longer in TrophyRecords stays in the save untouched but is never shown and never claims or
+	holds a pad (otherwise the pad would sit empty while the card says "on display").
+]]
+local function shownLayout(data: { [string]: any }): Rules.CampLayout
+	local layout = data.CampLayout :: Rules.CampLayout
+	local records = data.TrophyRecords :: { [string]: any }
+	local shown: { Rules.Placement } = {}
+	for _, p in layout.Placements do
+		if records[p.TrophyId] ~= nil and Catalog.IsDisplayable(p.TrophyId) then
+			table.insert(shown, p)
+		end
+	end
+	return { Placements = shown, NextId = layout.NextId }
+end
+
 -- Shows or hides one player's camp. Returns true when this released a pad they held.
 local function applyDisplay(player: Player, data: { [string]: any }): boolean
 	local before = Display.GetPad(player)
-	local layout = data.CampLayout :: Rules.CampLayout
-	if Rules.HasStand(data) or reviewPreview then
+	local layout = shownLayout(data)
+	if departed[player] or player.Parent == nil or not enabled then
+		-- gone, or the feature is off: never hold or wait for a pad (the layout stays saved)
+		Display.Hide(player)
+		waiting[player] = nil
+	elseif Rules.HasStand(data) or reviewPreview then
 		local pad = Display.Show(player, layout)
 		if pad == nil and #layout.Placements > 0 then
 			if waiting[player] == nil then
@@ -193,7 +225,7 @@ local function campStatus(player: Player, data: { [string]: any }): (CampAction.
 	end
 	local layout = data.CampLayout :: Rules.CampLayout
 	local mayDisplay = Rules.HasStand(data) or reviewPreview
-	if #layout.Placements > 0 then
+	if #shownLayout(data).Placements > 0 then
 		if not mayDisplay then
 			return "NoStand", 0
 		elseif Display.GetPad(player) ~= nil then
@@ -735,12 +767,51 @@ function TrophyService.RemovePlacement(player: Player, placementId: any): (boole
 	return true, nil
 end
 
--- Feature flag ("Trophies", bible ch.05). Off blocks NEW grants and camp edits only; owned
--- trophies stay owned and queries keep working.
+-- Feature flag ("Trophies", bible ch.05). Off blocks new grants and camp edits, and takes every
+-- camp off its pad and empties the wait list (the kill switch must not leave models up while
+-- the action, card and prompts are gone). Owned trophies and saved layouts are untouched and
+-- queries keep working. On shows the camps again: the previous pad holders first, then the old
+-- wait list, then everyone else.
 function TrophyService.SetEnabled(on: boolean)
+	local was = enabled
 	enabled = on
 	for _, prompt in campPrompts do
 		prompt.Enabled = on
+	end
+	if was and not on then
+		resumeOrder = {}
+		for i = 1, Display.GetPadCount() do
+			local holder = Display.GetPadOwner(i)
+			if holder then
+				table.insert(resumeOrder, holder)
+			end
+		end
+		local queue: { Player } = {}
+		for player in waiting do
+			table.insert(queue, player)
+		end
+		table.sort(queue, function(a: Player, b: Player): boolean
+			return waiting[a] < waiting[b]
+		end)
+		table.move(queue, 1, #queue, #resumeOrder + 1, resumeOrder)
+		for _, player in Players:GetPlayers() do
+			Display.Hide(player)
+		end
+		table.clear(waiting)
+	elseif on and not was then
+		local order = resumeOrder
+		resumeOrder = {}
+		for _, player in Players:GetPlayers() do
+			if not table.find(order, player) then
+				table.insert(order, player)
+			end
+		end
+		for _, player in order do
+			local data = TrophyData.Get(player)
+			if data then
+				applyDisplay(player, data)
+			end
+		end
 	end
 	publishAll()
 end
@@ -943,10 +1014,14 @@ function TrophyService.ConnectCampPrompts(net: any?)
 		table.insert(campPrompts, show)
 		table.insert(campPrompts, put)
 		show.Triggered:Connect(function(player: Player)
-			say(player, TrophyService.DisplayAction(player))
+			if promptLimiter:Check(player) then
+				say(player, TrophyService.DisplayAction(player))
+			end
 		end)
 		put.Triggered:Connect(function(player: Player)
-			say(player, TrophyService.RemoveAction(player))
+			if promptLimiter:Check(player) then
+				say(player, TrophyService.RemoveAction(player))
+			end
 		end)
 		inst.Destroying:Connect(function()
 			for i = #campPrompts, 1, -1 do
@@ -956,7 +1031,25 @@ function TrophyService.ConnectCampPrompts(net: any?)
 			end
 		end)
 	end
-	CollectionService:GetInstanceAddedSignal(Display.PAD_TAG):Connect(attach)
+	-- A part that stops being a pad (untagged, or leaving the world) loses its prompts, so a
+	-- re-tag or rebuild attaches exactly one fresh pair.
+	local function detach(inst: Instance)
+		for _, name in { CampAction.DISPLAY_PROMPT, CampAction.REMOVE_PROMPT } do
+			local prompt = inst:FindFirstChild(name)
+			if prompt and prompt:IsA("ProximityPrompt") then
+				local i = table.find(campPrompts, prompt :: ProximityPrompt)
+				if i then
+					table.remove(campPrompts, i)
+				end
+				prompt:Destroy()
+			end
+		end
+	end
+	if not promptsConnected then
+		promptsConnected = true
+		CollectionService:GetInstanceAddedSignal(Display.PAD_TAG):Connect(attach)
+		CollectionService:GetInstanceRemovedSignal(Display.PAD_TAG):Connect(detach)
+	end
 	for _, inst in CollectionService:GetTagged(Display.PAD_TAG) do
 		attach(inst)
 	end
@@ -972,10 +1065,33 @@ local function onLoaded(player: Player)
 	startDrain(player, "Load")
 end
 
+-- The tagged pad set changed (a deck built, destroyed, untagged or rebuilt). Camps follow
+-- their pad part; a camp whose pad went away goes to the front of the line for a free pad.
+local function onPadsChanged(gone: Instance?)
+	local displaced = Display.Reconcile(gone)
+	local front = 0
+	for _, seq in waiting do
+		front = math.min(front, seq)
+	end
+	for i, player in displaced do
+		if enabled and not departed[player] and player.Parent ~= nil and TrophyData.Get(player) ~= nil then
+			waiting[player] = front - #displaced - 1 + i
+		end
+	end
+	handOver()
+	publishAll()
+end
+
 function TrophyService.Init()
 	Pending.Init()
 	TrophyData.PlayerLoaded:Connect(function(player: Player)
 		onLoaded(player)
+	end)
+	CollectionService:GetInstanceAddedSignal(Display.PAD_TAG):Connect(function()
+		onPadsChanged(nil)
+	end)
+	CollectionService:GetInstanceRemovedSignal(Display.PAD_TAG):Connect(function(inst: Instance)
+		onPadsChanged(inst)
 	end)
 end
 
@@ -988,6 +1104,12 @@ function TrophyService.OnPlayerAdded(player: Player)
 end
 
 function TrophyService.OnPlayerRemoving(player: Player)
+	departed[player] = true
+	promptLimiter:Remove(player)
+	local resume = table.find(resumeOrder, player)
+	if resume then
+		table.remove(resumeOrder, resume)
+	end
 	local wasWaiting = waiting[player] ~= nil
 	waiting[player] = nil
 	local held = Display.GetPad(player) ~= nil

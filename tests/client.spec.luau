@@ -3733,6 +3733,12 @@ do
 		check(ghost() == nil, "displayed: preview gone")
 		check(show.Enabled == false and put.Enabled == true, "displayed: only put-away")
 		check(entry.Body.Text == "Your trophy is on display.", "displayed wording")
+		-- TrophyService.SetEnabled(true) writes Enabled = true on both server prompts; that write
+		-- can replicate after the status attribute. The local choice must win again.
+		show.Enabled = true
+		put.Enabled = true
+		Mock.Advance(0.1)
+		check(show.Enabled == false and put.Enabled == true, "replicated server Enabled write re-hidden locally")
 		set("Queued", 2)
 		check(put.Enabled == true and string.find(entry.Body.Text, "#2", 1, true) ~= nil, "queued: place in line")
 		set("NoPad")
@@ -3741,8 +3747,26 @@ do
 		check(card.Enabled == false and show.Enabled == false and put.Enabled == false, "feature off: hidden")
 		check(ghost() == nil, "feature off: no preview")
 
-		-- streaming: the deck streams out and back in as a new instance
+		-- the server removes the prompts (deck untagged / rebuilt) while the preview is up
 		set("Ready")
+		Mock.FireEvent(show, "PromptShown", Enum.ProximityPromptInputType.Keyboard)
+		Mock.Advance(0.1)
+		check(ghost() ~= nil, "preview up before the prompt is removed")
+		local oldGhost = ghost()
+		show:Destroy()
+		Mock.Advance(0.1)
+		check(
+			ghost() == nil and oldGhost.Parent == nil and entry.Show == nil,
+			"removed prompt takes the preview with it"
+		)
+		show = prompt(CampAction.DISPLAY_PROMPT)
+		Mock.Advance(0.1)
+		check(
+			entry.Show == show and show.Enabled == true and ghost() == nil,
+			"fresh prompt hooked, no preview until shown"
+		)
+
+		-- streaming: the deck streams out and back in as a new instance
 		local token = Mock.StreamOut(deck)
 		Mock.Advance(0.1)
 		check(Camp.GetEntry(deck) == nil and card.Parent == nil, "stream-out cleans up card and preview")
