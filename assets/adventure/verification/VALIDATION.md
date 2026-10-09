@@ -1,12 +1,12 @@
 # Adventure validation — 9 October 2026
 
-Dedicated Studio: Expansion 1 Review.rbxlx, id 82642668-be 2 c-4 e 4 a-b 778-96542 ee 53 b 84.
+Dedicated Studio: Expansion1Review.rbxlx, id 82642668-be2c-4e4a-b778-96542ee53b84.
 DigTheBeach.rbxlx was not modified. Final review returned to Edit. No upload/publication.
 
 ## Automated checks
 
 - 16 strict pure progression tests, including 100 complete lifecycles, pass.
-- Solo and crew work 6/8;0.5-second per-user cooldown; repeated/unknown targets; NaN/inf work;
+- Solo and crew work 6/8; 0.5-second per-user cooldown; repeated/unknown targets; NaN/inf work;
   sequential gates; penultimate/final 60 admission lock; readiness timeout; disconnect 90 hold;
   absence 30 abandonment; meaningful late helper vs spectator; active presence accounting;
   moving-hauler shares vs idle attachment; immutable snapshot separation; non-awarding cleanup.
@@ -16,7 +16,7 @@ DigTheBeach.rbxlx was not modified. Final review returned to Edit. No upload/pub
   not a blanket `ALL CHECKS PASSED` claim for tools/check.sh.
 - Baseline headless server 2199, Studio-mode 2166, client 1464 and utility 8 checks pass;
   persistence boot live/Studio and all seven tutorial scenarios pass.
-- Combined with default d 9 ad 846:24 real-context-to-TrophyService mock integration checks pass,
+- Combined with default d9ad846: 24 real-context-to-TrophyService mock integration checks pass,
   including starter/late helper grants, observer/disconnected veto, duplicate context, stand gate
   and legacy coins/sand/rebirth preservation. Claude's 259 trophy checks pass. No production
   boot patch or real DataStore was used. New dedicated adventure CI runs these contract checks.
@@ -30,11 +30,11 @@ uncoached human play or measured player pacing.
 - Adventure constructs and the client UI starts with no script errors.
 - Mara opt-in, five-second start, readiness, three anchors, latch, route selection and all three
   ball gates complete. Snapshot phases progress Inviting -> Preparing -> Active -> Resolving.
-- Solo final context:65 contribution points,7 validated objectives,3 major stages, Eligible=true.
+- Solo final context: 65 contribution points, 7 validated objectives, 3 major stages, Eligible=true.
   Temporary adapter captures the context, logs NO rewards granted, and returns false.
 - Wrong-event, unknown/protected target, too-far excavation and repeated instant hits do not
   increase work. Completed targets cannot pay/progress twice.
-- Broadwave: early release refused;0.85-second release accepted; three practice targets complete.
+- Broadwave: early release refused; 0.85-second release accepted; three practice targets complete.
   Cancellation removes charge with no release. Equipped loan required. No sand/reward mutation.
 - Controlled movement initially outran slow walkers; fixed by temporary 10/12 hauling speed with
   restored original speed. Solo route then completes using actual character walking.
@@ -44,7 +44,7 @@ uncoached human play or measured player pacing.
   Review arena rebuild retains SpawnLocation and reconnects client prompts.
 - Injected three wave/three bounce notifications leave zero transient effect groups after 0.5 s.
   Effect caps/reduced-motion branches are implemented; crowded visual comfort remains a gate.
-- R 15 player's own avatar retained; Broadwave equips with RightGrip. Temporary R 6 dummy also equips
+- R15 player's own avatar retained; Broadwave equips with RightGrip. Temporary R6 dummy also equips
   with RightGrip and walks; dummy removed. This is basic rig use, not all custom-avatar contact.
 - Primitive color cap seams visibly improve over the severe original checkerboard z-fighting.
   Saved closeup shows residual faceting at curved panel edges; exact smooth spherical sectors
