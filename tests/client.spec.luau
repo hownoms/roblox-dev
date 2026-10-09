@@ -3340,6 +3340,7 @@ do
 	local savedCamera = camera.CFrame
 	local origin = Vector3.new(3000, 300, -3000) -- empty sky well away from the map
 	camera.CFrame = CFrame.new(origin + Vector3.new(0, 0, 40))
+	local baseline = Ambient.Counts() -- tagged scenery from the real map
 	local folder = new("Folder")
 	folder.Name = "AmbientSpec"
 	folder.Parent = Workspace
@@ -3621,7 +3622,10 @@ do
 	folder:Destroy()
 	Mock.Advance(0.1)
 	local counts = Ambient.Counts()
-	check(counts.Ferris == 0 and counts.Pulse == 0 and counts.Night == 0, "destroyed folder unregisters everything")
+	check(
+		counts.Ferris == baseline.Ferris and counts.Pulse == baseline.Pulse and counts.Night == baseline.Night,
+		"destroyed folder unregisters everything"
+	)
 	camera.CFrame = savedCamera
 	check(#Mock.Errors == e0, "no errors in ambient motion")
 	check(#Mock.Warnings == w0, "no warnings in ambient motion")
