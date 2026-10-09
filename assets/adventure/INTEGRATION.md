@@ -184,3 +184,16 @@ See `verification/VALIDATION.md`, `STUDIO_TRACE.json`, and the saved before/afte
 Automated and assisted Studio checks do not establish real phone/controller use, real multiplayer,
 live durability, uncoached onboarding, audio audition or full populated performance. Those remain
 release gates. Ordinary digging and existing save tests pass independently. Nothing is published.
+
+
+## PR #33 runtime acceptance follow-up (9 October 2026)
+
+Read `verification/RUNTIME_ACCEPTANCE.md` and `INTEGRATED_CANDIDATE.md` for the next
+boundary. Supply `ResolveTool(player) -> Tool?` explicitly from authoritative loaded
+license/flags and issued-tool registry; runtime rechecks exact equipped identity at
+release. Own loans remain event/trial only, never ordinary dig. Adapter presence no
+longer broadens loan charging. ReviewSpawn defaults false; only dedicated review opts in.
+Client equip/stow control uses existing Tools and sinks charge input only while equipped.
+Per-target removal releases prompt references and mesh work cancels at batch boundaries.
+Shared boot/catalogs/rewards/saves/camp are unchanged. Claude’s production callback and
+wiring acceptance remain pending; integrated fixture passes are automated mocks.

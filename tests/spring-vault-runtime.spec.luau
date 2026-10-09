@@ -193,6 +193,110 @@ check(
 	Mock.Game:GetService("Workspace"):FindFirstChild("SpringVaultAdventure") == nil,
 	"100 assisted activity/cleanup lifecycles leave no scene"
 )
+
+-- Licensed boundary executes actual runtime charge handling without boot or saves.
+local licensed = player(9199)
+local issued = Mock.Env.Instance.new("Tool")
+issued:SetAttribute("ToolId", Config.ToolId)
+issued.Parent = licensed.Character
+local allowed, resolverError, calls = true, false, 0
+local ordinary = Service.Start({
+	ResolveTool = function(p)
+		if resolverError then
+			error("eligibility unavailable")
+		end
+		return if p == licensed and allowed then issued else nil
+	end,
+	CanTrial = function()
+		return true
+	end,
+	OnOrdinaryBroadwave = function()
+		calls += 1
+		return true
+	end,
+})
+check(
+	not ordinary.Scene.Model:FindFirstChildWhichIsA("SpawnLocation", true),
+	"production-default runtime creates no review spawn"
+)
+position(licensed, V(0, 50, 0))
+local function charge()
+	Mock.Advance(3)
+	request(ordinary, licensed, "ChargeBegin")
+	Mock.Advance(0.9)
+end
+charge()
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "authoritatively resolved equipped licensed tool releases ordinary ability")
+charge()
+allowed = false
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "license revocation during charge refuses release")
+allowed = true
+charge()
+local replacement = Mock.Env.Instance.new("Tool")
+replacement:SetAttribute("ToolId", Config.ToolId)
+issued.Parent = licensed.Backpack
+replacement.Parent = licensed.Character
+local original = issued
+issued = replacement
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "same-ID equipped replacement cannot inherit charge")
+charge()
+issued.Unequipped:_fire()
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "licensed unequip signal cancels held charge")
+resolverError = true
+charge()
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "resolver failure refuses safely without ordinary callback")
+resolverError = false
+issued:SetAttribute("AdventureLoan", true)
+charge()
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "external loan is refused even when resolver returns it")
+issued:SetAttribute("AdventureLoan", false)
+issued.Parent = licensed.Backpack
+position(licensed, ordinary.Scene.Targets.npc_pip)
+ordinary.Handle(licensed, { action = "Talk", targetId = "npc_pip" })
+local loan = licensed.Backpack:FindFirstChild("Broadwave (Adventure Loan)")
+assert(loan, "review trial provides runtime-owned loan")
+loan.Parent = licensed.Character
+position(licensed, V(0, 50, 0))
+charge()
+check(
+	not ordinary.ReviewPlayer(licensed).Charging,
+	"review loan cannot start ordinary charge away from trial even with adapter"
+)
+request(ordinary, licensed, "ChargeRelease")
+check(calls == 1, "runtime-owned review loan never reaches ordinary adapter")
+position(licensed, ordinary.Scene.Targets.trial_patch + V(0, 0, 6))
+charge()
+check(ordinary.ReviewPlayer(licensed).Charging, "review loan still charges in eligible trial corridor")
+request(ordinary, licensed, "ChargeCancel")
+loan.Parent = licensed.Backpack
+issued.Parent = licensed.Character
+position(licensed, ordinary.Scene.Targets.trial_patch + V(0, 0, 6))
+charge()
+request(ordinary, licensed, "ChargeRelease")
+check(
+	ordinary.ReviewPlayer(licensed).Trial.Wave and calls == 1,
+	"licensed tool accepts trial target without also invoking ordinary digging"
+)
+issued.Parent = licensed.Backpack
+ordinary.Destroy()
+check(
+	issued.Parent == licensed.Backpack and original.Parent == licensed.Backpack,
+	"runtime cleanup preserves external licensed possessions"
+)
+issued:Destroy()
+original:Destroy()
+local review = Service.Start({ ReviewSpawn = true })
+check(
+	review.Scene.Model:FindFirstChildWhichIsA("SpawnLocation", true) ~= nil,
+	"review spawn exists only with explicit opt-in"
+)
+review.Destroy()
 check(#Mock.Errors == 0, "no asynchronous runtime errors")
 check(#Mock.Warnings == 0, "server builds safe primitives without requiring a local mesh API")
 print("Spring Vault runtime mock: " .. passed .. " checks passed")

@@ -16,7 +16,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local instances: { Instance } = {}
 	local effects: { [Model]: boolean } = {}
 	local sceneConnections: { RBXScriptConnection } = {}
-	local ownedPrompts: { ProximityPrompt } = {}
+	local promptCleanups: { [Instance]: () -> () } = {}
 	local visualJobs: { [Model]: boolean } = {}
 	local visualCleanups: { [Model]: () -> () } = {}
 	local visualConnections: { [Model]: RBXScriptConnection } = {}
@@ -29,6 +29,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local charging = false
 	local chargeCardVisible = false
 	local chargeInput: InputObject? = nil
+	local chargeTool: Tool? = nil
 	local chargeStart = 0
 	local chargeVisual: Model? = nil
 	local aimPreview: Part? = nil
@@ -81,7 +82,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end
 		end)
 	end
-	local snapshot: any = {}
 	local intent = remotes:WaitForChild("Intent") :: RemoteEvent
 	local function send(action: string, targetId: string?)
 		if not dead then
@@ -215,6 +215,54 @@ function Client.Start(remotes: Folder, scene: Instance)
 	end)
 	routeLeft.Visible = false
 	routeRight.Visible = false
+	-- These markers only select presentation controls. The server resolves issued tools
+	-- and the loaded license separately; a client marker never grants ordinary digging.
+	local function broadwave(container: Instance?): Tool?
+		if container then
+			for _, item in container:GetChildren() do
+				if
+					item:IsA("Tool")
+					and (item:GetAttribute("AdventureLoan") == true or item:GetAttribute("ToolId") == "tool_broadwave")
+				then
+					return item
+				end
+			end
+		end
+		return nil
+	end
+	local function equipped(): Tool?
+		return broadwave(player.Character)
+	end
+	local equip = Instance.new("TextButton")
+	equip.Name = "BroadwaveEquip"
+	equip.AnchorPoint = Vector2.new(0.5, 0)
+	equip.Position = UDim2.new(0.5, 0, 0, 76)
+	equip.Size = UDim2.fromOffset(176, 48)
+	equip.Text = "Equip Broadwave"
+	equip.TextSize = 16
+	equip.Font = Enum.Font.GothamMedium
+	equip.BackgroundColor3 = Color3.fromRGB(255, 244, 216)
+	equip.TextColor3 = Color3.fromRGB(24, 47, 66)
+	equip.Visible = false
+	equip.Parent = gui
+	table.insert(
+		connections,
+		equip.Activated:Connect(function()
+			local character = player.Character
+			local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+			if not humanoid then
+				return
+			end
+			if equipped() then
+				humanoid:UnequipTools()
+			else
+				local tool = broadwave(player:FindFirstChildOfClass("Backpack"))
+				if tool then
+					humanoid:EquipTool(tool)
+				end
+			end
+		end)
+	)
 	local function root(): BasePart?
 		local character = player.Character
 		return if character then character:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
@@ -241,6 +289,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		end
 		charging = false
 		chargeInput = nil
+		chargeTool = nil
 		aimHint.Visible = false
 		if aimPreview then
 			aimPreview:Destroy()
@@ -264,6 +313,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 		clearCharge()
 	end
 	local function ability(_: string, state: Enum.UserInputState, input: InputObject)
+		if charging and equipped() ~= chargeTool then
+			cancelCharge()
+		end
 		if dead or (state ~= Enum.UserInputState.Begin and not charging) then
 			return Enum.ContextActionResult.Pass
 		end
@@ -271,7 +323,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if
 				UserInputService:GetFocusedTextBox()
 				or not sceneAvailable
-				or not (snapshot.joined or snapshot.loanAvailable)
+				or not equipped()
 				or os.clock() < cooldownUntil
 				or charging
 			then
@@ -281,6 +333,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 			chargeCardVisible = card.Visible
 			card.Visible = false
 			chargeInput = input
+			chargeTool = equipped()
 			chargeStart = os.clock()
 			aimHint.Visible = true
 			send("ChargeBegin", "trial_patch")
@@ -340,6 +393,35 @@ function Client.Start(remotes: Folder, scene: Instance)
 	table.insert(
 		connections,
 		RunService.RenderStepped:Connect(function()
+			local tool = equipped()
+			equip.Visible = sceneAvailable
+				and (tool ~= nil or broadwave(player:FindFirstChildOfClass("Backpack")) ~= nil)
+			-- Keep the control in the scrolling card when open; retain access after Ignore.
+			-- While aiming, neither the card nor the equip button should cover the footprint.
+			equip.Visible = equip.Visible and not charging
+			if card.Visible then
+				equip.Parent = card
+				equip.AnchorPoint = Vector2.zero
+				equip.Size = UDim2.new(1 / 3, -12, 0, 48)
+				equip.Position = UDim2.new(2 / 3, 0, 0, 332)
+			else
+				equip.Parent = gui
+				equip.AnchorPoint = Vector2.new(0.5, 0)
+				equip.Size = UDim2.fromOffset(176, 48)
+				equip.Position = UDim2.new(0.5, 0, 0, 76)
+			end
+			local height = if routeLeft.Visible or equip.Visible then 390 else 330
+			if cardContentHeight ~= height then
+				cardContentHeight = height
+				fitCard()
+			end
+			equip.Text = if tool then "Stow Broadwave" else "Equip Broadwave"
+			if touch then
+				touch.Visible = sceneAvailable and tool ~= nil
+			end
+			if charging and tool ~= chargeTool then
+				cancelCharge()
+			end
 			if charging then
 				if os.clock() - chargeStart > 10 then
 					cancelCharge()
@@ -403,7 +485,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 	table.insert(
 		connections,
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
-			snapshot = data
 			eventId = data.eventInstanceId
 			if data.message then
 				status.Text = data.message
@@ -419,7 +500,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 							else ""
 					)
 			end
-			if charging and not (data.joined or data.loanAvailable) then
+			if charging and not (data.joined or data.loanAvailable or data.licensedEquipped) then
 				send("ChargeCancel", "trial_patch")
 				clearCharge()
 			end
@@ -539,7 +620,12 @@ function Client.Start(remotes: Folder, scene: Instance)
 				end
 			end)
 			task.spawn(function()
-				local cleanup = BallVisual.DecorateLocal(ball)
+				local cleanup = BallVisual.DecorateLocal(ball, function()
+					return dead
+						or generation ~= sceneGeneration
+						or not ball:IsDescendantOf(workspace)
+						or visualJobs[ball] ~= true
+				end)
 				if cleanup then
 					if dead or generation ~= sceneGeneration or not ball:IsDescendantOf(workspace) then
 						cleanup()
@@ -554,6 +640,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 		if type(action) ~= "string" or type(targetId) ~= "string" then
 			return
 		end
+		if promptCleanups[item] then
+			return
+		end
 		local part = if item:IsA("BasePart") then item else if item:IsA("Model") then item.PrimaryPart else nil
 		if not part then
 			return
@@ -562,7 +651,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 		local prompt: ProximityPrompt = existing or Instance.new("ProximityPrompt")
 		if not existing then
 			prompt.Name = "SpringVaultLocalPrompt"
-			table.insert(ownedPrompts, prompt)
 		end
 		local actionText = item:GetAttribute("ActionText")
 		local displayName = item:GetAttribute("DisplayName")
@@ -574,15 +662,29 @@ function Client.Start(remotes: Folder, scene: Instance)
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
 			prompt.Parent = part
 		end
-		table.insert(
-			sceneConnections,
-			prompt.Triggered:Connect(function()
-				if action == "Talk" then
-					card.Visible = true
-				end
-				send(action, targetId)
-			end)
-		)
+		local triggerConnection = prompt.Triggered:Connect(function()
+			if action == "Talk" then
+				card.Visible = true
+			end
+			send(action, targetId)
+		end)
+		local ancestryConnection: RBXScriptConnection? = nil
+		local function cleanupPrompt()
+			triggerConnection:Disconnect()
+			if ancestryConnection then
+				ancestryConnection:Disconnect()
+			end
+			if not existing then
+				prompt:Destroy()
+			end
+			promptCleanups[item] = nil
+		end
+		promptCleanups[item] = cleanupPrompt
+		ancestryConnection = item.AncestryChanged:Connect(function()
+			if not item:IsDescendantOf(scene) then
+				cleanupPrompt()
+			end
+		end)
 	end
 	local function clearScene()
 		sceneAvailable = false
@@ -605,11 +707,11 @@ function Client.Start(remotes: Folder, scene: Instance)
 		for _, connection in sceneConnections do
 			connection:Disconnect()
 		end
-		for _, prompt in ownedPrompts do
-			prompt:Destroy()
+		for _, cleanup in promptCleanups do
+			cleanup()
 		end
 		table.clear(sceneConnections)
-		table.clear(ownedPrompts)
+		table.clear(promptCleanups)
 	end
 	local function bindScene(newScene: Instance)
 		clearScene()
@@ -620,6 +722,15 @@ function Client.Start(remotes: Folder, scene: Instance)
 			installPrompt(item)
 		end
 		table.insert(sceneConnections, newScene.DescendantAdded:Connect(installPrompt))
+		table.insert(
+			sceneConnections,
+			newScene.DescendantRemoving:Connect(function(item)
+				local cleanup = promptCleanups[item]
+				if cleanup then
+					cleanup()
+				end
+			end)
+		)
 		table.insert(sceneConnections, newScene.Destroying:Connect(clearScene))
 		table.insert(
 			sceneConnections,

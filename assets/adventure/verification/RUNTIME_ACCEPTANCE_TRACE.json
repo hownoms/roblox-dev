@@ -1,0 +1,55 @@
+{
+  "Date": "2026-10-09",
+  "Studio": "Expansion1Review_AutoRecovery_0.rbxl",
+  "PlaceId": 0,
+  "Classification": "Assisted networked Studio Play; no production services or saves",
+  "Sources": "Staged gameplay files before final runtime loan gating and last equip layout correction; later final modules resynced separately",
+  "FarDistance": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"ScenePresent\":true,\"Streaming\":true,\"Root\":\"6000, 24.14999771118164, 0\",\"Descendants\":183}"
+      }
+    ],
+    "isError": false
+  },
+  "EquipCancellation": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Trace\":{\"1\":{\"At\":387.01065599999859,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":535.7885901999835,\"UserId\":72220195,\"Action\":\"ChargeCancel\"},\"2\":{\"At\":532.6882146999997,\"UserId\":72220195,\"Action\":\"ChargeBegin\"}},\"Player\":{\"Trial\":{\"Wave\":false,\"Targets\":[],\"Cleared\":0},\"Charging\":false,\"Loan\":true},\"ServerMeshCount\":0}"
+      }
+    ],
+    "isError": false
+  },
+  "Reload": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"PromptCount\":13,\"Mode\":\"LocalSmoothSectors\",\"AvatarRig\":\"Enum.HumanoidRigType.R15\",\"ReloadShells\":1}"
+      }
+    ],
+    "isError": false
+  },
+  "MovingR15": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Before\":\"700, 24.150390625, 20\",\"SameCharacter\":true,\"After\":\"692.62109375, 23.150390625, 20\",\"Distance\":7.446358680725098,\"UserId\":72220195,\"Rig\":\"Enum.HumanoidRigType.R15\"}"
+      }
+    ],
+    "isError": false
+  },
+  "BallReplacement": {
+    "Created": 10,
+    "Removed": 10,
+    "FinalBalls": 1,
+    "FinalLocalSmoothShells": 1,
+    "ServerMeshCount": 0
+  },
+  "Devices": {
+    "ConnectedGamepads": [],
+    "TouchEnabled": false
+  },
+  "Limit": "Streaming enabled but scene stayed loaded at6000 studs; actual stream-out not established. Server-driven scene ancestry reload and ball replacement do not establish memory/device budget."
+}

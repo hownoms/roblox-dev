@@ -1,0 +1,21 @@
+{
+  "FinalEquipLayout": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Visible\":true,\"Path\":\"Players.xxLoyalAcExx.PlayerGui.SpringVaultAdventureReview.ScrollingFrame.BroadwaveEquip\",\"Position\":\"232, 425.5\",\"Viewport\":\"896, 635\",\"Size\":\"98, 48\"}"
+      }
+    ],
+    "isError": false
+  },
+  "FinalEquipAccepted": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"FinalEquip\":\"Broadwave (Adventure Loan)\",\"Rig\":\"Enum.HumanoidRigType.R15\",\"Avatar\":\"xxLoyalAcExx\"}"
+      }
+    ],
+    "isError": false
+  },
+  "FinalState": "Edit; StreamingEnabled=false"
+}

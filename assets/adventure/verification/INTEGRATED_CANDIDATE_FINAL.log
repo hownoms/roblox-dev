@@ -1,0 +1,39 @@
+$ C:\Users\howar\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe tests/tools/bundle.py
+wrote build\test\generated.luau (836 classes, 544 enums)
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau
+PRODUCTION WIRING (off): 36 passed, 0 failed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a on
+PRODUCTION WIRING (on): 45 passed, 0 failed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a client
+PRODUCTION WIRING (client): 20 passed, 0 failed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a rejoin
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/spring-vault-runtime.spec.luau
+Spring Vault runtime mock: 38 checks passed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/spring-vault-input.spec.luau
+Spring Vault input: 191 checks passed
+
+EXIT 0
+
+$ C:\Users\howar\bin\luau.exe tests/broadwave-dig.spec.luau
+Broadwave DigService integration: 24 checks passed
+
+EXIT 0

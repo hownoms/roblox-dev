@@ -9,10 +9,16 @@ local COLORS = { Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold }
 -- A single spherical surface eliminates intersections altogether. Face colors share
 -- radial normals across sector boundaries, so gutters are color changes, not ridges.
 -- This creates only local Content; it never uploads or enables a place permission.
-local function smoothShell(model: Model, diameter: number, center: Vector3): MeshPart?
+local function smoothShell(model: Model, diameter: number, center: Vector3, cancelled: (() -> boolean)?): MeshPart?
 	local mesh: EditableMesh? = nil
 	local shell: MeshPart? = nil
+	local function checkActive()
+		if cancelled and cancelled() then
+			error("Local ball decoration cancelled")
+		end
+	end
 	local ok, failure = pcall(function()
+		checkActive()
 		local assetService = game:GetService("AssetService")
 		local created = assetService:CreateEditableMesh()
 		if not created then
@@ -44,6 +50,7 @@ local function smoothShell(model: Model, diameter: number, center: Vector3): Mes
 			table.insert(normals, normalRow)
 			if latitude % 6 == 0 then
 				task.wait()
+				checkActive()
 			end
 		end
 		local function triangle(
@@ -74,12 +81,14 @@ local function smoothShell(model: Model, diameter: number, center: Vector3): Mes
 			end
 			if latitude % 6 == 0 then
 				task.wait()
+				checkActive()
 			end
 		end
 		local part = assetService:CreateMeshPartAsync(Content.fromObject(created), {
 			RenderFidelity = Enum.RenderFidelity.Precise,
 		})
 		shell = part
+		checkActive()
 		part.Name = "ColorPanel"
 		part.Anchored = true
 		part.CanCollide = false
@@ -101,7 +110,9 @@ local function smoothShell(model: Model, diameter: number, center: Vector3): Mes
 			mesh:Destroy()
 		end
 		model:SetAttribute("BallGeometryMode", "PrimitiveFallback")
-		warn("Spring Vault local ball mesh unavailable; primitive fallback: " .. tostring(failure))
+		if not (cancelled and cancelled()) then
+			warn("Spring Vault local ball mesh unavailable; primitive fallback: " .. tostring(failure))
+		end
 		return nil
 	end
 	model:SetAttribute("BallGeometryMode", "LocalSmoothSectors")
@@ -112,12 +123,16 @@ end
 -- on networked review clients, so every client constructs its own presentation.
 -- Call asynchronously once per streamed ball; cleanup restores primitive visibility.
 -- The same entry point can be called in Edit for local visual inspection.
-function Ball.DecorateLocal(model: Model): (() -> ())?
+function Ball.DecorateLocal(model: Model, cancelled: (() -> boolean)?): (() -> ())?
 	local contact = model:FindFirstChild("ContactSphere")
 	if not contact or not contact:IsA("BasePart") then
 		return nil
 	end
-	local shell = smoothShell(model, Kit.Spec.BallDiameter, contact.Position)
+	local shell = smoothShell(model, Kit.Spec.BallDiameter, contact.Position, function()
+		return not model:IsDescendantOf(workspace)
+			or not contact:IsDescendantOf(model)
+			or (cancelled and cancelled()) == true
+	end)
 	if not shell then
 		return nil
 	end
