@@ -28,7 +28,8 @@ in `tests/run.sh` that registers the new spec. Nothing was uploaded or published
 | `src/server/Services/TrophyPendingStore.luau` | The durable outbox for accepted grants to players who are not loaded here. It holds intents only, never progress. |
 | `src/server/Services/TrophyService.luau` | Server-authoritative settlement API, ownership queries, camp place/remove, review preview and remote handlers. |
 | `src/server/Services/TrophyCampDisplay.luau` | Builds camps from `Models.Expansion1.TrophyStand()` + `TrophyReplica()` on reserved pads. |
-| `tests/trophy.spec.luau` | 259 headless checks (261 once the patch adds the two camp remotes), including a second mock server. Registered in `tests/run.sh`. |
+| `tests/trophy.spec.luau` | 312 headless checks (314 once the patch adds the two camp remotes), including a second mock server and the authored camp pad. Registered in `tests/run.sh`. |
+| `src/server/World/CampPad.luau` | Builds the one authored camp pad (`Layout.CAMP_PADS`) in `Map.Hub`. |
 | `tests/trophy-wired.spec.luau` | 18 checks through the real `Main` with the patch applied. Register it when the patch merges. |
 | `docs/trophy-integration.patch` | The exact shared-file wiring, tested (see below). |
 
@@ -268,6 +269,40 @@ Clients cannot grant trophies:
 - **Pads.** Pads are borrowed, not saved. A loaded player with a non-empty layout gets the
   lowest free pad. Leaving unloads the camp and frees the pad. If no pad is free, the layout
   still saves; nothing is shown.
+- **The authored pad (claude/trophy-camp-pad).** The world builds exactly one pad,
+  `Workspace.Map.Hub.TrophyCampPad1` (`World/CampPad.luau`, coordinates in
+  `Layout.CAMP_PADS`):
+  - Centre (80, 1024, 76), on open sand between the Rebirth shrine and the Beach Shop. The
+    deck is 24×1×24 wood planks, top at `Layout.DECK_TOP` (1027). The `Deck` part is anchored,
+    walkable and tagged `TrophyCampPad`. A non-colliding rim, gold corner posts and a
+    "TROPHY CAMP" sign stand just outside the footprint; the sign faces the plaza and names the
+    owner.
+  - Clearance: every other map part is at least 10 studs away. The smoke spec checks that no
+    map part enters the footprint plus 2 studs. The pad is more than 60 studs from the spawns,
+    off the deck-to-plaza path, and 70 studs inland of the dig zone.
+- **Dig protection.** The dig zone clamp already keeps every carve out of the hub.
+  `World.IsProtected(position, margin)` also covers the pad footprint plus rim in X/Z at any
+  depth. `DigService.DigAt` refuses (`OutOfZone`) any dig whose carve could reach it (margin =
+  dig radius + one voxel), so the pad stays safe if the pad or the zone ever move. The Studio
+  `/dig` dev command is clamped to the zone.
+- **Ownership rules** (`TrophyService` camp section):
+  - A pad shows exactly one owner's camp. A player claims a free pad only when they are
+    loaded, own the stand (or the Studio review preview is on) and have a non-empty layout. A
+    player without the stand never claims one.
+  - Place and remove act only on the caller's own `CampLayout`; placement ids are per player.
+    Nothing another player sends can change someone else's camp, and `Display.Show` never
+    takes a pad someone else holds.
+  - When the pad is busy, an eligible player's placement still saves. They join a FIFO wait
+    list and nothing is shown for them.
+  - **Automatic hand-over.** When the pad is released (the owner leaves, empties their camp,
+    or loses display rights), it goes at once to the longest-waiting player who is still
+    loaded and eligible. A rejoining former owner waits like anyone else; the pad is never
+    taken back from its current owner.
+  - Read-only queries: `TrophyService.GetCampPadOwner(padIndex)` returns the owner's UserId or
+    nil. `GetCampPad(player)` and `GetCampPadCount()` are also available. The pad's `Deck`
+    carries the attributes `OwnerUserId` (0 when free), `OwnerName` and `PadIndex`. The server
+    writes them and they replicate to clients; client writes never replicate back.
+  - `SetCampPads` is a boot-time override and does not move camps that are already shown.
 
 ## Shared-file wiring (apply after review)
 
@@ -288,9 +323,9 @@ against `afbb8a0`.
 ## Production gates (owner-listed, outside this slice)
 
 - **Camp display wiring.**
-  - Map/World: 16 `TrophyCampPad`-tagged anchored parts, or
-    `TrophyService.SetCampPads({CFrame})`. The 24×24 area is centred on the part's top
-    surface, clear of transit and NPC pads. With no pads, nothing renders.
+  - Map/World: one authored pad now exists (see "Camp display"). The full 16 pads are still
+    open: add more centres to `Layout.CAMP_PADS`, clear of transit and NPC pads; the display
+    and the ownership rules already handle N pads.
   - A client camp edit UI and trophy collection view. Today the client can read the
     replicated keys, but there is no UI.
 - **Treasure and legacy trophies** (first-find and sale records, legacy Index replicas) and
