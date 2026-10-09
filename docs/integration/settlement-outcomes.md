@@ -166,3 +166,163 @@ succeeds.
 - **The card in real Studio rendering, on phone layouts, and alongside real toasts and
   reveals.** It was checked headless only.
 - **A two-client Spring Vault run with the runtime wired to `OnStage` / `OnCompletion`.**
+
+## Per-player result audit (branch `claude/apf-result`, from default `5897990`)
+
+9 October 2026. Traced with the **real** `SpringVaultService` booted by the real `Main`
+(`tests/settlement-durability.spec.luau`; rewards on, rewards off, every flag off) and the
+real client card (`tests/adventure-outcome.spec.luau`). Codex's files under `src/*/Adventure/`
+were not edited. Nothing was pushed.
+
+**Invariant.** A Pending or Refused result is never shown as a grant. "Saved", "earned", the
+unlock lines and a bare "+N Coins" appear only for `State = "Accepted"`, and the server sends
+Accepted only once the grant is durable: the save holding it was written (`Saved`), or its
+intent is in the outbox (`Queued`), or it was already settled (`Duplicate`).
+
+### Truth table: rewards ON (`SpringVault` + `AdventureRewards`)
+
+What each client sees at the end of a run. The status line is the runtime's `send(player,
+message)`, shown for 4 s. The objective line is the runtime's snapshot `objective`, sent
+every second while the run is `Resolving` (about 12 s).
+
+| Who | Outcome card(s) | Runtime status line (to everyone) | Runtime objective line | Server state |
+|---|---|---|---|---|
+| Full contributor | 3 × "STAGE REWARD SAVED +6", then "ADVENTURE REWARDS SAVED +42, trophy, stand, cert" (Accepted/Saved) | `COMPLETION_MESSAGE` | "Adventure complete. Review only; no permanent rewards." **Contradicts the card (B1)** | 60 coins, trophy, stand, cert in the written save |
+| Late helper (contributes) | +6 for vault and ball, final +48 | same | same contradiction (B1) | 60 |
+| Watcher (0 points) | Refused `NoContribution` × 3, final Refused `LowContribution` | same | "Review only" (accidentally true) | nothing |
+| Disconnected after contributing | Accepted +6 while connected; later outcomes not delivered (absent) | not in server | — | stage coins saved, no final |
+| Left the adventure | Refused `Left` (if still in the server) | same | non-joined objective | stage coins earned before kept |
+| Bystander (loaded, never joined) | none | `COMPLETION_MESSAGE` (claims nothing) | "Optional: talk to Mara to join, or Pip to try Broadwave." | nothing |
+
+Failure modes (direct boundary calls through Main, plus `adventure-settlement.spec`):
+
+| Case | Card | Server state |
+|---|---|---|
+| Save fails, outbox ok | Accepted/Queued "…SAVED" | live save + outbox intent (durable) |
+| Save and outbox fail | Pending/Unconfirmed "SAVING YOUR REWARDS… +N Coins (not saved yet)", then a Resolved card on a successful retry | live save only; retried; one more outbox attempt after a leave |
+| In the server but not loaded | Pending/PendingRejoin "REWARDS WAITING: Not added yet…" (**was "REWARDS SAVED FOR LATER", fixed**), then a Resolved card from the drain | both intents in the outboxes |
+| Not loaded, outbox write fails | Refused "Your reward couldn't be stored…" | nothing |
+| Trophy display throws | Accepted/Saved with the trophy (F5) | trophy saved |
+| Trophy part throws or TrophyService disabled | Accepted coins + cert, plus "Trophies are paused right now: no trophy this time." | coins + cert saved, no trophy |
+| Trophy outbox fails (not loaded) | Pending + "The trophy couldn't be stored…" | adv intent queued only |
+| Ineligible | Refused with the reason | nothing |
+| Settlement disabled (`SetEnabled(false)`) | stage: no card (warning only); final: none, everyone gets `REFUSED_MESSAGE` | nothing new; in-flight writes still finish and are told once |
+| Kill switch `AdventureBoot.Disable()` mid-run | runtime destroyed; no completion; participants told nothing (R3) | stage cards already sent stay true |
+
+Live state that is not a reward message: the coin HUD and the camp display follow the live
+save as soon as a grant is applied, before its durable write. Neither says "saved".
+
+### Truth table: rewards OFF, and every flag off
+
+| Mode | Cards | Runtime copy | Server state |
+|---|---|---|---|
+| `SpringVault` on, `AdventureRewards` off (real runtime) | none; `OnStage` is not wired | everyone: "Adventure complete. Rewards are not enabled on this server."; objective "Review only; no permanent rewards." (true here) | nothing granted; `runtime.Settled == false` |
+| Every flag off (shipped) | none | runtime not started | nothing |
+
+### Violations found and fixed (Claude side)
+
+1. **Pending card worded as saved.** `AdventureOutcome` titled a `PendingRejoin` card "REWARDS
+   SAVED FOR LATER", which reads like the Accepted "…REWARDS SAVED". The intent is queued, not
+   granted, and the player is usually still in this server while their save loads. It is now
+   "REWARDS WAITING / Not added yet: they'll be added when your save loads, here or the next
+   time you join."
+2. **No client guard on Status.** The card now words an `Accepted` payload whose `Status` is not
+   `Saved`, `Queued` or `Duplicate` as Pending. The server never sends one; this is defence in
+   depth.
+3. **Silent test probe.** PR #35 changed the runtime text from "REVIEW ONLY: …" to "Review only;
+   …". The spec's case-sensitive R1 probe stopped printing, so the contradiction was no longer
+   reported. It is replaced by a case-insensitive capture of every runtime line each client
+   receives while `Resolving`, compared against that client's final card.
+
+Not changed: a Pending payload still names in-flight `Trophy` / `Certification` (the card
+never lists them, and `adventure-settlement.spec` relies on it). A `Duplicate` from a repeated
+`OnCompletion` is still reported Accepted without a new save (documented Low in
+`settlement-durability.md`).
+
+### Boundary contract (after PR #35)
+
+PR #35 changed only copy and objective text in `SpringVaultService`. The stage observation
+and the completion context are unchanged, so the adapter needed no fix. The durability spec
+now captures, from the real runtime, every context passed to `SettleStage` and
+`SettleCompletion`, and asserts:
+
+- the head fields `BoundaryVersion`, `EventInstanceId`, `EventId`, `LandmarkId`, `RegionId`,
+  `CompletedStages` and `Participants` match the reward table;
+- the stage participant fields `UserId`, `Points`, `ObjectiveIds`, `Connected` and `Left`;
+- the final participant fields `UserId`, `Points`, `ObjectiveIds`, `Eligible` and
+  `ActiveSeconds`, plus `Success`;
+- the contexts are frozen, each stage arrives exactly once, and exactly one completion arrives
+  (the runtime's own `LastCompletion`);
+- every report is `Ok`, and `TrophyService.PrepareCompletionContext` accepts the real context:
+  contributors `Granted`, the watcher `Ineligible`.
+
+An outcome monitor on `OutcomeSent` runs across the whole spec. It checks that every Accepted
+outcome is already in the written save or in its outbox at the moment it is told.
+
+### Blockers for Codex (runtime copy; not edited here)
+
+**B1 (High, blocks enabling `AdventureRewards`). Review copy contradicts the reward card.**
+When `AdventureRewards` is on, a contributor's card says "ADVENTURE REWARDS SAVED +42 …" while
+the runtime tells the same player the following:
+
+| File:line (at `5897990`) | Exact string | When / to whom |
+|---|---|---|
+| `src/server/Adventure/SpringVaultService.luau:363` | `"Adventure complete. Review only; no permanent rewards."` | snapshot `objective`, every second while the run is complete, to joined participants |
+| `src/server/Adventure/SpringVaultService.luau:370` | `"REVIEW ONLY  -  no coins, certifications or permanent trophies are granted."` | snapshot `objectives[4]`, every snapshot, every player (the current client shows it only if `objective` is not a string) |
+| `src/client/Adventure/SpringVaultClient.luau:157` | `"SPRING VAULT · Review"` | panel header, always |
+| `src/client/Adventure/SpringVaultClient.luau:159` | `"Help uncover a springy surprise · about 5 minutes. Review build: permanent rewards are unavailable."` | status line until the first snapshot |
+
+Suggested fix: a start option that says an external outcome card owns reward messaging.
+`AdventureBoot.Options` already passes it whenever `AdventureRewards` is on:
+
+```lua
+SpringVaultService.Start({ ..., OutcomeOwner = "External" })
+```
+
+When `opts.OutcomeOwner == "External"`:
+
+- the completed objective becomes `"Adventure complete!"`, or `"Adventure complete! Your reward card shows your result."` for joined players;
+- drop the `REVIEW ONLY` entry from `objectives`;
+- add `data.outcomeOwner = "External"` to the snapshot, so the client:
+  - shows the header `"SPRING VAULT"`;
+  - shows the status `"Help uncover a springy surprise · about 5 minutes."` with no review
+    clause. This applies to the initial label as well, which can stay neutral until the first
+    snapshot.
+
+When the option is absent (the review place, or `AdventureRewards` off), keep today's copy.
+Today's copy is true there, as the rewards-off run shows.
+
+Acceptance: `luau tests/settlement-durability.spec.luau` prints `runtime review copy
+contradicting an Accepted card: 0 line(s)` and no `BLOCKER B1` lines. That check is advisory
+today, so Codex's fix can land on its own. Turn it into a hard check once it lands.
+
+**B2 (Low).** Other review-era copy that reaches production players. These strings are true
+but worded for the review build:
+
+- `SpringVaultService.luau:457`: `"Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."`
+- `SpringVaultService.luau:646`: `"Pip: Excellent! Broadwave trial complete. No permanent license or trial coins awarded in review."`
+
+Under `OutcomeOwner = "External"`, suggested:
+
+- `"Mara's adventure unlocks after your first sale and scanner deposit."`
+- `"Pip: Excellent! Broadwave trial complete."`
+
+**Unchanged:** R2 (completion message to everyone) and R3 (kill switch and failure cleanup
+tell participants nothing) from `settlement-durability.md` still stand.
+`SpringVaultService.luau:956` (`"Completion handoff failed; no rewards confirmed."`, sent to
+everyone if `OnCompletion` throws) is truthful, and our `OnCompletion` does not throw.
+
+### Evidence (headless mock, Windows)
+
+| Spec | Result |
+|---|---|
+| settlement-durability (runtime on, in-process) | 209 (was 105) |
+| settlement-durability `-a off` | 76 (was 53) |
+| adventure-outcome (client card) | 122 (was 23) |
+
+Mutations, each killed:
+
+- `Unconfirmed` mapped to Accepted (monitor and existing check).
+- An outcome sent before its save (monitor: "durable when told").
+- The old "REWARDS SAVED FOR LATER" title (10 failures).
+- The client `Status` guard removed (33 failures).
