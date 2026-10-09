@@ -31,6 +31,7 @@ local EffectsController = require(script.Parent.EffectsController)
 local ShovelPoseController = require(script.Parent.ShovelPoseController)
 local LayerController = require(script.Parent.LayerController)
 local GuideController = require(script.Parent.GuideController)
+local InputArbiter = require(script.Parent.InputArbiter) -- named dig pauses (adventure hauling/dialogue)
 local Signal = require(script.Parent.Parent.Util.Signal)
 local Character = require(script.Parent.Parent.Util.Character)
 local ItemStats = require(script.Parent.Parent.UI.ItemStats)
@@ -96,6 +97,13 @@ local function ensureToolEquipped()
 	end
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	local tool = if backpack then backpack:FindFirstChildOfClass("Tool") else nil
+	-- Prefer the shovel over any other tool in the Backpack (e.g. a Broadwave loan/license).
+	for _, child in if backpack then backpack:GetChildren() else {} do
+		if child:IsA("Tool") and child:GetAttribute("ShovelId") ~= nil then
+			tool = child
+			break
+		end
+	end
 	local humanoid = Character.GetHumanoid()
 	if tool and humanoid then
 		humanoid:EquipTool(tool)
@@ -134,7 +142,7 @@ end
 
 -- Returns true if a dig request was sent.
 function DigController.TryDigAt(position: Vector3): boolean
-	if not DigController.Enabled then
+	if not DigController.Enabled or InputArbiter.DigBlocked() then
 		return false
 	end
 	local root = Character.GetRoot()
@@ -294,7 +302,9 @@ local function getCursor(): Part
 end
 
 local function updateCursor()
-	local show = DigController.Enabled and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
+	local show = DigController.Enabled
+		and not InputArbiter.DigBlocked()
+		and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
 	local root = Character.GetRoot()
 	local result: RaycastResult? = nil
 	if show and root then

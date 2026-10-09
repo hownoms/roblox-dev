@@ -187,6 +187,37 @@ end
 local crewSaved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
 check(crewSaved.Certifications.cert_crew ~= nil and crewSaved.TrophyRecords[TROPHY] ~= nil, "saved immediately")
 
+-- Camp display action, wired by Main (docs/integration/camp-display-action.patch) -----------
+TrophyService.SetCampPads(nil) -- back to the authored pad Main's World built
+local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
+local map = Mock.Service("Workspace"):FindFirstChild("Map")
+local hub = map and map:FindFirstChild("Hub")
+local padModel = hub and hub:FindFirstChild("TrophyCampPad1")
+local deck = padModel and padModel:FindFirstChild("Deck")
+local show = deck and deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
+local put = deck and deck:FindFirstChild(CampAction.REMOVE_PROMPT)
+check(show ~= nil and put ~= nil, "Main hangs both camp prompts on the authored deck")
+check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Ready", "crew status Ready after the bridge grant")
+if show and put then
+	local before = #Mock.Remote.ToClient
+	Mock.FireEvent(show, "Triggered", crew)
+	Mock.Advance(0.5)
+	check(TrophyService.GetCampPadOwner(1) == CREW, "display prompt puts the crew's trophy on the pad")
+	check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Displayed", "status Displayed")
+	local told = false
+	for i = before + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		if e.Player == crew and e.Name == "Notify" and e.Args[2] == "Trophy on display!" then
+			told = true
+		end
+	end
+	check(told, "result toast reaches the client through Net")
+	Mock.FireEvent(put, "Triggered", crew)
+	Mock.Advance(0.5)
+	check(TrophyService.GetCampPadOwner(1) == nil, "put-away prompt frees the pad")
+	check(TrophyService.Owns(crew, TROPHY) == true, "put away keeps the trophy")
+end
+
 check(#Mock.Errors == 0, "no uncaught errors")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))

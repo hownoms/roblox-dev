@@ -18,6 +18,13 @@ echo "== adventure-settlement.spec (mock store) =="
 luau tests/adventure-settlement.spec.luau || status=1
 echo "== adventure-outcome.spec (client card) =="
 luau tests/adventure-outcome.spec.luau || status=1
+echo "== trophy-wired.spec (real Main) =="
+luau tests/trophy-wired.spec.luau || status=1
+echo "== production-wiring.spec (flags off / on) =="
+luau tests/production-wiring.spec.luau || status=1
+luau tests/production-wiring.spec.luau -a on || status=1
+luau tests/production-wiring.spec.luau -a rejoin || status=1
+luau tests/production-wiring.spec.luau -a client || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
