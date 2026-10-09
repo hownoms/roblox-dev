@@ -1,0 +1,76 @@
+{
+  "name": "DigToTheCoreExpansion1ProductionReview",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$className": "Folder",
+        "Adventure": {
+          "$path": "src/server/Adventure"
+        },
+        "Services": {
+          "$path": "src/server/Services"
+        },
+        "World": {
+          "$path": "src/server/World"
+        },
+        "Main": {
+          "$path": "src/server/Main.server.luau",
+          "$properties": {
+            "Disabled": true
+          }
+        }
+      },
+      "ProductionReview": {
+        "$className": "Folder",
+        "$attributes": {
+          "ProductionIntegrationReview": true,
+          "Flag_SpringVault": true,
+          "Flag_AdventureRewards": true,
+          "Flag_BroadwaveOrdinary": true
+        },
+        "Boot": {
+          "$path": "tools/expansion1/production-review/Boot.server.luau"
+        },
+        "ReviewBoot": {
+          "$path": "tools/expansion1/production-review/ReviewBoot.luau"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        },
+        "ProductionReviewClient": {
+          "$path": "tools/expansion1/production-review/ReviewClient.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true,
+        "StreamingEnabled": true,
+        "StreamingMinRadius": 64,
+        "StreamingTargetRadius": 320,
+        "StreamingIntegrityMode": "MinimumRadiusPause",
+        "StreamOutBehavior": "Opportunistic"
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future"
+      }
+    }
+  }
+}
