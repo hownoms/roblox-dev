@@ -136,6 +136,10 @@ function AdventureBoot.Options(flags: any): any
 				CanUse = Eligibility.CanUseBroadwave,
 				Dig = dig,
 			})
+			-- Licensed-tool charges (docs/integration/licensed-broadwave.md): the equipped tool this
+			-- server issued, re-checked against CanUseBroadwave, or nil. Only such a tool may reach
+			-- OnOrdinaryBroadwave; the runtime's own loans stay event/trial only.
+			options.ResolveTool = BroadwaveLicense.ResolveTool
 		else
 			warn("[AdventureBoot] BroadwaveOrdinary is on but BroadwaveDigBridge/DigBroadwave is missing")
 		end

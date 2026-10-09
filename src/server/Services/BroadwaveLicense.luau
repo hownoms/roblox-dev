@@ -15,9 +15,10 @@
 	  * Re-issued on every respawn (Roblox clears the Backpack) and removed when the license is
 	    missing or the feature is stopped.
 
-	Known gap (docs/integration/production-wiring.md, open decision 3): SpringVaultService's charge
-	input accepts only its own adventure loan, so ordinary Broadwave with this tool needs the
-	runtime to recognise it.
+	Runtime contract (docs/integration/licensed-broadwave.md): AdventureBoot passes ResolveTool
+	below to SpringVaultService (Codex's PR #33 option name). A runtime that implements it accepts
+	charges from this tool, and only such a charge may reach OnOrdinaryBroadwave; its own loans
+	stay event/trial only. The runtime in this tree ignores the option until PR #33 lands.
 ]]
 
 local Players = game:GetService("Players")
@@ -95,6 +96,24 @@ end
 function BroadwaveLicense.Has(player: Player): boolean
 	local tool = tools[player]
 	return tool ~= nil and tool.Parent ~= nil
+end
+
+--[[
+	SpringVaultService ResolveTool option (docs/integration/licensed-broadwave.md): the
+	licensed tool this server issued to `player`, only while it is equipped and every
+	AdventureEligibility.CanUseBroadwave condition holds (feature running and enabled, issued to
+	this player, ToolId, not a loan, equipped, saved license record). Otherwise nil. Never the
+	adventure loan, a client-made or renamed copy, or a tool issued to someone else. Read-only.
+]]
+function BroadwaveLicense.ResolveTool(player: Player): Tool?
+	if not running or typeof(player) ~= "Instance" or not player:IsA("Player") then
+		return nil
+	end
+	local tool = tools[player]
+	if not tool or tool.Parent == nil or not Eligibility.CanUseBroadwave(player, tool) then
+		return nil
+	end
+	return tool
 end
 
 local function watch(player: Player)

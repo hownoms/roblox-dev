@@ -11,6 +11,8 @@
 	    dialogue (Mara, Pip) and objective lives.
 	  * Mobile: the runtime's Broadwave touch button is shown only while a Broadwave tool is
 	    equipped (the runtime binds it for everyone).
+	  * Equip: UI/BroadwaveEquip (button, Z, ButtonR1) starts with the client adapter, because the
+	    production Backpack CoreGui is hidden. It stays unbuilt until a Broadwave tool exists.
 ]]
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -19,6 +21,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local InputArbiter = require(script.Parent.InputArbiter)
+local BroadwaveEquip = require(script.Parent.Parent.UI.BroadwaveEquip)
 
 local AdventureController = {}
 
@@ -55,6 +58,7 @@ local function begin(remotes: Instance, scene: Instance)
 		return
 	end
 	handle = result
+	BroadwaveEquip.Start()
 	local snapshot = remotes:FindFirstChild("Snapshot")
 	if snapshot and snapshot:IsA("RemoteEvent") then
 		snapshot.OnClientEvent:Connect(function(data: any)
@@ -69,6 +73,7 @@ local function begin(remotes: Instance, scene: Instance)
 		end
 		acc = 0
 		InputArbiter.Suppress("AdventureArena", inArena())
+		BroadwaveEquip.Refresh() -- arena entry/exit changes which tool (loan or licensed) it targets
 		local button = ContextActionService:GetButton(AdventureController.ACTION)
 		if button then
 			button.Visible = InputArbiter.BroadwaveEquipped()
