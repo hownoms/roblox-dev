@@ -11,8 +11,8 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
-## Unreleased: Spring Vault production integration (branch, in joint review, flags off)
-**Not merged and not published. Every `AdventureFlags` flag is false. The packet is
+## Unreleased: Spring Vault production integration (merged, not published, flags off)
+**Merged to default (`1c0bd10`) on owner instruction, 9 October 2026. Not published. Every `AdventureFlags` flag is false. The packet is
 `docs/integration/README.md`.**
 - **Why:** the owner asked Claude to own production integration, rewards, persistence,
   settlement, trophy storage and camp UI. Codex keeps the gameplay runtime. Both PRs stay

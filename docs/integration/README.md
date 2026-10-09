@@ -3,8 +3,8 @@
 Branch `claude/spring-vault-production-integration`, 9 October 2026. It starts from default
 `520575d` and is now merged with default `7df3a73`, which contains Codex's PR #33 and PR #34.
 **Every `AdventureFlags` flag is still `false`.** Nothing was uploaded or published, no flag was
-enabled, and no live save test was run. Keep this PR unmerged until Claude and Codex have
-reviewed it together.
+enabled, and no live save test was run. On owner instruction the branch was merged into default as `1c0bd10` without a PR. The open
+gates below still apply before any flag is turned on.
 
 ## What changed since the last packet
 

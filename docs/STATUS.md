@@ -30,8 +30,8 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
-- **Spring Vault production integration (branch `claude/spring-vault-production-integration`,
-  in joint review, not merged, every flag off):**
+- **Spring Vault production integration (merged to default `1c0bd10` on owner instruction,
+  not published, every flag off):**
   - Wiring is applied in this branch. Main boots TrophyService, AdventureSettlement and
     AdventureBoot, the camp and outcome remotes exist, and Q goes through the input arbiter.
   - With `AdventureFlags` off, which is how it ships, the adventure runtime is never required.
