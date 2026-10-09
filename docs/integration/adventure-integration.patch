@@ -1,0 +1,260 @@
+diff --git a/src/client/Controllers/DigController.luau b/src/client/Controllers/DigController.luau
+index f4b7e46..9e8a2ec 100644
+--- a/src/client/Controllers/DigController.luau
++++ b/src/client/Controllers/DigController.luau
+@@ -31,6 +31,7 @@ local EffectsController = require(script.Parent.EffectsController)
+ local ShovelPoseController = require(script.Parent.ShovelPoseController)
+ local LayerController = require(script.Parent.LayerController)
+ local GuideController = require(script.Parent.GuideController)
++local InputArbiter = require(script.Parent.InputArbiter) -- named dig pauses (adventure hauling/dialogue)
+ local Signal = require(script.Parent.Parent.Util.Signal)
+ local Character = require(script.Parent.Parent.Util.Character)
+ local ItemStats = require(script.Parent.Parent.UI.ItemStats)
+@@ -96,6 +97,13 @@ local function ensureToolEquipped()
+ 	end
+ 	local backpack = player:FindFirstChildOfClass("Backpack")
+ 	local tool = if backpack then backpack:FindFirstChildOfClass("Tool") else nil
++	-- Prefer the shovel over any other tool in the Backpack (e.g. a Broadwave loan/license).
++	for _, child in if backpack then backpack:GetChildren() else {} do
++		if child:IsA("Tool") and child:GetAttribute("ShovelId") ~= nil then
++			tool = child
++			break
++		end
++	end
+ 	local humanoid = Character.GetHumanoid()
+ 	if tool and humanoid then
+ 		humanoid:EquipTool(tool)
+@@ -134,7 +142,7 @@ end
+ 
+ -- Returns true if a dig request was sent.
+ function DigController.TryDigAt(position: Vector3): boolean
+-	if not DigController.Enabled then
++	if not DigController.Enabled or InputArbiter.DigBlocked() then
+ 		return false
+ 	end
+ 	local root = Character.GetRoot()
+@@ -294,7 +302,9 @@ local function getCursor(): Part
+ end
+ 
+ local function updateCursor()
+-	local show = DigController.Enabled and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
++	local show = DigController.Enabled
++		and not InputArbiter.DigBlocked()
++		and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
+ 	local root = Character.GetRoot()
+ 	local result: RaycastResult? = nil
+ 	if show and root then
+diff --git a/src/client/Controllers/InputController.luau b/src/client/Controllers/InputController.luau
+index ba5b24b..bb75774 100644
+--- a/src/client/Controllers/InputController.luau
++++ b/src/client/Controllers/InputController.luau
+@@ -1,5 +1,6 @@
+ --!strict
+ -- InputController — console/PC shortcuts. Gamepad: R2 dig (DigController), X = Surface,
++-- (Q yields to the adventure's Broadwave charge only while a Broadwave tool is equipped),
+ -- Y = jump into the HUD menu with selection (B closes panels, see Panel). Keyboard: Q = Surface,
+ -- G = Shop, P = Pets.
+ local ContextActionService = game:GetService("ContextActionService")
+@@ -8,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
+ 
+ local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+ local SoundController = require(script.Parent.SoundController)
++local InputArbiter = require(script.Parent.InputArbiter)
+ local HUD = require(script.Parent.Parent.UI.HUD)
+ local Panel = require(script.Parent.Parent.UI.Components.Panel)
+ 
+@@ -23,13 +25,23 @@ local function onBegin(fn: () -> ()): (string, Enum.UserInputState, InputObject)
+ end
+ 
+ function InputController.Init()
+-	ContextActionService:BindAction(
++	-- Q is shared with the adventure's Broadwave charge (Q / L1). Bound one step above default
++	-- priority so Q surfaces as before unless a Broadwave tool is equipped, in which case Q passes
++	-- to the charge action (InputArbiter). ButtonX always surfaces.
++	ContextActionService:BindActionAtPriority(
+ 		"DigSurface",
+-		onBegin(function()
+-			SoundController.Play("Teleport")
+-			Remotes.Get("ReturnToSurface"):FireServer()
+-		end),
++		function(_, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
++			if input.KeyCode == Enum.KeyCode.Q and InputArbiter.BroadwaveEquipped() then
++				return Enum.ContextActionResult.Pass
++			end
++			if state == Enum.UserInputState.Begin then
++				SoundController.Play("Teleport")
++				Remotes.Get("ReturnToSurface"):FireServer()
++			end
++			return Enum.ContextActionResult.Sink
++		end,
+ 		false,
++		Enum.ContextActionPriority.Medium.Value + 1,
+ 		Enum.KeyCode.ButtonX,
+ 		Enum.KeyCode.Q
+ 	)
+diff --git a/src/client/Main.client.luau b/src/client/Main.client.luau
+index cf1ee35..5364bfb 100644
+--- a/src/client/Main.client.luau
++++ b/src/client/Main.client.luau
+@@ -51,6 +51,7 @@ local HUD = require(UI:WaitForChild("HUD"))
+ local HatchAnimation = require(UI:WaitForChild("HatchAnimation"))
+ local TreasurePopup = require(UI:WaitForChild("TreasurePopup"))
+ local OfflinePopup = require(UI:WaitForChild("OfflinePopup")) -- v2.2 offline pet earnings
++local AdventureOutcome = require(UI:WaitForChild("AdventureOutcome")) -- expansion: adventure reward outcomes
+ 
+ local ShopPanel = require(Panels:WaitForChild("ShopPanel"))
+ local EggPanel = require(Panels:WaitForChild("EggPanel"))
+@@ -80,6 +81,10 @@ local Reveal = require(UI:WaitForChild("Reveal"))
+ local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
+ -- Map overhaul: client-side ambient motion for tagged decor (Ferris wheel, boats, gulls, flags...)
+ local AmbientController = require(Controllers:WaitForChild("AmbientController"))
++-- Expansion: trophy camp display action + local preview on the camp pad (TrophyService prompts)
++local CampDisplayController = require(Controllers:WaitForChild("CampDisplayController"))
++-- Expansion adventure: starts only when the server has created the adventure remotes
++local AdventureController = require(Controllers:WaitForChild("AdventureController"))
+ 
+ local function start(name: string, fn: () -> ())
+ 	local ok, err = xpcall(function(): any
+@@ -119,6 +124,7 @@ start("SurvivalHUD", SurvivalHUD.Init)
+ start("HatchAnimation", HatchAnimation.Init)
+ start("TreasurePopup", TreasurePopup.Init)
+ start("OfflinePopup", OfflinePopup.Init)
++start("AdventureOutcome", AdventureOutcome.Init)
+ start("Announcements", Announcements.Init)
+ start("SocialHUD", SocialHUD.Init)
+ start("DetectorHUD", DetectorHUD.Init)
+@@ -157,3 +163,5 @@ start("RideButton", RideButton.Init)
+ start("Status", StatusController.Init)
+ start("Discovery", DiscoveryController.Init)
+ start("Ambient", AmbientController.Init)
++start("CampDisplay", CampDisplayController.Init)
++start("Adventure", AdventureController.Init)
+diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
+index e7fd207..4c16ccd 100644
+--- a/src/server/Main.server.luau
++++ b/src/server/Main.server.luau
+@@ -59,6 +59,10 @@ local PetDigService = require(Services.PetDigService)
+ local RideService = require(Services.RideService)
+ local OfflineService = require(Services.OfflineService)
+ local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
++local TrophyService = require(Services.TrophyService) -- expansion: permanent trophies + camp display
++local AdventureSettlement = require(Services.AdventureSettlement) -- expansion: adventure stage/final rewards
++-- expansion: Spring Vault runtime under server-owned, default-off AdventureFlags (no-op when off)
++local AdventureBoot = require(Services.AdventureBoot)
+ local Net = require(Services.Net)
+ 
+ type Service = {
+@@ -94,6 +98,9 @@ local ordered: { { Name: string, Module: Service } } = {
+ 	{ Name = "PetDigService", Module = PetDigService :: any },
+ 	{ Name = "RideService", Module = RideService :: any },
+ 	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
++	{ Name = "TrophyService", Module = TrophyService :: any }, -- expansion: needs DataService only
++	{ Name = "AdventureSettlement", Module = AdventureSettlement :: any }, -- expansion: after TrophyService
++	{ Name = "AdventureBoot", Module = AdventureBoot :: any }, -- expansion: after Dig + AdventureSettlement
+ 	{ Name = "DevCommands", Module = DevCommands :: any },
+ }
+ 
+@@ -121,6 +128,16 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
+ 	return granted
+ end)
+ 
++run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
++run("TrophyService", "ConnectCampPrompts", TrophyService.ConnectCampPrompts, Net) -- camp display action
++AdventureSettlement.SetNotifier(function(player: Player, text: string)
++	Net.Notify(player, "Reward", text)
++end)
++-- per-player settlement outcomes (replaces the reward text above while wired)
++AdventureSettlement.SetOutcomeSender(function(player: Player, outcome)
++	Net.FireClient("AdventureOutcome", player, outcome)
++end)
++
+ for _, entry in ordered do
+ 	local start = entry.Module.Start
+ 	if start then
+diff --git a/src/shared/Remotes.luau b/src/shared/Remotes.luau
+index e93a51d..f779196 100644
+--- a/src/shared/Remotes.luau
++++ b/src/shared/Remotes.luau
+@@ -43,6 +43,10 @@ Remotes.Events = table.freeze({
+ 	-- answer an excavation with per-ring timing errors in seconds (-1 = no tap)
+ 	"Scan",
+ 	"Excavate",
++	-- expansion trophies (TrophyService): (trophyId: string, x: number, z: number, rot: number)
++	-- place an owned trophy on a camp grid cell; (placementId: number) remove that display
++	"PlaceCampItem",
++	"RemoveCampItem",
+ 	-- server -> client
+ 	"DataChanged",
+ 	"Notify",
+@@ -62,6 +66,11 @@ Remotes.Events = table.freeze({
+ 	"DetectorPing",
+ 	"ExcavationStart",
+ 	"FindRevealed",
++	-- expansion adventure settlement (AdventureSettlement), server -> owner: (outcome:
++	-- { InstanceId, Kind, StageId?, State = "Accepted" | "Pending" | "Refused", Status, Coins,
++	-- Trophy, Stand, Certification?, Reason?, Resolved? }) one per stage/final, plus a Resolved
++	-- follow-up when a Pending outcome later becomes Accepted
++	"AdventureOutcome",
+ })
+ 
+ Remotes.Functions = table.freeze({
+diff --git a/tests/run.sh b/tests/run.sh
+index 2aedf02..1a906eb 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -18,6 +18,13 @@ echo "== adventure-settlement.spec (mock store) =="
+ luau tests/adventure-settlement.spec.luau || status=1
+ echo "== adventure-outcome.spec (client card) =="
+ luau tests/adventure-outcome.spec.luau || status=1
++echo "== trophy-wired.spec (real Main) =="
++luau tests/trophy-wired.spec.luau || status=1
++echo "== production-wiring.spec (flags off / on) =="
++luau tests/production-wiring.spec.luau || status=1
++luau tests/production-wiring.spec.luau -a on || status=1
++luau tests/production-wiring.spec.luau -a rejoin || status=1
++luau tests/production-wiring.spec.luau -a client || status=1
+ echo "== persistence boot failure (live / Studio) =="
+ luau tests/persistence-boot.spec.luau || status=1
+ luau tests/persistence-boot.spec.luau -a studio || status=1
+diff --git a/tests/trophy-wired.spec.luau b/tests/trophy-wired.spec.luau
+index 53df973..ba2f5d4 100644
+--- a/tests/trophy-wired.spec.luau
++++ b/tests/trophy-wired.spec.luau
+@@ -187,6 +187,37 @@ end
+ local crewSaved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
+ check(crewSaved.Certifications.cert_crew ~= nil and crewSaved.TrophyRecords[TROPHY] ~= nil, "saved immediately")
+ 
++-- Camp display action, wired by Main (docs/integration/camp-display-action.patch) -----------
++TrophyService.SetCampPads(nil) -- back to the authored pad Main's World built
++local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
++local map = Mock.Service("Workspace"):FindFirstChild("Map")
++local hub = map and map:FindFirstChild("Hub")
++local padModel = hub and hub:FindFirstChild("TrophyCampPad1")
++local deck = padModel and padModel:FindFirstChild("Deck")
++local show = deck and deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
++local put = deck and deck:FindFirstChild(CampAction.REMOVE_PROMPT)
++check(show ~= nil and put ~= nil, "Main hangs both camp prompts on the authored deck")
++check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Ready", "crew status Ready after the bridge grant")
++if show and put then
++	local before = #Mock.Remote.ToClient
++	Mock.FireEvent(show, "Triggered", crew)
++	Mock.Advance(0.5)
++	check(TrophyService.GetCampPadOwner(1) == CREW, "display prompt puts the crew's trophy on the pad")
++	check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Displayed", "status Displayed")
++	local told = false
++	for i = before + 1, #Mock.Remote.ToClient do
++		local e = Mock.Remote.ToClient[i]
++		if e.Player == crew and e.Name == "Notify" and e.Args[2] == "Trophy on display!" then
++			told = true
++		end
++	end
++	check(told, "result toast reaches the client through Net")
++	Mock.FireEvent(put, "Triggered", crew)
++	Mock.Advance(0.5)
++	check(TrophyService.GetCampPadOwner(1) == nil, "put-away prompt frees the pad")
++	check(TrophyService.Owns(crew, TROPHY) == true, "put away keeps the trophy")
++end
++
+ check(#Mock.Errors == 0, "no uncaught errors")
+ for _, e in Mock.Errors do
+ 	print("  error: " .. tostring(e))
