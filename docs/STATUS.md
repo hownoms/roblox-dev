@@ -18,12 +18,14 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   automation; both are owner steps (see below).
 - **Code:** feature-complete through v3 (Discovery) plus the v17 second-minute fixes. See
   [CHANGELOG.md](CHANGELOG.md).
+- **Map art overhaul (merged, not published):** a new skyline, boardwalk, carnival pier, hub buildings,
+  beach scenes and client motion. Studio-reviewed. Record: [MAP_OVERHAUL_2026-10-08.md](MAP_OVERHAUL_2026-10-08.md).
 - **First-expansion visual kit:** local Mara/Pip concepts and portraits, Broadwave, three
   Spring Vault stages, controlled beach ball, trophy display and matching icons are in
   [assets/expansion1](../assets/expansion1/README.md). Strict/headless construction and Rojo
   builds verified; Studio contact/movement/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
-- **Validation (latest):** client 1,413, server 2,195, Studio-mode 2,162, utility 8, seven
+- **Validation (latest):** client 1,464, server 2,199, Studio-mode 2,166, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
   deprecated-API warnings. CI is green on every merge.
 
@@ -49,6 +51,8 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 
 ## Open
 
+- **Map art overhaul:** mobile frame-time check with ~9.7k surface parts before publishing; motion
+  not yet watched live.
 - **Audio:** listen to the 12 candidates in `assets/audio/original-v1`, then choose, upload and
   integrate. Loudness was measured, not listened to. Also check engine muting while riding.
 - **Real multiplayer:** shared holes, natural tide, recovery and reward isolation with real
@@ -85,5 +89,7 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 | [POLISH_RELEASE_GATES.md](POLISH_RELEASE_GATES.md) | Release gate inventory, source findings, store-art comparison |
 | [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) | Dated evidence log |
 | [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md) | Published-build verification, live save/rejoin, v17 fixes and audio measurements |
+| [MAP_ART_DIRECTION.md](MAP_ART_DIRECTION.md) | Map art rules, area ownership, budgets, ambient motion tag contract |
+| [MAP_OVERHAUL_2026-10-08.md](MAP_OVERHAUL_2026-10-08.md) | Map overhaul session record, Studio findings, captures |
 | [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md) | How v15 and v17 were published and verified |
 | [history/](history/) | Old session handoffs and review logs |

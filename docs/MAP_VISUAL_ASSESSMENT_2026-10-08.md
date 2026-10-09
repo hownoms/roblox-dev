@@ -1,5 +1,8 @@
 # Map and visual assessment — 8 October 2026
 
+> **Superseded for surface art:** the owner chose a full surface overhaul the same day. See
+> [MAP_OVERHAUL_2026-10-08.md](MAP_OVERHAUL_2026-10-08.md). Gameplay checks below still apply.
+
 Source baseline: `b6844f3`. This assessment reads the current world builders, layout, UI style and saved review evidence. No new Studio session, player observation or hardware measurement was performed. Desktop input remains paused in the latest playtest record.
 
 ## Verdict

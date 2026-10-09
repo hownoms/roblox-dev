@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Layout = require(script.Parent.Layout)
+local Headlands = require(script.Parent.Headlands)
 
 local terrain = Workspace.Terrain
 local S = Layout.SURFACE_Y
@@ -58,11 +59,13 @@ function TerrainBuilder.ApplyColors()
 	terrain:SetMaterialColor(Enum.Material.Cobblestone, rgb(236, 206, 156))
 	terrain:SetMaterialColor(Enum.Material.Concrete, rgb(250, 236, 206))
 
-	terrain.WaterColor = rgb(24, 178, 226)
-	terrain.WaterTransparency = 0.55
-	terrain.WaterReflectance = 0.45
-	terrain.WaterWaveSize = 0.3
-	terrain.WaterWaveSpeed = 12
+	-- Tropical turquoise with shallow clarity (the seabed sand reads through near the shore).
+	-- Keep WaterColor / WaterWaveSize in sync with Lighting.luau BASE (High Tide tweens back to it).
+	terrain.WaterColor = rgb(35, 175, 200)
+	terrain.WaterTransparency = 0.72
+	terrain.WaterReflectance = 0.35
+	terrain.WaterWaveSize = 0.18
+	terrain.WaterWaveSpeed = 10
 	-- (Terrain.Decoration is NotScriptable: setting it errors at runtime. Leave it to the place.)
 end
 
@@ -118,6 +121,72 @@ function TerrainBuilder.BuildSurface(rng: Random)
 		local dz = rng:NextNumber(Layout.STRIP_Z_INLAND + 20, 100)
 		local r = rng:NextNumber(10, 18)
 		terrain:FillBall(Vector3.new(x, S - r * 0.6, dz), r, sand)
+	end
+
+	TerrainBuilder.BuildBackdrop()
+end
+
+--[[
+	Backdrop terrain OUTSIDE the playable boundary (own Random: never touches the shared World
+	rng, so Decor placement is unchanged). Only adds terrain where there was none, plus the
+	headlands (World/Headlands.luau), which never reach into |x| < 406, -238 < z < 136.
+	  * Ocean: wider (x +-720) and further out (z -620), the reach of the streaming radius from
+	    the edge of the playable area. Beyond that the Persistent far-sea parts take over.
+	  * Land: grass behind the headlands (|x| 520..720) and north of the dunes (z 170..340) with
+	    rolling hills rising inland.
+]]
+local OCEAN_HALF_X = 720
+local OCEAN_FAR_Z = -620
+local NORTH_Z = 340
+
+function TerrainBuilder.BuildBackdrop()
+	local hx = Layout.TERRAIN_HALF_X
+	local seabedTop = Layout.SEABED_Y + 4
+	local water = Enum.Material.Water
+	local sand = Enum.Material.Sand
+	local grass = Enum.Material.Grass
+	local nearZ = Layout.BEACH_FLAT_END_Z + 4 -- -76, same as the original water box
+
+	-- Far ocean strip (full width) beyond the original ocean.
+	fillBox(
+		Vector3.new(-OCEAN_HALF_X, Layout.SEABED_Y, OCEAN_FAR_Z),
+		Vector3.new(OCEAN_HALF_X, Layout.WATER_Y, Layout.OCEAN_FAR_Z),
+		water
+	)
+	fillBox(
+		Vector3.new(-OCEAN_HALF_X, Layout.SEABED_Y - 8, OCEAN_FAR_Z),
+		Vector3.new(OCEAN_HALF_X, seabedTop, Layout.OCEAN_FAR_Z),
+		sand
+	)
+	-- Side oceans (|x| 520..720) alongside the original one, under the headlands.
+	for _, side in { -1, 1 } do
+		local x0, x1 = if side < 0 then -OCEAN_HALF_X else hx, if side < 0 then -hx else OCEAN_HALF_X
+		fillBox(Vector3.new(x0, Layout.SEABED_Y, Layout.OCEAN_FAR_Z), Vector3.new(x1, Layout.WATER_Y, nearZ), water)
+		fillBox(Vector3.new(x0, Layout.SEABED_Y - 8, Layout.OCEAN_FAR_Z), Vector3.new(x1, seabedTop, nearZ), sand)
+		-- Grass land behind the headland ridge.
+		fillBox(Vector3.new(x0, S - 16, nearZ), Vector3.new(x1, S, Layout.TERRAIN_NORTH_Z), grass)
+	end
+	-- North: grass beyond the dunes, the full backdrop width.
+	fillBox(Vector3.new(-OCEAN_HALF_X, S - 16, Layout.TERRAIN_NORTH_Z), Vector3.new(OCEAN_HALF_X, S, NORTH_Z), grass)
+	local rng = Random.new(55117)
+	for _ = 1, 26 do
+		local x = rng:NextNumber(-OCEAN_HALF_X + 30, OCEAN_HALF_X - 30)
+		local z = rng:NextNumber(Layout.TERRAIN_NORTH_Z + 30, NORTH_Z - 10)
+		-- Hills rise further inland; keep their feet north of the boundary.
+		local r = math.min(rng:NextNumber(22, 44), z - (Layout.BOUND_NORTH_Z + 10))
+		local rise = (z - Layout.TERRAIN_NORTH_Z) * 0.12
+		local mat = if rng:NextNumber() < 0.45 then Enum.Material.LeafyGrass else grass
+		terrain:FillBall(Vector3.new(x, S - r * 0.5 + rise, z), r, mat)
+	end
+
+	-- Headlands, arch and sea stacks (rock, then cliff, then caps so the layers read).
+	local blobs = Headlands.Get().Blobs
+	for layer = 1, 3 do
+		for _, b in blobs do
+			if b.Layer == layer then
+				terrain:FillBall(b.Center, b.Radius, b.Material)
+			end
+		end
 	end
 end
 

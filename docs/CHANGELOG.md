@@ -11,6 +11,29 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: surface map art overhaul (merged, not published)
+**Not published. Built by five parallel agents to `docs/MAP_ART_DIRECTION.md`, then reviewed in Studio Play via the Studio MCP (spawn, hub, boardwalk, coast, carnival, lighthouse, headlands, Golden Hour). Record: `docs/MAP_OVERHAUL_2026-10-08.md`.**
+- **Why:** the owner said the map felt copy-pasted, empty, minimal and unexciting. Root cause #1: `Util.Prop` never passed a variant, so all 64 palms, 16 umbrellas, 4 towers and 6 stalls were the same model. Palms were 11 studs tall next to a 5-stud avatar, lamps never lit, and the terrain stopped at a hard edge.
+- **Skyline (`Vistas`, `Headlands`, `Skyline`, `Terrain`, `Lighting`):** terrain headlands close both ends of the beach, with a west sea arch and sea stacks. A 67-stud lighthouse on the east point has a spinning beam, a night lantern and a keeper's cottage. The ocean now extends to the horizon, with five islands, a smoking volcano and hills behind the dunes. Gulls, two horizon sailboats and a banner plane fly overhead. Clouds and a new tropical lighting pass (Golden Hour retuned). Headlands are duplicated as Persistent part blobs, because terrain past the 320-stud streaming radius never reaches the client.
+- **Boardwalk and pier (`Boardwalk`, `Promenade`, `PromenadeKit`, `PierCarnival`):** a varied plank deck with trim and railing. 27 vintage lamps in three styles at an irregular rhythm, glowing at night. String lights and bunting over the hub stretch, a "SUNNY SANDS BEACH" welcome arch, carts, signposts, benches, planters and showers. A wider pier with viewing bulges leads to a carnival deck (x -40..40, z -178..-230) with a 48-stud Ferris wheel in line with the spawn view, a carousel, a ticket booth and a strength tester. The title is now a marquee sign.
+- **Hub (`Hub`, `HubKit`, `HubShops`, `HubAttractions`, `HubPlaza`):** every station is a distinct building:
+  - Sand Exchange with a spinning coin (Sell)
+  - Digger's Hardware (Shovels)
+  - Surf & Pack Outfitters (Backpacks)
+  - a tiki bar (Beach Shop)
+  - a hatchery with a giant cracked egg (Eggs)
+  - a crane construction yard (Crates)
+  - a column temple with a portal ring (Rebirth)
+  - a Hall of Fame (leaderboards)
+  - a three-tier dolphin fountain
+  - a tiled sun-mosaic plaza
+  Tags, prompts, positions and pinned names are unchanged.
+- **Beach (`Decor`, `Util`, `Props`, `PropsBeach`):** the variant fix. Palms are now 18-34 studs in three classes. Umbrellas come in 3 styles and 8 colourways, towers in 5 colours, and stalls in 4 kinds. 21 new prop builders. Instead of even rows the coast is a sequence of scenes: Tide Pool Point, Kite Field, Rowboat Landing, Picnic & Castles, two umbrella villages with a buoy swim zone, Surf School, Snorkel Cove and Bonfire Cove. Inland there are cabana rows, a volleyball court, a sandcastle contest, beach games, a sun deck, palm groves with hammocks and dune fences. A pulsing foam line runs along the water.
+- **Motion (`AmbientController`, client):** one RenderStepped loop with BulkMoveTo animates CollectionService tags (Spin, FerrisWheel, Bob, Sway, Drift, Orbit, Pulse, NightLight). It culls by distance, respects Reduced Motion and low quality, and never moves collidable parts.
+- **Budgets (smoke test):** 9,712 surface parts (was 4,819; cap 10,500), 34 lights (cap 40), 14 emitters (cap 24). A new check ensures no scenery stands over the dig strip.
+- **Studio pass fixes:** cliffs, arch and sea stacks use grey Rock instead of cream Limestone, which looked blotchy. Sea stacks are now one tapered pillar each; before, they read as stacked snowballs. The far ocean beyond streaming range sits at the water line, removing a dark seam. Bunting was removed from across the spawn view (boardwalk twin lamps and hub gateway), where it blocked the default camera's view of the Ferris wheel.
+- **Still open:** motion (wheel, boats, gulls) was not observed frame by frame; a mobile frame-time check is still needed before publishing.
+
 ## v17: second-minute fixes, published 8 October 2026
 **Live as Roblox place version 17 (source `375625c`; 157/157 published scripts verified identical). Details: `docs/PLAYTEST_2026-10-08_PM.md`.**
 - **Why:** a fresh no-pass playtest found four second-minute stalls: the detector pointed sideways at a find directly below, its arrows were hard to see, a full bag left the camera facing the sea (about 75 s to reach Sell), and the first bucket could sell for less than the 30-coin Garden Trowel the tutorial asked for.

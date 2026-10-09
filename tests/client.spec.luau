@@ -3327,6 +3327,310 @@ do
 	UIEffects.FlyTo = originalFly
 end
 
+section("ambient motion")
+do
+	local Ambient = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/AmbientController"])
+	local CollectionService = Mock.Service("CollectionService")
+	local Workspace = Mock.Service("Workspace")
+	local Lighting = Mock.Service("Lighting")
+	local Color3 = Mock.Env.Color3
+	local new = Mock.Env.Instance.new
+	local e0, w0 = #Mock.Errors, #Mock.Warnings
+	local camera = Workspace.CurrentCamera
+	local savedCamera = camera.CFrame
+	local origin = Vector3.new(3000, 300, -3000) -- empty sky well away from the map
+	camera.CFrame = CFrame.new(origin + Vector3.new(0, 0, 40))
+	local baseline = Ambient.Counts() -- tagged scenery from the real map
+	local folder = new("Folder")
+	folder.Name = "AmbientSpec"
+	folder.Parent = Workspace
+	local function part(parent, cf, size)
+		local p = new("Part")
+		p.Anchored = true
+		p.CanCollide = false
+		p.Size = size or Vector3.new(2, 2, 2)
+		p.CFrame = cf
+		p.Parent = parent
+		return p
+	end
+	local function model(name, at, offsets)
+		local m = new("Model")
+		m.Name = name
+		local root = part(m, CFrame.new(at))
+		m.PrimaryPart = root
+		for _, o in offsets or {} do
+			part(m, CFrame.new(at + o))
+		end
+		return m
+	end
+	local function near(a, b, eps)
+		return (a - b).Magnitude <= (eps or 1e-3)
+	end
+
+	-- Spin: rotates about the pivot, pivot position fixed, outer part stays on its circle
+	local spin = model("SpinSpec", origin, { Vector3.new(4, 0, 0) })
+	spin:SetAttribute("SpinRPM", 15)
+	spin.Parent = folder
+	CollectionService:AddTag(spin, "AmbientSpin")
+	local spinBase = spin:GetPivot()
+	Mock.Advance(0.5)
+	local spinNow = spin:GetPivot()
+	local outer = spin:GetChildren()[2]
+	check(near(spinNow.Position, spinBase.Position), "spin keeps the pivot position")
+	check(spinNow.LookVector:Dot(spinBase.LookVector) < 0.9999, "spin rotates the model")
+	check(math.abs(spinNow.UpVector:Dot(Vector3.new(0, 1, 0)) - 1) < 1e-3, "spin about the default Y axis stays upright")
+	check(math.abs((outer.Position - origin).Magnitude - 4) < 1e-3, "spun child stays on its radius")
+
+	-- Bob: a loose part (BulkMoveTo path), bounded by BobHeight, never drifts
+	local bobAt = origin + Vector3.new(10, 0, 0)
+	local bob = part(folder, CFrame.new(bobAt))
+	bob:SetAttribute("BobHeight", 2)
+	bob:SetAttribute("BobPeriod", 1)
+	bob:SetAttribute("BobRoll", 0)
+	CollectionService:AddTag(bob, "AmbientBob")
+	local maxDy, minDy, bobSideways = 0, 0, 0
+	for _ = 1, 40 do
+		Mock.Advance(1 / 30)
+		local dy = bob.Position.Y - bobAt.Y
+		maxDy, minDy = math.max(maxDy, dy), math.min(minDy, dy)
+		bobSideways = math.max(bobSideways, ((bob.Position - bobAt) * Vector3.new(1, 0, 1)).Magnitude)
+	end
+	check(maxDy > 1 and minDy < -1, "bob moves up and down (" .. maxDy .. ", " .. minDy .. ")")
+	check(maxDy <= 2.001 and minDy >= -2.001, "bob stays within BobHeight")
+	check(bobSideways < 1e-3, "bob does not drift sideways")
+
+	-- Sway: rocks about the pivot without translating
+	local sway = model("SwaySpec", origin + Vector3.new(-10, 0, 0), { Vector3.new(0, 6, 0) })
+	sway:SetAttribute("SwayDegrees", 10)
+	sway:SetAttribute("SwayPeriod", 2)
+	sway.Parent = folder
+	CollectionService:AddTag(sway, "AmbientSway")
+	Mock.Advance(0.4)
+	local swayNow = sway:GetPivot()
+	check(near(swayNow.Position, origin + Vector3.new(-10, 0, 0)), "sway keeps the pivot position")
+	local tilt = math.deg(math.acos(math.clamp(swayNow.UpVector.Y, -1, 1)))
+	check(tilt > 0.01 and tilt <= 10.01, "sway tilts within SwayDegrees (" .. tilt .. ")")
+
+	-- Drift: on the from -> to segment, facing travel; can carry Bob too
+	local from, to = origin + Vector3.new(-50, 0, -30), origin + Vector3.new(50, 0, -30)
+	local boat = model("DriftSpec", from, { Vector3.new(0, 3, 0) })
+	boat:SetAttribute("DriftFrom", from)
+	boat:SetAttribute("DriftTo", to)
+	boat:SetAttribute("DriftSeconds", 20)
+	boat.Parent = folder
+	CollectionService:AddTag(boat, "AmbientDrift")
+	Mock.Advance(0.2)
+	local p1 = boat:GetPivot()
+	local along = (p1.Position - from):Dot(Vector3.new(1, 0, 0))
+	check(
+		math.abs(p1.Position.Z - from.Z) < 1e-3 and along >= -1e-3 and along <= 100.001,
+		"drift stays on its segment"
+	)
+	check(p1.LookVector:Dot(Vector3.new(1, 0, 0)) > 0.999, "drift faces travel")
+	Mock.Advance(1)
+	local moved = (boat:GetPivot().Position - p1.Position):Dot(Vector3.new(1, 0, 0))
+	check((moved > 4 and moved < 6) or moved < -90, "drift advances ~5 studs/s (" .. moved .. ")")
+	CollectionService:AddTag(boat, "AmbientBob")
+	Mock.Advance(0.5)
+	check(math.abs(boat:GetPivot().Position.Y - from.Y) > 1e-4, "drift + bob combine")
+	CollectionService:RemoveTag(boat, "AmbientBob")
+	Mock.Advance(0.1)
+	check(math.abs(boat:GetPivot().Position.Y - from.Y) < 1e-3, "removing one tag keeps the others")
+
+	-- Orbit: on its circle round OrbitCenter, facing the tangent
+	local center = origin + Vector3.new(0, 30, 0)
+	local gull = model("OrbitSpec", center + Vector3.new(20, 0, 0))
+	gull:SetAttribute("OrbitCenter", center)
+	gull:SetAttribute("OrbitRadius", 20)
+	gull:SetAttribute("OrbitSeconds", 10)
+	gull:SetAttribute("OrbitBob", 0)
+	gull.Parent = folder
+	CollectionService:AddTag(gull, "AmbientOrbit")
+	Mock.Advance(0.3)
+	local g = gull:GetPivot()
+	local radial = (g.Position - center) * Vector3.new(1, 0, 1)
+	check(
+		math.abs(radial.Magnitude - 20) < 1e-3 and math.abs(g.Position.Y - center.Y) < 1e-3,
+		"orbit stays on its circle"
+	)
+	check(math.abs((g.LookVector * Vector3.new(1, 0, 1)).Unit:Dot(radial.Unit)) < 1e-3, "orbit faces travel (tangent)")
+
+	-- Ferris wheel: wheel turns about its local Z, gondolas follow their hang points, stay upright
+	local hub = origin + Vector3.new(0, 20, -60)
+	local ferris = new("Model")
+	ferris.Name = "FerrisSpec"
+	local wheel = model("Wheel", hub, { Vector3.new(0, 12, 0), Vector3.new(0, -12, 0) })
+	wheel.Parent = ferris
+	local hangs = { Vector3.new(0, 12, 0), Vector3.new(12, 0, 0) }
+	local gondolas = {}
+	for i, h in hangs do
+		local gondola = model("Gondola", hub + h, { Vector3.new(0, -2, 0) })
+		gondola:SetAttribute("HangOffset", h)
+		gondola.Parent = ferris
+		gondolas[i] = gondola
+	end
+	local standAt = hub - Vector3.new(0, 20, 0)
+	local stand = part(ferris, CFrame.new(standAt), Vector3.new(4, 4, 4))
+	stand.CanCollide = true -- the untagged support may collide; it must never move
+	ferris:SetAttribute("SpinRPM", 6)
+	ferris.Parent = folder
+	CollectionService:AddTag(ferris, "AmbientFerrisWheel")
+	Mock.Advance(1)
+	local wheelNow = wheel:GetPivot()
+	check(near(wheelNow.Position, hub), "ferris wheel turns about its hub")
+	check(wheelNow.LookVector:Dot(Vector3.new(0, 0, -1)) > 0.9999, "ferris wheel rotates about its local Z")
+	check(wheelNow.UpVector:Dot(Vector3.new(0, 1, 0)) < 0.99999, "ferris wheel turned")
+	local upSum, onCircle = 0, 0
+	for i, gondola in gondolas do
+		local gp = gondola:GetPivot()
+		upSum += gp.UpVector.Y
+		if math.abs((gp.Position - hub).Magnitude - 12) < 1e-3 then
+			onCircle += 1
+		end
+		-- the gondola pivot is its hang point here: it must sit on wheel pivot * HangOffset
+		check(near(gp.Position, wheelNow:PointToWorldSpace(hangs[i])), "gondola " .. i .. " sits on its hang point")
+	end
+	check(onCircle == 2, "gondolas ride the rim")
+	check(upSum > 2 * math.cos(math.rad(3)), "gondolas stay upright (tiny swing only)")
+	check(near(stand.Position, standAt), "untagged collidable support never moves")
+
+	-- Pulse: transparency between PulseMin and PulseMax
+	local foam = part(folder, CFrame.new(origin + Vector3.new(0, -5, 0)))
+	foam.Transparency = 0.5
+	foam:SetAttribute("PulseMin", 0.3)
+	foam:SetAttribute("PulseMax", 0.7)
+	foam:SetAttribute("PulsePeriod", 1)
+	CollectionService:AddTag(foam, "AmbientPulse")
+	local lo, hi = 1, 0
+	for _ = 1, 40 do
+		Mock.Advance(1 / 30)
+		lo, hi = math.min(lo, foam.Transparency), math.max(hi, foam.Transparency)
+	end
+	check(lo >= 0.3 - 1e-6 and hi <= 0.7 + 1e-6 and hi - lo > 0.3, "pulse fades between PulseMin and PulseMax")
+	CollectionService:RemoveTag(foam, "AmbientPulse")
+	check(foam.Transparency == 0.5, "un-pulsed part gets its transparency back")
+
+	-- Night lights: off by day (light disabled, Neon reads as pale glass), on at night
+	local savedClock = Lighting.ClockTime
+	Lighting.ClockTime = 14
+	local lamp = new("Model")
+	lamp.Name = "LampSpec"
+	local bulb = part(lamp, CFrame.new(origin + Vector3.new(0, 10, 10)))
+	bulb.Material = Enum.Material.Neon
+	bulb.Color = Color3.fromRGB(255, 200, 90)
+	local light = new("PointLight")
+	light.Brightness = 2
+	light.Parent = bulb
+	lamp.Parent = folder
+	CollectionService:AddTag(lamp, "AmbientNightLight")
+	Mock.Advance(2) -- an earlier section may have left the lights fading
+	check(light.Enabled == false and bulb.Material == Enum.Material.SmoothPlastic, "night light off in daytime")
+	Lighting.ClockTime = 17.8 -- Golden Hour counts as night
+	Mock.Advance(2)
+	check(light.Enabled == true and math.abs(light.Brightness - 2) < 1e-6, "night light fades on at dusk")
+	check(bulb.Material == Enum.Material.Neon and bulb.Color == Color3.fromRGB(255, 200, 90), "neon restored at night")
+	Lighting.ClockTime = 3
+	Mock.Advance(0.1)
+	check(light.Enabled == true, "still night before dawn")
+	Lighting.ClockTime = 8
+	Mock.Advance(2)
+	check(light.Enabled == false and bulb.Material == Enum.Material.SmoothPlastic, "night light off again after dawn")
+	CollectionService:RemoveTag(lamp, "AmbientNightLight")
+	check(
+		light.Enabled == true and light.Brightness == 2 and bulb.Material == Enum.Material.Neon,
+		"untagged lamp restored"
+	)
+	Lighting.ClockTime = savedClock
+
+	-- Distance: beyond the cull radius nothing moves; mid-range still updates (reduced rate)
+	local far = model("FarSpec", origin + Vector3.new(600, 0, 0), { Vector3.new(4, 0, 0) })
+	far.Parent = folder
+	CollectionService:AddTag(far, "AmbientSpin")
+	local mid = model("MidSpec", origin + Vector3.new(300, 0, 0), { Vector3.new(4, 0, 0) })
+	mid.Parent = folder
+	CollectionService:AddTag(mid, "AmbientSpin")
+	local farBase, midBase = far:GetPivot(), mid:GetPivot()
+	Mock.Advance(1)
+	check(far:GetPivot().LookVector:Dot(farBase.LookVector) > 0.999999, "beyond 450 studs: not animated")
+	check(mid:GetPivot().LookVector:Dot(midBase.LookVector) < 0.99999, "mid-range: still animated")
+
+	-- Collidable tagged things are never moved
+	local solid = model("SolidSpec", origin + Vector3.new(0, 0, 20))
+	solid.PrimaryPart.CanCollide = true
+	solid.Parent = folder
+	CollectionService:AddTag(solid, "AmbientBob")
+	local solidBase = solid:GetPivot()
+	Mock.Advance(0.5)
+	check(near(solid:GetPivot().Position, solidBase.Position, 0), "collidable tagged model is left alone")
+
+	-- Untag: back on the base pose, then static
+	CollectionService:RemoveTag(spin, "AmbientSpin")
+	check(near(spin:GetPivot().LookVector, spinBase.LookVector), "untagged spin returns to its base pose")
+	Mock.Advance(0.5)
+	check(near(spin:GetPivot().LookVector, spinBase.LookVector), "untagged spin stays still")
+
+	-- Destroyed / streamed instances are dropped; a streamed-in copy animates again
+	local before = Ambient.Counts().Movers
+	bob:Destroy()
+	Mock.Advance(0.1)
+	check(Ambient.Counts().Movers == before - 1, "destroyed mover dropped")
+	local token = Mock.StreamOut(sway)
+	Mock.Advance(0.1)
+	check(Ambient.Counts().Movers == before - 2, "streamed-out mover dropped")
+	local back = Mock.StreamIn(token)
+	-- (the mock's clone keeps the old PrimaryPart reference, so watch a part, not GetPivot)
+	local backPart = back:FindFirstChildWhichIsA("BasePart")
+	local backBase = backPart.CFrame
+	Mock.Advance(0.4)
+	check(Ambient.Counts().Movers == before - 1, "streamed-in copy registered")
+	check(backPart.CFrame.UpVector:Dot(backBase.UpVector) < 0.99999, "streamed-in copy animates")
+
+	-- A model whose parts arrive later waits, then moves; late parts follow the current pose
+	local lateAt = origin + Vector3.new(-20, 0, 10)
+	local late = new("Model")
+	late.Name = "LateSpec"
+	late.Parent = folder
+	CollectionService:AddTag(late, "AmbientSpin")
+	Mock.Advance(0.1)
+	local lateRoot = part(late, CFrame.new(lateAt))
+	late.PrimaryPart = lateRoot
+	Mock.Advance(0.5)
+	check(lateRoot.CFrame.LookVector:Dot(Vector3.new(0, 0, -1)) < 0.99999, "model spins once its parts stream in")
+	local lateArm = new("Part")
+	lateArm.Anchored = true
+	lateArm.CanCollide = false
+	lateArm.CFrame = CFrame.new(lateAt + Vector3.new(4, 0, 0)) -- arrives at its server (base) pose
+	lateArm.Parent = late
+	check(near(lateRoot.CFrame:PointToObjectSpace(lateArm.Position), Vector3.new(4, 0, 0)), "late part re-aligned to the model")
+	Mock.Advance(0.3)
+	check(near(lateRoot.CFrame:PointToObjectSpace(lateArm.Position), Vector3.new(4, 0, 0)), "late part keeps moving with the model")
+
+	-- Reduced motion parks everything on its base pose
+	local State = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/State"])
+	local savedReduced = State.GetSetting("ReducedMotion", false)
+	State.SetSetting("ReducedMotion", true)
+	Mock.Advance(0.2)
+	check(near(wheel:GetPivot().UpVector, Vector3.new(0, 1, 0)), "reduced motion parks the Ferris wheel")
+	check(near(gondolas[2]:GetPivot().Position, hub + hangs[2]), "reduced motion parks gondolas")
+	local parked = boat:GetPivot().Position
+	Mock.Advance(0.5)
+	check(near(boat:GetPivot().Position, parked, 0), "reduced motion: nothing moves")
+	State.SetSetting("ReducedMotion", savedReduced)
+	Mock.Advance(0.5)
+	check(wheel:GetPivot().UpVector:Dot(Vector3.new(0, 1, 0)) < 0.99999, "motion resumes when reduced motion is off")
+
+	folder:Destroy()
+	Mock.Advance(0.1)
+	local counts = Ambient.Counts()
+	check(
+		counts.Ferris == baseline.Ferris and counts.Pulse == baseline.Pulse and counts.Night == baseline.Night,
+		"destroyed folder unregisters everything"
+	)
+	camera.CFrame = savedCamera
+	check(#Mock.Errors == e0, "no errors in ambient motion")
+	check(#Mock.Warnings == w0, "no warnings in ambient motion")
+end
+
 section("report")
 check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))
