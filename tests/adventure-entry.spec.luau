@@ -357,11 +357,11 @@ local here = pos(cert)
 trigger(back, cert)
 check((pos(cert) - here).Magnitude < 0.01, "return prompt ignored outside the arena")
 
--- Runtime Leave: the runtime restores to the arena join point; entry lifts to the beach.
+-- Runtime Leave: with AdventureBoot's ReturnFrame the runtime itself restores to the beach.
 goDown(cert)
 check(join(cert), "cert joins at Mara")
 runtime.Handle(cert, { action = "Leave", eventInstanceId = runtime.Event().EventInstanceId })
-check(Entry.InArena(pos(cert)), "runtime Leave restores into the arena (its own return point)")
+check(onSurface(cert) and nearReturn(cert), "runtime Leave restores straight to the beach (ReturnFrame)")
 Mock.Advance(1.5)
 check(onSurface(cert) and nearReturn(cert), "after Leave the player is lifted to the beach")
 

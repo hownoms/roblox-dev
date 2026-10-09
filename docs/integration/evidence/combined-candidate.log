@@ -1,0 +1,90 @@
+# combined candidate 0ba6102+wt, 2026-10-09T17:54:01-04:00
+$ luau tests/util
+8 passed, 0 failed
+exit=0
+$ luau tests/smoke
+   digs: 20 ok, fails: BackpackFull=4
+== persistence contention and transient failures
+SMOKE: 2212 passed, 0 failed
+SMOKE TEST PASSED
+exit=0
+$ luau tests/smoke -a studio
+   digs: 20 ok, fails: BackpackFull=4
+SMOKE: 2179 passed, 0 failed
+SMOKE TEST PASSED
+exit=0
+$ luau tests/trophy
+TROPHY SPEC: 476 passed, 0 failed
+exit=0
+$ luau tests/adventure-settlement
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+exit=0
+$ luau tests/adventure-outcome
+ADVENTURE OUTCOME CLIENT: 23 passed, 0 failed
+exit=0
+$ luau tests/trophy-wired
+TROPHY WIRED: 60 passed, 0 failed
+exit=0
+$ luau tests/settlement-durability
+== real runtime: failed run keeps stage coins, grants no final
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+SETTLEMENT DURABILITY (on): 105 passed, 0 failed
+exit=0
+$ luau tests/settlement-durability -a off
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+SETTLEMENT DURABILITY (off): 53 passed, 0 failed
+exit=0
+$ luau tests/production-wiring
+PRODUCTION WIRING (off): 37 passed, 0 failed
+exit=0
+$ luau tests/production-wiring -a on
+PRODUCTION WIRING (on): 42 passed, 0 failed
+exit=0
+$ luau tests/production-wiring -a rejoin
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+exit=0
+$ luau tests/production-wiring -a client
+PRODUCTION WIRING (client): 59 passed, 0 failed
+exit=0
+$ luau tests/adventure-entry
+ADVENTURE ENTRY (off): 16 passed, 0 failed
+exit=0
+$ luau tests/adventure-entry -a on
+./tests/adventure-entry.spec.luau:29: ADVENTURE ENTRY SPEC FAILED
+[C] function error
+FAIL: runtime Leave restores into the arena (its own return point)
+ADVENTURE ENTRY (on): 68 passed, 1 failed
+exit=1
+$ luau tests/broadwave-license
+BROADWAVE LICENSE: 61 passed, 0 failed
+exit=0
+$ luau tests/persistence-boot
+PERSISTENCE BOOT live: PASSED
+exit=0
+$ luau tests/persistence-boot -a studio
+PERSISTENCE BOOT Studio: PASSED
+exit=0
+$ luau tests/client
+CLIENT: 1679 passed, 0 failed
+CLIENT SMOKE TEST PASSED
+exit=0
+$ luau tests/spring-vault
+Spring Vault: 22 tests passed
+exit=0
+$ luau tests/spring-vault-runtime
+Spring Vault runtime mock: 38 checks passed
+exit=0
+$ luau tests/spring-vault-input
+Spring Vault input: 278 checks passed
+exit=0
+$ luau tests/spring-vault-return
+Spring Vault return mock: 73 checks passed
+exit=0
+$ luau tests/broadwave-dig
+Broadwave DigService integration: 24 checks passed
+exit=0
+$ luau tests/adventure-trophy-contract
+ADVENTURE TROPHY CONTRACT: 24 checks passed
+exit=0

@@ -119,6 +119,11 @@ function AdventureBoot.Options(flags: any): any
 		Origin = AdventureBoot.POCKET_ORIGIN,
 		CanEnter = Eligibility.CanEnter,
 		CanTrial = Eligibility.CanTrial,
+		-- Runtime restores (Leave, reset, disconnect, Destroy) land on the fixed surface point
+		-- beside the hatch, never the recorded in-arena join frame or a client position.
+		ReturnFrame = function(_player: Player): CFrame?
+			return AdventureEntry.SURFACE_RETURN
+		end,
 	}
 	if flags.AdventureRewards then
 		options.OnStage = AdventureSettlement.OnStage

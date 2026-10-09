@@ -582,6 +582,11 @@ check(Workspace:FindFirstChild("AdventureEntry") ~= nil, "on: surface entrance +
 check(Eligibility.IsOrdinaryEnabled() == true, "on: ordinary Broadwave enabled")
 local opts = Boot.Options(Flags)
 check(opts.OnStage == Settlement.OnStage and opts.OnCompletion == Settlement.OnCompletion, "rewards wired")
+local Entry = Mock.Require(byPath["ServerScriptService/Server/Services/AdventureEntry"])
+check(
+	type(opts.ReturnFrame) == "function" and opts.ReturnFrame(nil :: any) == Entry.SURFACE_RETURN,
+	"runtime ReturnFrame is the fixed surface point"
+)
 check(type(opts.OnOrdinaryBroadwave) == "function", "bridge wired")
 check(opts.ResolveTool ~= nil, "licensed-tool resolver wired (licensed-broadwave.md)")
 
