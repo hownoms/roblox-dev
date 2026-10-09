@@ -1,28 +1,33 @@
 diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
-index e7fd207..ddf4c1b 100644
+index e7fd207..09e87cc 100644
 --- a/src/server/Main.server.luau
 +++ b/src/server/Main.server.luau
-@@ -59,6 +59,7 @@ local PetDigService = require(Services.PetDigService)
+@@ -59,6 +59,8 @@ local PetDigService = require(Services.PetDigService)
  local RideService = require(Services.RideService)
  local OfflineService = require(Services.OfflineService)
  local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
 +local TrophyService = require(Services.TrophyService) -- expansion: permanent trophies + camp display
++local AdventureSettlement = require(Services.AdventureSettlement) -- expansion: adventure stage/final rewards
  local Net = require(Services.Net)
  
  type Service = {
-@@ -94,6 +95,7 @@ local ordered: { { Name: string, Module: Service } } = {
+@@ -94,6 +96,8 @@ local ordered: { { Name: string, Module: Service } } = {
  	{ Name = "PetDigService", Module = PetDigService :: any },
  	{ Name = "RideService", Module = RideService :: any },
  	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
 +	{ Name = "TrophyService", Module = TrophyService :: any }, -- expansion: needs DataService only
++	{ Name = "AdventureSettlement", Module = AdventureSettlement :: any }, -- expansion: after TrophyService
  	{ Name = "DevCommands", Module = DevCommands :: any },
  }
  
-@@ -121,6 +123,8 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
+@@ -121,6 +125,11 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
  	return granted
  end)
  
 +run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
++AdventureSettlement.SetNotifier(function(player: Player, text: string)
++	Net.Notify(player, "Reward", text)
++end)
 +
  for _, entry in ordered do
  	local start = entry.Module.Start

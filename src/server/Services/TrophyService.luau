@@ -116,49 +116,8 @@ local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?, 
 	local record: { [string]: any }? = nil
 	local standGranted = false
 	local ok = TrophyData.Mutate(player, function(data)
-		local records = data.TrophyRecords :: { [string]: any }
-		local receipts = data.RewardReceipts :: { [string]: any }
-		local cosmetics = data.Cosmetics :: { [string]: any }
-		if receipts[grant.ReceiptId] ~= nil then
-			status = "Duplicate"
-			return
-		end
-		local hadTrophy = records[grant.TrophyId] ~= nil
-		local hadStand = cosmetics[Rules.STAND_ID] ~= nil
-		if hadTrophy and hadStand then
-			status = "AlreadyOwned"
-			return
-		end
-		if not hadTrophy and TableUtil.Count(records) >= Rules.MAX_TROPHY_RECORDS then
-			status, reason = "Refused", "RecordLimit"
-			return
-		end
-		if not hadTrophy then
-			local new = {
-				Kind = "Landmark",
-				Source = grant.Source,
-				RegionId = grant.RegionId,
-				AcquiredAt = grant.At,
-				ReceiptId = grant.ReceiptId,
-				Legacy = false,
-				ContentVersion = Rules.CONTENT_VERSION,
-			}
-			records[grant.TrophyId] = new
-			record = new
-		end
-		if not hadStand then
-			cosmetics[Rules.STAND_ID] = {
-				Kind = "CampFurniture",
-				Source = grant.Source,
-				AcquiredAt = grant.At,
-				ReceiptId = grant.ReceiptId,
-			}
-			standGranted = true
-		end
-		local now = os.time()
-		receipts[grant.ReceiptId] = now
-		Rules.PruneReceipts(receipts, now)
-		status = if hadTrophy then "AlreadyOwned" else "Granted"
+		local s, why, rec, stand = Rules.ApplyLandmarkGrant(data, grant, os.time())
+		status, reason, record, standGranted = s :: GrantStatus, why, rec :: any, stand
 	end)
 	if not ok then
 		return "Refused", "NotLoaded", false
@@ -166,13 +125,27 @@ local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?, 
 	if record or standGranted then
 		TrophyData.RequestSave(player)
 	end
+	TrophyService.AfterGrantApplied(player, grant.TrophyId, record, standGranted)
+	return status, reason, standGranted
+end
+
+--[[
+	Display refresh + TrophyGranted signal after a grant was applied to the live save, either
+	here or by another server-side settlement that ran Rules.ApplyLandmarkGrant inside its own
+	save mutation (AdventureSettlement grants trophy, stand and progression together).
+]]
+function TrophyService.AfterGrantApplied(
+	player: Player,
+	trophyId: string,
+	record: { [string]: any }?,
+	standGranted: boolean
+)
 	if standGranted then
 		refreshDisplay(player)
 	end
 	if record then
-		TrophyService.TrophyGranted:Fire(player, grant.TrophyId, TableUtil.DeepCopy(record :: any))
+		TrophyService.TrophyGranted:Fire(player, trophyId, TableUtil.DeepCopy(record :: any))
 	end
-	return status, reason, standGranted
 end
 
 -- Applies the player's durable pending grants, saves, then acknowledges them. Yields.
