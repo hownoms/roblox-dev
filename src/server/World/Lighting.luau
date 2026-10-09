@@ -3,14 +3,15 @@
 	Lighting — sunny cartoon look (Atmosphere, Sky, ColorCorrection, Bloom, SunRays) and
 	the visual side of timed events:
 	  HighTide   -> a translucent "tide sheet" floods the lower beach, bigger waves, deeper water.
-	  GoldenHour -> ClockTime 17.8, warm tint and haze.
+	  GoldenHour -> ClockTime 17.6, warm sun, peach haze and clouds (night lights switch on).
 	Driven by World.ApplyEvent(ids) and by the workspace attribute "ActiveEvents"
 	(comma-separated event ids, set by the server).
 
 	Exposure budget (playtest: "anything that glows / white gets hard to see"): Future lighting
 	+ pale sand + white parts blew out. Values below keep the sand mid-bright: low exposure,
-	low environment diffuse/specular, no atmosphere glare, and a high bloom threshold so only
-	genuinely emissive Neon blooms (and only softly). Golden Hour dims instead of brightening.
+	low environment diffuse/specular, only a soft atmosphere glare, and a bloom threshold (2.0)
+	above lit sand / white plastic so only emissive Neon blooms. Golden Hour dims instead of
+	brightening. A Clouds object (WorldClouds, under Terrain) gives the sky some life.
 
 	Effects are named "World*" so the client depth-tint controller can add its own instances
 	(or tweak these) without fighting the server.
@@ -28,29 +29,41 @@ local S = Layout.SURFACE_Y
 
 local LightingBuilder = {}
 
+-- Bright tropical day: warm sun, cool-blue shadows, a pale haze that desaturates the far
+-- islands, soft bloom so Neon glows without lifting lit sand over the threshold.
 local BASE = {
 	ClockTime = 14,
 	Brightness = 2,
 	Exposure = -0.3,
 	Tint = Color3.new(1, 1, 1),
-	Saturation = 0.15,
-	AtmosphereColor = rgb(190, 222, 245),
-	AtmosphereDecay = rgb(110, 170, 215),
-	AtmosphereHaze = 0.4,
-	BloomIntensity = 0.22,
-	WaterColor = rgb(24, 178, 226),
-	WaveSize = 0.3,
+	Saturation = 0.18,
+	SunShift = rgb(255, 242, 222),
+	AtmosphereColor = rgb(200, 222, 235),
+	AtmosphereDecay = rgb(110, 170, 205),
+	AtmosphereHaze = 1.2,
+	AtmosphereGlare = 0.3,
+	AtmosphereDensity = 0.27,
+	CloudColor = rgb(255, 255, 255),
+	BloomIntensity = 0.5,
+	WaterColor = rgb(35, 175, 200), -- keep in sync with Terrain.ApplyColors
+	WaveSize = 0.18,
 }
+-- Golden Hour: low warm sun, peach haze and clouds, lamps and the lighthouse switch on
+-- (AmbientNightLight, ClockTime >= 17.3). Dims slightly rather than brightening.
 local GOLDEN = {
-	ClockTime = 17.8,
-	Brightness = 1.6,
-	Exposure = -0.4,
-	Tint = rgb(255, 236, 214),
-	Saturation = 0.2,
-	AtmosphereColor = rgb(240, 196, 160),
-	AtmosphereDecay = rgb(220, 135, 100),
-	AtmosphereHaze = 1.1,
-	BloomIntensity = 0.28,
+	ClockTime = 17.6,
+	Brightness = 1.7,
+	Exposure = -0.3,
+	Tint = rgb(255, 232, 206),
+	Saturation = 0.26,
+	SunShift = rgb(255, 196, 140),
+	AtmosphereColor = rgb(246, 192, 152),
+	AtmosphereDecay = rgb(214, 118, 96),
+	AtmosphereHaze = 1.9,
+	AtmosphereGlare = 0.7,
+	AtmosphereDensity = 0.31,
+	CloudColor = rgb(255, 208, 178),
+	BloomIntensity = 0.65,
 }
 local HIGH_TIDE = {
 	WaterColor = rgb(14, 140, 214),
@@ -62,6 +75,7 @@ local TIDE_LOW_Y = Layout.WATER_Y - 1.5
 local atmosphere: Atmosphere? = nil
 local colorCorrection: ColorCorrectionEffect? = nil
 local bloom: BloomEffect? = nil
+local clouds: Clouds? = nil
 local tideSheet: Part? = nil
 local current = { HighTide = false, GoldenHour = false }
 
@@ -88,7 +102,8 @@ function LightingBuilder.Build(parent: Instance)
 	Lighting.Brightness = BASE.Brightness
 	Lighting.GeographicLatitude = 23
 	Lighting.Ambient = rgb(95, 95, 110)
-	Lighting.OutdoorAmbient = rgb(128, 128, 142)
+	Lighting.OutdoorAmbient = rgb(126, 132, 150) -- cool shadows against the warm sun
+	Lighting.ColorShift_Top = BASE.SunShift
 	Lighting.EnvironmentDiffuseScale = 0.4
 	Lighting.EnvironmentSpecularScale = 0.2
 	Lighting.GlobalShadows = true
@@ -96,13 +111,20 @@ function LightingBuilder.Build(parent: Instance)
 	Lighting.ExposureCompensation = BASE.Exposure
 
 	local atm = getOrCreate("Atmosphere", "WorldAtmosphere", Lighting) :: Atmosphere
-	atm.Density = 0.24
-	atm.Offset = 0.15
+	atm.Density = BASE.AtmosphereDensity
+	atm.Offset = 0.18
 	atm.Color = BASE.AtmosphereColor
 	atm.Decay = BASE.AtmosphereDecay
-	atm.Glare = 0 -- glare = a blinding halo around the sun
+	atm.Glare = BASE.AtmosphereGlare -- soft sun halo only (high glare = blinding)
 	atm.Haze = BASE.AtmosphereHaze
 	atmosphere = atm
+
+	-- Fluffy fair-weather clouds (the Clouds object must live under Terrain).
+	local cl = getOrCreate("Clouds", "WorldClouds", Workspace.Terrain) :: Clouds
+	cl.Cover = 0.55
+	cl.Density = 0.6
+	cl.Color = BASE.CloudColor
+	clouds = cl
 
 	local sky = getOrCreate("Sky", "WorldSky", Lighting) :: Sky
 	sky.SunAngularSize = 11
@@ -110,20 +132,20 @@ function LightingBuilder.Build(parent: Instance)
 	sky.StarCount = 1500
 
 	local cc = getOrCreate("ColorCorrectionEffect", "WorldColorCorrection", Lighting) :: ColorCorrectionEffect
-	cc.Brightness = -0.02
-	cc.Contrast = 0.04
+	cc.Brightness = -0.01
+	cc.Contrast = 0.08
 	cc.Saturation = BASE.Saturation
 	cc.TintColor = BASE.Tint
 	colorCorrection = cc
 
 	local bl = getOrCreate("BloomEffect", "WorldBloom", Lighting) :: BloomEffect
 	bl.Intensity = BASE.BloomIntensity
-	bl.Size = 12
-	bl.Threshold = 2.4 -- only true emitters bloom; lit white plastic / sand never does
+	bl.Size = 24
+	bl.Threshold = 2 -- Neon blooms; lit white plastic / sand stays under it
 	bloom = bl
 
 	local rays = getOrCreate("SunRaysEffect", "WorldSunRays", Lighting) :: SunRaysEffect
-	rays.Intensity = 0.025
+	rays.Intensity = 0.04
 	rays.Spread = 0.7
 
 	-- High-tide sheet over the lower beach and shallows (invisible when the tide is low).
@@ -131,7 +153,8 @@ function LightingBuilder.Build(parent: Instance)
 	local zBottom = Layout.BOUND_SOUTH_Z - 40
 	tideSheet = Util.Part({
 		Name = "TideSheet",
-		Size = Vector3.new(Layout.TERRAIN_HALF_X * 2, 0.4, zTop - zBottom),
+		-- Ends just inside the headland cliffs (they start at |x| ~ 410).
+		Size = Vector3.new((Layout.BOUND_HALF_X + 18) * 2, 0.4, zTop - zBottom),
 		CFrame = CFrame.new(0, TIDE_LOW_Y, (zTop + zBottom) / 2),
 		Color = rgb(70, 196, 240),
 		Material = Enum.Material.SmoothPlastic,
@@ -164,16 +187,26 @@ function LightingBuilder.ApplyEvent(eventIds: { string })
 	if golden ~= current.GoldenHour then
 		current.GoldenHour = golden
 		local g = if golden then GOLDEN else BASE
-		tween(
-			Lighting,
-			t * 2,
-			{ ClockTime = g.ClockTime, Brightness = g.Brightness, ExposureCompensation = g.Exposure }
-		)
+		tween(Lighting, t * 2, {
+			ClockTime = g.ClockTime,
+			Brightness = g.Brightness,
+			ExposureCompensation = g.Exposure,
+			ColorShift_Top = g.SunShift,
+		})
 		if colorCorrection then
 			tween(colorCorrection, t * 2, { TintColor = g.Tint, Saturation = g.Saturation })
 		end
 		if atmosphere then
-			tween(atmosphere, t * 2, { Color = g.AtmosphereColor, Decay = g.AtmosphereDecay, Haze = g.AtmosphereHaze })
+			tween(atmosphere, t * 2, {
+				Color = g.AtmosphereColor,
+				Decay = g.AtmosphereDecay,
+				Haze = g.AtmosphereHaze,
+				Glare = g.AtmosphereGlare,
+				Density = g.AtmosphereDensity,
+			})
+		end
+		if clouds then
+			tween(clouds, t * 2, { Color = g.CloudColor })
 		end
 		if bloom then
 			tween(bloom, t * 2, { Intensity = g.BloomIntensity })
