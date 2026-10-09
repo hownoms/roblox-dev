@@ -20,6 +20,7 @@ Every adventure flag (`AdventureFlags`) defaults to off.
 |---|---|
 | Stage and final settlement, trophy reuse, per-player outcomes, durability | `settlement-outcomes.md` |
 | Camp pad display action and preview | `camp-display-action.md` |
+| Camp display lifecycle and ownership audit | `camp-lifecycle.md` |
 | Flags, eligibility, licensed Broadwave, input arbitration, boot | `production-wiring.md` |
 | Review of Codex's `codex/spring-vault-gameplay-polish` | `codex-polish-review.md` |
 

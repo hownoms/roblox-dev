@@ -218,6 +218,155 @@ if show and put then
 	check(TrophyService.Owns(crew, TROPHY) == true, "put away keeps the trophy")
 end
 
+-- Camp lifecycle and ownership through the real wiring (docs/integration/camp-lifecycle.md) --
+local function promptCount(part)
+	local n = 0
+	for _, c in part:GetChildren() do
+		if c:IsA("ProximityPrompt") then
+			n += 1
+		end
+	end
+	return n
+end
+if show and put then
+	-- the crew's camp goes up through the Main-wired prompt
+	Mock.Advance(1.5)
+	Mock.FireEvent(show, "Triggered", crew)
+	Mock.Advance(0.5)
+	check(TrophyService.GetCampPadOwner(1) == CREW, "crew displayed again")
+	local crewLayout = TrophyService.GetCampLayout(crew)
+	local crewId = crewLayout.Placements[1].Id
+
+	-- another player forges camp remotes: nothing of the crew's changes, nothing bad is saved
+	local forged = {
+		{ TROPHY, 0 / 0, 0, 0 },
+		{ TROPHY, math.huge, 0, 0 },
+		{ TROPHY, -math.huge, 0, 0 },
+		{ TROPHY, 2 ^ 40, 0, 0 },
+		{ TROPHY, -1, 0, 0 },
+		{ TROPHY, 1.5, 0, 0 },
+		{ TROPHY, "5", "5", "90" },
+		{ TROPHY, { 5 }, 5, 90 },
+		{ TROPHY, 5, 5, 45 },
+		{ TROPHY, 5, 5, 0 / 0 },
+		{ "", 5, 5, 90 },
+		{ string.rep("x", 65), 5, 5, 90 },
+		{ "unknown_trophy", 5, 5, 90 },
+		{ 42, 5, 5, 90 },
+		{ nil, 5, 5, 90 },
+	}
+	for _, args in forged do
+		Mock.FireServer("PlaceCampItem", again, args[1], args[2], args[3], args[4])
+		Mock.Advance(0.3) -- stay under the remote rate limit
+	end
+	for _, id in { crewId, 0 / 0, math.huge, -1, 0, 1.5, "1", { 1 }, 2 ^ 53 } do
+		Mock.FireServer("RemoveCampItem", again, id)
+		Mock.Advance(0.3)
+	end
+	check(#TrophyService.GetCampLayout(again).Placements == 0, "forged place requests saved nothing")
+	local same = TrophyService.GetCampLayout(crew)
+	check(
+		#same.Placements == 1 and same.Placements[1].Id == crewId and same.NextId == crewLayout.NextId,
+		"another player's forged ids never reach the crew's layout"
+	)
+	check(TrophyService.GetCampPadOwner(1) == CREW, "pad still the crew's")
+	-- another player's valid place only saves their own layout and queues them
+	Mock.FireServer("PlaceCampItem", again, TROPHY, 3, 3, 0)
+	Mock.Advance(0.5)
+	check(#TrophyService.GetCampLayout(again).Placements == 1, "their own valid placement is saved")
+	check(TrophyService.GetCampPadOwner(1) == CREW, "and does not take the pad")
+	check(again:GetAttribute(CampAction.STATUS_ATTR) == "Queued", "they are queued")
+	-- remote spam is rate limited (4 per second per remote)
+	Mock.Advance(2)
+	local changes = 0
+	local conn = TrophyService.CampChanged:Connect(function(pl)
+		if pl == again then
+			changes += 1
+		end
+	end)
+	local againId = TrophyService.GetCampLayout(again).Placements[1].Id
+	for i = 1, 20 do
+		Mock.FireServer("RemoveCampItem", again, againId + i - 1)
+		Mock.FireServer("PlaceCampItem", again, TROPHY, 3, 3, 0)
+	end
+	Mock.Advance(0.1)
+	conn:Disconnect()
+	check(changes <= 8, "remote spam limited (" .. changes .. " camp changes from 40 requests)")
+
+	-- the authored pad is destroyed and rebuilt by the world: prompts reattach once, the camp
+	-- follows the new deck
+	local CampPad = Mock.Require(byPath["ServerScriptService/Server/World/CampPad"])
+	padModel:Destroy()
+	Mock.Advance(0.2)
+	check(TrophyService.GetCampPadCount() == 0, "pad gone")
+	local folder = Mock.Service("Workspace"):FindFirstChild("TrophyCamps")
+	check(folder == nil or #folder:GetChildren() == 0, "no camp model left floating")
+	check(crew:GetAttribute(CampAction.STATUS_ATTR) == "NoPad", "crew told there is no pad")
+	local newDeck = CampPad.Build(hub)[1]
+	Mock.Advance(0.2)
+	check(promptCount(newDeck) == 2, "rebuilt deck: exactly two prompts from Main's wiring")
+	check(TrophyService.GetCampPadOwner(1) == CREW, "the crew's camp is back first")
+	check(newDeck:GetAttribute("OwnerUserId") == CREW, "rebuilt deck shows the owner")
+	check(again:GetAttribute(CampAction.STATUS_ATTR) == "Queued", "the other player still waits")
+	show = newDeck:FindFirstChild(CampAction.DISPLAY_PROMPT)
+	put = newDeck:FindFirstChild(CampAction.REMOVE_PROMPT)
+
+	-- kill switch through the live wiring
+	TrophyService.SetEnabled(false)
+	folder = Mock.Service("Workspace"):FindFirstChild("TrophyCamps")
+	check(folder == nil or #folder:GetChildren() == 0, "off: camps taken down")
+	check(show.Enabled == false and put.Enabled == false, "off: prompts disabled")
+	Mock.Advance(1.5)
+	Mock.FireEvent(show, "Triggered", again)
+	Mock.Advance(0.2)
+	check(TrophyService.GetCampPadOwner(1) == nil, "off: a prompt trigger claims nothing")
+	TrophyService.SetEnabled(true)
+	check(TrophyService.GetCampPadOwner(1) == CREW, "on: crew's camp restored")
+	check(again:GetAttribute(CampAction.STATUS_ATTR) == "Queued", "on: other player queued again")
+end
+
+-- Digging can never reach under a camp pad, Broadwave included (World.IsProtected is XZ-only)
+do
+	local World = Mock.Require(byPath["ServerScriptService/Server/World"])
+	local WorldLayout = Mock.Require(byPath["ServerScriptService/Server/World/Layout"])
+	local Dig = Mock.Require(byPath["ServerScriptService/Server/Services/DigService"])
+	local V = Mock.Vector3
+	local zone = World.GetDigZone()
+	local point = V.new(300, Config.SURFACE_Y, zone.CFrame.Position.Z)
+	local digger = Mock.AddPlayer(9203, "Digger")
+	Mock.Advance(2)
+	Mock.SpawnCharacter(digger, point + V.new(0, 3, 4))
+	Mock.Advance(1)
+	check(World.IsProtected(V.new(80 + 12, -5000, 76 - 12)), "authored pad footprint protected at any depth")
+	table.insert(WorldLayout.CAMP_PADS, V.new(point.X, Config.SURFACE_Y, point.Z + 14)) -- test-only pad
+	local function stand()
+		DataService.Get(digger).Sand = 0
+		digger.Character:PivotTo(Mock.CFrame.new(point + V.new(0, 3, 4)))
+	end
+	stand()
+	local blocked = Dig.DigBroadwave(digger, point)
+	check(blocked ~= nil and blocked.Reason == "OutOfZone", "Broadwave dig reaching a pad footprint refused")
+	stand()
+	local plain = Dig.DigAt(digger, point, Dig.ShovelOptions(digger, "Shovel"))
+	check(plain ~= nil and plain.Reason == "OutOfZone", "ordinary shovel dig there refused too")
+	table.remove(WorldLayout.CAMP_PADS)
+	Mock.Advance(2)
+	stand()
+	local free = Dig.DigBroadwave(digger, point)
+	check(free ~= nil and free.Success == true, "same Broadwave dig succeeds without the pad")
+end
+
+-- Shutdown: BindToClose saves the camp layout with everything else
+if show then
+	Mock.RunBindToClose()
+	Mock.Advance(5)
+	local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
+	check(
+		saved and #saved.CampLayout.Placements == 1 and saved.TrophyRecords[TROPHY] ~= nil,
+		"shutdown saves the layout"
+	)
+end
+
 check(#Mock.Errors == 0, "no uncaught errors")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))
