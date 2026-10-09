@@ -25,6 +25,9 @@ luau tests/production-wiring.spec.luau || status=1
 luau tests/production-wiring.spec.luau -a on || status=1
 luau tests/production-wiring.spec.luau -a rejoin || status=1
 luau tests/production-wiring.spec.luau -a client || status=1
+echo "== adventure-entry.spec (flags off / on) =="
+luau tests/adventure-entry.spec.luau || status=1
+luau tests/adventure-entry.spec.luau -a on || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1

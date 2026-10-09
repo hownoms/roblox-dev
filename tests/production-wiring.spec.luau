@@ -414,6 +414,7 @@ end
 if mode == "off" then
 	check(ReplicatedStorage:FindFirstChild("SpringVaultAdventure") == nil, "off: no adventure remotes")
 	check(Workspace:FindFirstChild("SpringVaultAdventure") == nil, "off: no arena")
+	check(Workspace:FindFirstChild("AdventureEntry") == nil, "off: no entrance or pocket rig")
 	check(Boot.Runtime() == nil, "off: runtime not started")
 	check(Eligibility.IsOrdinaryEnabled() == false, "off: ordinary Broadwave disabled")
 	local lic = add(USER_LIC, "Licensed")
@@ -454,7 +455,8 @@ for _, d in scene:GetDescendants() do
 		end
 	end
 end
-check(spawns >= 1 and enabledSpawns == 0, "arena spawn disabled (players never spawn in the pocket)")
+check(spawns == 0 and enabledSpawns == 0, "arena spawn removed (players never spawn in the pocket)")
+check(Workspace:FindFirstChild("AdventureEntry") ~= nil, "on: surface entrance + pocket rig built")
 check(Eligibility.IsOrdinaryEnabled() == true, "on: ordinary Broadwave enabled")
 local opts = Boot.Options(Flags)
 check(opts.OnStage == Settlement.OnStage and opts.OnCompletion == Settlement.OnCompletion, "rewards wired")
@@ -548,6 +550,7 @@ Mock.Advance(1)
 check(Boot.Runtime() == nil, "kill switch: runtime stopped")
 check(ReplicatedStorage:FindFirstChild("SpringVaultAdventure") == nil, "kill switch: remotes removed")
 check(Workspace:FindFirstChild("SpringVaultAdventure") == nil, "kill switch: arena removed")
+check(Workspace:FindFirstChild("AdventureEntry") == nil, "kill switch: entrance and pocket rig removed")
 check(lic.Backpack:FindFirstChild("Broadwave") == nil, "kill switch: licensed tool removed")
 check(Eligibility.IsOrdinaryEnabled() == false, "kill switch: ordinary Broadwave disabled")
 check(Settlement.SettleStage({}).Error == "Disabled", "kill switch: settlement refuses new grants")
