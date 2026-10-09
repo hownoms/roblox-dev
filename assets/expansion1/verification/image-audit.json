@@ -1,0 +1,628 @@
+[
+  {
+    "path": "assets/expansion1/concepts/npc_mara_design.png",
+    "size": [
+      1143,
+      1376
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      65,
+      0,
+      1127,
+      1376
+    ]
+  },
+  {
+    "path": "assets/expansion1/concepts/npc_pip_design.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      254
+    ],
+    "alpha_bounds": [
+      25,
+      12,
+      997,
+      1523
+    ]
+  },
+  {
+    "path": "assets/expansion1/previews/camp_trophy_display.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/camp_trophy_stand.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_ball.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_ball_effect.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_Covered.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_Opened.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_Partial.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/landmark_spring_vault_trophy.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/npc_mara_Idle.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/npc_pip_Idle.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/tool_broadwave.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/tool_broadwave_effect.png",
+    "size": [
+      500,
+      460
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/previews/ui_readability.png",
+    "size": [
+      1000,
+      500
+    ],
+    "mode": "RGB"
+  },
+  {
+    "path": "assets/expansion1/ui/ability_broadwave_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      12,
+      19,
+      109,
+      106
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/ability_broadwave_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      24,
+      41,
+      217,
+      212
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/ability_broadwave_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      1,
+      3,
+      31,
+      30
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/expansion1_atlas.png",
+    "size": [
+      720,
+      480
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      22,
+      11,
+      690,
+      454
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/helping_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      11,
+      30,
+      109,
+      104
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/helping_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      22,
+      62,
+      218,
+      208
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/helping_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      1,
+      6,
+      31,
+      30
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_mara_portrait_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      1,
+      120,
+      120
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_mara_portrait_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      4,
+      240,
+      240
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_mara_portrait_64.png",
+    "size": [
+      64,
+      64
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      0,
+      64,
+      64
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_mara_portrait_source.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      27,
+      1254,
+      1254
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_pip_portrait_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      0,
+      120,
+      120
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_pip_portrait_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      0,
+      240,
+      240
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_pip_portrait_64.png",
+    "size": [
+      64,
+      64
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      0,
+      64,
+      64
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/npc_pip_portrait_source.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      0,
+      8,
+      1254,
+      1242
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/objective_complete_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      20,
+      8,
+      97,
+      107
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/objective_complete_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      41,
+      19,
+      193,
+      214
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/objective_complete_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      3,
+      0,
+      28,
+      30
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/shared_discovery_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      15,
+      4,
+      105,
+      105
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/shared_discovery_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      30,
+      11,
+      210,
+      211
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/shared_discovery_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      2,
+      0,
+      30,
+      30
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/tool_broadwave_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      13,
+      7,
+      103,
+      110
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/tool_broadwave_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      26,
+      17,
+      205,
+      219
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/tool_broadwave_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      1,
+      0,
+      29,
+      31
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/trophy_reward_120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      25,
+      13,
+      104,
+      105
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/trophy_reward_240.png",
+    "size": [
+      240,
+      240
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      51,
+      29,
+      209,
+      210
+    ]
+  },
+  {
+    "path": "assets/expansion1/ui/trophy_reward_32.png",
+    "size": [
+      32,
+      32
+    ],
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "alpha_bounds": [
+      5,
+      2,
+      30,
+      30
+    ]
+  }
+]

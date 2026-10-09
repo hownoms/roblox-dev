@@ -18,6 +18,11 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   automation; both are owner steps (see below).
 - **Code:** feature-complete through v3 (Discovery) plus the v17 second-minute fixes. See
   [CHANGELOG.md](CHANGELOG.md).
+- **First-expansion visual kit:** local Mara/Pip concepts and portraits, Broadwave, three
+  Spring Vault stages, controlled beach ball, trophy display and matching icons are in
+  [assets/expansion1](../assets/expansion1/README.md). Strict/headless construction and Rojo
+  builds verified; Studio contact/movement/device review, image uploads and gameplay/reward
+  integration remain pending. No expansion was published or enabled.
 - **Validation (latest):** client 1,413, server 2,195, Studio-mode 2,162, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
   deprecated-API warnings. CI is green on every merge.

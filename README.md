@@ -8,6 +8,13 @@ permanent multiplier.
 Everything is code. The map, models and UI are all built by scripts at runtime, so the whole
 game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
+## First-expansion visual kit
+
+[Review the visual kit](assets/expansion1/README.md) for Mara/Pip designs and portraits,
+Broadwave, Spring Vault stages, the beach ball and trophy display, UI icons, the asset
+manifest and integration handoff. These are local assets awaiting Studio/gameplay checks;
+the expansion is not enabled or published.
+
 | Doc | What it covers |
 |---|---|
 | [`docs/STATUS.md`](docs/STATUS.md) | **Start here:** where the project is now, what's verified, what's open and what's next |

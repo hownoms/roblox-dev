@@ -1,0 +1,5 @@
+# Preserve delivery hashes and keep the new factory portable across Windows/Linux.
+assets/expansion1/** -text whitespace=cr-at-eol
+assets/expansion1/**/*.rbxlx binary
+src/shared/Models/Expansion1.luau text eol=lf
+tools/expansion1/*.luau text eol=lf

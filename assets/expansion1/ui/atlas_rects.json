@@ -1,0 +1,38 @@
+{
+  "tool_broadwave": [
+    0,
+    0,
+    240,
+    240
+  ],
+  "ability_broadwave": [
+    240,
+    0,
+    240,
+    240
+  ],
+  "shared_discovery": [
+    480,
+    0,
+    240,
+    240
+  ],
+  "helping": [
+    0,
+    240,
+    240,
+    240
+  ],
+  "objective_complete": [
+    240,
+    240,
+    240,
+    240
+  ],
+  "trophy_reward": [
+    480,
+    240,
+    240,
+    240
+  ]
+}
