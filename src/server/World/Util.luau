@@ -294,25 +294,91 @@ function Util.Ground(model: Model, cf: CFrame)
 	model:PivotTo(cf + Vector3.new(0, cf.Position.Y - bottom, 0))
 end
 
-local SMALL_PROPS: { [string]: boolean } = {
-	Crab = true,
-	Shell = true,
-	BeachBall = true,
-	BeachTowel = true,
-	Surfboard = true,
-}
+-- Props whose parts never collide / cast shadows (small beach clutter). Keys are matched like
+-- Models.Prop names: case-, space-, '_' and '-' insensitive ("Beach Towel" == "BeachTowel").
+local function propKey(name: string): string
+	return (string.gsub(string.lower(name), "[%s_%-]", ""))
+end
 
--- Models.Prop(name) placed on the visible ground at `pos` (Y = layout grid height), rotated `yawDeg`.
--- `onPart` = true: pos.Y is already the top of a part (deck, pier); don't look for the sand.
-function Util.Prop(
-	name: string,
-	parent: Instance,
-	pos: Vector3,
-	yawDeg: number,
-	scale: number?,
-	onPart: boolean?
-): Model?
-	local ok, result = pcall(Models.Prop, name)
+local SMALL_PROPS: { [string]: boolean } = {}
+for _, name in
+	{
+		"Crab",
+		"Shell",
+		"BeachBall",
+		"BeachTowel",
+		"Surfboard",
+		"Starfish",
+		"Bucket",
+		"ShellPile",
+		"DuneGrass",
+		"Driftwood",
+		"PicnicBlanket",
+		"Kite",
+		"Buoy",
+		"BeachFlag",
+		"Lounger",
+		"Cooler",
+		"TidePool",
+		"Hammock",
+		"Cornhole",
+		"Tetherball",
+		"TikiTorch",
+		"LogBench",
+		"BackgroundPalm",
+	}
+do
+	SMALL_PROPS[propKey(name)] = true
+end
+
+function Util.IsSmallProp(name: string): boolean
+	return SMALL_PROPS[propKey(name)] == true
+end
+
+-- Models.Prop builders mark animated sub-models / lights with the attribute "AmbientTag"
+-- (shared model code has no services); the server turns those into CollectionService tags
+-- for the client AmbientController (docs/MAP_ART_DIRECTION.md, "Ambient motion contract").
+-- Called after placement. Tagged sub-models are moved out to sit beside the prop (the client
+-- never handles nested tagged models). Every tagged Model is made fully non-colliding (the
+-- client skips models with collidable parts) and streams atomically.
+function Util.ApplyAmbientTags(model: Instance, parent: Instance?)
+	local function prepModel(m: Model)
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end
+	local function apply(inst: Instance)
+		local tag = inst:GetAttribute("AmbientTag")
+		if type(tag) == "string" and tag ~= "" then
+			if inst:IsA("Model") then
+				prepModel(inst)
+			end
+			Util.Tag(inst, tag)
+		end
+	end
+	local detached: { Instance } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("Model") and type(d:GetAttribute("AmbientTag")) == "string" then
+			table.insert(detached, d)
+		end
+	end
+	for _, d in detached do
+		d.Parent = parent or model.Parent
+		apply(d)
+	end
+	apply(model)
+	for _, d in model:GetDescendants() do
+		apply(d)
+	end
+end
+
+local function buildProp(name: string, scale: number?, variant: number?): Model?
+	local ok, result = pcall(Models.Prop, name, variant)
 	if not ok or typeof(result) ~= "Instance" or not result:IsA("Model") then
 		warn("[World] Models.Prop failed for", name, result)
 		return nil
@@ -323,10 +389,44 @@ function Util.Prop(
 			model:ScaleTo(scale)
 		end)
 	end
-	Util.Finish(model, SMALL_PROPS[name] == true)
+	Util.Finish(model, Util.IsSmallProp(name))
+	return model
+end
+
+-- Models.Prop(name, variant) placed on the visible ground at `pos` (Y = layout grid height),
+-- rotated `yawDeg`. `onPart` = true: pos.Y is already the top of a part (deck, pier); don't
+-- look for the sand. `variant` (default 1) picks the prop's colours / shape deterministically.
+function Util.Prop(
+	name: string,
+	parent: Instance,
+	pos: Vector3,
+	yawDeg: number,
+	scale: number?,
+	onPart: boolean?,
+	variant: number?
+): Model?
+	local model = buildProp(name, scale, variant)
+	if not model then
+		return nil
+	end
 	local ground = if onPart then pos else Vector3.new(pos.X, Util.TerrainY(pos), pos.Z)
 	Util.Ground(model, CFrame.new(ground) * CFrame.Angles(0, math.rad(yawDeg), 0))
 	model.Parent = parent
+	Util.ApplyAmbientTags(model, parent)
+	return model
+end
+
+-- Models.Prop(name, variant) with its pivot (the bottom-centre Root) put exactly at `cf`: no
+-- ground raycast. For props floating on the water, standing on a known height, or tilted to
+-- lie on the beach slope.
+function Util.PropAt(name: string, parent: Instance, cf: CFrame, scale: number?, variant: number?): Model?
+	local model = buildProp(name, scale, variant)
+	if not model then
+		return nil
+	end
+	model:PivotTo(cf)
+	model.Parent = parent
+	Util.ApplyAmbientTags(model, parent)
 	return model
 end
 
