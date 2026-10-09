@@ -138,6 +138,62 @@ do
 	check(#Mock.Tagged(t) > 0, "map places tag " .. t)
 end
 do
+	-- trophy camp pad: one authored 24x24 deck, tagged, on the hub sand, clear of every other
+	-- map part (stations, paths, lamps, spawns) and of the dig zone
+	local pads = Mock.Tagged("TrophyCampPad")
+	check(#pads == 1, "map builds exactly one trophy camp pad (" .. #pads .. ")")
+	local deck = pads[1]
+	if deck then
+		local Layout = Mock.Require(byPath["ServerScriptService/Server/World/Layout"])
+		local c = deck.Position
+		check(
+			deck.Anchored and deck.Size.X == 24 and deck.Size.Z == 24 and deck.CanCollide,
+			"camp pad is an anchored, walkable 24x24 deck"
+		)
+		check(math.abs(c.Y + deck.Size.Y / 2 - Layout.DECK_TOP) < 1e-3, "camp pad top at deck height")
+		check(deck:GetAttribute("OwnerUserId") == 0, "camp pad starts free")
+		local half = 12 + Layout.CAMP_PAD_RIM + 2
+		local blockers = {}
+		local padModel = deck.Parent
+		for _, part in workspace.Map:GetDescendants() do
+			if part:IsA("BasePart") and not part:IsDescendantOf(padModel) then
+				local minX, maxX, minY, maxY, minZ, maxZ =
+					math.huge, -math.huge, math.huge, -math.huge, math.huge, -math.huge
+				for _, sx in { -1, 1 } do
+					for _, sy in { -1, 1 } do
+						for _, sz in { -1, 1 } do
+							local q = part.CFrame:PointToWorldSpace(part.Size * Vector3.new(sx, sy, sz) / 2)
+							minX, maxX = math.min(minX, q.X), math.max(maxX, q.X)
+							minY, maxY = math.min(minY, q.Y), math.max(maxY, q.Y)
+							minZ, maxZ = math.min(minZ, q.Z), math.max(maxZ, q.Z)
+						end
+					end
+				end
+				if
+					maxX > c.X - half
+					and minX < c.X + half
+					and maxZ > c.Z - half
+					and minZ < c.Z + half
+					and maxY > Config.SURFACE_Y - 2
+				then
+					table.insert(blockers, part:GetFullName())
+				end
+			end
+		end
+		check(#blockers == 0, "camp pad footprint is clear of other map parts: " .. table.concat(blockers, ", "))
+		for _, sp in Layout.SPAWNS do
+			check(
+				(Vector3.new(sp.X, 0, sp.Z) - Vector3.new(c.X, 0, c.Z)).Magnitude > 60,
+				"camp pad far from the spawns"
+			)
+		end
+		check(
+			c.Z - half > Layout.DIG_Z_INLAND + 16 and World.IsProtected(c),
+			"camp pad is outside the dig zone and protected"
+		)
+	end
+end
+do
 	-- playtest: fountain and towels sunk. Their raycast can miss terrain written in the same
 	-- frame; the fallback must still sit on the visible surface (grid + 2), not the grid.
 	local basin = Mock.Tagged("WaterFountain")[1]
@@ -1280,6 +1336,25 @@ step("beach", function()
 	check(far ~= nil and far.Reason == "TooFar", "Digger dig far from the owner -> TooFar")
 	local out = DigService.DigAt(p, Vector3.new(334, S, zoneCenter.Z - zoneSize.Z / 2 - 6), opts)
 	check(out ~= nil and out.Reason == "OutOfZone", "Digger dig outside the zone -> OutOfZone")
+	-- protected footprint (trophy camp pad): refused at the real pad, and also inside the dig
+	-- zone when a pad footprint (grown by the carve extent) would reach the dig
+	do
+		local Layout = Mock.Require(byPath["ServerScriptService/Server/World/Layout"])
+		local pad = Layout.CAMP_PADS[1]
+		local atPad = DigService.DigAt(p, Vector3.new(pad.X, S, pad.Z), opts)
+		check(atPad ~= nil and atPad.Reason == "OutOfZone", "dig at the camp pad refused")
+		local target = Vector3.new(342, S, zDig)
+		table.insert(Layout.CAMP_PADS, Vector3.new(350, S, zDig + 20)) -- test-only pad near the dig
+		local guarded = DigService.DigAt(p, target, opts)
+		check(guarded ~= nil and guarded.Reason == "OutOfZone", "dig whose carve reaches a pad footprint refused")
+		check(solid(342, S - 2, zDig), "refused dig left the terrain intact")
+		table.remove(Layout.CAMP_PADS)
+		local unguarded = DigService.DigAt(p, target, opts)
+		check(
+			unguarded ~= nil and unguarded.Success and not solid(342, S - 2, zDig),
+			"same dig succeeds without the pad"
+		)
+	end
 	local weak = DigService.DigAt(p, Vector3.new(330, S - 400, zDig), {
 		Power = 1,
 		Radius = 2,

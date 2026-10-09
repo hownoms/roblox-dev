@@ -94,16 +94,69 @@ local reviewPreview = false
 local draining: { [number]: boolean } = {}
 
 -- Camp display ----------------------------------------------------------------------------------
+--[[
+	Pad ownership (docs/TROPHY_INTEGRATION.md "Camp display"). A pad shows exactly one owner's
+	camp. A loaded player claims a free pad only when they may display (stand, or the Studio
+	review preview) and their layout is non-empty. Place/remove only ever edit the caller's own
+	layout, and Display never takes a pad another player holds. A player who may display but
+	finds every pad busy keeps their saved layout and joins a FIFO wait list; whenever a pad is
+	released (owner leaves, empties their camp, or loses display rights) it is handed over
+	automatically to the longest-waiting loaded player who is still eligible.
+]]
+
+local waiting: { [Player]: number } = {} -- player -> wait-list sequence (lower = earlier)
+local waitSeq = 0
+
+-- Shows or hides one player's camp. Returns true when this released a pad they held.
+local function applyDisplay(player: Player, data: { [string]: any }): boolean
+	local before = Display.GetPad(player)
+	local layout = data.CampLayout :: Rules.CampLayout
+	if Rules.HasStand(data) or reviewPreview then
+		local pad = Display.Show(player, layout)
+		if pad == nil and #layout.Placements > 0 then
+			if waiting[player] == nil then
+				waitSeq += 1
+				waiting[player] = waitSeq
+			end
+		else
+			waiting[player] = nil
+		end
+	else
+		Display.Hide(player) -- layout is kept; it shows once the stand is owned
+		waiting[player] = nil
+	end
+	return before ~= nil and Display.GetPad(player) == nil
+end
+
+-- Hands free pads to waiting players, longest wait first.
+local function handOver()
+	local queue: { Player } = {}
+	for player in waiting do
+		table.insert(queue, player)
+	end
+	table.sort(queue, function(a: Player, b: Player): boolean
+		return waiting[a] < waiting[b]
+	end)
+	for _, player in queue do
+		if Display.FreePadCount() == 0 then
+			return
+		end
+		local data = TrophyData.Get(player)
+		if data then
+			applyDisplay(player, data)
+		else
+			waiting[player] = nil
+		end
+	end
+end
 
 local function refreshDisplay(player: Player)
 	local data = TrophyData.Get(player)
 	if not data then
 		return
 	end
-	if Rules.HasStand(data) or reviewPreview then
-		Display.Show(player, data.CampLayout)
-	else
-		Display.Hide(player) -- layout is kept; it shows once the stand is owned
+	if applyDisplay(player, data) then
+		handOver()
 	end
 end
 
@@ -508,8 +561,26 @@ function TrophyService.SetReviewPreview(on: boolean): boolean
 end
 
 -- Optional explicit pads (pad-centre CFrames on the ground) instead of "TrophyCampPad" tags.
+-- Set this at boot; it does not move camps already shown.
 function TrophyService.SetCampPads(pads: { CFrame }?)
 	Display.SetPads(pads)
+end
+
+-- Read-only pad queries. Owner = UserId of the player whose camp is on pad `padIndex`, or nil
+-- when it is free. The tagged pad part mirrors it as attributes OwnerUserId (0 = free) and
+-- OwnerName for clients.
+function TrophyService.GetCampPadOwner(padIndex: number): number?
+	local owner = Display.GetPadOwner(padIndex)
+	return if owner then owner.UserId else nil
+end
+
+function TrophyService.GetCampPadCount(): number
+	return Display.GetPadCount()
+end
+
+-- Pad index showing this player's camp, or nil (no layout, no stand, or waiting for a pad).
+function TrophyService.GetCampPad(player: Player): number?
+	return Display.GetPad(player)
 end
 
 -- Remotes -------------------------------------------------------------------------------------
@@ -573,7 +644,12 @@ function TrophyService.OnPlayerAdded(player: Player)
 end
 
 function TrophyService.OnPlayerRemoving(player: Player)
+	waiting[player] = nil
+	local held = Display.GetPad(player) ~= nil
 	Display.Hide(player)
+	if held then
+		handOver() -- the freed pad goes to the longest-waiting eligible player
+	end
 end
 
 return TrophyService

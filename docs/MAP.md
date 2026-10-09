@@ -70,6 +70,7 @@ break. The tide refills dug 8x8 columns (see BeachService).
 | Egg arc (9 pedestals, r = 19, 110°, bulging towards the plaza) | centre (-50, 1024, 92) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" |
 | Rebirth shrine | (44, 1024, 72) | pedestal `RebirthStatue` + prompt "Rebirth" |
 | Title sign | (0, 1045, 118) faces south | — |
+| Trophy camp pad (24x24 deck, top Y 1027; sign on its west edge faces the plaza) | centre (80, 1024, 76) | deck `TrophyCampPad`, attributes `OwnerUserId` / `OwnerName` / `PadIndex`; footprint protected from digging (`World.IsProtected`) |
 | Pier | x -6..6 (viewing bulges x ±14 at z -112..-136), z -68..-178, deck top Y 1027; carnival deck x -40..40, z -178..-230 | Ferris wheel hub (0, 1058, -212), d 48 |
 
 Hub structures face the boardwalk spawns (`Layout.HUB_LOOK_TARGET = (0, 1024, 4)`).

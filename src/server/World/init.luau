@@ -20,6 +20,9 @@
 	                                             -- the workspace attribute "ActiveEvents")
 	  World.IsReady(): boolean                   -- true once the deep layers finished filling
 	                                             -- (workspace attribute "WorldReady" mirrors it)
+	  World.IsProtected(position, margin?)       -- XZ inside a protected footprint (trophy camp
+	                                             -- pad + rim, grown by margin), at any depth;
+	                                             -- DigService refuses digs there
 	Workspace attributes for clients: "DigZoneCFrame" (CFrame), "DigZoneSize" (Vector3).
 ]]
 
@@ -33,6 +36,7 @@ local Boardwalk = require(script.Boardwalk)
 local Decor = require(script.Decor)
 local LightingBuilder = require(script.Lighting)
 local Underground = require(script.Underground)
+local CampPad = require(script.CampPad)
 
 export type DigZone = { CFrame: CFrame, Size: Vector3 }
 
@@ -91,6 +95,9 @@ function World.Build()
 	step("hub", function()
 		Hub.Build(hubFolder)
 	end)
+	step("trophy camp pad", function()
+		CampPad.Build(hubFolder)
+	end)
 	step("boardwalk", function()
 		Boardwalk.Build(boardwalkFolder)
 	end)
@@ -126,6 +133,18 @@ function World.IsInDigZone(position: Vector3): boolean
 		and math.abs(rel.Z) <= ZONE_SIZE.Z / 2
 		and rel.Y <= ABOVE_SURFACE
 		and rel.Y >= -ZONE_SIZE.Y
+end
+
+-- Protected footprints: the trophy camp pad(s) and their rim. Checked in X/Z only, so nothing
+-- may carve under a pad at any depth. `margin` grows the footprint (a dig's carve extent).
+function World.IsProtected(position: Vector3, margin: number?): boolean
+	local half = Layout.CAMP_PAD_SIZE / 2 + Layout.CAMP_PAD_RIM + (margin or 0)
+	for _, centre in Layout.CAMP_PADS do
+		if math.abs(position.X - centre.X) <= half and math.abs(position.Z - centre.Z) <= half then
+			return true
+		end
+	end
+	return false
 end
 
 -- Nearest point inside the footprint (shrunk by `margin` studs), same Y.

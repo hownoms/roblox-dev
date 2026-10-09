@@ -7,7 +7,8 @@
 	DigResult{Success=false,Reason}):
 	  Cooldown     Shovel/Auto only: shovel cooldown / speed (x COOLDOWN_LENIENCY for Shovel)
 	               x Config.Heat.SunburntCooldownMultiplier while the player is "Sunburnt"
-	  OutOfZone    point is not inside the dig zone (World.GetDigZone)
+	  OutOfZone    point is not inside the dig zone (World.GetDigZone), or its carve could
+	               reach under a protected footprint (World.IsProtected: trophy camp pad)
 	  Bottom       point is at the very bottom of the world (The Core floor is indestructible)
 	  TooFar       Shovel: further than Config.REACH (+ slack) from HumanoidRootPart;
 	               Digger/Pet: further than DIGGER_RANGE from the owner (Auto: never);
@@ -327,6 +328,11 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 	local target = resolveTarget(position, if source == "Shovel" then root else nil)
 	local trel = target - ZONE_CENTER
 	if math.abs(trel.X) > ZONE_HALF_X + EDGE_SLACK or math.abs(trel.Z) > ZONE_HALF_Z + EDGE_SLACK then
+		return fail(player, result, "OutOfZone", opts)
+	end
+	-- Protected footprints (trophy camp pad): refuse any dig whose carve could reach under one,
+	-- at any depth. Today the pad is outside the zone; this keeps it safe if either moves.
+	if World.IsProtected(target, math.max(opts.Radius, DENT_BALL_RADIUS) + VOXEL) then
 		return fail(player, result, "OutOfZone", opts)
 	end
 	local depth = math.clamp(S - target.Y, 0, TOTAL_DEPTH)
