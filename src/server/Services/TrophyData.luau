@@ -27,7 +27,7 @@ local DataService = require(script.Parent.DataService)
 
 local TrophyData = {}
 
-TrophyData.KEYS = table.freeze({ "TrophyRecords", "CampLayout", "RewardReceipts" })
+TrophyData.KEYS = table.freeze({ "TrophyRecords", "CampLayout", "RewardReceipts", "Cosmetics" })
 
 -- Save tables already migrated in this server (weak: a released save is collected).
 local migrated: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any

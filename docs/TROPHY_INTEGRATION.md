@@ -1,36 +1,53 @@
 # Adventure trophies: integration handoff
 
-Branch `claude/adventure-trophies`, prepared 9 October 2026. Scope: permanent adventure
-trophies and their camp display (game bible milestone 2 trophy slice, applied to the Spring
-Vault). This branch does not implement the Spring Vault adventure, NPCs, Broadwave, anchors,
-vault opening, ball routing or effects, which belong to Codex's branch. It does not edit shared
-boot files, DataService, Config, Types or Codex's files. The one shared-file change is a single
-line in `tests/run.sh` that registers the new spec. Nothing was uploaded or published.
+Branch `claude/adventure-trophies`, prepared 9 October 2026 and revised the same day after the
+owner's boundary decisions. Scope: permanent adventure trophies and their camp display (game
+bible milestone 2 trophy slice, applied to the Spring Vault).
+
+This branch does not implement the Spring Vault adventure, NPCs, Broadwave, anchors, vault
+opening, ball routing or effects, which belong to Codex's branch. It does not edit shared boot
+files, DataService, Config, Types or Codex's files. The one shared-file change is a single line
+in `tests/run.sh` that registers the new spec. Nothing was uploaded or published.
+
+## Owner decisions (9 October 2026)
+
+| Decision | How this branch applies it |
+|---|---|
+| Production display requires Mara's trophy stand. The first eligible completion grants the stand and trophy together. A review preview can bypass the check. | One save mutation writes `TrophyRecords.landmark_spring_vault` and `Cosmetics.camp_trophy_stand` under the same receipt. Placement is refused with `NoStand` and the camp is hidden without the stand. `SetReviewPreview(true)` bypasses the check in Studio only; a live server refuses it. |
+| Receipt ownership stays separate. | Trophy code writes and prunes only `trophy:`-prefixed `RewardReceipts` keys. Reward code owns its own prefix. |
+| Disconnected players stay ineligible for the final trophy. Accepted pending grants need durable storage. Same-server-only recovery is a release blocker. | The runtime's `Eligible` veto is honoured, so disconnected players get nothing. Any accepted grant for a player not loaded here goes to a durable DataStore outbox before `PendingRejoin` is reported, and is applied on their next load on any server. The in-memory pending list is gone. |
+| Treasure and legacy trophies, furniture, camp UI and the 16 camp pads are outside this slice. Camp display wiring is a production gate. | Not implemented. See "Production gates". |
 
 ## What is in this branch
 
 | File | Role |
 |---|---|
 | `src/shared/Trophies/Catalog.luau` | Trophy definitions. Only `landmark_spring_vault`, with source `event_vault`, region `sunshine_shore` and replica `TrophyReplica`. There is no payout or sale field. |
-| `src/shared/Trophies/Rules.luau` | Pure rules: save migration/repair, receipts and pruning, the contribution eligibility rule, and camp grid validation. |
-| `src/server/Services/TrophyData.luau` | The narrow adapter to the existing `DataService`. It is the only trophy file that touches the save. |
-| `src/server/Services/TrophyService.luau` | Server-authoritative settlement API, ownership queries, camp place/remove and remote handlers. |
+| `src/shared/Trophies/Rules.luau` | Pure rules: save migration/repair, receipts and pruning, the eligibility rule, outbox entry validation, and camp grid and stand validation. |
+| `src/server/Services/TrophyData.luau` | The narrow adapter to the existing `DataService`. It is the only trophy file that touches the player save. |
+| `src/server/Services/TrophyPendingStore.luau` | The durable outbox for accepted grants to players who are not loaded here. It holds intents only, never progress. |
+| `src/server/Services/TrophyService.luau` | Server-authoritative settlement API, ownership queries, camp place/remove, review preview and remote handlers. |
 | `src/server/Services/TrophyCampDisplay.luau` | Builds camps from `Models.Expansion1.TrophyStand()` + `TrophyReplica()` on reserved pads. |
-| `tests/trophy.spec.luau` | 227 headless checks. Registered in `tests/run.sh`. |
-| `tests/trophy-wired.spec.luau` | 17 checks through the real `Main` with the patch applied. Register it when the patch merges. |
+| `tests/trophy.spec.luau` | 259 headless checks (261 once the patch adds the two camp remotes), including a second mock server. Registered in `tests/run.sh`. |
+| `tests/trophy-wired.spec.luau` | 18 checks through the real `Main` with the patch applied. Register it when the patch merges. |
 | `docs/trophy-integration.patch` | The exact shared-file wiring, tested (see below). |
 
-## Persistence: no second save system
+## Persistence
 
-Trophy state is three new top-level `PlayerData` keys in the same session-locked
-`DataService` record (`PlayerData_v1`, key `Player_<UserId>`). They use the names from bible
-ch.04:
+### Player save: the existing DataService record
+
+Trophy state is four top-level `PlayerData` keys in the same session-locked `DataService`
+record (`PlayerData_v1`, key `Player_<UserId>`). They use the names from bible ch.04:
 
 ```
 TrophyRecords  = { [trophyId] = { Kind, Source, RegionId, AcquiredAt, ReceiptId, Legacy, ContentVersion } }
 CampLayout     = { Placements = { { Id, TrophyId, X, Z, Rot } }, NextId }
-RewardReceipts = { ["trophy:<InstanceId>:<UserId>:final:v<RewardVersion>"] = settledUnix }
+RewardReceipts = { ["trophy:<InstanceId>:<UserId>:final:v<RewardVersion>"] = settledUnix }  -- trophy: prefix only
+Cosmetics      = { camp_trophy_stand = { Kind, Source, AcquiredAt, ReceiptId } }           -- this key only
 ```
+
+`Cosmetics` is the bible's shared cosmetic inventory. Trophy code creates the table if it is
+missing and writes only `camp_trophy_stand`. Other cosmetic keys are never read or changed.
 
 This works without editing DataService. These facts were checked in source and by tests:
 
@@ -39,37 +56,61 @@ This works without editing DataService. These facts were checked in source and b
   server also carries these keys through untouched, which makes rollback compatible.
 - Saves use the normal autosave, leave and `BindToClose` paths. A settlement also calls
   `DataService.SaveAsync` immediately, because DataService serializes saves.
-- The keys replicate to the owner through the existing `DataChanged` deltas, so a future
-  camp/trophy UI can read them from the client data mirror.
+- The keys replicate to the owner through the existing `DataChanged` deltas.
 - Rebirth resets only `Config.Rebirths.Resets`, which does not include these keys. The
-  wired spec runs a real rebirth and checks this. The dev-only `/wipe` command resets just
-  the template keys, so trophies also survive it.
+  wired spec runs a real rebirth and checks this.
 
 **Migration.** `TrophyData.Get` runs `Rules.Migrate` once for each loaded save table.
 
-- It adds the three keys to any existing save and repairs malformed values.
+- It adds the four keys to any existing save and repairs malformed values.
 - It changes no other key. The tests compare every other field before and after.
 - It is idempotent.
-- It never deletes an owned trophy id. A non-table record is kept as `{ Repaired = true }`.
-  Records unknown to this server, for example from a newer server, are kept as-is.
-- It invents nothing. Legacy saves get no adventure trophy, because no legacy evidence of a
-  Spring Vault completion exists.
+- It never deletes an owned trophy id or the stand. A non-table value is kept as
+  `{ Repaired = true }`. Records unknown to this server are kept as-is.
+- It invents nothing. Legacy saves get no trophy and no stand.
 - Invalid camp placements are dropped. That loses a display only, never ownership.
 
-`Config.DATA_VERSION` stays at 3. Bible ch.04 says to introduce DataVersion 4 only when its
-whole field set is implemented. When that happens, an optional hook is to add
-`[3] = function(d) Rules.Migrate(d, os.time()) end` to DataService's `MIGRATIONS`. That is
-safe because the function is idempotent, and the lazy path can stay as a fallback.
+`Config.DATA_VERSION` stays at 3. When the whole DataVersion 4 field set lands, an optional
+hook is to add `[3] = function(d) Rules.Migrate(d, os.time()) end` to DataService's
+`MIGRATIONS`. That is safe because the function is idempotent.
 
-**Bounds.**
+### Durable pending grants: the outbox
+
+The outbox lives in DataStore `TrophyPendingGrants_v1`, key `Pending_<UserId>`, with value
+`{ Grants = { [receiptId] = { TrophyId, Source, RegionId, At } } }`. It holds up to 8 intents
+per user. It stores no player progress.
+
+1. **Settlement.** When an accepted grant is for an eligible player whose save is not
+   loaded on this server, settlement writes the intent with `UpdateAsync`, keyed by receipt
+   id, so a retry is a no-op. It reports `PendingRejoin` only after the write succeeds.
+   Otherwise it reports `Refused / PendingWriteFailed` and the caller can retry the same call.
+2. **Next load, on any server.** `TrophyService` reads the intents, re-validates them, and
+   applies them to the live save. Receipt and ownership checks make re-application a
+   `Duplicate`. It then saves through `DataService.SaveAsync`.
+3. **Acknowledge.** Applied receipts are removed from the outbox only after that save
+   succeeds. If the server crashes after the save but before the acknowledgement, the next
+   load re-applies the grant as a `Duplicate` and acknowledges it then. Unreadable entries
+   are dropped at acknowledgement, so they can't hold the bound.
+
+Store availability follows DataService:
+
+- **Studio without API access.** Uses an in-memory outbox, mirroring DataService's fallback.
+- **Live server with the outbox store unavailable.** Refuses pending grants rather than
+  claiming they are durable.
+
+With Codex's runtime, eligible players are always connected and loaded at completion. That
+means this path only runs in edge cases, such as a save that failed to load, or callers of
+the general API.
+
+### Bounds
 
 | Item | Bound |
 |---|---|
-| Records | 256. New grants beyond that are refused with `Refused/RecordLimit`. Loads never delete records. |
+| Trophy records | 256. New grants beyond that are refused with `Refused/RecordLimit`. Loads never delete records. |
 | Layout | 32 placements. |
 | Starting trophy slots | 3. |
 | Receipts in the `trophy:` namespace | 512 most recent, kept for at most 30 days. |
-| Pending offline grants | 64 users × 8 grants. |
+| Outbox | 8 intents per user. A 9th is refused with `Refused/PendingFull`. |
 
 Receipt pruning is safe because ownership in `TrophyRecords` is the permanent first-clear
 flag.
@@ -94,10 +135,9 @@ The mapping:
 | `RewardVersion` | Always 1 (not `BoundaryVersion`) |
 
 Both rules must agree before a player is granted. The context's own `Eligible` flag must be
-`true`, and since that flag also requires being connected and present, a vetoed player
-reports `Ineligible / EventIneligible`. The consequence is that players who disconnected
-before completion are vetoed by the runtime and never reach `PendingRejoin` through this
-path. That is the runtime's current choice; see open decision 3.
+`true`. That flag also requires the player to be connected and present at completion, so
+disconnected players are never granted the final trophy, as the owner decided. A vetoed
+player reports `Ineligible / EventIneligible`.
 
 The general API, for any other caller:
 
@@ -123,29 +163,27 @@ local report = TrophyService.SettleAdventureCompletion({
 ```
 
 **When to call.** Call it once per run, after Resolving has frozen scoring and snapshotted
-contributions, and before cleanup returns or removes players. It is server-only and never
-yields. It is safe to call again with the same arguments, for example on a retry.
+contributions, and before cleanup returns or removes players. It is server-only.
+
+**Yielding.** Loaded players are settled synchronously first. The call yields only while
+writing outbox intents for eligible players who are not loaded here. Codex calls
+`OnCompletion` from a Heartbeat connection after setting `completionSent`, so a yield there
+cannot double-submit. It is safe to call again with the same arguments, for example on a
+retry.
 
 **InstanceId.** Use something unique across servers and runs, such as
 `(game.JobId ~= "" and game.JobId or HttpService:GenerateGUID(false)) .. ":" .. sequence`
-with a per-server sequence number. Bible ch.04 requires a session GUID plus a sequence,
-not a timestamp.
+with a per-server sequence number. Codex's runtime already uses a session GUID plus a
+sequence.
 
-**Eligibility.** The service applies bible ch.04's rule itself, so Codex supplies validated
-facts rather than a verdict:
+**Eligibility.** The service applies bible ch.04's rule itself:
 
 - Solo: if `#Participants == 1` and `ObjectiveCompletions >= 1`, the player is eligible.
 - Otherwise the player needs `Points >= 5` and, in addition, either `PresentForObjective`
   or `ActiveSeconds >= 30`.
 - Presence alone never qualifies.
-
-Codex's assumptions:
-
-- Points follow ch.04: 10 per anchor split among workers, 5 per validated transition, and
-  so on. Repeat or presence-only actions earn zero.
-- All values come from server-validated actions.
-- The participant list includes ineligible spectators, because the solo rule is based on the
-  list size.
+- The participant list must include ineligible spectators, because the solo rule is based on
+  the list size.
 
 **Return value.** `SettlementReport`:
 
@@ -154,19 +192,19 @@ Codex's assumptions:
 	Ok = boolean,
 	Error = string?,        -- only when Ok == false; then NOTHING changed for anyone
 	EventId, LandmarkId, InstanceId,
-	Results = { { UserId, Status, Reason? } },  -- same order as Participants
+	Results = { { UserId, Status, Reason?, StandGranted? } },  -- same order as Participants
 	ByUserId = { [UserId] = result },
 }
 ```
 
 | Status | Meaning | What to show |
 |---|---|---|
-| `Granted` | Newly owned. The record and receipt were written in one synchronous save mutation, and a save was requested. | Trophy reward |
-| `AlreadyOwned` | Owned from an earlier run or instance. Nothing changed. | Completion only ("trophy already in your collection") |
+| `Granted` | The trophy is newly owned. The stand was added too if missing (`StandGranted = true`). The record, stand and receipt were written in one synchronous save mutation, and a save was requested. | Trophy reward |
+| `AlreadyOwned` | The trophy was owned from an earlier run. Nothing changed, except that a missing stand is added (`StandGranted = true`). | Completion only |
 | `Duplicate` | This exact receipt was already settled, so this is a retry. Nothing changed. | Same as the first response |
-| `PendingRejoin` | Eligible but not loaded on this server. Granted if they load here again before shutdown. | Nothing to that player now |
-| `Ineligible` | `Reason` is `LowContribution` or `NotPresent`. | No trophy |
-| `Refused` | `Reason` is `RecordLimit` / `PendingFull` / `NotLoaded`. Not stored. | No trophy; log it |
+| `PendingRejoin` | Eligible and not loaded here. The intent is durably stored and applied on the player's next load on any server. | Nothing to that player now |
+| `Ineligible` | `Reason` is `LowContribution`, `NotPresent` or `EventIneligible`. | No trophy |
+| `Refused` | `Reason` is `RecordLimit`, `PendingFull`, `PendingWriteFailed` or `NotLoaded`. Not stored. | No trophy. Log it; `PendingWriteFailed` can be retried. |
 
 **Whole-request failures** (`Ok = false`, no mutation, empty `Results`):
 
@@ -188,11 +226,13 @@ These are programming errors on the caller's side. Log them; don't retry blindly
 | Function | Returns |
 |---|---|
 | `Owns(player, trophyId)` | `boolean?`, where `nil` means not loaded (unknown, not false) |
+| `OwnsStand(player)` | `boolean?`, same convention |
 | `GetTrophies(player)` | A copy of the player's trophies |
 | `GetCampLayout(player)` | A copy of the camp layout |
 | `GetTrophySlots(player)` | Number of trophy slots |
-| `HasPendingGrant(userId)` | Whether an offline grant is waiting |
+| `GetPendingGrants(userId)` | Reads the outbox; yields |
 | `SetEnabled(bool)` | Feature flag `Trophies` |
+| `SetReviewPreview(bool)` | Studio only; returns whether preview is on |
 | `TrophyGranted` / `CampChanged` | Signals for UI, analytics or quest hooks such as q_trophies |
 
 `SetEnabled(false)` blocks new grants and camp edits only. Earned trophies stay owned and
@@ -200,26 +240,34 @@ queries keep working.
 
 Clients cannot grant trophies:
 
-- No remote grants. The camp remotes accept only `(trophyId, x, z, rot)` and `(placementId)`.
-- They are rate-limited at 4 per second and act only on trophies the player already owns.
+- No remote grants a trophy or the stand. The camp remotes accept only
+  `(trophyId, x, z, rot)` and `(placementId)`.
+- They are rate-limited at 4 per second and act only on trophies the player already owns,
+  and only with the stand.
 - No asset ids, studs or CFrames are accepted.
 
 ## Camp display
 
+- **Stand required.** Production display requires owning `camp_trophy_stand`. Without it:
+  - Placement is refused with `NoStand`, and the player sees "You need Mara's trophy stand
+    first."
+  - The camp is hidden. The saved layout is kept, and it appears once the stand is owned.
+  - `SetReviewPreview(true)` bypasses the check, in Studio only. It grants nothing, and
+    turning it off hides the camp again.
 - **Grid and footprint.** Placements snap to a 2-stud grid (cells 0..11) on a 24×24 pad,
   with rotation 0/90/180/270. The stand's 2×2 footprint is one cell.
 - **Placement limits.** One display per owned trophy, 3 trophy slots and 32 placements in
   total. Out-of-bounds, fractional, NaN or infinite cells are rejected server-side.
-- **Removal keeps ownership.** `RemovePlacement` edits only `CampLayout`, so the trophy
-  stays owned, and placement ids are never reused.
+- **Removal keeps ownership.** `RemovePlacement` edits only `CampLayout`. The trophy and
+  stand stay owned, and placement ids are never reused.
 - **What gets built.** Each placement is a `TrophyStand` pivoted to the cell, with a
   `TrophyReplica` on its `TrophySlot`.
   - Every part is anchored and non-colliding; replica parts are also non-query and
-    non-touch. So a display can't block paths or digging.
+    non-touch.
   - The camp model carries `OwnerUserId`, `OwnerName` and `PadIndex` attributes.
 - **Pads.** Pads are borrowed, not saved. A loaded player with a non-empty layout gets the
-  lowest free pad. Leaving unloads the camp and frees the pad, and rejoining rebuilds it.
-  If no pad is free, the layout still saves; nothing is shown.
+  lowest free pad. Leaving unloads the camp and frees the pad. If no pad is free, the layout
+  still saves; nothing is shown.
 
 ## Shared-file wiring (apply after review)
 
@@ -231,88 +279,76 @@ against `afbb8a0`.
    them itself.
 2. `src/server/Main.server.luau`:
    - Require `Services.TrophyService`.
-   - Add it to `ordered` after `OfflineService`. It depends only on DataService.
+   - Add it to `ordered` after `OfflineService`. It depends only on DataService, whose
+     `Init` must run first; the existing order guarantees that.
    - Call `run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)` after
      the `Init` loop.
 3. `tests/run.sh`: add `luau tests/trophy-wired.spec.luau || status=1`.
 
-Not in the patch, and owned elsewhere:
+## Production gates (owner-listed, outside this slice)
 
-- **Map/World.** Place 16 `TrophyCampPad`-tagged anchored parts. The 24×24 area is centred
-  on the part's top surface, clear of transit and NPC pads. Alternatively, call
-  `TrophyService.SetCampPads({CFrame})`. With no pads, nothing renders.
-- **Config.** An optional `Trophies` flag that calls `SetEnabled`.
-- **Types.** Optional typed fields on `Types.PlayerData` (`TrophyRecords`, `CampLayout`,
-  `RewardReceipts`, all optional `?`).
-- **Client UI.** A camp edit UI and trophy collection view. Today the client can read the
-  replicated keys, but there is no UI.
+- **Camp display wiring.**
+  - Map/World: 16 `TrophyCampPad`-tagged anchored parts, or
+    `TrophyService.SetCampPads({CFrame})`. The 24×24 area is centred on the part's top
+    surface, clear of transit and NPC pads. With no pads, nothing renders.
+  - A client camp edit UI and trophy collection view. Today the client can read the
+    replicated keys, but there is no UI.
+- **Treasure and legacy trophies** (first-find and sale records, legacy Index replicas) and
+  camp furniture, banners and tier-2 slots.
+- **Optional shared changes.** A Config `Trophies` flag calling `SetEnabled`, and optional
+  typed fields on `Types.PlayerData`.
+- **Live persistence evidence.** Grant, leave, and rejoin on a different server, plus an
+  outbox recovery, on a private test place. See "Verification".
 
-## Open decisions for review (not invented here)
+## Release blocker status
 
-1. **Trophy stand entitlement.** The catalog lists `camp_trophy_stand` as a q_mara cosmetic
-   reward. This branch treats the stand as part of every trophy display, following the
-   asset handoff's "trophy display" stand + replica, and does not require stand ownership.
-   If the owner wants the stand gated, the quest owner needs to grant that cosmetic, and
-   `ValidatePlacement` needs one more check.
-2. **The `RewardReceipts` table is shared with future reward code.** This branch writes
-   only `trophy:`-prefixed keys with unix-number values, and prunes only those. If Codex
-   adds stage/coin receipts, use another prefix in the same table, or a separate field.
-   Never rewrite the `trophy:` keys.
-3. **Cross-server and shutdown exactly-once.** Online grants persist in the player's save.
-   `PendingRejoin` is in-memory: it survives a reconnect to the same server but not a
-   server shutdown or a rejoin on another server. Bible ch.04 says an in-memory set is not
-   sufficient for exactly-once. Closing that gap needs a persisted intent queue that writes
-   to an offline player's session-locked record, which is a DataService-level change.
-   Until then, settle while players are present, and hold disconnected slots for 90 s as
-   the bible specifies. Note that Codex's runtime currently marks a player who is
-   disconnected at completion `Eligible = false`, so through `OnCompletion` they get
-   nothing rather than `PendingRejoin`. Whether a disconnected contributor should still
-   earn the trophy is a design call for the owner and Codex. If yes, the runtime should
-   leave `Eligible` true for them, and the pending path will handle it.
-4. **Other trophy work is out of scope.** This branch does not do the following, which need
-   EconomyService/DiscoveryService changes:
-   - Treasure trophies: first-find records, records created at sale, legacy Index replicas.
-   - Camp furniture, banners, preview mode and tier-2 slots.
-   - The coin/cert_crew grants for event_vault, which belong to the adventure/quest owner.
+**Same-server-only recovery.** The code now addresses it: accepted pending grants are
+durable and are applied on any server, with exactly-once handling across a crash between
+save and acknowledgement. The evidence is mock only, including a second mock server sharing
+the store. The blocker should stay open until a private test place confirms the outbox and
+cross-server application against real DataStores.
 
 ## Verification: what is and isn't proven
 
 **Headless mock tests**, run on Windows with the repo's luau 0.640 toolchain. The
 in-memory DataStore is driven through the real DataService code.
 
-- `trophy.spec`: 227 checks.
-  - Migration of a representative v3 save, idempotence, and repair of malformed/hostile
-    fields.
-  - Receipt bounds and the eligibility rule.
-  - Solo, crew, late-helper and spectator outcomes.
-  - Repeat, retry, second-instance and reward-version duplicates.
-  - Rejected inputs changing nothing, and the feature flag.
-  - Leave/rejoin persistence, plus an offline-eligible player getting the grant on rejoin.
-  - Placement bounds/rotation/ownership/duplicates and display geometry and collision flags.
-  - Pad allocation and release, removal without ownership loss across save/rejoin, and
-    rebirth keys.
-  - A store outage at settlement followed by a successful leave save.
-  - The adventure CompletionContext mapping and its Eligible veto.
-- **Mutation check.** Disabling the points threshold, the ownership guard, the receipt
-  guard, the bounds check, the immediate save, or ownership preservation in migration each
-  fails the spec.
-- **Wired check.** With the patch applied in a scratch copy, `trophy-wired.spec` (17), the
-  smoke tests (live and Studio-mode), `client.spec` and `trophy.spec` all passed. That run
-  covers booting Main with the service wired, the remotes driven as a client, a real
-  rebirth, and leave/rejoin.
-- **Full suite on this branch** (no patch): util 8, trophy 227, smoke 2,199, Studio-mode
-  smoke 2,166, persistence boot (both modes) and client 1,464 all passed. StyLua is clean
-  on the new files. The strict luau-lsp check shows only the two existing
-  deprecated-API warnings. The Rojo build succeeds.
+- `trophy.spec`: 259 checks (261 with the patch applied). Beyond the original coverage (migration, eligibility,
+  duplicates, rejected inputs, flag, placement bounds and geometry, pads, removal across
+  save/rejoin, rebirth keys, store outage, runtime-context mapping), it adds:
+  - The stand granted with the first trophy, sharing its receipt.
+  - A missing stand added on the next completion.
+  - A camp hidden and placement refused without the stand.
+  - The review preview refused on a live server, working in Studio, and granting nothing.
+  - An outbox write before `PendingRejoin`, and write failure reported as
+    `PendingWriteFailed`, then a successful retry.
+  - The outbox bound.
+  - Acknowledgement only after the save.
+  - A crash between save and acknowledgement re-applying as a `Duplicate`, with a corrupt
+    entry dropped.
+  - A grant queued on server A and applied, saved and acknowledged on a fresh second mock
+    server.
+- **Mutation check.**
+  - Original guards: disabling the points threshold, ownership guard, receipt guard, bounds
+    check, immediate save, or migration ownership preservation each fails the spec.
+  - New guards: removing the stand placement check, the stand grant, the display gate, or
+    reporting pending without a successful write each fails it too.
+- **Wired check.** With the patch applied, `trophy-wired.spec` (18), `trophy.spec`, the smoke
+  test and `client.spec` all pass. That run covers booting Main with the service wired, the
+  remotes driven as a client, a real rebirth, and leave/rejoin.
+- **Full suite on this branch** (no patch): util 8, trophy 259, smoke 2,199, Studio-mode
+  smoke 2,166, persistence boot (both modes) and client 1,464 all pass.
+  - StyLua is clean on the new files.
+  - The strict luau-lsp check shows only the two existing deprecated-API warnings.
+  - The Rojo build succeeds.
 
 **Not verified:**
 
-- Live Roblox DataStore persistence, cross-server rejoin, a real shutdown mid-settlement,
-  real multiplayer and the display in Studio lighting were not tested.
+- Live Roblox DataStore persistence, real cross-server rejoin, the real outbox store, a real
+  shutdown mid-settlement, real multiplayer and the display in Studio lighting were not
+  tested.
 - Studio API access was deliberately not enabled, because it would write to the live
   experience's save store.
-- Live persistence remains unproven until a private test place runs the save/leave/rejoin
-  on another server (see `docs/TEST_EXPERIENCE_PROPOSAL.md`).
 
 Run locally (Windows, with the toolchain in the main checkout's `.tools/`):
 `ROBLOX_DEFS=.tools/globalTypes.d.luau python -X utf8 tests/tools/bundle.py`, then

@@ -150,9 +150,43 @@ local function stored(userId)
 end
 local function nonTrophyFields(data)
 	local copy = deepCopy(data)
-	copy.TrophyRecords, copy.CampLayout, copy.RewardReceipts = nil, nil, nil
+	copy.TrophyRecords, copy.CampLayout, copy.RewardReceipts, copy.Cosmetics = nil, nil, nil, nil
 	copy.LastOnline, copy.PlayTime = nil, nil -- other services' bookkeeping, not ours
 	return copy
+end
+-- Settlement may yield (durable outbox writes), so run it in a mock thread and advance the
+-- virtual clock until it returns.
+local function inThread(fn, ...)
+	local args = table.pack(...)
+	local out = nil
+	local done = false
+	Mock.Env.task.spawn(function()
+		out = table.pack(fn(table.unpack(args, 1, args.n)))
+		done = true
+	end)
+	for _ = 1, 120 do
+		if done then
+			break
+		end
+		Mock.Advance(0.25)
+	end
+	assert(done, "settlement did not finish")
+	return table.unpack(out, 1, out.n)
+end
+local function settle(r)
+	return inThread(TrophyService.SettleAdventureCompletion, r)
+end
+local function settleContext(c)
+	return inThread(TrophyService.SettleCompletionContext, c)
+end
+local function onCompletion(c)
+	return inThread(TrophyService.OnCompletion, c)
+end
+local PENDING = "TrophyPendingGrants_v1"
+local function pendingCount(userId)
+	local store = Mock.DataStores[PENDING]
+	local record = store and store["Pending_" .. userId]
+	return if record then count(record.Grants) else 0
 end
 
 DataService.Init()
@@ -171,8 +205,9 @@ step("legacy save gains fields, keeps everything else, invents nothing", functio
 	)
 	check(deepEqual(save.CampLayout, { Placements = {}, NextId = 1 }), "empty camp layout")
 	check(type(save.RewardReceipts) == "table" and next(save.RewardReceipts) == nil, "empty receipts")
+	check(type(save.Cosmetics) == "table" and next(save.Cosmetics) == nil, "no stand invented")
 	local after = deepCopy(save)
-	after.TrophyRecords, after.CampLayout, after.RewardReceipts = nil, nil, nil
+	after.TrophyRecords, after.CampLayout, after.RewardReceipts, after.Cosmetics = nil, nil, nil, nil
 	check(deepEqual(after, before), "every pre-existing field is byte-for-byte unchanged")
 	local once = deepCopy(save)
 	check(Rules.Migrate(save, NOW) == false, "second migration reports no change")
@@ -279,9 +314,13 @@ section("completion settlement")
 local before
 step("solo completion grants once and saves", function()
 	before = nonTrophyFields(DataService.Get(alice))
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:1", { participant(A, 0, 40, 1, true) }))
+	local report = settle(result("srv-1:1", { participant(A, 0, 40, 1, true) }))
 	check(report.Ok == true and report.Error == nil, "accepted")
 	check(report.ByUserId[A].Status == "Granted", "solo player granted")
+	check(report.ByUserId[A].StandGranted == true, "first completion grants Mara's stand too")
+	check(TrophyService.OwnsStand(alice) == true, "stand owned")
+	local stand = DataService.Get(alice).Cosmetics.camp_trophy_stand
+	check(stand.ReceiptId == Rules.ReceiptId("srv-1:1", A, 1), "stand carries the same receipt")
 	check(TrophyService.Owns(alice, TROPHY) == true, "now owned")
 	local rec = TrophyService.GetTrophies(alice)[TROPHY]
 	check(rec.Source == "event_vault" and rec.Kind == "Landmark" and rec.Legacy == false, "record context")
@@ -294,17 +333,16 @@ step("solo completion grants once and saves", function()
 		"settlement written to the store promptly (not waiting for autosave)"
 	)
 	check(saved and saved.RewardReceipts[rec.ReceiptId] ~= nil, "receipt persisted with the record")
+	check(saved and saved.Cosmetics.camp_trophy_stand ~= nil, "stand persisted with the record")
 end)
 
 step("repeat / retry / second run never grants twice", function()
 	local first = TrophyService.GetTrophies(alice)[TROPHY]
-	local again = TrophyService.SettleAdventureCompletion(result("srv-1:1", { participant(A, 0, 40, 1, true) }))
+	local again = settle(result("srv-1:1", { participant(A, 0, 40, 1, true) }))
 	check(again.Ok and again.ByUserId[A].Status == "Duplicate", "same instance retry -> Duplicate")
-	local other = TrophyService.SettleAdventureCompletion(result("srv-1:2", { participant(A, 0, 40, 1, true) }))
+	local other = settle(result("srv-1:2", { participant(A, 0, 40, 1, true) }))
 	check(other.Ok and other.ByUserId[A].Status == "AlreadyOwned", "later run -> AlreadyOwned")
-	local v2 = TrophyService.SettleAdventureCompletion(
-		result("srv-1:1", { participant(A, 0, 40, 1, true) }, { RewardVersion = 2 })
-	)
+	local v2 = settle(result("srv-1:1", { participant(A, 0, 40, 1, true) }, { RewardVersion = 2 }))
 	check(v2.ByUserId[A].Status == "AlreadyOwned", "new reward version still cannot regrant")
 	check(deepEqual(TrophyService.GetTrophies(alice)[TROPHY], first), "original record untouched")
 	check(count(TrophyService.GetTrophies(alice)) == 1, "exactly one record")
@@ -316,7 +354,7 @@ step("crew: only eligible contributors are granted", function()
 	bob = join(B, "Bob")
 	cara = join(C, "Cara")
 	dan = join(D, "Dan")
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:3", {
+	local report = settle(result("srv-1:3", {
 		participant(B, 12, 90, 1, true), -- contributor
 		participant(C, 2, 200, 0, true), -- spectator-ish: too few points
 		participant(D, 5, 35, 0, false), -- late helper, active 35 s
@@ -355,7 +393,7 @@ step("invalid results change nothing", function()
 	end
 	table.insert(cases, { "BadParticipants", result("x:1", many) })
 	for _, case in cases do
-		local report = TrophyService.SettleAdventureCompletion(case[2])
+		local report = settle(case[2])
 		check(
 			report.Ok == false and report.Error == case[1],
 			"rejected as " .. case[1] .. " (got " .. tostring(report.Error) .. ")"
@@ -363,12 +401,12 @@ step("invalid results change nothing", function()
 		check(#report.Results == 0, case[1] .. ": no per-player results")
 	end
 	check(deepEqual(DataService.Get(cara), snapshot), "rejected settlements changed nothing")
-	check(not TrophyService.HasPendingGrant(20001), "rejected settlement queued nothing")
+	check(pendingCount(20001) == 0, "rejected settlement queued nothing")
 end)
 
 step("feature flag off blocks new grants only", function()
 	TrophyService.SetEnabled(false)
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:4", { participant(C, 50, 100, 2, true) }))
+	local report = settle(result("srv-1:4", { participant(C, 50, 100, 2, true) }))
 	check(report.Ok == false and report.Error == "Disabled", "disabled settlement refused")
 	check(TrophyService.Owns(alice, TROPHY) == true, "earned trophy still owned while disabled")
 	TrophyService.SetEnabled(true)
@@ -410,7 +448,7 @@ step("maps the runtime context and honours its Eligible veto", function()
 	gus = join(9107, "Gus")
 	hal = join(9108, "Hal")
 	local all = { "vault_anchor_1", "latch", "gate_1" }
-	local report = TrophyService.SettleCompletionContext(context("ctx:1", {
+	local report = settleContext(context("ctx:1", {
 		ctxP(9107, 14, true, 120, all),
 		ctxP(9108, 14, false, 120, all), -- the runtime vetoed (e.g. disconnected at completion)
 	}))
@@ -421,34 +459,25 @@ step("maps the runtime context and honours its Eligible veto", function()
 		"runtime veto respected"
 	)
 	check(TrophyService.Owns(hal, TROPHY) == false, "vetoed player owns nothing")
-	local ok, message = TrophyService.OnCompletion(context("ctx:1", { ctxP(9107, 14, true, 120, all) }))
+	local ok, message = onCompletion(context("ctx:1", { ctxP(9107, 14, true, 120, all) }))
 	check(ok == true and type(message) == "string", "OnCompletion drop-in returns (true, message)")
 	check(
-		TrophyService.SettleCompletionContext(context("ctx:1", { ctxP(9107, 14, true, 120, all) })).ByUserId[9107].Status
-			== "Duplicate",
+		settleContext(context("ctx:1", { ctxP(9107, 14, true, 120, all) })).ByUserId[9107].Status == "Duplicate",
 		"runtime retry is a Duplicate"
 	)
 end)
 step("context: solo, failure and malformed", function()
-	local solo =
-		TrophyService.SettleCompletionContext(context("ctx:2", { ctxP(9108, 3, true, 20, { "vault_anchor_1" }) }))
+	local solo = settleContext(context("ctx:2", { ctxP(9108, 3, true, 20, { "vault_anchor_1" }) }))
 	check(solo.ByUserId[9108].Status == "Granted", "solo with an objective and points granted")
-	local failed = TrophyService.SettleCompletionContext(
-		context("ctx:3", { ctxP(9107, 14, true, 120, { "x" }) }, { Success = false })
-	)
+	local failed = settleContext(context("ctx:3", { ctxP(9107, 14, true, 120, { "x" }) }, { Success = false }))
 	check(failed.Ok == false and failed.Error == "NotCompleted", "unsuccessful context refused")
-	local ok, message = TrophyService.OnCompletion(
-		context("ctx:4", { ctxP(9107, 14, true, 120, { "x" }) }, { LandmarkId = "landmark_other" })
-	)
+	local ok, message =
+		onCompletion(context("ctx:4", { ctxP(9107, 14, true, 120, { "x" }) }, { LandmarkId = "landmark_other" }))
 	check(ok == false and type(message) == "string", "OnCompletion reports refusal as (false, message)")
+	check(settleContext({ Participants = "no" }).Error == "Malformed", "malformed context refused")
 	check(
-		TrophyService.SettleCompletionContext({ Participants = "no" }).Error == "Malformed",
-		"malformed context refused"
-	)
-	check(
-		TrophyService.SettleCompletionContext(
-			context("ctx:5", { { UserId = 1, Points = 9, Eligible = true, ActiveSeconds = 50 } })
-		).Error == "BadParticipants",
+		settleContext(context("ctx:5", { { UserId = 1, Points = 9, Eligible = true, ActiveSeconds = 50 } })).Error
+			== "BadParticipants",
 		"participant without ObjectiveIds refused"
 	)
 	leave(gus)
@@ -462,35 +491,75 @@ step("granted trophy survives leave and rejoin (mock store)", function()
 	check(stored(B).TrophyRecords[TROPHY] ~= nil, "saved on leave")
 	bob = join(B, "Bob")
 	check(TrophyService.Owns(bob, TROPHY) == true, "owned after rejoin")
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:3", { participant(B, 12, 90, 1, true) }))
+	local report = settle(result("srv-1:3", { participant(B, 12, 90, 1, true) }))
 	check(report.ByUserId[B].Status == "Duplicate", "post-rejoin retry of the same instance is a Duplicate")
 end)
 
-step("eligible player who disconnected before settlement gets it on rejoin here", function()
+step("accepted grant for a player not loaded here is durable before it is reported", function()
 	leave(cara)
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
-	check(report.ByUserId[C].Status == "PendingRejoin", "offline eligible -> PendingRejoin")
-	check(TrophyService.HasPendingGrant(C), "pending queued")
-	local retry = TrophyService.SettleAdventureCompletion(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
-	check(
-		retry.ByUserId[C].Status == "PendingRejoin" and TrophyService.HasPendingGrant(C),
-		"retry does not double-queue"
-	)
-	check(stored(C).TrophyRecords == nil or stored(C).TrophyRecords[TROPHY] == nil, "nothing written while offline")
+	local report = settle(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
+	check(report.ByUserId[C].Status == "PendingRejoin", "not loaded -> PendingRejoin")
+	check(pendingCount(C) == 1, "intent is in the durable outbox store")
+	local retry = settle(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
+	check(retry.ByUserId[C].Status == "PendingRejoin" and pendingCount(C) == 1, "retry does not double-queue")
+	check(stored(C).TrophyRecords == nil or stored(C).TrophyRecords[TROPHY] == nil, "save untouched while offline")
 	cara = join(C, "Cara")
-	check(TrophyService.Owns(cara, TROPHY) == true, "pending grant applied on load")
-	check(not TrophyService.HasPendingGrant(C), "pending cleared")
-	local dup = TrophyService.SettleAdventureCompletion(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
-	check(dup.ByUserId[C].Status == "Duplicate", "retry after rejoin is a Duplicate")
 	Mock.Advance(1)
-	check(stored(C).TrophyRecords[TROPHY] ~= nil, "applied pending grant saved")
+	check(TrophyService.Owns(cara, TROPHY) == true and TrophyService.OwnsStand(cara) == true, "applied on load")
+	check(stored(C).TrophyRecords[TROPHY] ~= nil, "applied grant saved")
+	check(pendingCount(C) == 0, "outbox acknowledged only after the save")
+	local dup = settle(result("srv-1:5", { participant(C, 9, 60, 1, true) }))
+	check(dup.ByUserId[C].Status == "Duplicate", "retry after rejoin is a Duplicate")
+end)
+
+step("outbox write failure is reported, never claimed as pending", function()
+	Mock.DataStoreFail = true
+	local report = settle(result("srv-1:8", { participant(9301, 9, 60, 1, true) }))
+	Mock.DataStoreFail = false
+	check(report.Ok and report.ByUserId[9301].Status == "Refused", "refused while the store is down")
+	check(report.ByUserId[9301].Reason == "PendingWriteFailed", "reason given")
+	check(pendingCount(9301) == 0, "nothing queued")
+	local retry = settle(result("srv-1:8", { participant(9301, 9, 60, 1, true) }))
+	check(retry.ByUserId[9301].Status == "PendingRejoin" and pendingCount(9301) == 1, "caller retry succeeds")
+end)
+
+step("outbox is bounded per player", function()
+	local statuses = {}
+	for i = 1, 9 do
+		local r = settle(result("bound:" .. i, { participant(9303, 9, 60, 1, true) }))
+		table.insert(statuses, r.ByUserId[9303].Status .. "/" .. tostring(r.ByUserId[9303].Reason))
+	end
+	check(pendingCount(9303) == 8, "8 intents kept")
+	check(statuses[9] == "Refused/PendingFull", "9th refused (got " .. statuses[9] .. ")")
+end)
+
+step("crash after save but before acknowledge re-applies as a Duplicate", function()
+	local ivy = join(9302, "Ivy")
+	settle(result("srv-2:1", { participant(9302, 9, 60, 1, true) }))
+	local first = TrophyService.GetTrophies(ivy)[TROPHY]
+	leave(ivy)
+	-- the state a crash leaves behind: grant already saved, outbox entry still present
+	Mock.DataStores[PENDING]["Pending_9302"] = {
+		Grants = {
+			[Rules.ReceiptId("srv-2:1", 9302, 1)] = {
+				TrophyId = TROPHY,
+				Source = "event_vault",
+				RegionId = "sunshine_shore",
+				At = 5,
+			},
+			["trophy:junk"] = "corrupt",
+		},
+	}
+	ivy = join(9302, "Ivy")
+	Mock.Advance(1)
+	check(deepEqual(TrophyService.GetTrophies(ivy)[TROPHY], first), "no second grant, record unchanged")
+	check(pendingCount(9302) == 0, "stale and corrupt entries acknowledged")
+	leave(ivy)
 end)
 
 step("ineligible offline player is never queued", function()
-	local report = TrophyService.SettleAdventureCompletion(
-		result("srv-1:6", { participant(31337, 1, 1, 0, false), participant(A, 9, 60, 1, true) })
-	)
-	check(report.ByUserId[31337].Status == "Ineligible" and not TrophyService.HasPendingGrant(31337), "not queued")
+	local report = settle(result("srv-1:6", { participant(31337, 1, 1, 0, false), participant(A, 9, 60, 1, true) }))
+	check(report.ByUserId[31337].Status == "Ineligible" and pendingCount(31337) == 0, "not queued")
 end)
 
 -- Client cannot grant -----------------------------------------------------------------------
@@ -672,7 +741,10 @@ end)
 section("existing systems")
 step("rebirth reset list does not include trophy fields", function()
 	for _, key in Config.Rebirths.Resets do
-		check(key ~= "TrophyRecords" and key ~= "CampLayout" and key ~= "RewardReceipts", "rebirth keeps " .. key)
+		check(
+			key ~= "TrophyRecords" and key ~= "CampLayout" and key ~= "RewardReceipts" and key ~= "Cosmetics",
+			"rebirth keeps " .. key
+		)
 	end
 end)
 step("catalog: trophy has no sale value and one source", function()
@@ -684,7 +756,7 @@ step("save interrupted mid-settlement does not half-apply", function()
 	-- A failing store must not lose the in-session grant, and the next save must carry it.
 	local frank = join(9106, "Frank")
 	Mock.DataStoreFail = true
-	local report = TrophyService.SettleAdventureCompletion(result("srv-1:7", { participant(9106, 9, 60, 1, true) }))
+	local report = settle(result("srv-1:7", { participant(9106, 9, 60, 1, true) }))
 	check(report.ByUserId[9106].Status == "Granted", "granted in session")
 	Mock.Advance(40) -- immediate save retries fail
 	check(
@@ -702,10 +774,97 @@ step("save interrupted mid-settlement does not half-apply", function()
 	)
 end)
 
+-- Mara's trophy stand ------------------------------------------------------------------------
+section("trophy stand requirement")
+TrophyService.SetCampPads({
+	pads[1],
+	pads[2],
+	CFrame.new(1080, Config.SURFACE_Y, 1000),
+	CFrame.new(1120, Config.SURFACE_Y, 1000),
+})
+local function seedTrophyWithoutStand(userId)
+	local save = legacySave()
+	save.TrophyRecords = {
+		[TROPHY] = {
+			Kind = "Landmark",
+			Source = "event_vault",
+			RegionId = "sunshine_shore",
+			AcquiredAt = 1,
+			ReceiptId = "trophy:old:" .. userId .. ":final:v1",
+			Legacy = false,
+			ContentVersion = 1,
+		},
+	}
+	save.CampLayout = { NextId = 2, Placements = { { Id = 1, TrophyId = TROPHY, X = 2, Z = 2, Rot = 0 } } }
+	Mock.DataStores[STORE]["Player_" .. userId] = { Data = save, SavedAt = NOW }
+end
+step("no stand: layout kept but not displayed, no new placements", function()
+	seedTrophyWithoutStand(9304)
+	local jo = join(9304, "Jo")
+	check(TrophyService.OwnsStand(jo) == false, "no stand")
+	check(Display.GetPad(jo) == nil, "camp not displayed without the stand")
+	check(#TrophyService.GetCampLayout(jo).Placements == 1, "saved layout kept")
+	TrophyService.RemovePlacement(jo, 1)
+	local ok, why = TrophyService.PlaceTrophy(jo, { TrophyId = TROPHY, X = 3, Z = 3, Rot = 0 })
+	check(not ok and why == "NoStand", "placement refused without the stand")
+	local report = settle(result("srv-3:1", { participant(9304, 9, 60, 1, true) }))
+	check(
+		report.ByUserId[9304].Status == "AlreadyOwned" and report.ByUserId[9304].StandGranted == true,
+		"next completion adds the missing stand"
+	)
+	local ok2 = TrophyService.PlaceTrophy(jo, { TrophyId = TROPHY, X = 3, Z = 3, Rot = 0 })
+	check(ok2 == true and Display.GetPad(jo) ~= nil, "displayed once the stand is owned")
+	leave(jo)
+end)
+step("review preview bypass is Studio-only", function()
+	seedTrophyWithoutStand(9305)
+	local kim = join(9305, "Kim")
+	check(TrophyService.SetReviewPreview(true) == false, "refused on a live server")
+	check(Display.GetPad(kim) == nil, "still hidden")
+	Mock.IsStudio = true
+	check(TrophyService.SetReviewPreview(true) == true, "allowed in Studio")
+	check(Display.GetPad(kim) ~= nil, "preview shows the camp without a stand")
+	TrophyService.RemovePlacement(kim, 1)
+	local placed = TrophyService.PlaceTrophy(kim, { TrophyId = TROPHY, X = 5, Z = 5, Rot = 90 })
+	check(placed == true, "preview allows placement")
+	TrophyService.SetReviewPreview(false)
+	Mock.IsStudio = false
+	check(Display.GetPad(kim) == nil, "preview off hides it again")
+	check(
+		#TrophyService.GetCampLayout(kim).Placements == 1 and TrophyService.OwnsStand(kim) == false,
+		"preview granted nothing"
+	)
+	leave(kim)
+end)
+
 check(#Mock.Errors == 0, "no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))
 end
+
+-- Server B ------------------------------------------------------------------------------------
+-- A fresh mock game with fresh module instances, sharing only Mock.DataStores: the player
+-- was never on server A, whose in-memory state plays no part in the recovery.
+section("cross-server recovery (second mock server)")
+step("pending grant from server A is applied when the player loads on server B", function()
+	local report = settle(result("srv-A:9", { participant(9310, 9, 60, 1, true) }))
+	check(report.ByUserId[9310].Status == "PendingRejoin", "queued on server A")
+	Mock.Init(Generated)
+	local byB = Mock.ByPath
+	local DataB = Mock.Require(byB[P .. "DataService"])
+	local TrophyB = Mock.Require(byB[P .. "TrophyService"])
+	check(TrophyB ~= TrophyService, "server B has its own module instances")
+	DataB.Init()
+	TrophyB.Init()
+	local lee = Mock.AddPlayer(9310, "Lee")
+	DataB.OnPlayerAdded(lee)
+	TrophyB.OnPlayerAdded(lee)
+	Mock.Advance(2)
+	check(TrophyB.Owns(lee, TROPHY) == true and TrophyB.OwnsStand(lee) == true, "granted on server B")
+	check(pendingCount(9310) == 0, "outbox acknowledged on server B")
+	check(stored(9310).TrophyRecords[TROPHY] ~= nil, "saved by server B")
+	check(#Mock.Errors == 0, "server B: no uncaught errors")
+end)
 
 print(string.format("TROPHY SPEC: %d passed, %d failed", passes, failures))
 if failures > 0 then

@@ -19,19 +19,24 @@
 		}) -> SettlementReport
 
 	Idempotency: each grant carries ReceiptId = Rules.ReceiptId(InstanceId, UserId,
-	RewardVersion), written in the same synchronous save mutation as the TrophyRecords entry.
-	Ownership itself is the permanent first-clear flag, so a repeat, retry, a second instance
-	or a pruned receipt can never grant twice. Eligible players who are not loaded on this server
-	(disconnected / rejoining) get a bounded in-memory pending grant that is applied when they
-	load on THIS server; it does not survive a server shutdown (documented limitation).
+	RewardVersion), written in the same synchronous save mutation as the TrophyRecords entry and
+	Mara's trophy stand (Cosmetics.camp_trophy_stand): the first eligible completion grants both
+	together. Ownership itself is the permanent first-clear flag, so a repeat, retry, a second
+	instance or a pruned receipt can never grant twice.
 
-	Ownership queries: Owns, GetTrophies, GetCampLayout, GetTrophySlots.
-	Camp: PlaceTrophy(player, request), RemovePlacement(player, placementId). Removing a display
-	only edits CampLayout; TrophyRecords are never touched by camp code.
+	Eligible players whose data is not loaded on this server are written to the durable outbox
+	(TrophyPendingStore) BEFORE "PendingRejoin" is reported, and applied on their next load on
+	any server. Settlement yields only for those outbox writes.
+
+	Ownership queries: Owns, OwnsStand, GetTrophies, GetCampLayout, GetTrophySlots.
+	Camp: PlaceTrophy(player, request), RemovePlacement(player, placementId). Production display
+	requires the stand; SetReviewPreview(true) (Studio only) bypasses that for review. Removing a
+	display only edits CampLayout; TrophyRecords are never touched by camp code.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
 local Catalog = require(Shared.Trophies.Catalog)
@@ -39,21 +44,24 @@ local Rules = require(Shared.Trophies.Rules)
 local Signal = require(Shared.Util.Signal)
 local TableUtil = require(Shared.Util.TableUtil)
 
+local DataService = require(script.Parent.DataService)
 local TrophyData = require(script.Parent.TrophyData)
 local Display = require(script.Parent.TrophyCampDisplay)
+local Pending = require(script.Parent.TrophyPendingStore)
 
 export type GrantStatus =
-	"Granted" -- newly owned, saved with this settlement's receipt
-	| "AlreadyOwned" -- owned before (earlier run / earlier instance); nothing changed
+	"Granted" -- trophy newly owned (plus the stand if missing), saved with this receipt
+	| "AlreadyOwned" -- trophy owned before; nothing changed except a missing stand (StandGranted)
 	| "Duplicate" -- this exact receipt was already settled; nothing changed
-	| "PendingRejoin" -- eligible but not loaded here; applied if they load on this server
+	| "PendingRejoin" -- eligible, not loaded here; durably queued for their next load anywhere
 	| "Ineligible" -- did not meet the contribution rule (Reason says why)
-	| "Refused" -- could not be stored (Reason: "RecordLimit" / "PendingFull")
+	| "Refused" -- not stored (Reason: RecordLimit / PendingFull / PendingWriteFailed / NotLoaded)
 
 export type PlayerResult = {
 	UserId: number,
 	Status: GrantStatus,
 	Reason: string?,
+	StandGranted: boolean?, -- true when this settlement added Mara's trophy stand
 }
 
 export type SettlementReport = {
@@ -71,103 +79,131 @@ type Grant = {
 	Source: string,
 	RegionId: string,
 	ReceiptId: string,
+	At: number,
 }
 
 local TrophyService = {}
 
--- (player, trophyId, record) after a grant is applied to the live save
+-- (player, trophyId, record) after a trophy grant is applied to the live save
 TrophyService.TrophyGranted = Signal.new() :: Signal.Signal<Player, string, { [string]: any }>
 -- (player, layout) after a placement or removal
 TrophyService.CampChanged = Signal.new() :: Signal.Signal<Player, Rules.CampLayout>
 
-local MAX_PENDING_USERS = 64
-local MAX_PENDING_PER_USER = 8
-
 local enabled = true
-local pending: { [number]: { Grant } } = {}
-local pendingUsers = 0
+local reviewPreview = false
+local draining: { [number]: boolean } = {}
+
+-- Camp display ----------------------------------------------------------------------------------
+
+local function refreshDisplay(player: Player)
+	local data = TrophyData.Get(player)
+	if not data then
+		return
+	end
+	if Rules.HasStand(data) or reviewPreview then
+		Display.Show(player, data.CampLayout)
+	else
+		Display.Hide(player) -- layout is kept; it shows once the stand is owned
+	end
+end
 
 -- Grants --------------------------------------------------------------------------------------
 
--- Applies one grant to a loaded player's save. Synchronous; never yields.
-local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?)
+-- Applies one grant (trophy + stand) to a loaded player's save. Synchronous; never yields.
+local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?, boolean)
 	local status: GrantStatus = "Refused"
 	local reason: string? = nil
 	local record: { [string]: any }? = nil
+	local standGranted = false
 	local ok = TrophyData.Mutate(player, function(data)
 		local records = data.TrophyRecords :: { [string]: any }
 		local receipts = data.RewardReceipts :: { [string]: any }
+		local cosmetics = data.Cosmetics :: { [string]: any }
 		if receipts[grant.ReceiptId] ~= nil then
 			status = "Duplicate"
 			return
 		end
-		if records[grant.TrophyId] ~= nil then
+		local hadTrophy = records[grant.TrophyId] ~= nil
+		local hadStand = cosmetics[Rules.STAND_ID] ~= nil
+		if hadTrophy and hadStand then
 			status = "AlreadyOwned"
 			return
 		end
-		if TableUtil.Count(records) >= Rules.MAX_TROPHY_RECORDS then
+		if not hadTrophy and TableUtil.Count(records) >= Rules.MAX_TROPHY_RECORDS then
 			status, reason = "Refused", "RecordLimit"
 			return
 		end
+		if not hadTrophy then
+			local new = {
+				Kind = "Landmark",
+				Source = grant.Source,
+				RegionId = grant.RegionId,
+				AcquiredAt = grant.At,
+				ReceiptId = grant.ReceiptId,
+				Legacy = false,
+				ContentVersion = Rules.CONTENT_VERSION,
+			}
+			records[grant.TrophyId] = new
+			record = new
+		end
+		if not hadStand then
+			cosmetics[Rules.STAND_ID] = {
+				Kind = "CampFurniture",
+				Source = grant.Source,
+				AcquiredAt = grant.At,
+				ReceiptId = grant.ReceiptId,
+			}
+			standGranted = true
+		end
 		local now = os.time()
-		local new = {
-			Kind = "Landmark",
-			Source = grant.Source,
-			RegionId = grant.RegionId,
-			AcquiredAt = now,
-			ReceiptId = grant.ReceiptId,
-			Legacy = false,
-			ContentVersion = Rules.CONTENT_VERSION,
-		}
-		records[grant.TrophyId] = new
 		receipts[grant.ReceiptId] = now
 		Rules.PruneReceipts(receipts, now)
-		record = new
-		status = "Granted"
+		status = if hadTrophy then "AlreadyOwned" else "Granted"
 	end)
 	if not ok then
-		return "Refused", "NotLoaded"
+		return "Refused", "NotLoaded", false
 	end
-	if status == "Granted" then
+	if record or standGranted then
 		TrophyData.RequestSave(player)
+	end
+	if standGranted then
+		refreshDisplay(player)
+	end
+	if record then
 		TrophyService.TrophyGranted:Fire(player, grant.TrophyId, TableUtil.DeepCopy(record :: any))
 	end
-	return status, reason
+	return status, reason, standGranted
 end
 
-local function queuePending(userId: number, grant: Grant): (GrantStatus, string?)
-	local list = pending[userId]
-	if list then
-		for _, g in list do
-			if g.ReceiptId == grant.ReceiptId or g.TrophyId == grant.TrophyId then
-				return "PendingRejoin", nil
-			end
-		end
-		if #list >= MAX_PENDING_PER_USER then
-			return "Refused", "PendingFull"
-		end
-	else
-		if pendingUsers >= MAX_PENDING_USERS then
-			return "Refused", "PendingFull"
-		end
-		list = {}
-		pending[userId] = list
-		pendingUsers += 1
-	end
-	table.insert(list :: { Grant }, grant)
-	return "PendingRejoin", nil
-end
-
-local function applyPending(player: Player)
-	local list = pending[player.UserId]
-	if not list or TrophyData.Get(player) == nil then
+-- Applies the player's durable pending grants, saves, then acknowledges them. Yields.
+local function drainPending(player: Player)
+	local userId = player.UserId
+	if draining[userId] or not Pending.IsAvailable() then
 		return
 	end
-	pending[player.UserId] = nil
-	pendingUsers -= 1
-	for _, grant in list do
-		applyGrant(player, grant)
+	draining[userId] = true
+	local grants = Pending.Read(userId)
+	if grants and next(grants) ~= nil and TrophyData.Get(player) ~= nil then
+		local applied: { string } = {}
+		for receiptId, g in grants do
+			local status = applyGrant(player, {
+				TrophyId = g.TrophyId,
+				Source = g.Source,
+				RegionId = g.RegionId,
+				ReceiptId = receiptId,
+				At = g.At,
+			})
+			if status ~= "Refused" then
+				table.insert(applied, receiptId)
+			end
+		end
+		-- Acknowledge only once the save holding them is written; otherwise the next load
+		-- re-applies them as Duplicates and acknowledges then.
+		if #applied > 0 and DataService.SaveAsync(player) then
+			Pending.Ack(userId, applied)
+		end
 	end
+	draining[userId] = nil
 end
 
 local function fail(err: string, result: any?): SettlementReport
@@ -184,9 +220,11 @@ local function fail(err: string, result: any?): SettlementReport
 end
 
 --[[
-	Settles the permanent trophy for a validated, completed adventure. Server-only; call after
-	the event has frozen scoring and snapshotted contributions. Safe to call again with the
-	same arguments (retry): already-applied grants report "Duplicate". Never yields.
+	Settles the permanent trophy (and Mara's stand) for a validated, completed adventure.
+	Server-only; call after the event has frozen scoring and snapshotted contributions. Safe to
+	call again with the same arguments (retry): already-applied grants report "Duplicate".
+	Loaded players are settled synchronously first; it then yields only to durably queue
+	eligible players whose data is not loaded here.
 ]]
 function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
 	if not enabled then
@@ -238,6 +276,8 @@ function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
 		Results = {},
 		ByUserId = {},
 	}
+	local now = os.time()
+	local offline: { { Entry: PlayerResult, Grant: Grant } } = {}
 	for i = 1, #participants do
 		local p = participants[i] :: Rules.Participant
 		local entry: PlayerResult
@@ -250,18 +290,40 @@ function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
 				Source = eventId,
 				RegionId = trophyDef.RegionId,
 				ReceiptId = Rules.ReceiptId(instanceId, p.UserId, rewardVersion),
+				At = now,
 			}
 			local player = Players:GetPlayerByUserId(p.UserId)
-			local status: GrantStatus, reason: string?
 			if player and TrophyData.Get(player) ~= nil then
-				status, reason = applyGrant(player, grant)
+				local status: GrantStatus, reason: string?, stand: boolean = applyGrant(player, grant)
+				entry = { UserId = p.UserId, Status = status, Reason = reason, StandGranted = stand }
 			else
-				status, reason = queuePending(p.UserId, grant)
+				-- provisional until the durable write below succeeds
+				entry = { UserId = p.UserId, Status = "Refused", Reason = "PendingWriteFailed" }
+				table.insert(offline, { Entry = entry, Grant = grant })
 			end
-			entry = { UserId = p.UserId, Status = status, Reason = reason }
 		end
 		table.insert(report.Results, entry)
 		report.ByUserId[p.UserId] = entry
+	end
+	-- Durable outbox writes (these yield) happen after every loaded player is settled.
+	for _, item in offline do
+		local entry, grant = item.Entry, item.Grant
+		local ok, reason = Pending.Add(entry.UserId, grant.ReceiptId, {
+			TrophyId = grant.TrophyId,
+			Source = grant.Source,
+			RegionId = grant.RegionId,
+			At = grant.At,
+		})
+		if ok then
+			entry.Status, entry.Reason = "PendingRejoin", nil
+			-- they may have finished loading here while the write was in flight
+			local player = Players:GetPlayerByUserId(entry.UserId)
+			if player and TrophyData.Get(player) ~= nil then
+				task.spawn(drainPending, player)
+			end
+		else
+			entry.Reason = reason
+		end
 	end
 	return report
 end
@@ -274,8 +336,8 @@ end
 		ObjectiveCompletions = #ObjectiveIds when they earned points (a solo player who earned
 		points did the work), else 0.
 	The context's own Eligible flag must ALSO be true (both rules must agree; it additionally
-	requires being connected and present at completion). Anything unexpected is rejected by
-	the normal validation, so a malformed context changes nothing.
+	requires being connected and present at completion, so disconnected players are never
+	granted the final trophy). Anything unexpected is rejected by the normal validation.
 ]]
 function TrophyService.SettleCompletionContext(context: any): SettlementReport
 	if type(context) ~= "table" or type(context.Participants) ~= "table" then
@@ -332,6 +394,11 @@ function TrophyService.OnCompletion(context: any): (boolean, string)
 		return false, "Adventure complete. Trophy rewards are unavailable right now."
 	end
 	for _, entry in report.Results do
+		if entry.Status == "Refused" then
+			warn(string.format("[TrophyService] %d not stored: %s", entry.UserId, tostring(entry.Reason)))
+		end
+	end
+	for _, entry in report.Results do
 		if entry.Status ~= "Ineligible" and entry.Status ~= "Refused" then
 			return true, "Adventure complete! The Spring Vault trophy is in the crew's collection."
 		end
@@ -350,6 +417,15 @@ function TrophyService.Owns(player: Player, trophyId: string): boolean?
 	return (data.TrophyRecords :: { [string]: any })[trophyId] ~= nil
 end
 
+-- Mara's trophy stand (required for production display). nil when not loaded.
+function TrophyService.OwnsStand(player: Player): boolean?
+	local data = TrophyData.Get(player)
+	if not data then
+		return nil
+	end
+	return Rules.HasStand(data)
+end
+
 -- Copy of the player's trophy records ({ [trophyId] = record }), or nil if not loaded.
 function TrophyService.GetTrophies(player: Player): { [string]: { [string]: any } }?
 	local data = TrophyData.Get(player)
@@ -365,18 +441,12 @@ function TrophyService.GetTrophySlots(_player: Player): number
 	return Rules.TROPHY_SLOTS
 end
 
-function TrophyService.HasPendingGrant(userId: number): boolean
-	return pending[userId] ~= nil
+-- Durable pending grants for a user (receiptId -> grant). Yields; nil if unreadable.
+function TrophyService.GetPendingGrants(userId: number): { [string]: any }?
+	return Pending.Read(userId)
 end
 
 -- Camp placement ------------------------------------------------------------------------------
-
-local function refreshDisplay(player: Player)
-	local data = TrophyData.Get(player)
-	if data then
-		Display.Show(player, data.CampLayout)
-	end
-end
 
 --[[
 	request = { TrophyId: string, X: 0..11, Z: 0..11, Rot: 0|90|180|270 } (untrusted).
@@ -390,7 +460,9 @@ function TrophyService.PlaceTrophy(player: Player, request: any): (boolean, any)
 	if not data then
 		return false, "NotLoaded"
 	end
-	local ok, clean = Rules.ValidatePlacement(data.TrophyRecords, data.CampLayout, request, Rules.TROPHY_SLOTS)
+	local hasStand = Rules.HasStand(data) or reviewPreview
+	local ok, clean =
+		Rules.ValidatePlacement(data.TrophyRecords, data.CampLayout, request, Rules.TROPHY_SLOTS, hasStand)
 	if not ok then
 		return false, clean
 	end
@@ -448,6 +520,20 @@ function TrophyService.IsEnabled(): boolean
 	return enabled
 end
 
+-- Review preview: lets camp placement/display skip the stand requirement. Studio only; a live
+-- server refuses it. Returns whether preview is now on.
+function TrophyService.SetReviewPreview(on: boolean): boolean
+	if on and not RunService:IsStudio() then
+		warn("[TrophyService] review preview is Studio-only; refused on a live server")
+		on = false
+	end
+	reviewPreview = on
+	for _, player in Players:GetPlayers() do
+		refreshDisplay(player)
+	end
+	return reviewPreview
+end
+
 -- Optional explicit pads (pad-centre CFrames on the ground) instead of "TrophyCampPad" tags.
 function TrophyService.SetCampPads(pads: { CFrame }?)
 	Display.SetPads(pads)
@@ -457,6 +543,7 @@ end
 
 local PLACE_TEXT: { [string]: string } = {
 	NotOwned = "You don't own that trophy yet.",
+	NoStand = "You need Mara's trophy stand first.",
 	OutOfBounds = "That spot is outside your camp.",
 	Occupied = "Something is already there.",
 	AlreadyDisplayed = "That trophy is already on display.",
@@ -493,11 +580,12 @@ local function onLoaded(player: Player)
 	if TrophyData.Get(player) == nil then
 		return
 	end
-	applyPending(player)
 	refreshDisplay(player)
+	task.spawn(drainPending, player)
 end
 
 function TrophyService.Init()
+	Pending.Init()
 	TrophyData.PlayerLoaded:Connect(function(player: Player)
 		onLoaded(player)
 	end)

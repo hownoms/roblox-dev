@@ -7,6 +7,7 @@
 		TrophyRecords  { [trophyId]: TrophyRecord }      one record per trophy id, never deleted
 		CampLayout     { Placements: { Placement }, NextId: number }
 		RewardReceipts { ["trophy:..."]: settledUnix }   only the "trophy:" namespace is ours
+		Cosmetics      { camp_trophy_stand = record }    only the camp_trophy_stand key is ours
 
 	Migrate() adds these fields to any existing save without touching any other key, repairs
 	malformed values, and is idempotent (running it twice changes nothing the second time).
@@ -70,6 +71,15 @@ Rules.MIN_POINTS = 5
 Rules.MIN_ACTIVE_SECONDS = 30
 
 Rules.CONTENT_VERSION = 1
+
+-- Mara's trophy stand (catalog camp_trophy_stand). Production display requires owning it; the
+-- first eligible Spring Vault completion grants it together with the trophy.
+Rules.STAND_ID = "camp_trophy_stand"
+
+function Rules.HasStand(data: { [string]: any }): boolean
+	local cosmetics = data.Cosmetics
+	return type(cosmetics) == "table" and cosmetics[Rules.STAND_ID] ~= nil
+end
 
 local function isInteger(v: any, min: number, max: number): boolean
 	return type(v) == "number" and v == v and v % 1 == 0 and v >= min and v <= max
@@ -226,6 +236,19 @@ function Rules.Migrate(data: { [string]: any }, now: number): boolean
 		changed = true
 	end
 
+	-- Cosmetics is the bible's shared cosmetic inventory; trophy code owns only the stand key.
+	local cosmetics = data.Cosmetics
+	if type(cosmetics) ~= "table" then
+		cosmetics = {}
+		data.Cosmetics = cosmetics
+		changed = true
+	end
+	local stand = cosmetics[Rules.STAND_ID]
+	if stand ~= nil and type(stand) ~= "table" then
+		cosmetics[Rules.STAND_ID] = { Repaired = true } -- keep ownership
+		changed = true
+	end
+
 	local receipts = data.RewardReceipts
 	if type(receipts) ~= "table" then
 		receipts = {}
@@ -272,6 +295,20 @@ function Rules.IsEligible(p: Participant, participantCount: number): (boolean, s
 	return false, "NotPresent"
 end
 
+-- Durable pending grants -------------------------------------------------------------------
+
+-- A pending grant read back from the outbox store is re-validated before it is applied.
+function Rules.IsPendingGrant(receiptId: any, grant: any): boolean
+	return Rules.IsTrophyReceipt(receiptId)
+		and type(grant) == "table"
+		and type(grant.TrophyId) == "string"
+		and Catalog.Get(grant.TrophyId) ~= nil
+		and type(grant.Source) == "string"
+		and (Catalog.Get(grant.TrophyId) :: Catalog.TrophyDef).Sources[grant.Source] == true
+		and type(grant.RegionId) == "string"
+		and isFiniteNonNegative(grant.At)
+end
+
 -- Camp placement ---------------------------------------------------------------------------
 
 -- Pad-local centre of a grid cell, in studs (pad centre = 0,0).
@@ -290,7 +327,8 @@ function Rules.ValidatePlacement(
 	records: { [string]: any },
 	layout: CampLayout,
 	request: any,
-	trophySlots: number?
+	trophySlots: number?,
+	hasStand: boolean?
 ): (boolean, any)
 	if type(request) ~= "table" then
 		return false, "Malformed"
@@ -313,6 +351,9 @@ function Rules.ValidatePlacement(
 	end
 	if not Catalog.IsDisplayable(trophyId) then
 		return false, "NotDisplayable"
+	end
+	if hasStand == false then
+		return false, "NoStand"
 	end
 	if #layout.Placements >= Rules.MAX_PLACEMENTS then
 		return false, "LayoutFull"

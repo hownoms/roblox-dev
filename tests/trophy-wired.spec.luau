@@ -77,6 +77,7 @@ local report = TrophyService.SettleAdventureCompletion({
 	},
 })
 check(report.Ok and report.ByUserId[USER].Status == "Granted", "settled through the server API")
+check(TrophyService.OwnsStand(player) == true, "stand granted with the trophy")
 
 Mock.FireServer("PlaceCampItem", player, TROPHY, 5, 6, 180)
 Mock.Advance(0.5)
