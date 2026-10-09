@@ -1,0 +1,30 @@
+{
+  "trialExit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"trace\":{\"1\":{\"At\":612.2953571999969,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":660.7762600000133,\"UserId\":72220195,\"Action\":\"Leave\"},\"2\":{\"At\":638.2259986000136,\"UserId\":72220195,\"Action\":\"Talk\"}},\"player\":{\"Charging\":false,\"Loan\":false}}"
+      }
+    ],
+    "isError": false
+  },
+  "finalJourney": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"player\":{\"Charging\":false,\"Loan\":false},\"trace\":{\"26\":{\"At\":951.3322353000112,\"UserId\":72220195,\"Action\":\"Leave\"},\"25\":{\"At\":940.8986071000109,\"UserId\":72220195,\"Action\":\"PushBall\"},\"24\":{\"At\":936.9481051999901,\"UserId\":72220195,\"Action\":\"RouteRight\"},\"23\":{\"At\":910.532289099996,\"UserId\":72220195,\"Action\":\"OpenVault\"},\"22\":{\"At\":909.3664016000112,\"UserId\":72220195,\"Action\":\"Excavate\"},\"21\":{\"At\":908.1822578999854,\"UserId\":72220195,\"Action\":\"Excavate\"},\"20\":{\"At\":907.0159544000053,\"UserId\":72220195,\"Action\":\"Excavate\"},\"19\":{\"At\":905.8322152000037,\"UserId\":72220195,\"Action\":\"Excavate\"},\"18\":{\"At\":904.6829458999855,\"UserId\":72220195,\"Action\":\"Excavate\"},\"9\":{\"At\":894.1490213999932,\"UserId\":72220195,\"Action\":\"Excavate\"},\"1\":{\"At\":844.0362557999906,\"UserId\":72220195,\"Action\":\"Sync\"},\"15\":{\"At\":901.1663999999873,\"UserId\":72220195,\"Action\":\"Excavate\"},\"3\":{\"At\":886.5999475000135,\"UserId\":72220195,\"Action\":\"Start\"},\"2\":{\"At\":875.4008691000054,\"UserId\":72220195,\"Action\":\"Join\"},\"5\":{\"At\":889.4497419999971,\"UserId\":72220195,\"Action\":\"Excavate\"},\"4\":{\"At\":886.6501691000012,\"UserId\":72220195,\"Action\":\"Ready\"},\"7\":{\"At\":891.7827640000032,\"UserId\":72220195,\"Action\":\"Excavate\"},\"6\":{\"At\":890.5997031999868,\"UserId\":72220195,\"Action\":\"Excavate\"},\"14\":{\"At\":899.982554599992,\"UserId\":72220195,\"Action\":\"Excavate\"},\"8\":{\"At\":892.9663578000036,\"UserId\":72220195,\"Action\":\"Excavate\"},\"16\":{\"At\":902.333977000002,\"UserId\":72220195,\"Action\":\"Excavate\"},\"17\":{\"At\":903.5163545999967,\"UserId\":72220195,\"Action\":\"Excavate\"},\"13\":{\"At\":898.816175999993,\"UserId\":72220195,\"Action\":\"Excavate\"},\"12\":{\"At\":897.6508540000068,\"UserId\":72220195,\"Action\":\"Excavate\"},\"11\":{\"At\":896.482860899996,\"UserId\":72220195,\"Action\":\"Excavate\"},\"10\":{\"At\":895.3003117000044,\"UserId\":72220195,\"Action\":\"Excavate\"}},\"event\":{\"Participants\":[],\"RemainingSeconds\":171.80242019999424,\"AdmissionLocked\":true,\"GateIndex\":3,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Resolving\",\"Stage\":\"complete\",\"EventInstanceId\":\"b503b451-16b1-489b-84d8-72b5cc3aa02c:1\"},\"completion\":{\"Participants\":{\"1\":{\"ActiveSeconds\":63.96457170002395,\"ObjectiveIds\":{\"1\":\"vault_anchor_3\",\"3\":\"vault_anchor_1\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"Points\":65,\"UserId\":72220195,\"Eligible\":true}},\"LandmarkId\":\"landmark_spring_vault\",\"ContentVersion\":1,\"EventId\":\"event_vault\",\"CompletedStages\":{\"1\":\"excavation\",\"3\":\"ball_return\",\"2\":\"vault_open\"},\"CompletedAtUnix\":1791588838,\"CompletedAt\":950.615060000011,\"StartedAt\":886.650488299987,\"ObjectiveIds\":{\"1\":\"vault_anchor_3\",\"3\":\"vault_anchor_1\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"BoundaryVersion\":1,\"Success\":true,\"RegionId\":\"sunshine_shore\",\"EventInstanceId\":\"b503b451-16b1-489b-84d8-72b5cc3aa02c:1\"}}"
+      }
+    ],
+    "isError": false
+  },
+  "finalLeave": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"root\":\"688, 24.14999771118164, 19\",\"speed\":16,\"equipVisible\":false,\"avatar\":\"R15\"}"
+      }
+    ],
+    "isError": false
+  },
+  "scope": "Ordinary Studio MCP mouse and E keyboard inputs. Begin's readiness is automatic client callback after preparation snapshot. Movement is assisted character_navigation at 0.5 speed. No direct remote requests used."
+}

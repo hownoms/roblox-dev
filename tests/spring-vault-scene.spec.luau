@@ -25,6 +25,16 @@ for id, anchor in scene.Anchors do
 		anchor:FindFirstChild("AnchorBase").Position == scene.Targets[id],
 		"work target follows actual anchor: " .. id
 	)
+	local arrivalShapes = 0
+	for _, child in anchor:GetChildren() do
+		if string.find(child.Name, "Arrival", 1, true) then
+			arrivalShapes += 1
+			check(child.Position.Z > scene.Targets[id].Z + 0.7, "shape faces arrival outside sand cover")
+			check(child.Position.Y < origin.Y + 6.5, "shape can be read below top sand marker")
+			check(not child.CanCollide and not child.CanQuery, "arrival shape is presentation only")
+		end
+	end
+	check(arrivalShapes > 0, "each anchor exposes its actual shape to arrivals")
 end
 local bounds = {}
 for _, child in scene.Vault:GetDescendants() do

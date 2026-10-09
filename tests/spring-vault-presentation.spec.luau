@@ -52,7 +52,7 @@ local function check(value, message)
 	passed += 1
 end
 local function send(data)
-	data.eventInstanceId = "presentation:1"
+	data.eventInstanceId = data.eventInstanceId or "presentation:1"
 	Mock.FireEvent(remotes.Snapshot, "OnClientEvent", data)
 	Mock.Advance(0.05)
 end
@@ -93,12 +93,38 @@ check(card.Motionon.Text == "Motion: low", "reduced motion can be selected")
 Mock.FireEvent(card.Puffson, "Activated")
 check(card.Puffson.Text == "Puffs: off", "particle suppression can be selected")
 Mock.FireEvent(card.Options, "Activated")
-send({ joined = true, phase = "Inviting", startWaitSeconds = 3 })
+send({ joined = true, phase = "Inviting", isStarter = true, startWaitSeconds = 3 })
 only("adventure_exit")
 check(
-	card.Start.Visible and card.Start.Text == "Start in 3s" and not card.Join.Visible,
+	card.Start.Visible and card.Start.Text == "Begin in 3s" and not card.Join.Visible,
 	"joined invitation has contextual start countdown"
 )
+local function requests(action)
+	local count = 0
+	for _, request in Mock.Remote.ToServer do
+		if request.Name == "Intent" and request.Args[1].action == action then
+			count += 1
+		end
+	end
+	return count
+end
+local beforeStart = requests("Start")
+Mock.FireEvent(card.Start, "Activated")
+check(requests("Start") == beforeStart, "countdown cannot send an early Begin request")
+send({ joined = true, phase = "Inviting", isStarter = false, startWaitSeconds = 3 })
+check(not card.Start.Visible, "nonhost never sees a misleading Begin countdown")
+send({ joined = true, phase = "Inviting", isStarter = true, canStart = true })
+local beforeReady = requests("Ready")
+Mock.FireEvent(card.Start, "Activated")
+check(requests("Start") == beforeStart + 1, "Begin uses ordinary Activated request")
+send({ joined = true, phase = "Preparing", stage = "anchors", canReady = true })
+check(requests("Ready") == beforeReady + 1, "accepted Begin confirms readiness after preparation snapshot")
+send({ joined = true, phase = "Preparing", stage = "anchors", canReady = true })
+check(requests("Ready") == beforeReady + 1, "repeated snapshot cannot repeat readiness")
+send({ joined = true, phase = "Inviting", isStarter = true, canStart = true })
+Mock.FireEvent(card.Start, "Activated")
+send({ joined = true, phase = "Preparing", canReady = true, eventInstanceId = "presentation:replacement" })
+check(requests("Ready") == beforeReady + 1, "Begin cannot confirm readiness for a replacement attempt")
 send({ joined = true, phase = "Active", stage = "anchors", canReady = true, ready = false })
 only("adventure_exit")
 check(
@@ -183,6 +209,10 @@ check(
 	"routine snapshot does not immediately erase gate confirmation"
 )
 send({ joined = false, trialActive = true, trialWave = false, trialComplete = false, trialTargets = {} })
+check(card.Leave.Visible and card.Leave.Text == "End trial", "optional practice has an explicit exit")
+local beforeLeave = requests("Leave")
+Mock.FireEvent(card.Leave, "Activated")
+check(requests("Leave") == beforeLeave + 1, "End trial uses the existing validated Leave action")
 check(
 	not prompt("trial_target_1").Enabled and not prompt("trial_target_2").Enabled,
 	"trial scoops stay hidden before accepted wave"
@@ -201,6 +231,15 @@ send({ joined = false, trialActive = true, trialWave = true, trialComplete = tru
 only("npc_pip")
 check(gui.ScrollingFrame.Join.Visible, "optional trial still allows joining beside Mara")
 check(gui.ScrollingFrame.AnchorPoint.X == 0.5, "compact panel stays clear of chat at top center")
+send({ joined = true, phase = "Resolving", stage = "complete", objective = "Ball rescued · 3/3 gates." })
+send({ joined = false, phase = "Dormant", stage = "Optional", objective = "Talk to Mara." })
+local endingVisible = false
+for _, child in card:GetChildren() do
+	if child:IsA("TextLabel") and string.find(child.Text, "Rescue complete", 1, true) then
+		endingVisible = true
+	end
+end
+check(endingVisible, "automatic safe return retains the ending instead of replacing it with arrival instructions")
 handle.Destroy()
 check(#Mock.Errors == 0, "no asynchronous mock errors")
 print("Spring Vault presentation mock: " .. passed .. " checks passed")

@@ -106,5 +106,52 @@ check(wall.Position == origin + V(0, 4, 33) and wall.Size == V(100, 8, 2), "near
 check(runtime.Scene.Targets.adventure_exit.Z + 2 < wall.Position.Z - wall.Size.Z / 2, "existing exit pad clears wall")
 check(origin.Z + 29 + 2 < wall.Position.Z - wall.Size.Z / 2, "Claude return pad clears wall")
 runtime.Destroy()
+local practice = Service.Start({
+	Origin = origin,
+	CanTrial = function()
+		return true
+	end,
+	CanEnter = function()
+		return true
+	end,
+})
+local student = Mock.AddPlayer(9499, "OptionalPractice")
+student:LoadCharacter()
+local function talkPip()
+	student.Character:PivotTo(CF(practice.Scene.Targets.npc_pip))
+	practice.Handle(student, { action = "Talk", targetId = "npc_pip" })
+end
+talkPip()
+local trialStart = student.Character:GetPivot().Position
+student.Character:PivotTo(CF(practice.Scene.Targets.trial_patch))
+practice.Handle(student, { action = "Leave" })
+check(not practice.ReviewPlayer(student).Trial, "standalone Leave ends optional practice without event membership")
+check(student.Character:GetPivot().Position == trialStart, "practice Leave restores its entry position")
+Mock.Advance(1.1)
+check(
+	not student.Backpack:FindFirstChild("Broadwave (Adventure Loan)"),
+	"practice Leave cannot recreate a loan on heartbeat"
+)
+talkPip()
+student.Character:PivotTo(CF(practice.Scene.Targets.npc_mara))
+practice.Handle(student, { action = "Join", eventInstanceId = "" })
+check(not practice.ReviewPlayer(student).Trial, "joining the rescue ends practice authority")
+check(student.Backpack:FindFirstChild("Broadwave (Adventure Loan)") ~= nil, "rescue retains its own event loan")
+talkPip()
+practice.Handle(student, { action = "Leave", eventInstanceId = practice.Event().EventInstanceId })
+Mock.Advance(1.1)
+check(not practice.ReviewPlayer(student).Trial, "event Leave also ends overlapping practice")
+check(
+	not student.Backpack:FindFirstChild("Broadwave (Adventure Loan)"),
+	"event Leave cannot recreate practice equipment"
+)
+Mock.Advance(31)
+student.Character:PivotTo(CF(practice.Scene.Targets.npc_mara))
+practice.Handle(student, { action = "Join", eventInstanceId = "" })
+talkPip()
+Mock.Advance(46)
+check(not practice.ReviewPlayer(student).Trial, "event rebuild cleans practice session with its restored equipment")
+practice.Destroy()
+Mock.RemovePlayer(student)
 check(#Mock.Errors == 0, "no asynchronous mock errors")
 print("Spring Vault return mock: " .. passed .. " checks passed")
