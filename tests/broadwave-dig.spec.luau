@@ -130,6 +130,12 @@ local ordinary = Bridge.Create({
 p.Character:PivotTo(CF.new(V.new(320, Config.SURFACE_Y + 3, point.Z + 4)))
 Mock.ServerTerrainRaycast = true
 check(
+	ordinary(p, p.Character.HumanoidRootPart.CFrame, 0.8) == false and calls == 0,
+	"review loan refused even with permissive license callback"
+)
+tool:SetAttribute("AdventureLoan", false)
+tool:SetAttribute("ToolId", "tool_broadwave")
+check(
 	ordinary(p, p.Character.HumanoidRootPart.CFrame, 0.8) == true and calls == 1,
 	"licensed release calls injected DigService path once"
 )
