@@ -9,6 +9,13 @@ opening, ball routing or effects, which belong to Codex's branch. It does not ed
 files, DataService, Config, Types or Codex's files. The one shared-file change is a single line
 in `tests/run.sh` that registers the new spec. Nothing was uploaded or published.
 
+> **Update (9 October 2026, later the same day).** `docs/trophy-integration.patch` and its
+> successors are now applied, as the consolidated `docs/integration/adventure-integration.patch`,
+> on `claude/spring-vault-production-integration`. TrophyService is booted there, with its
+> camp remotes and prompts. Later fixes are in `docs/integration/settlement-durability.md` and
+> `docs/integration/camp-lifecycle.md`. The current state is in `docs/integration/README.md`.
+> The sections below are the original handoff.
+
 ## Owner decisions (9 October 2026)
 
 | Decision | How this branch applies it |

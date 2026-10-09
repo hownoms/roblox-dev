@@ -11,6 +11,43 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: Spring Vault production integration (branch, in joint review, flags off)
+**Not merged and not published. Every `AdventureFlags` flag is false. The packet is
+`docs/integration/README.md`.**
+- **Why:** the owner asked Claude to own production integration, rewards, persistence,
+  settlement, trophy storage and camp UI. Codex keeps the gameplay runtime. Both PRs stay
+  unmerged until they are reviewed together.
+- **Wiring applied.** The consolidated `adventure-integration.patch` is now in the tree.
+  Main boots TrophyService, AdventureSettlement and AdventureBoot. Remotes gain
+  `PlaceCampItem`, `RemoveCampItem` and `AdventureOutcome`. With the flags off, nothing new runs.
+- **Entry (`AdventureEntry`):**
+  - a surface hatch at (-124, 1024, 76) with a server eligibility check;
+  - a return pad in the pocket;
+  - lifts to the beach after Leave, a fall, or the kill switch;
+  - the runtime's `ReturnFrame` returns players to the same surface point;
+  - a dark backdrop and 6 shadowless lights in the pocket;
+  - every arena SpawnLocation is destroyed.
+- **Licensed Broadwave:**
+  - `ResolveTool` accepts only a server-issued, equipped, licensed tool, and the loan never digs
+    ordinary sand.
+  - New `BroadwaveEquip` control (button, Z, gamepad R1), because production hides the Backpack.
+- **Settlement:**
+  - a save whose lock is missing or stale no longer overwrites a newer save;
+  - the outbox keeps intents written by a newer server version;
+  - the broadcast completion text is neutral;
+  - watchers get their real refusal reason;
+  - retries happen within the session;
+  - a final outbox write follows a failed leave save.
+- **Camp:**
+  - the display follows the real deck when it is rebuilt;
+  - turning trophies off clears the pad and the queue;
+  - a placement that can't be built never holds the pad;
+  - prompts are rate-limited;
+  - a player who has left is never reassigned the pad.
+- **Evidence:** the full suite passes on the headless mock, and Codex's
+  `audit-claude-candidate.py` passes. Not evidence of: live cross-server play, shutdown,
+  Studio lighting, or devices.
+
 ## Unreleased: surface map art overhaul (merged, not published)
 **Not published. Built by five parallel agents to `docs/MAP_ART_DIRECTION.md`, then reviewed in Studio Play via the Studio MCP (spawn, hub, boardwalk, coast, carnival, lighthouse, headlands, Golden Hour). Record: `docs/MAP_OVERHAUL_2026-10-08.md`.**
 - **Why:** the owner said the map felt copy-pasted, empty, minimal and unexciting. Root cause #1: `Util.Prop` never passed a variant, so all 64 palms, 16 umbrellas, 4 towers and 6 stalls were the same model. Palms were 11 studs tall next to a 5-stud avatar, lamps never lit, and the terrain stopped at a hard edge.

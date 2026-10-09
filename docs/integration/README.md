@@ -54,6 +54,22 @@ reviewed it together.
 7. `TrophyService` had two strict `pcall` type errors where the camp and settlement work met.
    Both are fixed (`dc9f6b5`).
 
+## Branches and commits (all pushed to origin)
+
+| Branch | Commit | Merged into this branch by |
+|---|---|---|
+| `claude/svi-entry` | `b724c05` | `a9fb29b` |
+| `claude/svi-camp` | `4df61df` | merge after `a9fb29b` |
+| `claude/svi-equip` | `d0777d7` | `b98a1b4` |
+| `claude/svi-settle` | `1dfeadf` | `a56a905` |
+| default (Codex PRs #33 and #34) | `7df3a73` | merge before `651d1c9` |
+| ReturnFrame wiring, obsolete patch removed | `651d1c9` | direct |
+| Strict `pcall` typing fix, Codex audit log | `dc9f6b5` | direct |
+
+The pull request is not open yet, because `gh` was logged out. Open it from
+`https://github.com/hownoms/roblox-dev/compare/claude/pensive-meitner-6jx4u4...claude/spring-vault-production-integration?expand=1`
+and keep it unmerged until the joint review.
+
 ## Handoffs
 
 | Area | Doc |
