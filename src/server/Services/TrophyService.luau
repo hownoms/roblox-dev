@@ -298,7 +298,10 @@ local function applyGrant(player: Player, grant: Grant, requestSave: boolean?): 
 	end
 	-- The grant is in the live save now. Display/status side effects must never undo that
 	-- report (a throw here would abort a whole settlement or wedge a drain).
-	local shown, err = pcall(TrophyService.AfterGrantApplied, player, grant.TrophyId, record, standGranted)
+	local shown, err = pcall(function()
+		TrophyService.AfterGrantApplied(player, grant.TrophyId, record, standGranted)
+		return true
+	end)
 	if not shown then
 		warn("[TrophyService] display refresh after grant failed: " .. tostring(err))
 	end
@@ -347,7 +350,7 @@ function TrophyService.DrainPending(player: Player): ({ DrainedGrant }?, boolean
 	local result: { DrainedGrant }? = nil
 	local retry = false
 	local unacked: { DrainedGrant }? = nil
-	local ok, err = pcall(function()
+	local function drain()
 		local grants = Pending.Read(userId)
 		if grants == nil then
 			retry = true -- unreadable right now
@@ -388,6 +391,10 @@ function TrophyService.DrainPending(player: Player): ({ DrainedGrant }?, boolean
 		elseif TrophyData.Get(player) ~= nil then
 			retry, unacked = true, applied
 		end
+	end
+	local ok, err = pcall(function()
+		drain()
+		return true
 	end)
 	draining[userId] = nil -- always cleared, even if something above threw
 	if not ok then
