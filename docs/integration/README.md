@@ -137,10 +137,13 @@ following the steps in `settlement-durability.md`:
 
 **Runtime (Codex):**
 
-1. **"REVIEW ONLY" text in production.** The runtime still shows "REVIEW ONLY: no permanent
-   rewards granted" after a wired completion, and Mara's line still mentions the review build.
-   This contradicts the reward cards. Before `AdventureRewards` is enabled, this copy must be
-   made production-safe (`settlement-durability.md` R1).
+1. **Review copy in production (B1).** After a wired completion the runtime still tells
+   contributors "Adventure complete. Review only; no permanent rewards." (text changed by PR #35;
+   Mara's line no longer mentions review). The `objectives` entry "REVIEW ONLY - no coins, ..." and
+   the client header "SPRING VAULT · Review" say the same. This contradicts the reward card.
+   Before `AdventureRewards` is enabled this copy must be production-safe. Exact strings and the
+   suggested `OutcomeOwner = "External"` start option (already passed by `AdventureBoot`) are in
+   `settlement-outcomes.md`, "Blockers for Codex".
 2. **Duplicate equip button.** `SpringVaultClient` builds its own "Equip Broadwave" button at the
    top centre. Production would show it next to `BroadwaveEquip`. Request: an `ExternalEquip`
    start option (`licensed-broadwave.md`).

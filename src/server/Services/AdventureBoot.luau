@@ -128,6 +128,10 @@ function AdventureBoot.Options(flags: any): any
 	if flags.AdventureRewards then
 		options.OnStage = AdventureSettlement.OnStage
 		options.OnCompletion = AdventureSettlement.OnCompletion
+		-- Each player's reward result is the AdventureOutcome card (settlement-outcomes.md).
+		-- Requested runtime option (blocker B1 there): with it, the runtime drops its own
+		-- "Review only / no permanent rewards" copy. Inert until the runtime reads it.
+		options.OutcomeOwner = "External"
 	else
 		options.OnCompletion = refuseCompletion
 	end

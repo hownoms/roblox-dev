@@ -187,6 +187,74 @@ local Display = load(P .. "TrophyCampDisplay")
 local Rewards = load("ReplicatedStorage/Shared/Rewards/AdventureRewards")
 Settlement.RetryDelays = { 1, 1, 1 } -- shortened so retries happen inside the test
 
+-- Invariant monitor (whole spec, every mode): at the moment an outcome reaches a player, an
+-- "Accepted" one must already be durable (its adv:/trophy: part in the written save or in its
+-- outbox), and a Pending/Refused one carries a non-durable status. Pending/Refused are never
+-- presented as a grant (the client card, adventure-outcome.spec, enforces the wording).
+local DURABLE = { Saved = true, Queued = true, Duplicate = true }
+local NOT_DURABLE =
+	{ Pending = { Unconfirmed = true, PendingRejoin = true }, Refused = { Ineligible = true, Refused = true } }
+local monitored = { Accepted = 0, Pending = 0, Refused = 0 }
+local function hasPrefix(t, prefix)
+	for key in t or {} do
+		if type(key) == "string" and string.sub(key, 1, #prefix) == prefix then
+			return true
+		end
+	end
+	return false
+end
+Settlement.OutcomeSent:Connect(function(player, outcome)
+	local uid = player.UserId
+	monitored[outcome.State] = (monitored[outcome.State] or 0) + 1
+	local tag = string.format("%d %s %s/%s", uid, tostring(outcome.InstanceId), outcome.Kind, outcome.Status)
+	if outcome.State ~= "Accepted" then
+		check(
+			NOT_DURABLE[outcome.State] ~= nil and NOT_DURABLE[outcome.State][outcome.Status] == true,
+			"monitor: " .. outcome.State .. " carries a non-durable status (" .. tag .. ")"
+		)
+		return
+	end
+	check(DURABLE[outcome.Status] == true, "monitor: Accepted only for a durable status (" .. tag .. ")")
+	if outcome.Status == "Duplicate" then
+		return -- already settled earlier; nothing new is claimed
+	end
+	local saved = stored(uid)
+	if outcome.Coins > 0 or outcome.Certification then
+		local prefix = "adv:" .. outcome.InstanceId .. ":" .. uid .. ":"
+		check(
+			hasPrefix(saved and saved.RewardReceipts, prefix) or hasPrefix(outboxOf(OUTBOX, uid), prefix),
+			"monitor: Accepted coins/cert are durable when told (" .. tag .. ")"
+		)
+	end
+	if outcome.Trophy or outcome.Stand then
+		local prefix = "trophy:" .. outcome.InstanceId .. ":" .. uid .. ":"
+		check(
+			hasPrefix(saved and saved.RewardReceipts, prefix) or hasPrefix(outboxOf(TROPHY_OUTBOX, uid), prefix),
+			"monitor: Accepted trophy/stand is durable when told (" .. tag .. ")"
+		)
+	end
+end)
+
+-- Boundary contract capture: what the REAL runtime hands the adapter (OnStage / OnCompletion
+-- call SettleStage / SettleCompletion through the module table, so wrapping them sees every
+-- context unchanged).
+local capturedStages, capturedFinals = {}, {}
+do
+	local realStage, realFinal = Settlement.SettleStage, Settlement.SettleCompletion
+	Settlement.SettleStage = function(observation)
+		table.insert(capturedStages, observation)
+		return realStage(observation)
+	end
+	Settlement.SettleCompletion = function(context)
+		table.insert(capturedFinals, context)
+		return realFinal(context)
+	end
+end
+local settledReports = {}
+Settlement.Settled:Connect(function(report)
+	table.insert(settledReports, report)
+end)
+
 local function add(userId, name, position)
 	local p = Mock.AddPlayer(userId, name)
 	Mock.Advance(2)
@@ -415,10 +483,153 @@ if runtimeOn then
 			)
 			check(snap and not claimsReward(snap.message), p.Name .. ": the broadcast claims no reward")
 		end
-		local snapB = lastSnapshot(pb, mark2)
-		if snapB and type(snapB.objective) == "string" and string.find(snapB.objective, "REVIEW ONLY", 1, true) then
-			print("NOTE (runtime request R1): completed snapshot objective still reads: " .. snapB.objective)
+		-- What each client sees from the RUNTIME after the completion (status message, objective
+		-- line, objectives list) next to its own final card. Our side: the card is the only
+		-- per-player reward statement. The runtime's review copy is Codex's (blocker B1 in
+		-- settlement-outcomes.md): printed, never failed, so the fix can land independently.
+		local finals = { [A] = final, [B] = b2[3], [C] = c2[3] }
+		local reviewCopy = {}
+		for _, p in { pa, pb, pc, pe } do
+			for i = mark2 + 1, #Mock.Remote.ToClient do
+				local ev = Mock.Remote.ToClient[i]
+				local snap = ev.Args and ev.Args[1]
+				if ev.Name == "Snapshot" and ev.Player == p and type(snap) == "table" and snap.phase == "Resolving" then
+					local texts = { snap.message, snap.objective }
+					for _, line in (if type(snap.objectives) == "table" then snap.objectives else {}) do
+						table.insert(texts, line)
+					end
+					for _, line in texts do
+						local lower = string.lower(tostring(line))
+						if
+							string.find(lower, "review only", 1, true)
+							or string.find(lower, "no permanent", 1, true)
+							or string.find(lower, "no coins", 1, true)
+						then
+							reviewCopy[p.Name .. "|" .. tostring(line)] = { Player = p, Line = line }
+						end
+					end
+				end
+			end
 		end
+		local contradictions = 0
+		local copyKeys = {}
+		for key in reviewCopy do
+			table.insert(copyKeys, key)
+		end
+		table.sort(copyKeys)
+		for _, key in copyKeys do
+			local item = reviewCopy[key]
+			local card = finals[item.Player.UserId]
+			local cardText = if card then card.State .. "/" .. card.Status else "no card"
+			if card and card.State == "Accepted" then
+				contradictions += 1
+				print(
+					string.format(
+						"BLOCKER B1 (runtime copy): %s card %s, runtime shows %q",
+						item.Player.Name,
+						cardText,
+						item.Line
+					)
+				)
+			end
+		end
+		print(string.format("  runtime review copy contradicting an Accepted card: %d line(s)", contradictions))
+		check(
+			Boot.Options(Flags).OutcomeOwner == "External",
+			"rewards on: the runtime is told an external outcome card owns reward copy"
+		)
+
+		-- Boundary contract against the real runtime (fields AdventureSettlement and
+		-- TrophyService.PrepareCompletionContext read; PR #35 must not have drifted them).
+		local def = Rewards.Events.event_vault
+		local function fieldsOk(t, spec)
+			for key, kind in spec do
+				if type(t[key]) ~= kind then
+					return false, key
+				end
+			end
+			return true, nil
+		end
+		local HEAD = {
+			BoundaryVersion = "number",
+			EventInstanceId = "string",
+			EventId = "string",
+			LandmarkId = "string",
+			RegionId = "string",
+			CompletedStages = "table",
+			Participants = "table",
+		}
+		local STAGE_P =
+			{ UserId = "number", Points = "number", ObjectiveIds = "table", Connected = "boolean", Left = "boolean" }
+		local FINAL_P = {
+			UserId = "number",
+			Points = "number",
+			ObjectiveIds = "table",
+			Eligible = "boolean",
+			ActiveSeconds = "number",
+		}
+		local function contract(context, kind)
+			local ok, missing = fieldsOk(context, HEAD)
+			check(ok, kind .. " context carries every field the adapter reads (missing " .. tostring(missing) .. ")")
+			check(
+				context.BoundaryVersion == def.BoundaryVersion
+					and context.EventId == def.EventId
+					and context.LandmarkId == def.LandmarkId
+					and context.RegionId == def.RegionId,
+				kind .. " context matches the reward table's boundary version, event, landmark and region"
+			)
+			check(table.isfrozen(context) and table.isfrozen(context.Participants), kind .. " context is frozen")
+			for _, participant in context.Participants do
+				local pOk, pMissing = fieldsOk(participant, if kind == "Stage" then STAGE_P else FINAL_P)
+				check(pOk, kind .. " participant " .. tostring(participant.UserId) .. " field " .. tostring(pMissing))
+			end
+		end
+		local stageIds = {}
+		for _, observation in capturedStages do
+			if observation.EventInstanceId == e.EventInstanceId then
+				contract(observation, "Stage")
+				check(type(observation.StageId) == "string", "stage observation names its stage")
+				table.insert(stageIds, observation.StageId)
+			end
+		end
+		table.sort(stageIds)
+		check(
+			table.concat(stageIds, ",") == "ball_return,excavation,vault_open",
+			"the runtime reported each stage exactly once (" .. table.concat(stageIds, ",") .. ")"
+		)
+		local runFinals = {}
+		for _, context in capturedFinals do
+			if context.EventInstanceId == e.EventInstanceId then
+				table.insert(runFinals, context)
+			end
+		end
+		check(#runFinals == 1, "the runtime handed over exactly one completion context")
+		if runFinals[1] then
+			contract(runFinals[1], "Final")
+			check(runFinals[1].Success == true, "completion context says Success")
+			check(runFinals[1] == runtime.LastCompletion, "the adapter saw the runtime's own frozen context")
+		end
+		local finalReport
+		for _, report in settledReports do
+			if report.InstanceId == e.EventInstanceId then
+				check(
+					report.Ok,
+					report.Kind .. " " .. tostring(report.StageId) .. " settled Ok (" .. tostring(report.Error) .. ")"
+				)
+				if report.Kind == "Final" then
+					finalReport = report
+				end
+			end
+		end
+		check(
+			finalReport ~= nil
+				and finalReport.Trophy ~= nil
+				and finalReport.Trophy.Ok
+				and finalReport.Trophy.ByUserId[A].Status == "Granted"
+				and finalReport.Trophy.ByUserId[C].Status == "Granted"
+				and finalReport.Trophy.ByUserId[B].Status == "Ineligible",
+			"TrophyService.PrepareCompletionContext accepts the real context: A and C granted, watcher ineligible"
+		)
 
 		-- Possessions and unrelated fields
 		local data = DataService.Get(pa)
@@ -469,6 +680,74 @@ if runtimeOn then
 		check(Settlement.HasCertification(pf, "cert_crew") == false, "no cert on failure")
 		local progress = Settlement.GetProgress(pf, "event_vault")
 		check(progress == nil or (progress.Clears or 0) == 0, "no clear recorded on failure")
+	end)
+
+	section("real runtime with AdventureRewards OFF (SpringVault on): review run, nothing granted")
+	step("rewards-off run", function()
+		Mock.Advance(2)
+		Boot.Disable()
+		Flags.AdventureRewards = false -- test process only; restored below
+		Boot.Start()
+		local runtime = Boot.Runtime()
+		check(runtime ~= nil, "runtime restarted with rewards off")
+		check(Boot.Options(Flags).OutcomeOwner == nil, "rewards off: the runtime keeps its own review copy")
+		local G = 9507
+		seed(G)
+		local scene = runtime.Scene
+		local mara = scene.Targets.npc_mara
+		local pg = add(G, "Gus", mara)
+		pg.Character:PivotTo(CF.new(mara + V.new(0, 3, 2)))
+		runtime.Handle(pg, { action = "Join", eventInstanceId = "" })
+		Mock.Advance(0.2)
+		pg.Character:PivotTo(CF.new(scene.Origin + V.new(0, 6, -34)))
+		Mock.Advance(6)
+		local e = runtime.Event()
+		check(e ~= nil and e:start(G, Mock.Now()) == true, "solo start")
+		e:ready(G, Mock.Now())
+		Mock.Advance(0.5)
+		local mark = #Mock.Remote.ToClient
+		local reports = #settledReports
+		for _, anchorId in { "vault_anchor_1", "vault_anchor_2", "vault_anchor_3" } do
+			local guard = 0
+			while not e.Anchors[anchorId].Completed and guard < 40 do
+				guard += 1
+				e:hitAnchor(G, anchorId, Mock.Now())
+				Mock.Advance(0.5)
+			end
+		end
+		check(e:openVault(G, Mock.Now()) == true, "vault opened")
+		for _, gate in { "ball_gate_1", "ball_gate_2", "ball_gate_3" } do
+			e:advanceBallGate(gate, Mock.Now(), { [G] = 1 })
+		end
+		Mock.Advance(3)
+		check(e.Phase == "Resolving" and runtime.Settled == false, "completion handed over and refused")
+		check(#settledReports == reports, "no settlement ran (stage or final)")
+		local cards = 0
+		for i = mark + 1, #Mock.Remote.ToClient do
+			if Mock.Remote.ToClient[i].Name == "AdventureOutcome" then
+				cards += 1
+			end
+		end
+		check(cards == 0, "no outcome card for anyone (" .. cards .. ")")
+		for _, p in Mock.Env.game:GetService("Players"):GetPlayers() do
+			local snap = lastSnapshot(p, mark)
+			check(
+				snap ~= nil
+					and snap.message == "Adventure complete. Rewards are not enabled on this server."
+					and not claimsReward(snap.message),
+				p.Name .. " is told rewards are not enabled, nothing claimed"
+			)
+		end
+		local snap = lastSnapshot(pg, mark)
+		print("  rewards off, runtime objective after completion: " .. tostring(snap and snap.objective))
+		check(DataService.Get(pg).Coins == 0 and stored(G).Coins == 0, "no coins granted")
+		check(TrophyService.Owns(pg, TROPHY) == false, "no trophy granted")
+		check(Settlement.HasCertification(pg, "cert_crew") == false, "no certification granted")
+		Mock.Advance(13)
+		Boot.Disable()
+		Flags.AdventureRewards = true
+		Boot.Start()
+		check(Boot.Runtime() ~= nil, "runtime restored with rewards on for the rest of the spec")
 	end)
 elseif mode ~= "off" then
 	print("SKIPPED runtime part (Spring Vault gameplay files absent)")
@@ -826,6 +1105,15 @@ step("kill switch mid-settlement: accepted grants still land", function()
 	local _ = p
 end)
 
+print(
+	string.format(
+		"  outcome monitor: %d Accepted (each durable when told), %d Pending, %d Refused",
+		monitored.Accepted,
+		monitored.Pending,
+		monitored.Refused
+	)
+)
+check(monitored.Accepted > 0 and monitored.Pending > 0, "the monitor saw Accepted and Pending outcomes")
 check(#Mock.Errors == 0, "no uncaught errors")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))
