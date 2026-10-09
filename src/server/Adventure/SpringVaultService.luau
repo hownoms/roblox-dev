@@ -1,0 +1,637 @@
+--!strict
+-- Explicit opt-in runtime. Production boot never requires this module automatically.
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Adventure.SpringVaultConfig)
+local Kit = require(Shared.Models.Expansion1)
+local RateLimiter = require(Shared.Util.RateLimiter)
+local State = require(script.Parent.SpringVaultState)
+local Scene = require(script.Parent.SpringVaultScene)
+local Rules = require(script.Parent.SpringVaultRules)
+local ReviewAdapter = require(script.Parent.TemporaryReviewCompletionAdapter)
+local Service = {}
+export type Options = {
+	Origin: Vector3?,
+	-- Admission reads authoritative loaded data/certification contracts; review explicitly injects a loan.
+	CanEnter: ((Player) -> boolean)?,
+	CanTrial: ((Player) -> boolean)?,
+	OnCompletion: ((any) -> (boolean, string))?,
+}
+local function root(player: Player): BasePart?
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	local part = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	return if humanoid and humanoid.Health > 0 and part and part:IsA("BasePart") then part else nil
+end
+function Service.Start(options: Options?)
+	local opts = options or {}
+	assert(not ReplicatedStorage:FindFirstChild("SpringVaultAdventure"), "Adventure already started")
+	local remotes = Instance.new("Folder")
+	remotes.Name = "SpringVaultAdventure"
+	remotes.Parent = ReplicatedStorage
+	local intent = Instance.new("RemoteEvent")
+	intent.Name = "Intent"
+	intent.Parent = remotes
+	local snapshot = Instance.new("RemoteEvent")
+	snapshot.Name = "Snapshot"
+	snapshot.Parent = remotes
+	local effect = Instance.new("RemoteEvent")
+	effect.Name = "Effect"
+	effect.Parent = remotes
+	local scene: any = Scene.Build(workspace, opts.Origin)
+	local limiter = RateLimiter.new(12, 1)
+	local connections: { RBXScriptConnection } = {}
+	local trial: { [Player]: any } = {}
+	local returns: { [Player]: CFrame } = {}
+	local charges: { [Player]: number } = {}
+	local nextWave: { [Player]: number } = {}
+	local tools: { [Player]: Tool } = {}
+	local lastPositions: { [Player]: Vector3 } = {}
+	local recovery: { [Player]: number } = {}
+	local session = HttpService:GenerateGUID(false)
+	local sequence = 0
+	local event: any = nil
+	local ballPosition = scene.BallStart
+	local checkpoint = ballPosition
+	local waypoint = 2
+	local route = "Left"
+	local ballResetAt: number? = nil
+	local completionSent = false
+	local stopped = false
+	local lastBroadcast = 0
+	local lastBounce = 0
+	local adapter = ReviewAdapter.new()
+	local submit = opts.OnCompletion or adapter.Submit
+	local self: any = { Scene = scene, ReviewAdapter = adapter }
+	local function near(player: Player, target: Vector3, range: number): boolean
+		local part = root(player)
+		return part ~= nil and Rules.Within((part :: BasePart).Position, target, range)
+	end
+	local function participant(player: Player): any
+		return if event then event.Participants[player.UserId] else nil
+	end
+	local function loan(player: Player)
+		if tools[player] then
+			return
+		end
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		if not backpack then
+			return
+		end
+		local model = Kit.Broadwave()
+		local handle = model.PrimaryPart :: BasePart
+		local tool = Instance.new("Tool")
+		tool.Name = "Broadwave · Adventure Loan"
+		tool.CanBeDropped = false
+		tool:SetAttribute("AdventureLoan", true)
+		tool.Grip = handle:GetAttribute("GripOffset") :: CFrame
+		for _, item in model:GetChildren() do
+			item.Parent = tool
+		end
+		for _, item in tool:GetDescendants() do
+			if item:IsA("BasePart") then
+				item.Anchored = false
+				item.CanCollide = false
+			end
+		end
+		model:Destroy()
+		tool.Parent = backpack
+		tools[player] = tool
+	end
+	local function cancel(player: Player)
+		charges[player] = nil
+		effect:FireAllClients({ kind = "CancelCharge", playerUserId = player.UserId })
+	end
+	local function restore(player: Player)
+		cancel(player)
+		local tool = tools[player]
+		if tool then
+			tool:Destroy()
+			tools[player] = nil
+		end
+		local character = player.Character
+		if character and returns[player] then
+			character:PivotTo(returns[player])
+		end
+		returns[player] = nil
+		lastPositions[player] = nil
+		recovery[player] = nil
+	end
+	local function send(player: Player, message: string?)
+		local data: any = if event then event:snapshot(os.clock()) else {}
+		data.eventInstanceId = if event then event.EventInstanceId else ""
+		data.stage = if event then event.Stage else "Optional"
+		data.phase = if event then event.Phase else "Dormant"
+		data.joined = participant(player) ~= nil and participant(player).Present == true
+		data.ready = participant(player) ~= nil and participant(player).Ready == true
+		data.hauling = participant(player) ~= nil and participant(player).Attached == true
+		data.trialComplete = trial[player] ~= nil and trial[player].Wave and trial[player].Cleared == 3
+		data.loanAvailable = tools[player] ~= nil
+		data.loanAvailable = tools[player] ~= nil
+		data.message = message
+		data.objective = if not event
+			then "Talk to Mara to join, or Pip for a trial."
+			elseif event.Phase == "Inviting" then "Start after five seconds."
+			elseif event.Phase == "Preparing" then "Press Ready when the arena is visible."
+			elseif event.Stage == "anchors" then "Clear triangle, square and circle anchors."
+			elseif event.Stage == "vault" then "Open the latch. Choose a left or right route."
+			elseif event.Stage == "ball" then "Attach nearby, then walk along the channel. Gates "
+				.. event.GateIndex
+				.. "/3"
+			else "Adventure complete. REVIEW ONLY: no rewards granted."
+		data.objective = if not event
+			then "Talk to Mara to join, or Pip for an optional trial."
+			elseif event.Phase == "Inviting" then "Start after five seconds. Ready confirms loading."
+			elseif event.Phase == "Preparing" then "Press Ready when the arena is visible."
+			elseif event.Stage == "anchors" then "Clear triangle, square and circle anchors: " .. string.format(
+				"%.0f/%.0f � %.0f/%.0f � %.0f/%.0f",
+				event.Anchors.vault_anchor_1.Work,
+				event.Anchors.vault_anchor_1.Required,
+				event.Anchors.vault_anchor_2.Work,
+				event.Anchors.vault_anchor_2.Required,
+				event.Anchors.vault_anchor_3.Work,
+				event.Anchors.vault_anchor_3.Required
+			)
+			elseif event.Stage == "vault" then "Open the latch. Choose a left or right route."
+			elseif event.Stage == "ball" then "Guide ball: attach nearby, then walk along the channel. Gates "
+				.. event.GateIndex
+				.. "/3"
+			else "Adventure complete. REVIEW ONLY: no permanent rewards granted."
+		data.objectives = {
+			"Optional: talk to Mara to join Spring Surprise (about 4 minutes).",
+			"Pip lends Broadwave: hold Ability for 0.8 seconds, release toward the marked patch; clear 3 practice targets.",
+			"Clear three shaped anchors, open the latch, then guide the ball through three gates.",
+			"REVIEW ONLY — no coins, certifications or permanent trophies are granted.",
+		}
+		snapshot:FireClient(player, data)
+	end
+	local function broadcast()
+		for _, player in Players:GetPlayers() do
+			send(player)
+		end
+	end
+	local function resetEvent()
+		for player in returns do
+			restore(player)
+		end
+		scene.Destroy()
+		scene = Scene.Build(workspace, opts.Origin)
+		self.Scene = scene
+		event = nil
+		waypoint = 2
+		checkpoint = scene.BallStart
+		ballPosition = checkpoint
+		ballResetAt = nil
+		completionSent = false
+		broadcast()
+	end
+	local function newEvent(player: Player)
+		sequence += 1
+		event = State.new(Config, session .. ":" .. sequence, player.UserId, os.clock())
+		completionSent = false
+	end
+	local function handle(player: Player, payload: any)
+		if stopped or not limiter:Check(player) then
+			return
+		end
+		if type(payload) ~= "table" or type(payload.action) ~= "string" or #payload.action > 32 then
+			return
+		end
+		local action = payload.action
+		local targetId = payload.targetId
+		if targetId ~= nil and (type(targetId) ~= "string" or #targetId > 64) then
+			return
+		end
+		if action == "Sync" then
+			send(player)
+			return
+		end
+		if action == "Ignore" then
+			send(player, "Invitation dismissed. Ordinary digging stays available.")
+			return
+		end
+		if action == "Talk" then
+			if (targetId ~= "npc_mara" and targetId ~= "npc_pip") or not near(player, scene.Targets[targetId], 10) then
+				return
+			end
+			if targetId == "npc_pip" then
+				if not opts.CanTrial or not opts.CanTrial(player) then
+					send(player, "Pip's trial unlocks after the first shovel purchase.")
+					return
+				end
+				trial[player] = trial[player] or { Wave = false, Cleared = 0, Targets = {} }
+				loan(player)
+				send(
+					player,
+					"Pip: Small shovel. Ridiculously big plans! Try the marked patch, then clear its three practice targets."
+				)
+			else
+				send(
+					player,
+					"Mara: Giant chest found! Optional rescue, about four minutes. Join when ready. Review build grants no permanent rewards."
+				)
+			end
+			return
+		end
+		if action == "Join" then
+			if not opts.CanEnter or not opts.CanEnter(player) or not near(player, scene.Targets.npc_mara, 10) then
+				send(
+					player,
+					"Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."
+				)
+				return
+			end
+			local created = not event
+			local created = not event
+			if not event then
+				newEvent(player)
+			end
+			if
+				payload.eventInstanceId ~= ""
+				and payload.eventInstanceId ~= nil
+				and payload.eventInstanceId ~= event.EventInstanceId
+			then
+				return
+			end
+			local ok, reason = true, "joined"
+			if not created then
+				ok, reason = event:join(player.UserId, os.clock())
+			end
+			if ok then
+				local part = root(player)
+				if part and not returns[player] then
+					returns[player] = (player.Character :: Model):GetPivot()
+				end
+				loan(player)
+				send(player, "Joined. Start after five seconds; Ready confirms the arena is loaded.")
+			else
+				send(player, reason)
+			end
+			broadcast()
+			return
+		end
+		local isTrial = trial[player] ~= nil
+		local member = participant(player)
+		if action == "ChargeCancel" then
+			cancel(player)
+			return
+		end
+		if action == "ChargeBegin" then
+			if not tools[player] or not root(player) or os.clock() < (nextWave[player] or 0) then
+				return
+			end
+			if not isTrial and (not member or not member.Present) then
+				return
+			end
+			if charges[player] then
+				return
+			end
+			charges[player] = os.clock()
+			effect:FireAllClients({ kind = "Charge", playerUserId = player.UserId, frame = (root(player) :: BasePart).CFrame })
+			return
+		end
+		if action == "ChargeRelease" then
+			local began = charges[player]
+			cancel(player)
+			local part = root(player)
+			if
+				not began
+				or not part
+				or os.clock() - began < Config.BroadwaveChargeSeconds
+				or os.clock() < (nextWave[player] or 0)
+			then
+				return
+			end
+			local direction = Vector3.new(part.CFrame.LookVector.X, 0, part.CFrame.LookVector.Z)
+			if direction.Magnitude < 0.01 then
+				return
+			end
+			local frame = CFrame.lookAt(part.Position, part.Position + direction.Unit)
+			local changed = false
+			-- Only whitelisted mutable targets; no Terrain writes or generic object deletion.
+			if
+				isTrial
+				and near(player, scene.Targets.trial_patch, Config.BroadwaveRange)
+				and Rules.InCorridor(
+					frame,
+					scene.Targets.trial_patch,
+					Vector3.new(Config.BroadwaveWidth, Config.BroadwaveHeight, 8)
+				)
+			then
+				trial[player].Wave = true
+				changed = true
+			elseif event and member and member.Present and event.Phase == "Active" then
+				for _, id in { "vault_anchor_1", "vault_anchor_2", "vault_anchor_3" } do
+					if
+						near(player, scene.Targets[id], Config.BroadwaveRange)
+						and Rules.InCorridor(
+							frame,
+							scene.Targets[id],
+							Vector3.new(Config.BroadwaveWidth, Config.BroadwaveHeight, 8)
+						)
+					then
+						-- 0.8/.5 equivalent work, capped by actual remaining work in core.
+						local ok = event:hitAnchor(
+							player.UserId,
+							id,
+							os.clock(),
+							Rules.OrdinaryEquivalent(
+								Config.BroadwaveChargeSeconds,
+								Config.HitCooldownSeconds,
+								Config.BroadwaveWork
+							)
+						)
+						if ok then
+							changed = true
+							break
+						end
+					end
+				end
+			end
+			if changed then
+				nextWave[player] = os.clock() + Config.BroadwaveCooldownSeconds
+				effect:FireAllClients({ kind = "Wave", frame = frame, playerUserId = player.UserId })
+				send(player, "Broadwave released. Event work only; no duplicate sand.")
+			else
+				send(
+					player,
+					"Point toward a filled marked target within 12 studs. Protected and empty targets give no progress."
+				)
+			end
+			broadcast()
+			return
+		end
+		if
+			action == "Excavate"
+			and isTrial
+			and type(targetId) == "string"
+			and string.match(targetId, "^trial_target_[123]$")
+		then
+			if
+				not trial[player].Wave
+				or not near(player, scene.Targets[targetId], 12)
+				or trial[player].Targets[targetId]
+			then
+				return
+			end
+			if os.clock() - (trial[player].LastHit or -math.huge) < Config.HitCooldownSeconds then
+				return
+			end
+			trial[player].LastHit = os.clock()
+			trial[player].Targets[targetId] = true
+			trial[player].Cleared += 1
+			send(
+				player,
+				if trial[player].Cleared == 3
+					then "Pip: Excellent! Broadwave trial complete. No permanent license or trial coins awarded in review."
+					else "Practice target cleared."
+			)
+			return
+		end
+		if not event or payload.eventInstanceId ~= event.EventInstanceId or not member or not member.Present then
+			return
+		end
+		local now = os.clock()
+		local ok, reason = false, "Unavailable"
+		if action == "Start" then
+			ok, reason = event:start(player.UserId, now)
+		elseif action == "Ready" then
+			ok, reason = event:ready(player.UserId, now)
+		elseif action == "Leave" then
+			event:leave(player.UserId, now, false)
+			restore(player)
+			ok = true
+		elseif action == "Excavate" then
+			if
+				type(targetId) ~= "string"
+				or not scene.Anchors[targetId]
+				or not near(player, scene.Targets[targetId], 12)
+			then
+				return
+			end
+			ok, reason = event:hitAnchor(player.UserId, targetId, now, 1)
+		elseif action == "OpenVault" then
+			if not near(player, scene.Targets.vault_latch, 10) then
+				return
+			end
+			ok, reason = event:openVault(player.UserId, now)
+			if ok then
+				scene.OpenVault()
+				scene.SpawnBall()
+				ballPosition = scene.BallStart
+				checkpoint = ballPosition
+			end
+		elseif action == "PushBall" then
+			if not near(player, ballPosition, 8) then
+				return
+			end
+			ok, reason = event:latch(player.UserId, not member.Attached, now)
+			if ok then
+				lastPositions[player] = (root(player) :: BasePart).Position
+			end
+		elseif action == "ResetBall" then
+			if not near(player, scene.Targets.ball_reset, 10) then
+				return
+			end
+			if event.Stage ~= "ball" then
+				return
+			end
+			ballResetAt = now + 3
+			ok = true
+		elseif action == "RouteLeft" or action == "RouteRight" then
+			if waypoint ~= 2 or not near(player, scene.Targets.vault_latch, 12) then
+				return
+			end
+			route = if action == "RouteLeft" then "Left" else "Right"
+			ok = true
+		else
+			return
+		end
+		if not ok then
+			send(player, reason)
+		end
+		for id, anchor in event.Anchors do
+			scene.SetAnchorProgress(id, anchor.Work / anchor.Required)
+		end
+		broadcast()
+	end
+	table.insert(
+		connections,
+		intent.OnServerEvent:Connect(function(player: Player, payload: any)
+			local ok, err = pcall(handle, player, payload)
+			if not ok then
+				warn("[SpringVault] rejected failed intent", err)
+			end
+		end)
+	)
+	table.insert(
+		connections,
+		Players.PlayerRemoving:Connect(function(player)
+			if event then
+				event:leave(player.UserId, os.clock(), true)
+			end
+			restore(player)
+			trial[player] = nil
+			nextWave[player] = nil
+			limiter:Remove(player)
+		end)
+	)
+	table.insert(
+		connections,
+		RunService.Heartbeat:Connect(function(delta)
+			if stopped then
+				return
+			end
+			local now = os.clock()
+			if event then
+				for _, player in Players:GetPlayers() do
+					local p = event.Participants[player.UserId]
+					local part = root(player)
+					if p then
+						event:setPresence(
+							player.UserId,
+							part ~= nil
+								and math.abs((part :: BasePart).Position.X - scene.Origin.X) <= 48
+								and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69
+						)
+						if p.Left and returns[player] then
+							restore(player)
+						end
+					end
+				end
+				event:tick(now)
+				if event.Phase == "Active" and event.Stage == "ball" then
+					local moving: { Player } = {}
+					local path = scene.Routes[route]
+					local goal = path[waypoint]
+					for _, player in Players:GetPlayers() do
+						local member = participant(player)
+						local part = root(player)
+						if member and member.Present and member.Attached then
+							if not part or not near(player, ballPosition, 8) then
+								event:latch(player.UserId, false, now)
+							else
+								local previous = lastPositions[player] or part.Position
+								local displacement = part.Position - previous
+								lastPositions[player] = part.Position
+								if
+									displacement.Magnitude <= math.max(4, delta * 24)
+									and goal
+									and displacement:Dot((goal - ballPosition).Unit) > 0.005
+								then
+									table.insert(moving, player)
+								end
+							end
+						end
+						if member and member.Present and part then
+							if part.Position.Y < scene.Origin.Y - 10 then
+								recovery[player] = recovery[player] or now + 2
+								if now >= recovery[player] then
+									(player.Character :: Model):PivotTo(CFrame.new(checkpoint + Vector3.new(0, 2, 6)))
+									recovery[player] = nil
+								end
+							else
+								recovery[player] = nil
+							end
+						end
+					end
+					if ballResetAt and now >= ballResetAt then
+						scene.ResetBall(checkpoint)
+						ballPosition = checkpoint
+						ballResetAt = nil
+					end
+					if not ballResetAt and #moving > 0 and goal then
+						local difference = goal - ballPosition
+						local distance =
+							math.min(difference.Magnitude, (if #moving >= 2 then 12 else 10) * math.min(delta, 0.1))
+						if difference.Magnitude > 0.01 then
+							ballPosition += difference.Unit * distance
+							scene.MoveBall(ballPosition)
+						end
+						if (goal - ballPosition).Magnitude < 0.15 then
+							ballPosition = goal
+							waypoint += 1
+							for _, gate in scene.Gates do
+								if
+									waypoint - 1 == gate.WaypointIndex
+									and (ballPosition - gate.Position).Magnitude <= gate.Radius
+								then
+									local accepted = event:advanceBallGate(gate.Id, now)
+									if accepted then
+										checkpoint = ballPosition
+										effect:FireAllClients({
+											kind = "Gate",
+											frame = CFrame.new(ballPosition),
+											targetId = gate.Id,
+										})
+									end
+								end
+							end
+							if now - lastBounce >= 0.6 then
+								lastBounce = now
+								effect:FireAllClients({
+									kind = "Bounce",
+									frame = CFrame.new(ballPosition - Vector3.new(0, 3.8, 0)),
+								})
+							end
+						end
+					end
+					if ballPosition.Y < scene.Origin.Y - 6 or (ballPosition - scene.Origin).Magnitude > 180 then
+						ballResetAt = ballResetAt or now + 3
+					end
+				end
+				if event.Phase == "Resolving" and not completionSent then
+					completionSent = true
+					local context = event:completionContext(now)
+					if context then
+						local accepted, message = submit(context)
+						for _, player in Players:GetPlayers() do
+							send(player, message)
+						end
+						-- Review context is captured, never represented as Rewarded/settled.
+						self.LastCompletion = context
+						self.Settled = accepted
+					end
+				end
+				if event.Phase == "Resolving" and event.CompletedAt and now - event.CompletedAt >= 12 then
+					event:cleanup(now)
+				end
+				if event.Phase == "Resolving" and event.CompletedAt and now - event.CompletedAt >= 12 then
+					event:cleanup(now)
+				end
+				if event.Phase == "Cleanup" then
+					resetEvent()
+				end
+			end
+			if now - lastBroadcast >= 1 then
+				lastBroadcast = now
+				broadcast()
+			end
+		end)
+	)
+	function self.Handle(player: Player, payload: any)
+		handle(player, payload)
+	end
+	function self.Event(): any
+		return event
+	end
+	function self.Destroy()
+		if stopped then
+			return
+		end
+		stopped = true
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		for player in tools do
+			restore(player)
+		end
+		scene.Destroy()
+		remotes:Destroy()
+	end
+	return self
+end
+return Service
