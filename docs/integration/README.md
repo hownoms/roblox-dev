@@ -22,6 +22,7 @@ Every adventure flag (`AdventureFlags`) defaults to off.
 | Camp pad display action and preview | `camp-display-action.md` |
 | Flags, eligibility, licensed Broadwave, input arbitration, boot | `production-wiring.md` |
 | Review of Codex's `codex/spring-vault-gameplay-polish` | `codex-polish-review.md` |
+| Surface entrance, safe returns, pocket lighting, spawn removal | `adventure-entry.md` |
 
 ## Joint evidence (9 Oct 2026, headless mock store)
 
@@ -62,12 +63,15 @@ scenarios print SKIPPED and everything else passes.
 
 These come from `codex-polish-review.md` and `production-wiring.md`.
 
-1. The review arena's neutral `SpawnLocation` must not exist in production.
+1. The review arena's neutral `SpawnLocation` must not exist in production. Done on
+   `claude/svi-entry`: AdventureBoot removes it, including after rebuilds; the clean scene
+   option is requested from Codex (`adventure-entry.md`).
 2. The runtime must accept the licensed Broadwave tool for a charge, or `BroadwaveOrdinary`
    stays off.
 3. The production client hides the Backpack, so equipping the loan or licence needs a control.
 4. Players need a surface entry or teleport into the under-slab arena, plus a lighting check
-   there.
+   there. Built on `claude/svi-entry` (`AdventureEntry`, see `adventure-entry.md`); the pocket
+   lighting still needs the lead's Studio look.
 5. Owner decisions:
    - the permanent first-sale and deposit evidence;
    - who grants the Broadwave licence and under which key;

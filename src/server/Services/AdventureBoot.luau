@@ -8,8 +8,9 @@
 	  * Places the arena in POCKET_ORIGIN: an empty void under the 16-stud land slab, inland of the
 	    dig strip and outside every dig/protected footprint (validated here; refuses to start
 	    otherwise). No terrain is written.
-	  * Disables the review scene's Neutral SpawnLocation (otherwise Roblox would spawn ~1 in 4
-	    players inside the arena; open review finding).
+	  * Removes the review scene's Neutral SpawnLocation (otherwise Roblox would spawn ~1 in 4
+	    players inside the arena; review H1), including in every scene rebuilt after a run.
+	  * AdventureEntry: surface hatch in, return pad out, safe returns, pocket lighting rig.
 	  * SpringVaultService.Start({ Origin, CanEnter, CanTrial, OnStage, OnCompletion,
 	    OnOrdinaryBroadwave }) with the AdventureEligibility callbacks.
 	AdventureRewards ON: OnStage/OnCompletion = AdventureSettlement's durable bridge (enabled).
@@ -28,6 +29,7 @@ local Flags = require(script.Parent.AdventureFlags)
 local Eligibility = require(script.Parent.AdventureEligibility)
 local BroadwaveLicense = require(script.Parent.BroadwaveLicense)
 local AdventureSettlement = require(script.Parent.AdventureSettlement)
+local AdventureEntry = require(script.Parent.AdventureEntry)
 local DigService = require(script.Parent.DigService)
 local World = require(script.Parent.Parent.World)
 local Layout = require(script.Parent.Parent.World.Layout)
@@ -78,26 +80,27 @@ function AdventureBoot.PocketIsSafe(origin: Vector3): boolean
 	return not (overlapX and overlapZ)
 end
 
-local function disableSpawns(root: Instance)
-	for _, d in root:GetDescendants() do
-		if d:IsA("SpawnLocation") then
-			d.Enabled = false
-		end
+-- The review scene's SpawnLocation (nothing in the runtime references it) must never be a
+-- spawn in production: neutralised at once, destroyed on the next resumption point (a Destroy
+-- inside DescendantAdded would re-parent mid parent-change).
+local function removeSpawn(d: Instance)
+	if d:IsA("SpawnLocation") then
+		d.Enabled = false
+		d.Neutral = false
+		d.AllowTeamChangeOnTouch = false
+		task.defer(function()
+			d:Destroy()
+		end)
 	end
 end
 
 local function guardScene()
 	local function hook(child: Instance)
 		if child.Name == "SpringVaultAdventure" and child:IsA("Model") then
-			disableSpawns(child)
-			table.insert(
-				guards,
-				child.DescendantAdded:Connect(function(d: Instance)
-					if d:IsA("SpawnLocation") then
-						d.Enabled = false
-					end
-				end)
-			)
+			for _, d in child:GetDescendants() do
+				removeSpawn(d)
+			end
+			table.insert(guards, child.DescendantAdded:Connect(removeSpawn))
 		end
 	end
 	table.insert(guards, Workspace.ChildAdded:Connect(hook))
@@ -169,13 +172,15 @@ function AdventureBoot.Start()
 	local ok, result = pcall(SpringVaultService.Start, options)
 	if ok then
 		runtime = result
+		AdventureEntry.Start(result, AdventureBoot.POCKET_ORIGIN)
 	else
 		warn("[AdventureBoot] SpringVaultService.Start failed: " .. tostring(result))
 		AdventureBoot.Disable()
 	end
 end
 
--- In-server kill switch: stops the runtime (restores loans/positions/speeds), refuses new
+-- In-server kill switch: stops the runtime (restores loans/positions/speeds), returns everyone in
+-- the pocket to the surface, refuses new
 -- settlements, removes licensed tools. Accepted grants stay owned; outbox drains continue.
 function AdventureBoot.Disable()
 	Eligibility.SetOrdinaryEnabled(false)
@@ -186,6 +191,9 @@ function AdventureBoot.Disable()
 		pcall(r.Destroy)
 		AdventureSettlement.SetEnabled(false)
 	end
+	-- After Destroy (which restores joined players into the arena, then removes it): lift
+	-- everyone still under the slab to the beach in the same frame.
+	AdventureEntry.Stop()
 	for _, c in guards do
 		c:Disconnect()
 	end
