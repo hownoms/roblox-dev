@@ -49,10 +49,13 @@ local function prompt(part: BasePart, action: string, id: string, label: string)
 	p.Parent = part
 end
 
-function Scene.Build(parent: Instance, origin: Vector3?)
+function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 	local base = origin or V(700, 20, 0)
 	local model = Instance.new("Model")
 	model.Name = "SpringVaultAdventure"
+	-- Stream the protected pocket and its objective prompts together. Clients
+	-- must not bind an incomplete set of anchors/routes during streaming.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	model:SetAttribute("EventId", "event_vault")
 	model.Parent = parent
 	local function point(x: number, y: number, z: number): Vector3
@@ -73,21 +76,25 @@ function Scene.Build(parent: Instance, origin: Vector3?)
 		return p
 	end
 	part("ProtectedArenaFloor", V(100, 2, 140), point(0, -1, -36), Kit.Palette.Sand, true)
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "AdventureReviewSpawn"
-	spawn.Size = V(6, 1, 6)
-	spawn.Position = point(0, 0.5, 20)
-	spawn.Anchored = true
-	spawn.CanCollide = true
-	spawn.CanTouch = false
-	spawn.Neutral = true
-	spawn.Duration = 0
-	spawn.Color = Kit.Palette.Cream
-	spawn.Parent = model
-	protect(spawn)
+	-- Production never creates a neutral spawn; only dedicated review opts in.
+	if reviewSpawn == true then
+		local spawn = Instance.new("SpawnLocation")
+		spawn.Name = "AdventureReviewSpawn"
+		spawn.Size = V(6, 1, 6)
+		spawn.Position = point(0, 0.5, 20)
+		spawn.Anchored = true
+		spawn.CanCollide = true
+		spawn.CanTouch = false
+		spawn.Neutral = true
+		spawn.Duration = 0
+		spawn.Color = Kit.Palette.Cream
+		spawn.Parent = model
+		protect(spawn)
+	end
 	part("LeftBoundary", V(2, 8, 140), point(-49, 4, -36), Kit.Palette.Navy, true)
 	part("RightBoundary", V(2, 8, 140), point(49, 4, -36), Kit.Palette.Navy, true)
 	part("FarBoundary", V(100, 8, 2), point(0, 4, -105), Kit.Palette.Navy, true)
+	part("NearBoundary", V(100, 8, 2), point(0, 4, 33), Kit.Palette.Navy, true)
 	-- Low channel curbs leave wide avatar walkways; no enclosed or mutable tunnel supports.
 	for _, x in { -18, 18 } do
 		part("ChannelCurb", V(1, 1.5, 75), point(x, 0.75, -54), Kit.Palette.Blue, true)

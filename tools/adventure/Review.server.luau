@@ -6,6 +6,7 @@ local Service = require(script.Parent.Adventure.SpringVaultService)
 local Players = game:GetService("Players")
 local runtime = Service.Start({
 	Origin = Vector3.new(700, 20, 0),
+	ReviewSpawn = true,
 	CanEnter = function(_player: Player): boolean
 		return true
 	end,

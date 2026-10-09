@@ -1,0 +1,237 @@
+$ C:\Users\howar\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe tests/tools/bundle.py
+wrote build\test\generated.luau (836 classes, 544 enums)
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/util.spec.luau
+8 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/smoke.spec.luau
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== same-server rejoin during delayed final save
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (6/8 spots found something)
+== launch check
+== badges
+== persistence contention and transient failures
+== shutdown
+== report
+
+SMOKE: 2212 passed, 0 failed
+SMOKE TEST PASSED
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/smoke.spec.luau -a studio
+(mode: Studio without DataStore access)
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (5/8 spots found something)
+== launch check
+== badges
+== shutdown
+== report
+
+SMOKE: 2179 passed, 0 failed
+SMOKE TEST PASSED
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/trophy.spec.luau
+== migration (pure)
+== eligibility rule
+== existing save loads through DataService
+== completion settlement
+== adventure CompletionContext adapter
+== disconnect, rejoin, reconnect
+== client cannot grant
+== camp placement
+== existing systems
+== trophy stand requirement
+== authored camp pad: one pad, one owner, hand-over
+== camp display action: prompts, preview cell, status, queue, no pad
+== cross-server recovery (second mock server)
+TROPHY SPEC: 400 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/adventure-settlement.spec.luau
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/adventure-outcome.spec.luau
+ADVENTURE OUTCOME CLIENT: 23 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/trophy-wired.spec.luau
+TROPHY WIRED: 35 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/production-wiring.spec.luau
+PRODUCTION WIRING (off): 36 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/production-wiring.spec.luau -a on
+FAIL: arena spawn disabled (players never spawn in the pocket)
+FAIL: integrated runtime refuses ordinary loan charge away from trial/event
+PRODUCTION WIRING (on): 43 passed, 2 failed
+./tests/production-wiring.spec.luau:31: PRODUCTION WIRING SPEC FAILED
+stacktrace:
+[C] function error
+./tests/production-wiring.spec.luau:31 function finish
+./tests/production-wiring.spec.luau:570
+
+EXIT 1
+
+$ C:/Users/howar/bin/luau.exe tests/production-wiring.spec.luau -a client
+PRODUCTION WIRING (client): 20 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/production-wiring.spec.luau -a rejoin
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/persistence-boot.spec.luau
+PERSISTENCE BOOT live: PASSED
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/persistence-boot.spec.luau -a studio
+PERSISTENCE BOOT Studio: PASSED
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/client.spec.luau
+== world + remotes
+== client boot
+== panels
+== buttons
+   clicked 162 buttons (HUD)
+   clicked 191 buttons (Index)
+   clicked 191 buttons (Rebirth)
+   clicked 191 buttons (Pets)
+   clicked 191 buttons (Shop)
+   clicked 191 buttons (Settings)
+   clicked 191 buttons (Store)
+   clicked 191 buttons (Daily)
+   clicked 191 buttons (Quests)
+   clicked 191 buttons (Eggs)
+== hud polish
+== prompts
+== streaming
+== dig
+== hole + respawn
+== companions
+== survival
+== shovel pose
+== ride
+== menu gating
+== hatching + compliance
+== status & social
+== rebirth & economy
+== discovery
+== confirmed sell feedback
+== ambient motion
+== trophy camp action
+== report
+   client -> server: BuyBackpack=30, BuyConsumable=75, BuyRebirthPerk=1, BuyShade=23, BuyShovel=41, ClaimDailyReward=10, ClaimQuest=20, Dig=6, DrinkFountain=1, EquipBackpack=10, EquipShovel=11, Excavate=6, FusePets=1, HatchEgg=1, PickUpShade=70, PlaceShade=1, ReturnToSurface=11, RideDig=3, Scan=11, SetSetting=128, ToggleRide=2, Track=122, UnequipPet=10, UseConsumable=1
+
+CLIENT: 1500 passed, 0 failed
+CLIENT SMOKE TEST PASSED
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/spring-vault.spec.luau
+Spring Vault: 22 tests passed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/spring-vault-runtime.spec.luau
+Spring Vault runtime mock: 36 checks passed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/spring-vault-input.spec.luau
+Spring Vault input: 191 checks passed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/broadwave-dig.spec.luau
+Broadwave DigService integration: 24 checks passed
+
+EXIT 0
+
+$ C:/Users/howar/bin/luau.exe tests/adventure-trophy-contract.spec.luau
+ADVENTURE TROPHY CONTRACT: 24 checks passed
+
+EXIT 0

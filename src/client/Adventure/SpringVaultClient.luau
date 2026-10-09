@@ -6,6 +6,8 @@ local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local Kit = require(ReplicatedStorage.Shared.Models.Expansion1)
+local Config = require(ReplicatedStorage.Shared.Adventure.SpringVaultConfig)
+local BallVisual = require(ReplicatedStorage.Shared.Adventure.BeachBallVisual)
 
 local Client = {}
 function Client.Start(remotes: Folder, scene: Instance)
@@ -14,14 +16,23 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local instances: { Instance } = {}
 	local effects: { [Model]: boolean } = {}
 	local sceneConnections: { RBXScriptConnection } = {}
-	local ownedPrompts: { ProximityPrompt } = {}
+	local promptCleanups: { [Instance]: () -> () } = {}
+	local visualJobs: { [Model]: boolean } = {}
+	local visualCleanups: { [Model]: () -> () } = {}
+	local visualConnections: { [Model]: RBXScriptConnection } = {}
+	local sceneGeneration = 0
+	local sceneAvailable = true
 	local dead = false
 	local eventId: string? = nil
 	local reducedMotion = false
 	local reducedParticles = false
 	local charging = false
+	local chargeCardVisible = false
+	local chargeInput: InputObject? = nil
+	local chargeTool: Tool? = nil
 	local chargeStart = 0
 	local chargeVisual: Model? = nil
+	local aimPreview: Part? = nil
 	local cooldownUntil = 0
 	local waves = 0
 	local puffActive = false
@@ -71,7 +82,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end
 		end)
 	end
-	local snapshot: any = {}
 	local intent = remotes:WaitForChild("Intent") :: RemoteEvent
 	local function send(action: string, targetId: string?)
 		if not dead then
@@ -84,6 +94,18 @@ function Client.Start(remotes: Folder, scene: Instance)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 	table.insert(instances, gui)
+	local aimHint = Instance.new("TextLabel")
+	aimHint.Name = "BroadwaveAimHint"
+	aimHint.AnchorPoint = Vector2.new(0.5, 0)
+	aimHint.Position = UDim2.new(0.5, 0, 0, 12)
+	aimHint.Size = UDim2.new(0.7, 0, 0, 48)
+	aimHint.BackgroundColor3 = Color3.fromRGB(24, 47, 66)
+	aimHint.TextColor3 = Color3.fromRGB(255, 244, 216)
+	aimHint.TextSize = 16
+	aimHint.TextWrapped = true
+	aimHint.Font = Enum.Font.GothamMedium
+	aimHint.Visible = false
+	aimHint.Parent = gui
 	local card = Instance.new("ScrollingFrame")
 	card.Size = UDim2.new(0, 330, 0, 330)
 	card.AnchorPoint = Vector2.new(0, 0.5)
@@ -193,6 +215,54 @@ function Client.Start(remotes: Folder, scene: Instance)
 	end)
 	routeLeft.Visible = false
 	routeRight.Visible = false
+	-- These markers only select presentation controls. The server resolves issued tools
+	-- and the loaded license separately; a client marker never grants ordinary digging.
+	local function broadwave(container: Instance?): Tool?
+		if container then
+			for _, item in container:GetChildren() do
+				if
+					item:IsA("Tool")
+					and (item:GetAttribute("AdventureLoan") == true or item:GetAttribute("ToolId") == "tool_broadwave")
+				then
+					return item
+				end
+			end
+		end
+		return nil
+	end
+	local function equipped(): Tool?
+		return broadwave(player.Character)
+	end
+	local equip = Instance.new("TextButton")
+	equip.Name = "BroadwaveEquip"
+	equip.AnchorPoint = Vector2.new(0.5, 0)
+	equip.Position = UDim2.new(0.5, 0, 0, 76)
+	equip.Size = UDim2.fromOffset(176, 48)
+	equip.Text = "Equip Broadwave"
+	equip.TextSize = 16
+	equip.Font = Enum.Font.GothamMedium
+	equip.BackgroundColor3 = Color3.fromRGB(255, 244, 216)
+	equip.TextColor3 = Color3.fromRGB(24, 47, 66)
+	equip.Visible = false
+	equip.Parent = gui
+	table.insert(
+		connections,
+		equip.Activated:Connect(function()
+			local character = player.Character
+			local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+			if not humanoid then
+				return
+			end
+			if equipped() then
+				humanoid:UnequipTools()
+			else
+				local tool = broadwave(player:FindFirstChildOfClass("Backpack"))
+				if tool then
+					humanoid:EquipTool(tool)
+				end
+			end
+		end)
+	)
 	local function root(): BasePart?
 		local character = player.Character
 		return if character then character:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
@@ -214,7 +284,17 @@ function Client.Start(remotes: Folder, scene: Instance)
 		effects[model] = true
 	end
 	local function clearCharge()
+		if charging then
+			card.Visible = chargeCardVisible
+		end
 		charging = false
+		chargeInput = nil
+		chargeTool = nil
+		aimHint.Visible = false
+		if aimPreview then
+			aimPreview:Destroy()
+			aimPreview = nil
+		end
 		if chargeVisual then
 			chargeVisual:Destroy()
 			chargeVisual = nil
@@ -226,44 +306,160 @@ function Client.Start(remotes: Folder, scene: Instance)
 		end
 		table.clear(effects)
 	end
-	local function ability(_: string, state: Enum.UserInputState)
+	local function cancelCharge()
+		if charging then
+			send("ChargeCancel", "trial_patch")
+		end
+		clearCharge()
+	end
+	local function ability(_: string, state: Enum.UserInputState, input: InputObject)
+		if charging and equipped() ~= chargeTool then
+			cancelCharge()
+		end
 		if dead or (state ~= Enum.UserInputState.Begin and not charging) then
 			return Enum.ContextActionResult.Pass
 		end
 		if state == Enum.UserInputState.Begin then
-			if not (snapshot.joined or snapshot.loanAvailable) or os.clock() < cooldownUntil or charging then
+			if
+				UserInputService:GetFocusedTextBox()
+				or not sceneAvailable
+				or not equipped()
+				or os.clock() < cooldownUntil
+				or charging
+			then
 				return Enum.ContextActionResult.Pass
 			end
 			charging = true
+			chargeCardVisible = card.Visible
+			card.Visible = false
+			chargeInput = input
+			chargeTool = equipped()
 			chargeStart = os.clock()
+			aimHint.Visible = true
 			send("ChargeBegin", "trial_patch")
+		elseif
+			state ~= Enum.UserInputState.Cancel
+			and chargeInput
+			and (
+				chargeInput.UserInputType ~= input.UserInputType
+				or chargeInput.KeyCode ~= input.KeyCode
+				or (input.UserInputType == Enum.UserInputType.Touch and chargeInput ~= input)
+			)
+		then
+			-- Q, L1 and touch may overlap; only the input that began this charge releases it.
+			return Enum.ContextActionResult.Pass
 		elseif state == Enum.UserInputState.End and charging then
 			clearCharge()
 			send("ChargeRelease", "trial_patch")
 		elseif state == Enum.UserInputState.Cancel and charging then
-			clearCharge()
-			send("ChargeCancel", "trial_patch")
+			cancelCharge()
 		end
 		return Enum.ContextActionResult.Sink
 	end
+	table.insert(connections, UserInputService.WindowFocusReleased:Connect(cancelCharge))
+	table.insert(connections, UserInputService.TextBoxFocused:Connect(cancelCharge))
 	ContextActionService:BindAction("SpringVaultBroadwave", ability, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonL1)
 	ContextActionService:SetTitle("SpringVaultBroadwave", "Hold / release")
 	ContextActionService:SetPosition("SpringVaultBroadwave", UDim2.new(1, -160, 1, -170))
 	local touch = ContextActionService:GetButton("SpringVaultBroadwave")
 	if touch then
 		touch.Size = UDim2.fromOffset(64, 64)
+		local function fitTouch()
+			local camera = workspace.CurrentCamera
+			local parent = touch.Parent
+			if camera and parent and parent:IsA("GuiObject") then
+				local viewport = camera.ViewportSize
+				local position = UDim2.fromOffset(
+					viewport.X - 88 - parent.AbsolutePosition.X,
+					math.max(76, viewport.Y / 2 - 66) - parent.AbsolutePosition.Y
+				)
+				if touch.Position ~= position then
+					touch.Position = position
+				end
+			end
+		end
+		fitTouch()
+		table.insert(connections, touch:GetPropertyChangedSignal("Position"):Connect(fitTouch))
+		if touch.Parent and touch.Parent:IsA("GuiObject") then
+			table.insert(connections, touch.Parent:GetPropertyChangedSignal("AbsolutePosition"):Connect(fitTouch))
+		end
+		if workspace.CurrentCamera then
+			table.insert(
+				connections,
+				workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitTouch)
+			)
+		end
 	end
 	table.insert(
 		connections,
 		RunService.RenderStepped:Connect(function()
+			local tool = equipped()
+			equip.Visible = sceneAvailable
+				and (tool ~= nil or broadwave(player:FindFirstChildOfClass("Backpack")) ~= nil)
+			-- Keep the control in the scrolling card when open; retain access after Ignore.
+			-- While aiming, neither the card nor the equip button should cover the footprint.
+			equip.Visible = equip.Visible and not charging
+			if card.Visible then
+				equip.Parent = card
+				equip.AnchorPoint = Vector2.zero
+				equip.Size = UDim2.new(1 / 3, -12, 0, 48)
+				equip.Position = UDim2.new(2 / 3, 0, 0, 332)
+			else
+				equip.Parent = gui
+				equip.AnchorPoint = Vector2.new(0.5, 0)
+				equip.Size = UDim2.fromOffset(176, 48)
+				equip.Position = UDim2.new(0.5, 0, 0, 76)
+			end
+			local height = if routeLeft.Visible or equip.Visible then 390 else 330
+			if cardContentHeight ~= height then
+				cardContentHeight = height
+				fitCard()
+			end
+			equip.Text = if tool then "Stow Broadwave" else "Equip Broadwave"
+			if touch then
+				touch.Visible = sceneAvailable and tool ~= nil
+			end
+			if charging and tool ~= chargeTool then
+				cancelCharge()
+			end
 			if charging then
+				if os.clock() - chargeStart > 10 then
+					cancelCharge()
+					return
+				end
 				local part = root()
 				if part then
 					local model: Model = chargeVisual or Kit.ChargeEffect(0)
 					if not chargeVisual then
 						chargeVisual = model
 					end
-					local progress = math.clamp((os.clock() - chargeStart) / 0.8, 0, 1)
+					local progress = math.clamp((os.clock() - chargeStart) / Config.BroadwaveChargeSeconds, 0, 1)
+					aimHint.Text = if progress < 1
+						then "Charging · turn your avatar toward the marked target"
+						else "Ready · release toward the marked target (avatar facing)"
+					-- Advisory local footprint follows the same flat avatar direction as server validation.
+					-- It changes neither character rotation nor the requested/accepted target.
+					local direction = Vector3.new(part.CFrame.LookVector.X, 0, part.CFrame.LookVector.Z)
+					if direction.Magnitude >= 0.01 then
+						local preview = aimPreview or Instance.new("Part")
+						if not aimPreview then
+							aimPreview = preview
+							preview.Name = "SpringVaultLocalAim"
+							preview.Anchored = true
+							preview.CanCollide = false
+							preview.CanTouch = false
+							preview.CanQuery = false
+							preview.Size = Vector3.new(Config.BroadwaveWidth, 0.06, 8)
+							preview.Transparency = 0.75
+							preview.Material = Enum.Material.Neon
+							preview.Parent = workspace
+						end
+						preview.Color = if progress < 1
+							then Color3.fromRGB(255, 224, 128)
+							else Color3.fromRGB(122, 236, 190)
+						preview.CFrame = CFrame.lookAt(part.Position, part.Position + direction.Unit)
+							* CFrame.new(0, -2.5, -4)
+					end
 					local dotIndex = 0
 					for _, dot in model:GetChildren() do
 						if dot:IsA("BasePart") and dot.Name == "ChargeDot" then
@@ -289,7 +485,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 	table.insert(
 		connections,
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
-			snapshot = data
 			eventId = data.eventInstanceId
 			if data.message then
 				status.Text = data.message
@@ -305,7 +500,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 							else ""
 					)
 			end
-			if charging and not (data.joined or data.loanAvailable) then
+			if charging and not (data.joined or data.loanAvailable or data.licensedEquipped) then
 				send("ChargeCancel", "trial_patch")
 				clearCharge()
 			end
@@ -322,7 +517,11 @@ function Client.Start(remotes: Folder, scene: Instance)
 			cardContentHeight = if choosingRoute then 390 else 330
 			fitCard()
 			if data.joined then
-				card.Visible = true
+				if charging then
+					chargeCardVisible = true
+				else
+					card.Visible = true
+				end
 			end
 		end)
 	)
@@ -341,6 +540,10 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if data.kind == "Gate" then
 				objective.Text = "✓ Gate validated. " .. (data.message or "Keep guiding the ball.")
 			end
+			if dead or not sceneAvailable then
+				return
+			end
+			local generation = sceneGeneration
 			local frame = data.frame
 			if typeof(frame) ~= "CFrame" or not visible(frame) then
 				return
@@ -348,6 +551,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if data.kind == "Wave" and waves < 2 then
 				waves += 1
 				task.spawn(function()
+					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
 					local model = Kit.AbilityEffect(0, reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
@@ -365,7 +571,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 					end
 					model:Destroy()
 					effects[model] = nil
-					waves -= 1
+					if generation == sceneGeneration then
+						waves -= 1
+					end
 				end)
 			elseif
 				(data.kind == "Bounce" or data.kind == "Gate")
@@ -379,6 +587,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 				end
 				lastPuff = os.clock()
 				task.spawn(function()
+					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
 					local model = Kit.BallEffect(reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
@@ -392,16 +603,58 @@ function Client.Start(remotes: Folder, scene: Instance)
 					end
 					model:Destroy()
 					effects[model] = nil
-					puffActive = false
+					if generation == sceneGeneration then
+						puffActive = false
+					end
 				end)
 			end
 		end)
 	)
 	-- Prompts are presentation only; forged targets still pass through server validation.
 	local function installPrompt(item: Instance)
+		local ball = if item:IsA("Model") and item.Name == "landmark_spring_vault_ball"
+			then item
+			else item:FindFirstAncestor("landmark_spring_vault_ball")
+		if ball and ball:IsA("Model") and ball:FindFirstChild("ContactSphere") and not visualJobs[ball] then
+			visualJobs[ball] = true
+			local generation = sceneGeneration
+			visualConnections[ball] = ball.AncestryChanged:Connect(function()
+				if not ball:IsDescendantOf(workspace) then
+					local cleanup = visualCleanups[ball]
+					if cleanup then
+						cleanup()
+					end
+					visualCleanups[ball] = nil
+					visualJobs[ball] = nil
+					local connection = visualConnections[ball]
+					if connection then
+						connection:Disconnect()
+						visualConnections[ball] = nil
+					end
+				end
+			end)
+			task.spawn(function()
+				local cleanup = BallVisual.DecorateLocal(ball, function()
+					return dead
+						or generation ~= sceneGeneration
+						or not ball:IsDescendantOf(workspace)
+						or visualJobs[ball] ~= true
+				end)
+				if cleanup then
+					if dead or generation ~= sceneGeneration or not ball:IsDescendantOf(workspace) then
+						cleanup()
+					else
+						visualCleanups[ball] = cleanup
+					end
+				end
+			end)
+		end
 		local action = item:GetAttribute("AdventureAction")
 		local targetId = item:GetAttribute("TargetId") or item:GetAttribute("EntityId")
 		if type(action) ~= "string" or type(targetId) ~= "string" then
+			return
+		end
+		if promptCleanups[item] then
 			return
 		end
 		local part = if item:IsA("BasePart") then item else if item:IsA("Model") then item.PrimaryPart else nil
@@ -412,7 +665,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 		local prompt: ProximityPrompt = existing or Instance.new("ProximityPrompt")
 		if not existing then
 			prompt.Name = "SpringVaultLocalPrompt"
-			table.insert(ownedPrompts, prompt)
 		end
 		local actionText = item:GetAttribute("ActionText")
 		local displayName = item:GetAttribute("DisplayName")
@@ -424,41 +676,87 @@ function Client.Start(remotes: Folder, scene: Instance)
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
 			prompt.Parent = part
 		end
-		table.insert(
-			sceneConnections,
-			prompt.Triggered:Connect(function()
-				if action == "Talk" then
-					card.Visible = true
-				end
-				send(action, targetId)
-			end)
-		)
+		local triggerConnection = prompt.Triggered:Connect(function()
+			if action == "Talk" then
+				card.Visible = true
+			end
+			send(action, targetId)
+		end)
+		local ancestryConnection: RBXScriptConnection? = nil
+		local function cleanupPrompt()
+			triggerConnection:Disconnect()
+			if ancestryConnection then
+				ancestryConnection:Disconnect()
+			end
+			if not existing then
+				prompt:Destroy()
+			end
+			promptCleanups[item] = nil
+		end
+		promptCleanups[item] = cleanupPrompt
+		ancestryConnection = item.AncestryChanged:Connect(function()
+			if not item:IsDescendantOf(scene) then
+				cleanupPrompt()
+			end
+		end)
 	end
 	local function clearScene()
+		sceneAvailable = false
+		sceneGeneration += 1
 		if charging then
 			send("ChargeCancel", "trial_patch")
 		end
 		clearCharge()
 		clearEffects()
+		waves = 0
+		puffActive = false
+		lastPuff = -math.huge
 		restorePanels()
+		for _, cleanup in visualCleanups do
+			cleanup()
+		end
+		for _, connection in visualConnections do
+			connection:Disconnect()
+		end
+		table.clear(visualCleanups)
+		table.clear(visualConnections)
+		table.clear(visualJobs)
 		for _, connection in sceneConnections do
 			connection:Disconnect()
 		end
-		for _, prompt in ownedPrompts do
-			prompt:Destroy()
+		for _, cleanup in promptCleanups do
+			cleanup()
 		end
 		table.clear(sceneConnections)
-		table.clear(ownedPrompts)
+		table.clear(promptCleanups)
 	end
 	local function bindScene(newScene: Instance)
 		clearScene()
 		restorePanels()
 		scene = newScene
+		sceneAvailable = true
 		for _, item in newScene:GetDescendants() do
 			installPrompt(item)
 		end
 		table.insert(sceneConnections, newScene.DescendantAdded:Connect(installPrompt))
+		table.insert(
+			sceneConnections,
+			newScene.DescendantRemoving:Connect(function(item)
+				local cleanup = promptCleanups[item]
+				if cleanup then
+					cleanup()
+				end
+			end)
+		)
 		table.insert(sceneConnections, newScene.Destroying:Connect(clearScene))
+		table.insert(
+			sceneConnections,
+			newScene.AncestryChanged:Connect(function()
+				if not newScene:IsDescendantOf(workspace) then
+					clearScene()
+				end
+			end)
+		)
 	end
 	bindScene(scene)
 	table.insert(

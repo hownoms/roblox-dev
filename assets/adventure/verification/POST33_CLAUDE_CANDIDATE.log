@@ -1,0 +1,35 @@
+$ C:\Users\howar\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe tests/tools/bundle.py
+wrote build\test\generated.luau (836 classes, 544 enums)
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau
+PRODUCTION WIRING (off): 37 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a on
+AUDIT_RESOLVER=false
+AUDIT_LICENSED_CHARGING=false
+AUDIT_LICENSED_RUNTIME_SAND=false
+PRODUCTION WIRING (on): 42 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a client
+PRODUCTION WIRING (client): 20 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/production-wiring.spec.luau -a rejoin
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/adventure-entry.spec.luau -a off
+ADVENTURE ENTRY (off): 16 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/adventure-entry.spec.luau -a on
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+
+$ C:\Users\howar\bin\luau.exe tests/spring-vault-runtime.spec.luau
+Spring Vault runtime mock: 38 checks passed
+
+$ C:\Users\howar\bin\luau.exe tests/spring-vault-input.spec.luau
+Spring Vault input: 278 checks passed
+
+$ C:\Users\howar\bin\luau.exe tests/spring-vault-return.spec.luau
+Spring Vault return mock: 73 checks passed
+
+$ C:\Users\howar\bin\luau.exe tests/broadwave-dig.spec.luau
+Broadwave DigService integration: 24 checks passed

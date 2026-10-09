@@ -36,7 +36,8 @@ function Bridge.Create(options: Options): (Player, CFrame, number) -> (boolean, 
 			or not root
 			or not root:IsA("BasePart")
 			or not tool
-			or not (tool:GetAttribute("ToolId") == Config.ToolId or (tool:GetAttribute("AdventureLoan") == true and tool.Name == "Broadwave (Adventure Loan)"))
+			or tool:GetAttribute("AdventureLoan") == true
+			or tool:GetAttribute("ToolId") ~= Config.ToolId
 			or not options.CanUse(player, tool)
 		then
 			return false, "Equip Broadwave with an unlocked ordinary digging license."

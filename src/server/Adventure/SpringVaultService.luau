@@ -16,9 +16,16 @@ local ReviewAdapter = require(script.Parent.TemporaryReviewCompletionAdapter)
 local Service = {}
 export type Options = {
 	Origin: Vector3?,
+	ReviewSpawn: boolean?,
+	-- Production supplies a trusted destination; only characters still in the pocket are returned.
+	-- Missing/invalid/error results fall back to the recorded join frame. Review defaults are unchanged.
+	ReturnFrame: ((Player) -> CFrame?)?,
 	-- Admission reads authoritative loaded data/certification contracts; review explicitly injects a loan.
 	CanEnter: ((Player) -> boolean)?,
 	CanTrial: ((Player) -> boolean)?,
+	-- Must return an equipped, server-issued licensed tool using authoritative loaded eligibility.
+	-- Called again at release; nil/errors refuse external tools. Review loans stay runtime-owned.
+	ResolveTool: ((Player) -> Tool?)?,
 	-- Optional DigService adapter; validates ordinary geometry/yield/license independently.
 	OnOrdinaryBroadwave: ((Player, CFrame, number) -> (boolean, string?))?,
 	OnCompletion: ((any) -> (boolean, string))?,
@@ -57,12 +64,12 @@ function Service.Start(options: Options?)
 	local effect = Instance.new("RemoteEvent")
 	effect.Name = "Effect"
 	effect.Parent = remotes
-	local scene: any = Scene.Build(workspace, opts.Origin)
+	local scene: any = Scene.Build(workspace, opts.Origin, opts.ReviewSpawn)
 	local limiter = RateLimiter.new(12, 1)
 	local connections: { RBXScriptConnection } = {}
 	local trial: { [Player]: any } = {}
 	local returns: { [Player]: CFrame } = {}
-	local charges: { [Player]: { At: number, Character: Model, Tool: Tool } } = {}
+	local charges: { [Player]: { At: number, Character: Model, Tool: Tool, Unequipped: RBXScriptConnection? } } = {}
 	local nextWave: { [Player]: number } = {}
 	local tools: { [Player]: Tool? } = {}
 	local loanConnections: { [Player]: RBXScriptConnection? } = {}
@@ -108,6 +115,10 @@ function Service.Start(options: Options?)
 	end
 	local function cancel(player: Player)
 		if charges[player] then
+			local charge = charges[player]
+			if charge.Unequipped then
+				charge.Unequipped:Disconnect()
+			end
 			charges[player] = nil
 			effect:FireAllClients({ kind = "CancelCharge", playerUserId = player.UserId })
 		end
@@ -162,8 +173,26 @@ function Service.Start(options: Options?)
 			tools[player] = nil
 		end
 		local character = player.Character
-		if character and returns[player] then
-			character:PivotTo(returns[player])
+		local target = returns[player]
+		local function inPocket(): boolean
+			local part = root(player)
+			return part ~= nil
+				and math.abs((part :: BasePart).Position.X - scene.Origin.X) <= 48
+				and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69
+				and (part :: BasePart).Position.Y <= scene.Origin.Y + 20
+		end
+		-- Surface/respawned characters must never be pulled back down during production cleanup.
+		if character and target and (not opts.ReturnFrame or inPocket()) then
+			if opts.ReturnFrame then
+				local ok, frame = pcall(opts.ReturnFrame, player)
+				if ok and typeof(frame) == "CFrame" then
+					target = frame
+				end
+			end
+			-- A callback may yield or change the character. Recheck before moving it.
+			if player.Character == character and character.Parent and (not opts.ReturnFrame or inPocket()) then
+				character:PivotTo(target)
+			end
 		end
 		returns[player] = nil
 		lastPositions[player] = nil
@@ -171,8 +200,30 @@ function Service.Start(options: Options?)
 		movementBanks[player.UserId] = nil
 		recovery[player] = nil
 	end
+	local function equippedAbilityTool(player: Player): Tool?
+		local character = player.Character
+		local ownLoan = tools[player]
+		if ownLoan and ownLoan.Parent == character then
+			return ownLoan
+		end
+		if not character or not opts.ResolveTool then
+			return nil
+		end
+		local ok, tool = pcall(opts.ResolveTool, player)
+		if
+			ok
+			and typeof(tool) == "Instance"
+			and tool:IsA("Tool")
+			and tool.Parent == character
+			and tool:GetAttribute("ToolId") == Config.ToolId
+			and tool:GetAttribute("AdventureLoan") ~= true
+		then
+			return tool
+		end
+		return nil
+	end
 	local function usableAbility(player: Player): boolean
-		local tool = tools[player]
+		local tool = equippedAbilityTool(player)
 		local character = player.Character
 		if not tool or not character or tool.Parent ~= character or not root(player) then
 			return false
@@ -181,7 +232,7 @@ function Service.Start(options: Options?)
 		if p and p.Attached then
 			return false
 		end
-		if opts.OnOrdinaryBroadwave then
+		if opts.OnOrdinaryBroadwave and tool ~= tools[player] and tool:GetAttribute("AdventureLoan") ~= true then
 			return true
 		end
 		if
@@ -257,6 +308,8 @@ function Service.Start(options: Options?)
 		data.hauling = participant(player) ~= nil and participant(player).Attached == true
 		data.trialComplete = trial[player] ~= nil and trial[player].Wave and trial[player].Cleared == 3
 		data.loanAvailable = tools[player] ~= nil
+		local equipped = equippedAbilityTool(player)
+		data.licensedEquipped = equipped ~= nil and equipped ~= tools[player]
 		data.message = message
 		data.objective = if not event
 			then "Talk to Mara to join, or Pip for an optional trial."
@@ -302,7 +355,7 @@ function Service.Start(options: Options?)
 			restore(player)
 		end
 		scene.Destroy()
-		scene = Scene.Build(workspace, opts.Origin)
+		scene = Scene.Build(workspace, opts.Origin, opts.ReviewSpawn)
 		self.Scene = scene
 		event = nil
 		waypoint = 2
@@ -370,7 +423,9 @@ function Service.Start(options: Options?)
 			if not opts.CanEnter or not opts.CanEnter(player) or not near(player, scene.Targets.npc_mara, 10) then
 				send(
 					player,
-					"Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."
+					if opts.ReviewSpawn == true
+						then "Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."
+						else "Spring Vault opens after your Rookie certificate, or once you have sold sand and dug up a deposit."
 				)
 				return
 			end
@@ -424,7 +479,18 @@ function Service.Start(options: Options?)
 			if charges[player] then
 				return
 			end
-			charges[player] = { At = os.clock(), Character = player.Character :: Model, Tool = tools[player] :: Tool }
+			local tool = equippedAbilityTool(player)
+			if not tool then
+				return
+			end
+			charges[player] = {
+				At = os.clock(),
+				Character = player.Character :: Model,
+				Tool = tool,
+				Unequipped = tool.Unequipped:Connect(function()
+					cancel(player)
+				end),
+			}
 			effect:FireAllClients({
 				kind = "Charge",
 				playerUserId = player.UserId,
@@ -441,7 +507,7 @@ function Service.Start(options: Options?)
 				or not part
 				or not usableAbility(player)
 				or began.Character ~= player.Character
-				or began.Tool ~= tools[player]
+				or began.Tool ~= equippedAbilityTool(player)
 				or os.clock() - began.At < Config.BroadwaveChargeSeconds
 				or os.clock() - began.At > 10
 				or os.clock() < (nextWave[player] or 0)
@@ -458,6 +524,8 @@ function Service.Start(options: Options?)
 			-- Only whitelisted mutable targets; no Terrain writes or generic object deletion.
 			if
 				isTrial
+				and opts.CanTrial ~= nil
+				and opts.CanTrial(player)
 				and not trial[player].Wave
 				and near(player, scene.Targets.trial_patch, Config.BroadwaveRange)
 				and Rules.InCorridor(
@@ -496,7 +564,12 @@ function Service.Start(options: Options?)
 					end
 				end
 			end
-			if not changed and opts.OnOrdinaryBroadwave then
+			if
+				not changed
+				and opts.OnOrdinaryBroadwave
+				and began.Tool ~= tools[player]
+				and began.Tool:GetAttribute("AdventureLoan") ~= true
+			then
 				local called, accepted, reason = pcall(opts.OnOrdinaryBroadwave, player, frame, os.clock() - began.At)
 				changed = called and accepted == true
 				ordinaryReason = if called then reason else "Ordinary Broadwave is unavailable."
