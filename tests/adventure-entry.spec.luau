@@ -3,13 +3,15 @@
 	Production entry/exit for the Spring Vault pocket (docs/integration/adventure-entry.md).
 	  luau tests/adventure-entry.spec.luau          Main booted, flags OFF: nothing built
 	  luau tests/adventure-entry.spec.luau -a on    Main booted with SpringVault ON
-	"on" needs Codex's Spring Vault runtime files; without them it prints SKIPPED and passes.
+	  luau tests/adventure-entry.spec.luau -a invite         SpringVault ON: the once-per-session invitation
+	  luau tests/adventure-entry.spec.luau -a invite-client  the client waypoint (AdventureInviteController)
+	"on" and "invite" need Codex's Spring Vault runtime files; without them it prints SKIPPED and passes.
 	MOCK COVERAGE ONLY: headless mock, in-memory DataStore, no real clients, physics or lighting.
 ]]
 
 local Mock = require("./mock/Roblox")
 local mode = ({ ... })[1] or "off"
-Mock.Init(require("../build/test/generated"))
+Mock.Init(require("../build/test/generated"), if mode == "invite-client" then { Client = true } else nil)
 local passes, failures = 0, 0
 local function check(cond, message)
 	if cond then
@@ -56,13 +58,85 @@ end
 local function certified(d)
 	d.Certifications = { cert_rookie = { At = 1, Source = "test" } }
 end
+local TUTORIAL_DONE = #Config.TUTORIAL_STEPS
+local function tutorialDone(d)
+	d.Settings.Tutorial = TUTORIAL_DONE
+end
+local INVITE = "Mara needs diggers"
 
 local Flags = load("ServerScriptService/Server/Services/AdventureFlags")
 check(
 	Flags.SpringVault == false and Flags.AdventureRewards == false and Flags.BroadwaveOrdinary == false,
 	"every adventure flag ships off"
 )
-if mode == "on" then
+-- Client waypoint ---------------------------------------------------------------------------------
+if mode == "invite-client" then
+	local Remotes = load("ReplicatedStorage/Shared/Remotes")
+	local net = Mock.Env.Instance.new("Folder")
+	net.Name = "Net"
+	for _, name in Remotes.Events do
+		local r = Mock.Env.Instance.new("RemoteEvent")
+		r.Name = name
+		r.Parent = net
+	end
+	net.Parent = byPath["ReplicatedStorage/Shared/Remotes"]
+	local player = Mock.AddLocalPlayer(1001, "Tester")
+	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	local Controllers = "StarterPlayer/StarterPlayerScripts/Client/Controllers/"
+	local Guide = load(Controllers .. "GuideController")
+	local Tutorial = load(Controllers .. "TutorialController")
+	local Invite = load(Controllers .. "AdventureInviteController")
+	local Workspace = Mock.Service("Workspace")
+	local function beamOn()
+		local beam = Workspace.Terrain:FindFirstChild("GuideBeam")
+		return beam ~= nil and beam.Enabled == true
+	end
+	Guide.Init()
+	Invite.Init()
+	Mock.Advance(3)
+	-- Flag off: the server never sets the attribute nor builds the hatch.
+	check(not Invite.IsShown() and not beamOn(), "client: nothing shown without an invitation (flag off)")
+	check(Workspace.Terrain:FindFirstChild("GuideBeam") == nil, "client: no guide visuals built while off")
+	-- An attribute with no hatch anywhere (no part, no anchor) still shows nothing.
+	player:SetAttribute(Invite.ATTRIBUTE, true)
+	Mock.Advance(12)
+	check(not Invite.IsShown() and not beamOn(), "client: no hatch anchor -> no guide")
+	player:SetAttribute(Invite.ATTRIBUTE, nil)
+	Mock.Advance(1)
+	-- The server (flag on) builds the tagged hatch and invites: the beam points at it.
+	local hatch = Mock.Env.Instance.new("Part")
+	hatch.Name = "Hatch"
+	hatch.Size = V.new(6, 0.4, 6)
+	hatch.Position = V.new(-124, S + 3.2, 76)
+	hatch.Parent = Workspace
+	Mock.Service("CollectionService"):AddTag(hatch, Invite.TAG)
+	-- Tutorial still on screen: wait.
+	local realActive = Tutorial.IsActive
+	local tutorialOn = true
+	Tutorial.IsActive = function()
+		return tutorialOn
+	end
+	player:SetAttribute(Invite.ATTRIBUTE, true)
+	Mock.Advance(3)
+	check(not Invite.IsShown() and not beamOn(), "client: waits while the tutorial runs")
+	tutorialOn = false
+	Mock.Advance(2)
+	check(Invite.IsGuiding() and beamOn(), "client: guide beam to the hatch after the tutorial")
+	-- Walking to the hatch clears it, and it never comes back this session.
+	player.Character:PivotTo(CF.new(hatch.Position + V.new(4, 3, 0)))
+	Mock.Advance(1)
+	check(not Invite.IsGuiding() and not beamOn(), "client: guide cleared at the hatch")
+	player.Character:PivotTo(CF.new(0, S + 3, 4))
+	player:SetAttribute(Invite.ATTRIBUTE, nil)
+	player:SetAttribute(Invite.ATTRIBUTE, true)
+	Mock.Advance(3)
+	check(not beamOn(), "client: one waypoint per session")
+	Tutorial.IsActive = realActive
+	finish()
+	return
+end
+
+if mode == "on" or mode == "invite" then
 	if not hasRuntime then
 		print("SKIPPED (Spring Vault runtime files absent)")
 		finish()
@@ -80,6 +154,23 @@ save(USER_VET, function(d)
 end)
 save(USER_CERT2, certified)
 save(USER_CERT3, certified)
+-- Invitation players (all but INV_TUT/INV_NOKEY have finished the tutorial).
+local INV_CERT, INV_FRESH, INV_MID, INV_CERTMID, INV_TUT, INV_NOKEY = 9411, 9412, 9413, 9414, 9415, 9416
+save(INV_CERT, function(d)
+	certified(d)
+	tutorialDone(d)
+end)
+save(INV_FRESH, tutorialDone)
+save(INV_MID, function(d)
+	tutorialDone(d)
+	d.Quests = { daily_sell_10 = { Progress = 2, Claimed = false, Day = 1 } } -- sale, no deposit yet
+end)
+save(INV_CERTMID, tutorialDone)
+save(INV_TUT, function(d)
+	certified(d)
+	d.Settings.Tutorial = 2
+end)
+save(INV_NOKEY, certified)
 
 Mock.RunScript(byPath["ServerScriptService/Server/Main"])
 Mock.Advance(25)
@@ -139,7 +230,32 @@ do
 	end
 end
 
+local function inviteToasts(p, since)
+	local n = 0
+	for i = (since or 0) + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		if (p == nil or e.Player == p) and e.Name == "Notify" and string.find(tostring(e.Args[2]), INVITE, 1, true) then
+			n += 1
+		end
+	end
+	return n
+end
+local function hatchAnchor()
+	local anchors = Mock.Service("ReplicatedStorage"):FindFirstChild("WorldAnchors")
+	return anchors and anchors:FindFirstChild(Entry.HATCH_TAG)
+end
+
 if mode == "off" then
+	-- An eligible player who finished the tutorial: nothing is sent, no attribute, no anchor.
+	local p = Mock.AddPlayer(INV_CERT, "InvCert")
+	Mock.Advance(2)
+	Mock.SpawnCharacter(p, V.new(0, S + 3, 4))
+	Mock.Advance(Entry.INVITE_DELAY + 5)
+	check(inviteToasts(nil) == 0, "off: no invitation sent")
+	check(p:GetAttribute(Entry.INVITE_ATTRIBUTE) == nil, "off: no invitation attribute")
+	check(not Entry.WasInvited(p), "off: not invited")
+	check(hatchAnchor() == nil, "off: no hatch anchor published")
+	check(#Mock.Tagged(Entry.HATCH_TAG) == 0, "off: no tagged hatch")
 	check(Workspace:FindFirstChild(Entry.FOLDER) == nil, "off: no entrance/pocket folder")
 	check(#entryPrompts() == 0, "off: no entry prompts")
 	check(lightsOutsideMap() == 0, "off: no pocket lights")
@@ -148,6 +264,112 @@ if mode == "off" then
 	Boot.Disable()
 	Mock.Advance(1)
 	check(#Mock.Errors == 0, "off: kill switch is harmless")
+	finish()
+	return
+end
+
+-- Invitation (flag ON) ----------------------------------------------------------------------------
+if mode == "invite" then
+	local DataService = load("ServerScriptService/Server/Services/DataService")
+	local function join(userId, name)
+		local p = Mock.AddPlayer(userId, name)
+		Mock.Advance(2)
+		Mock.SpawnCharacter(p, V.new(0, S + 3, 4))
+		Mock.Advance(0.5)
+		return p
+	end
+	local anchor = hatchAnchor()
+	check(anchor ~= nil and anchor:GetAttribute("Count") == 1, "hatch published as an always-replicated anchor")
+	check(#Mock.Tagged(Entry.HATCH_TAG) == 1, "hatch tagged for the client guide")
+	local function invitedOnce(p, label)
+		check(inviteToasts(p) == 1, label .. ": exactly one invitation toast (" .. inviteToasts(p) .. ")")
+		check(p:GetAttribute(Entry.INVITE_ATTRIBUTE) == true, label .. ": invitation attribute set")
+	end
+	local function notInvited(p, label)
+		check(inviteToasts(p) == 0, label .. ": no invitation toast")
+		check(p:GetAttribute(Entry.INVITE_ATTRIBUTE) == nil, label .. ": no invitation attribute")
+		check(not Entry.WasInvited(p), label .. ": not invited")
+	end
+	local function grantCert(p)
+		DataService.Mutate(p, { "Certifications" }, function(d)
+			d.Certifications = { cert_rookie = { At = 2, Source = "test" } }
+		end)
+	end
+	local WAIT = Entry.INVITE_DELAY + 1
+
+	local cert = join(INV_CERT, "InvCert")
+	local fresh = join(INV_FRESH, "InvFresh")
+	local mid = join(INV_MID, "InvMid")
+	local certMid = join(INV_CERTMID, "InvCertMid")
+	local tut = join(INV_TUT, "InvTut")
+	local noKey = join(INV_NOKEY, "InvNoKey")
+	check(Entry.WasInvited(cert), "eligible on load: invited")
+	Mock.Advance(WAIT)
+	invitedOnce(cert, "eligible on load")
+	notInvited(fresh, "ineligible")
+	notInvited(mid, "sale but no deposit yet")
+	notInvited(certMid, "no cert yet")
+	notInvited(tut, "tutorial in progress (step 2)")
+	notInvited(noKey, "tutorial not started (no saved step)")
+
+	-- More saves later in the session never re-invite.
+	DataService.Mutate(cert, { "Quests", "Settings" }, function(d)
+		d.Settings.Music = false
+	end)
+	Mock.Advance(WAIT)
+	check(inviteToasts(cert) == 1, "eligible on load: still one invitation after more saves")
+
+	-- Becomes eligible mid-session: catch-up deposit evidence (DiscoveryService writes FindVariants).
+	DataService.Mutate(mid, { "FindVariants" }, function(d)
+		d.FindVariants["gold_coin/Gold"] = true
+	end)
+	Mock.Advance(WAIT)
+	invitedOnce(mid, "catch-up mid-session")
+	grantCert(mid)
+	Mock.Advance(WAIT)
+	check(inviteToasts(mid) == 1, "catch-up mid-session: a later cert does not re-invite")
+
+	-- Becomes eligible mid-session: cert_rookie granted by server reward code.
+	grantCert(certMid)
+	Mock.Advance(WAIT)
+	invitedOnce(certMid, "cert granted mid-session")
+
+	-- Tutorial in progress: deferred until the saved step count reaches the end (SetSetting).
+	Mock.FireServer("SetSetting", tut, "Tutorial", TUTORIAL_DONE - 1)
+	Mock.Advance(WAIT)
+	notInvited(tut, "tutorial one step short")
+	Mock.FireServer("SetSetting", tut, "Tutorial", TUTORIAL_DONE)
+	Mock.Advance(WAIT)
+	invitedOnce(tut, "tutorial finished mid-session")
+	-- Veteran without the key: the client writes the full count on its first join.
+	Mock.FireServer("SetSetting", noKey, "Tutorial", TUTORIAL_DONE)
+	Mock.Advance(WAIT)
+	invitedOnce(noKey, "veteran tutorial skip")
+	notInvited(fresh, "ineligible a minute later")
+
+	-- A new session invites again; already in the pocket when it fires: attribute only, no toast.
+	Mock.RemovePlayer(cert)
+	Mock.Advance(1)
+	check(not Entry.WasInvited(cert), "leaving forgets the invitation")
+	local mark = #Mock.Remote.ToClient
+	local again = Mock.AddPlayer(INV_CERT, "InvCert")
+	Mock.Advance(2)
+	Mock.SpawnCharacter(again, V.new(0, S + 3, 4))
+	Mock.Advance(0.5)
+	again.Character:PivotTo(Entry.ArrivalFrame())
+	Mock.Advance(WAIT)
+	check(Entry.WasInvited(again) and again:GetAttribute(Entry.INVITE_ATTRIBUTE) == true, "new session: invited again")
+	check(inviteToasts(again, mark) == 0, "already in the pocket: no toast")
+
+	-- Kill switch: attribute cleared, anchor emptied, nobody invited afterwards.
+	Boot.Disable()
+	Mock.Advance(1)
+	check(certMid:GetAttribute(Entry.INVITE_ATTRIBUTE) == nil, "kill switch clears the invitation attribute")
+	local emptied = hatchAnchor()
+	check(emptied ~= nil and emptied:GetAttribute("Count") == 0, "kill switch empties the hatch anchor")
+	grantCert(fresh)
+	Mock.Advance(WAIT)
+	notInvited(fresh, "after the kill switch")
 	finish()
 	return
 end

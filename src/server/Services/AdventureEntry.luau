@@ -26,17 +26,30 @@
 	Q / ReturnToSurface from the pocket lands on the boardwalk deck at the pocket's X
 	(World.GetSurfacePoint), which is a valid deck point.
 
+	Invitation (docs/integration/adventure-entry.md, "Invitation"): once per server session, a
+	player whose loaded save passes AdventureEligibility.CanEnter and who has finished the
+	tutorial (data.Settings.Tutorial, the TutorialController step count) gets one Info toast
+	(INVITE_TEXT) and the player attribute INVITE_ATTRIBUTE = true. It is checked on load and
+	again whenever DataService.Changed reports a key eligibility or the tutorial reads
+	(Certifications, Quests, FindVariants, Settings), so a cert or catch-up evidence earned
+	mid-session invites too. Nothing is written to the save. The attribute only drives the
+	client's guide beam to the hatch (tag HATCH_TAG, published as a world anchor); the server
+	never reads it back. Stop() clears it.
+
 	The scene itself (SpringVaultScene) is Codex's and is never edited here.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local DataService = require(script.Parent.DataService)
 local Eligibility = require(script.Parent.AdventureEligibility)
 local Net = require(script.Parent.Net)
+local StreamingService = require(script.Parent.StreamingService)
+local Config = require(ReplicatedStorage.Shared.Config)
 local World = require(script.Parent.Parent.World)
 local Layout = require(script.Parent.Parent.World.Layout)
 local Util = require(script.Parent.Parent.World.Util)
@@ -69,6 +82,15 @@ AdventureEntry.FALL_DEPTH = 20 -- below the floor top
 AdventureEntry.FALL_GRACE = 3
 AdventureEntry.LEAVE_DELAY = 0.6 -- lets the runtime's own restore finish first
 AdventureEntry.CHECK_INTERVAL = 0.2
+
+-- Invitation (one per player per server session).
+AdventureEntry.INVITE_ATTRIBUTE = "SpringVaultInvited"
+AdventureEntry.INVITE_TEXT = "Mara needs diggers: the hatch west of the crate yard."
+AdventureEntry.INVITE_DELAY = 6 -- after load: lets the join popups (offline, daily) settle first
+AdventureEntry.HATCH_TAG = "SpringVaultHatch"
+-- Save keys that can change CanEnter (cert, sale quests, deposit variants) or the tutorial step.
+local INVITE_KEYS: { [string]: boolean } =
+	{ Certifications = true, Quests = true, FindVariants = true, Settings = true }
 
 -- Lighting rig (values to tune in Studio; see the handoff doc).
 AdventureEntry.LIGHTING = {
@@ -104,6 +126,8 @@ local returnFrame: { [Player]: CFrame } = {}
 local wasActive: { [Player]: boolean } = {}
 local pendingReturn: { [Player]: number } = {}
 local fallingSince: { [Player]: number } = {}
+local invited: { [Player]: boolean } = {}
+local signals: { any } = {} -- DataService Signal connections
 local accumulator = 0
 
 local function protect(part: BasePart)
@@ -409,6 +433,39 @@ local function check()
 	end
 end
 
+-- Finished onboarding: TutorialController saves its completed-step count in Settings.Tutorial
+-- (veterans get the full count on their first join). Missing or short = still in the tutorial.
+local function tutorialDone(player: Player): boolean
+	local data = DataService.Get(player) :: any
+	local saved = data and type(data.Settings) == "table" and data.Settings.Tutorial
+	return type(saved) == "number" and saved >= #Config.TUTORIAL_STEPS
+end
+
+-- Invites `player` once per session when the loaded save is eligible and onboarding is over.
+function AdventureEntry.ConsiderInvite(player: Player)
+	if not started or invited[player] or not DataService.IsLoaded(player) then
+		return
+	end
+	if not Eligibility.CanEnter(player) or not tutorialDone(player) then
+		return
+	end
+	invited[player] = true
+	task.delay(AdventureEntry.INVITE_DELAY, function()
+		if not started or not invited[player] or player.Parent ~= Players then
+			return
+		end
+		player:SetAttribute(AdventureEntry.INVITE_ATTRIBUTE, true)
+		local root = rootOf(player)
+		if not (root and AdventureEntry.InPocket(root.Position)) then
+			Net.Notify(player, "Info", AdventureEntry.INVITE_TEXT)
+		end
+	end)
+end
+
+function AdventureEntry.WasInvited(player: Player): boolean
+	return invited[player] == true
+end
+
 local function forget(player: Player)
 	lastPrompt[player] = nil
 	busy[player] = nil
@@ -416,6 +473,7 @@ local function forget(player: Player)
 	wasActive[player] = nil
 	pendingReturn[player] = nil
 	fallingSince[player] = nil
+	invited[player] = nil
 end
 
 -- AdventureBoot only, after SpringVaultService.Start succeeded. `pocketOrigin` = the arena origin.
@@ -434,8 +492,11 @@ function AdventureEntry.Start(runtimeHandle: any, pocketOrigin: Vector3): boolea
 	root.Name = AdventureEntry.FOLDER
 	folder = root
 	local hatch = buildEntrance(root)
+	CollectionService:AddTag(hatch, AdventureEntry.HATCH_TAG)
 	local pad = buildPocket(root)
 	root.Parent = Workspace
+	-- Always-replicated anchor, so the invitation's guide beam finds the hatch from anywhere.
+	StreamingService.Track(AdventureEntry.HATCH_TAG)
 	local enter = prompt(hatch, "Go down", "Spring Vault", 0.5, 10)
 	local back = prompt(pad, "Back to the beach", "Surface", 0.3, 8)
 	table.insert(
@@ -463,6 +524,21 @@ function AdventureEntry.Start(runtimeHandle: any, pocketOrigin: Vector3): boolea
 			end
 		end)
 	)
+	table.insert(signals, DataService.PlayerLoaded:Connect(AdventureEntry.ConsiderInvite))
+	table.insert(
+		signals,
+		DataService.Changed:Connect(function(player: Player, keys: { string })
+			for _, key in keys do
+				if INVITE_KEYS[key] then
+					AdventureEntry.ConsiderInvite(player)
+					return
+				end
+			end
+		end)
+	)
+	for _, player in DataService.GetLoadedPlayers() do
+		AdventureEntry.ConsiderInvite(player)
+	end
 	return true
 end
 
@@ -478,7 +554,14 @@ function AdventureEntry.Stop()
 		c:Disconnect()
 	end
 	table.clear(connections)
+	for _, c in signals do
+		c:Disconnect()
+	end
+	table.clear(signals)
 	for _, player in Players:GetPlayers() do
+		if player:GetAttribute(AdventureEntry.INVITE_ATTRIBUTE) ~= nil then
+			player:SetAttribute(AdventureEntry.INVITE_ATTRIBUTE, nil)
+		end
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") and AdventureEntry.InPocket(root.Position) then
@@ -489,7 +572,7 @@ function AdventureEntry.Stop()
 		folder:Destroy()
 		folder = nil
 	end
-	for _, t in { lastPrompt, busy, returnFrame, wasActive, pendingReturn, fallingSince } :: { any } do
+	for _, t in { lastPrompt, busy, returnFrame, wasActive, pendingReturn, fallingSince, invited } :: { any } do
 		table.clear(t)
 	end
 	runtime = nil
