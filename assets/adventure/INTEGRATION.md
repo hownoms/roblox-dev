@@ -115,6 +115,30 @@ UI and sixteen pads remain later scope.
 
 ## Evidence and gates
 
+## PR #32 validation continuation (9 October 2026)
+
+`codex/spring-vault-validation` starts at fetched merged PR #32/default `777afa2`.
+Final fetch incorporated Claude's advanced default `520575d` and consolidated
+`docs/integration/adventure-integration.patch`; that shared wiring patch is unapplied.
+Read `verification/VALIDATION_CONTINUATION.md` and its trace/screenshots for the
+accepted injected Q trial, actual two-client gate-1 checkpoint recovery and new
+same-UserId replacement/lifecycle/input mock checks. They do not establish physical
+controller/touch use, same-account network rejoin or live cross-server persistence.
+
+The existing client adventure lifecycle now builds optional local spherical ball
+sectors per client, never a server-created EditableMesh Content shell. Original
+server/contact geometry stays authoritative; unsupported client mesh APIs retain
+the original faceted fallback. No upload or place permission toggle is required by
+this branch. Validate actual production device budget/permission before promising
+smooth geometry. Streaming scene ancestry teardown cancels effects and charges;
+atomic arena replication does not replace production streaming-distance review.
+
+Claude's wiring boundaries remain explicit: inject licensed BroadwaveDigBridge with
+DigService.DigBroadwave; permanent licensed equip, prerequisites/flags and Q/L1/E/UI
+arbitration remain shared integration work. This branch changes no boot/catalog,
+production rewards, durable settlement, saves, possession or camp UI. Review jointly
+with Claude's boot integration and live durability evidence; leave the PR unmerged.
+
 ## Gameplay and presentation continuation (9 October 2026)
 
 Branch `codex/spring-vault-gameplay-polish` starts at merged PR #31 (`9cd1ebd`).

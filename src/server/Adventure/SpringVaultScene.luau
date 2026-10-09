@@ -53,6 +53,9 @@ function Scene.Build(parent: Instance, origin: Vector3?)
 	local base = origin or V(700, 20, 0)
 	local model = Instance.new("Model")
 	model.Name = "SpringVaultAdventure"
+	-- Stream the protected pocket and its objective prompts together. Clients
+	-- must not bind an incomplete set of anchors/routes during streaming.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	model:SetAttribute("EventId", "event_vault")
 	model.Parent = parent
 	local function point(x: number, y: number, z: number): Vector3

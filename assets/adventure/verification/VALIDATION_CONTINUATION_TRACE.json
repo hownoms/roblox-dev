@@ -1,0 +1,38 @@
+{
+  "keyboard": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"state\":{\"Trial\":{\"Wave\":true,\"Targets\":[],\"Cleared\":0},\"Loan\":true,\"Charging\":false,\"CooldownUntil\":235.9711074999941},\"trace\":{\"1\":{\"At\":153.3918106999772,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":227.97104119998404,\"UserId\":72220195,\"Action\":\"ChargeRelease\"},\"2\":{\"At\":226.90516889997526,\"UserId\":72220195,\"Action\":\"ChargeBegin\"}},\"classification\":\"Assisted Studio avatar positioning/equip and MCP injected Q; actual client remote delivery, not physical keyboard/controller or touch\"}"
+      }
+    ],
+    "isError": false
+  },
+  "finalKeyboard": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"serverBallMode\":\"PrimitiveFallback\",\"player\":{\"Trial\":{\"Wave\":true,\"Targets\":[],\"Cleared\":0},\"Loan\":true,\"Charging\":false,\"CooldownUntil\":101.3615258000209},\"trace\":{\"1\":{\"At\":37.60526010001195,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":93.36147210001946,\"UserId\":72220195,\"Action\":\"ChargeRelease\"},\"2\":{\"At\":92.37692740000785,\"UserId\":72220195,\"Action\":\"ChargeBegin\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "gate1Recovery": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"before\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":25.142668240250836,\"Attached\":true,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":19.857331759749166,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":193.56894830000238,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"fe3dac67-c55f-4c6c-a500-b9ca19b4943e:1\"},\"classification\":\"Actual two local network clients; assisted positioning and Humanoid MoveTo; client remote ResetBall requests\",\"after\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":25.142668240250836,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":19.857331759749166,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":189.48574949998875,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"fe3dac67-c55f-4c6c-a500-b9ca19b4943e:1\"},\"trace\":{\"37\":{\"At\":176.9982984000235,\"UserId\":-1,\"Action\":\"ResetBall\"},\"35\":{\"At\":175.9829541000072,\"UserId\":-1,\"Action\":\"ResetBall\"},\"29\":{\"At\":150.6509213000245,\"UserId\":-1,\"Action\":\"PushBall\"},\"1\":{\"At\":7.8903488000214569,\"UserId\":-1,\"Action\":\"Sync\"},\"3\":{\"At\":91.40258550000726,\"UserId\":-1,\"Action\":\"Join\"},\"2\":{\"At\":8.859290500025964,\"UserId\":-2,\"Action\":\"Sync\"},\"5\":{\"At\":126.80060800001957,\"UserId\":-1,\"Action\":\"Start\"},\"4\":{\"At\":110.38497480002116,\"UserId\":-1,\"Action\":\"Join\"},\"7\":{\"At\":127.15110139999888,\"UserId\":-2,\"Action\":\"Join\"},\"6\":{\"At\":126.96824580000248,\"UserId\":-1,\"Action\":\"Ready\"},\"9\":{\"At\":127.51814590001595,\"UserId\":-1,\"Action\":\"Excavate\"},\"8\":{\"At\":127.33404190000147,\"UserId\":-2,\"Action\":\"Ready\"},\"27\":{\"At\":137.7166525000066,\"UserId\":-1,\"Action\":\"OpenVault\"},\"17\":{\"At\":132.05102170002648,\"UserId\":-2,\"Action\":\"Excavate\"},\"13\":{\"At\":129.7850432000123,\"UserId\":-1,\"Action\":\"Excavate\"},\"21\":{\"At\":134.31756530000713,\"UserId\":-2,\"Action\":\"Excavate\"},\"11\":{\"At\":128.65117530000863,\"UserId\":-1,\"Action\":\"Excavate\"},\"23\":{\"At\":135.45124110000325,\"UserId\":-2,\"Action\":\"Excavate\"},\"36\":{\"At\":176.49995220001439,\"UserId\":-1,\"Action\":\"ResetBall\"},\"34\":{\"At\":175.4829471000121,\"UserId\":-1,\"Action\":\"ResetBall\"},\"28\":{\"At\":150.65081900000224,\"UserId\":-2,\"Action\":\"PushBall\"},\"33\":{\"At\":174.9664256000251,\"UserId\":-1,\"Action\":\"ResetBall\"},\"32\":{\"At\":174.46604780000053,\"UserId\":-1,\"Action\":\"ResetBall\"},\"31\":{\"At\":173.94950950000203,\"UserId\":-1,\"Action\":\"ResetBall\"},\"30\":{\"At\":173.4493978000246,\"UserId\":-1,\"Action\":\"ResetBall\"},\"15\":{\"At\":130.91739970000345,\"UserId\":-2,\"Action\":\"Excavate\"},\"18\":{\"At\":132.61842270000489,\"UserId\":-2,\"Action\":\"Excavate\"},\"19\":{\"At\":133.18556230000105,\"UserId\":-2,\"Action\":\"Excavate\"},\"25\":{\"At\":136.58344500002569,\"UserId\":-2,\"Action\":\"Excavate\"},\"14\":{\"At\":130.351410400006,\"UserId\":-1,\"Action\":\"Excavate\"},\"24\":{\"At\":136.01690280000913,\"UserId\":-2,\"Action\":\"Excavate\"},\"16\":{\"At\":131.484452100005,\"UserId\":-2,\"Action\":\"Excavate\"},\"26\":{\"At\":137.15079559999868,\"UserId\":-2,\"Action\":\"Excavate\"},\"20\":{\"At\":133.75134810002056,\"UserId\":-2,\"Action\":\"Excavate\"},\"12\":{\"At\":129.2186861000082,\"UserId\":-1,\"Action\":\"Excavate\"},\"22\":{\"At\":134.88476130002528,\"UserId\":-2,\"Action\":\"Excavate\"},\"10\":{\"At\":128.08493450001698,\"UserId\":-1,\"Action\":\"Excavate\"}},\"speeds\":{\"Player1\":16,\"Player2\":16},\"ball\":\"692, 20, -36\"}"
+      }
+    ],
+    "isError": false
+  },
+  "phoneAttempt": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"state\":{\"Trial\":{\"Wave\":false,\"Targets\":[],\"Cleared\":0},\"Charging\":false,\"Loan\":true},\"trace\":{\"1\":{\"At\":406.9777759000135,\"UserId\":72220195,\"Action\":\"Sync\"}},\"classification\":\"Galaxy A06 touch layout emulation; MCP mouse hold on CAS generated touch button; not physical touch\"}"
+      }
+    ],
+    "isError": false
+  }
+}
