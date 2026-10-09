@@ -60,17 +60,7 @@
       "source": "expansion1.project.json + src/shared/Models/Expansion1.luau",
       "integration_location": "Studio isolated local review; Play builds models",
       "path": "assets/expansion1/models/Expansion1Review.rbxlx",
-      "sha256": "45b9d6f5b4d684cedf28a3f7d7ffa7baee56023b73fc1f3ca257567e64aa8b5b"
-    },
-    {
-      "asset_id": "models/Expansion1Review.rbxlx.lock",
-      "entity_id": "expansion1_visual_kit",
-      "purpose": "Expansion1Review.rbxlx",
-      "status": "roblox_compatible_review_place_basic_studio_review_passed",
-      "source": "expansion1.project.json + src/shared/Models/Expansion1.luau",
-      "integration_location": "Studio isolated local review; Play builds models",
-      "path": "assets/expansion1/models/Expansion1Review.rbxlx.lock",
-      "sha256": "fb715826ebce39780a51736f125c97ad94ccbd6a6637b90823f0623bfcc15e14"
+      "sha256": "afb4db75f5bb892db4b34c35c1918bec484479e2f7d89b606b8789b2502503ed"
     },
     {
       "asset_id": "previews/camp_trophy_display.png",

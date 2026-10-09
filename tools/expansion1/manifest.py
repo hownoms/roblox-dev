@@ -62,7 +62,7 @@ def entity(path):
 
 assets=[]
 for p in sorted(OUT.rglob('*')):
-    if not p.is_file() or p.name=='manifest.json': continue
+    if not p.is_file() or p.name=='manifest.json' or p.suffix=='.lock': continue
     rel=p.relative_to(ROOT).as_posix(); category=p.parent.name
     status='reference_document'; origin='tools/expansion1/manifest.py'; target='local development handoff'
     purpose=p.stem.replace('_',' ')
