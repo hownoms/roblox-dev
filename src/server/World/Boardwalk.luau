@@ -1,359 +1,224 @@
 --!strict
 --[[
-	Boardwalk — the wooden promenade between the dig zone and the hub (players spawn on it), the
-	"dig anywhere" signs and zone-end flags, the big title sign with a giant shovel in the dunes,
-	the photo-spot pier running from the wet sand out to sea, and the invisible boundary walls.
+	Boardwalk — Stream B entry point: the promenade (Promenade.luau), Sunset Pier and its carnival
+	(PierCarnival.luau), the "dig anywhere" markers and zone-end flags, the marquee title sign with
+	a giant shovel and treasure chest in the dunes, and the invisible boundary walls.
+	Shared builders live in PromenadeKit.luau.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Build = require(ReplicatedStorage.Shared.Models.Build)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Kit = require(script.Parent.PromenadeKit)
 local Layout = require(script.Parent.Layout)
+local PierCarnival = require(script.Parent.PierCarnival)
+local Promenade = require(script.Parent.Promenade)
 local Util = require(script.Parent.Util)
 
 local C = Config.Theme.Colors
 local rgb = Color3.fromRGB
 local S = Layout.SURFACE_Y
-
-local WOOD_A = rgb(184, 132, 86)
-local WOOD_B = rgb(168, 118, 74)
-local WOOD_DARK = rgb(120, 82, 52)
-local WHITE = Color3.new(1, 1, 1)
+local VISIBLE = S + Layout.VISIBLE_SURFACE_OFFSET -- visible sand height
 
 local Boardwalk = {}
 
-local HUB_GAP = 96 -- no inland railing within this |x| (the way up to the hub)
-
-local function lamp(parent: Instance, ground: Vector3)
-	Util.Part({
-		Name = "LampPost",
-		Size = Vector3.new(0.8, 10, 0.8),
-		CFrame = CFrame.new(ground + Vector3.new(0, 5, 0)),
-		Color = rgb(60, 70, 90),
-		Material = Enum.Material.Metal,
-		Parent = parent,
-	})
-	Util.Ball(
-		parent,
-		"LampGlobe",
-		ground + Vector3.new(0, 10.6, 0),
-		1.8,
-		rgb(230, 170, 100),
-		Enum.Material.SmoothPlastic
-	)
-end
-
-local function buildPromenade(parent: Instance)
-	local S = Layout.DECK_TOP - 1 -- deck base: everything below is built relative to it
-	local m = Util.Model("Promenade", parent)
-	local z0, z1 = Layout.BOARDWALK_Z0, Layout.BOARDWALK_Z1
-	local zc, depth = (z0 + z1) / 2, z1 - z0
-	local half = Layout.BOUND_HALF_X - 4
-	local seg = 16
-	local x = -half
-	local i = 0
-	while x < half do
-		local x1 = math.min(x + seg, half)
-		i += 1
-		Util.Part({
-			Name = "Deck",
-			Size = Vector3.new(x1 - x, 1, depth),
-			CFrame = CFrame.new((x + x1) / 2, S + 0.5, zc),
-			Color = if i % 2 == 0 then WOOD_A else WOOD_B,
-			Material = Enum.Material.WoodPlanks,
-			Parent = m,
-		})
-		-- Railing post on the inland edge (open in front of the hub)
-		if math.abs(x) >= HUB_GAP then
-			Util.Part({
-				Name = "RailPost",
-				Size = Vector3.new(0.7, 3.4, 0.7),
-				CFrame = CFrame.new(x, S + 2.7, z1 - 0.4),
-				Color = WHITE,
-				Parent = m,
-			})
-		end
-		x = x1
-	end
-	for _, sx in { -1, 1 } do
-		local len = half - HUB_GAP
-		Util.Part({
-			Name = "Rail",
-			Size = Vector3.new(len, 0.5, 0.6),
-			CFrame = CFrame.new(sx * (HUB_GAP + len / 2), S + 4.2, z1 - 0.4),
-			Color = WHITE,
-			Parent = m,
-		})
-	end
-	Util.Part({
-		Name = "Trim",
-		Size = Vector3.new(half * 2, 1.2, 0.8),
-		CFrame = CFrame.new(0, S + 0.4, z0 - 0.4),
-		Color = C.Ocean,
-		Decor = true,
-		Parent = m,
-	})
-	-- Lamps every 32 studs along the sand-side edge, skipping the spawns
-	local lx = -half + 8
-	while lx < half do
-		if math.abs(lx) > 24 then
-			lamp(m, Vector3.new(lx, S + 1, z0 + 1.2))
-		end
-		lx += 32
-	end
-end
-
+-- Marquee title sign at TITLE_SIGN facing the boardwalk (-Z), giant shovel east, chest west.
 local function buildTitle(parent: Instance)
-	local m = Util.Model("TitleSign", parent)
+	local m = Kit.model("TitleSign", parent)
 	local p = Layout.TITLE_SIGN
-	local base = Util.Facing(p, Vector3.new(p.X, p.Y, 0))
-	for _, x in { -20, 20 } do
-		Util.Part({
-			Name = "Post",
-			Size = Vector3.new(1.6, 26, 1.6),
-			CFrame = base * CFrame.new(x, 13, 0.8),
-			Color = WOOD_DARK,
-			Material = Enum.Material.Wood,
-			Parent = m,
-		})
+	local base = Util.Facing(p, Vector3.new(p.X, p.Y, 0)) -- local axes = world axes, front = -Z
+	local function L(x: number, y: number, z: number): CFrame
+		return base * CFrame.new(x, y, z)
 	end
-	local board = Util.Sign(m, "DIG TO THE CORE!", Vector3.new(46, 11, 1.2), base * CFrame.new(0, 21, 0), {
-		Name = "TitleBoard",
-		BoardColor = C.Ocean,
-		SubText = "BEACH SIMULATOR",
-	})
-	board.CastShadow = true
-	Util.Part({
-		Name = "TitleFrame",
-		Size = Vector3.new(48, 13, 0.8),
-		CFrame = base * CFrame.new(0, 21, 0.8),
-		Color = C.Gold,
-		Parent = m,
-	})
-
-	-- Giant shovel stuck in the dunes next to the sign
-	local sp = p + Vector3.new(34, 0, 2)
-	local tilt = CFrame.new(sp) * CFrame.Angles(0, math.rad(-20), math.rad(-14))
-	Util.Part({
-		Name = "GiantShovelHandle",
-		Size = Vector3.new(1.4, 22, 1.4),
-		CFrame = tilt * CFrame.new(0, 14, 0),
-		Color = rgb(170, 110, 60),
-		Material = Enum.Material.Wood,
-		Parent = m,
-	})
-	Util.Part({
-		Name = "GiantShovelGrip",
-		Size = Vector3.new(5, 1.4, 1.4),
-		CFrame = tilt * CFrame.new(0, 25.5, 0),
-		Color = C.Coral,
-		Parent = m,
-	})
-	Util.Part({
-		Name = "GiantShovelBlade",
-		Size = Vector3.new(7, 8, 1),
-		CFrame = tilt * CFrame.new(0, 1.5, 0),
-		Color = rgb(200, 210, 225),
-		Material = Enum.Material.Metal,
-		Reflectance = 0.2,
-		Parent = m,
-	})
-end
-
-local function buildPier(parent: Instance)
-	local S = Layout.DECK_TOP - 1 -- deck base (same height as the promenade)
-	local m = Util.Model("Pier", parent)
-	local hw = Layout.PIER_HALF_W
-	local z0, z1 = Layout.PIER_Z0, Layout.PIER_Z1
-	local deckY = S + 0.5 -- top at S + 1 = DECK_TOP
-	-- Deck segments
-	local z = z0
-	local i = 0
-	while z > z1 do
-		local zn = math.max(z - 8, z1)
-		i += 1
-		Util.Part({
-			Name = "Deck",
-			Size = Vector3.new(hw * 2, 1, z - zn),
-			CFrame = CFrame.new(0, deckY, (z + zn) / 2),
-			Color = if i % 2 == 0 then WOOD_A else WOOD_B,
-			Material = Enum.Material.WoodPlanks,
-			Parent = m,
-		})
-		z = zn
-	end
-	-- Pilings every 16 studs and rails
-	local postBottom = Layout.SEABED_Y - 4
-	z = z0 - 8
-	while z > z1 do
-		for _, sx in { -1, 1 } do
-			local h = S - postBottom
-			Util.Cylinder(
+	local g = VISIBLE - p.Y -- local y of the visible sand
+	-- Striped posts
+	for _, x in { -23, 23 } do
+		Kit.solid(Kit.part(m, "PostFooting", Vector3.new(3.4, 1.6, 3.4), L(x, g + 0.3, 0.9), Kit.NAVY))
+		Kit.solid(Kit.part(m, "Post", Vector3.new(2.2, 28, 2.2), L(x, g + 14, 0.9), Kit.WHITE))
+		for i = 1, 4 do
+			Kit.part(
 				m,
-				"Piling",
-				Vector3.new(sx * (hw - 0.6), postBottom + h / 2, z),
-				h,
-				1.6,
-				WOOD_DARK,
-				Enum.Material.Wood
+				"PostStripe",
+				Vector3.new(2.35, 1.1, 2.35),
+				L(x, g + 2.5 + i * 2.6, 0.9),
+				if i % 2 == 0 then C.Ocean else C.Coral
 			)
 		end
-		z -= 16
+		Kit.part(m, "PostCap", Vector3.new(3.0, 0.9, 3.0), L(x, g + 28.4, 0.9), C.Gold)
+		Kit.ball(m, "PostFinial", 1.8, base:PointToWorldSpace(Vector3.new(x, g + 29.7, 0.9)), C.Coral)
 	end
-	z = z0 - 4
-	while z >= z1 do
-		for _, sx in { -1, 1 } do
-			Util.Part({
-				Name = "RailPost",
-				Size = Vector3.new(0.6, 3, 0.6),
-				CFrame = CFrame.new(sx * (hw - 0.3), S + 2.5, z),
-				Color = WHITE,
-				Parent = m,
-			})
-		end
-		z -= 8
-	end
-	local railLen = (z0 - 4) - z1
-	for _, sx in { -1, 1 } do
-		Util.Part({
-			Name = "Rail",
-			Size = Vector3.new(0.5, 0.5, railLen),
-			CFrame = CFrame.new(sx * (hw - 0.3), S + 4, (z0 - 4 + z1) / 2),
-			Color = WHITE,
-			Parent = m,
-		})
-	end
-
-	-- End platform (photo spot)
-	local eh, ed = Layout.PIER_END_HALF, Layout.PIER_END_DEPTH
-	local ec = Vector3.new(0, S, z1 - ed / 2)
-	Util.Part({
-		Name = "Platform",
-		Size = Vector3.new(eh * 2, 1, ed),
-		CFrame = CFrame.new(ec.X, deckY, ec.Z),
-		Color = WOOD_A,
-		Material = Enum.Material.WoodPlanks,
-		Parent = m,
-	})
-	for _, sx in { -1, 1 } do
-		for _, sz in { -1, 1 } do
-			local p = Vector3.new(sx * (eh - 0.6), 0, ec.Z + sz * (ed / 2 - 0.6))
-			local h = S - postBottom
-			Util.Cylinder(m, "Piling", Vector3.new(p.X, postBottom + h / 2, p.Z), h, 2, WOOD_DARK, Enum.Material.Wood)
-			Util.Part({
-				Name = "CornerPost",
-				Size = Vector3.new(0.9, 3.4, 0.9),
-				CFrame = CFrame.new(p.X, S + 2.7, p.Z),
-				Color = WHITE,
-				Parent = m,
-			})
-		end
-	end
-	-- Rails on the three open sides
-	Util.Part({
-		Name = "Rail",
-		Size = Vector3.new(eh * 2, 0.5, 0.5),
-		CFrame = CFrame.new(0, S + 4, ec.Z - ed / 2 + 0.6),
-		Color = WHITE,
-		Parent = m,
-	})
-	for _, sx in { -1, 1 } do
-		Util.Part({
-			Name = "Rail",
-			Size = Vector3.new(0.5, 0.5, ed),
-			CFrame = CFrame.new(sx * (eh - 0.6), S + 4, ec.Z),
-			Color = WHITE,
-			Parent = m,
-		})
-	end
-
-	-- Gazebo
-	local gz = ec + Vector3.new(0, 1, -2)
-	for _, sx in { -1, 1 } do
-		for _, sz in { -1, 1 } do
-			Util.Part({
-				Name = "GazeboPost",
-				Size = Vector3.new(0.9, 10, 0.9),
-				CFrame = CFrame.new(gz + Vector3.new(sx * 6, 5, sz * 6)),
-				Color = WHITE,
-				Parent = m,
-			})
-		end
-	end
-	Util.Part({
-		Name = "GazeboRoof",
-		Size = Vector3.new(15, 1, 15),
-		CFrame = CFrame.new(gz + Vector3.new(0, 10.5, 0)),
-		Color = C.Coral,
-		Parent = m,
-	})
-	Util.Part({
-		Name = "GazeboRoofTop",
-		Size = Vector3.new(9, 1.2, 9),
-		CFrame = CFrame.new(gz + Vector3.new(0, 11.6, 0)),
-		Color = WHITE,
-		Parent = m,
-	})
-	Util.Ball(m, "GazeboFinial", gz + Vector3.new(0, 12.8, 0), 1.6, C.Gold, Enum.Material.SmoothPlastic)
-	Util.Sign(
-		m,
-		"SUNSET PIER",
-		Vector3.new(11, 2.2, 0.5),
-		CFrame.lookAt(gz + Vector3.new(0, 8.6, 6.4), gz + Vector3.new(0, 8.6, 20)),
+	-- Layered board: navy back plate, gold frame, ocean main board, coral ribbon
+	local cy = g + 20
+	local back = Kit.part(m, "TitleBack", Vector3.new(52, 17, 1.4), L(0, cy, 1.4), Kit.NAVY)
+	back.CastShadow = true
+	for _, bar in
 		{
-			Name = "PierSign",
-			BoardColor = C.Sunset,
+			{ Vector3.new(50, 1.4, 1.2), Vector3.new(0, 7.3, -0.1) },
+			{ Vector3.new(50, 1.4, 1.2), Vector3.new(0, -7.3, -0.1) },
+			{ Vector3.new(1.4, 16, 1.2), Vector3.new(-24.3, 0, -0.1) },
+			{ Vector3.new(1.4, 16, 1.2), Vector3.new(24.3, 0, -0.1) },
 		}
-	)
-	-- Benches facing the sea
-	for _, sx in { -1, 1 } do
-		local b = gz + Vector3.new(sx * 3.2, 0, -3)
-		Util.Part({
-			Name = "BenchSeat",
-			Size = Vector3.new(4.5, 0.5, 1.6),
-			CFrame = CFrame.new(b + Vector3.new(0, 1.6, 0)),
-			Color = C.Ocean,
-			Parent = m,
-		})
-		Util.Part({
-			Name = "BenchBack",
-			Size = Vector3.new(4.5, 1.6, 0.4),
-			CFrame = CFrame.new(b + Vector3.new(0, 2.6, 0.8)),
-			Color = C.Ocean,
-			Parent = m,
-		})
-		Util.Part({
-			Name = "BenchLegs",
-			Size = Vector3.new(4, 1.4, 1.2),
-			CFrame = CFrame.new(b + Vector3.new(0, 0.7, 0)),
-			Color = WHITE,
-			Parent = m,
-		})
+	do
+		Kit.part(m, "TitleFrame", bar[1], L(bar[2].X, cy + bar[2].Y, bar[2].Z), C.Gold, Enum.Material.Metal)
 	end
-	-- Telescope at the tip
-	local tp = Vector3.new(eh - 3, S + 1, ec.Z - ed / 2 + 3)
-	Util.Part({
-		Name = "TelescopeStand",
-		Size = Vector3.new(0.5, 3.4, 0.5),
-		CFrame = CFrame.new(tp + Vector3.new(0, 1.7, 0)),
-		Color = rgb(60, 70, 90),
-		Material = Enum.Material.Metal,
-		Parent = m,
-	})
-	Util.Part({
-		Name = "Telescope",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2.6, 0.9, 0.9),
-		CFrame = CFrame.new(tp + Vector3.new(0, 3.7, 0)) * CFrame.Angles(0, math.rad(90), math.rad(15)),
-		Color = C.Gold,
-		Material = Enum.Material.Metal,
+	local board = Util.Sign(m, "DIG TO THE CORE!", Vector3.new(46.4, 9.6, 1), L(0, cy + 1.6, 0), {
+		Name = "TitleBoard",
+		BoardColor = C.Ocean,
 		Decor = true,
-		Parent = m,
 	})
-	-- Pier lamps
+	board.CastShadow = true
+	local ribbon = Util.Sign(m, "BEACH SIMULATOR", Vector3.new(30, 3.4, 0.8), L(0, cy - 5.2, -0.9), {
+		Name = "TitleRibbon",
+		BoardColor = C.Coral,
+		Decor = true,
+	})
+	ribbon.CastShadow = true
 	for _, sx in { -1, 1 } do
-		lamp(m, Vector3.new(sx * (eh - 1.5), S + 1, ec.Z + ed / 2 - 2))
-		lamp(m, Vector3.new(sx * (hw - 0.8), S + 1, (z0 + z1) / 2))
+		-- folded ribbon tails
+		Kit.wedge(
+			m,
+			"RibbonTail",
+			Vector3.new(0.7, 3.4, 3),
+			L(sx * 16.3, cy - 5.9, -0.7) * CFrame.Angles(0, math.rad(sx * 90), 0),
+			Build.darken(C.Coral, 0.2)
+		)
+	end
+	-- Marquee bulb border (alternating gold / sunset)
+	local bulbs = Kit.model("MarqueeBulbs", m)
+	local hw, hh = 25.0, 8.0
+	local per = 4 * hw + 4 * hh
+	local n = 56
+	for i = 0, n - 1 do
+		local d = per * i / n
+		local x, y
+		if d < 2 * hw then
+			x, y = -hw + d, hh
+		elseif d < 2 * hw + 2 * hh then
+			x, y = hw, hh - (d - 2 * hw)
+		elseif d < 4 * hw + 2 * hh then
+			x, y = hw - (d - 2 * hw - 2 * hh), -hh
+		else
+			x, y = -hw, -hh + (d - 4 * hw - 2 * hh)
+		end
+		local b = Build.ball(
+			bulbs,
+			"Bulb",
+			0.75,
+			L(x, cy + y, -0.85),
+			if i % 2 == 0 then C.Gold else C.Sunset,
+			Enum.Material.Neon
+		)
+		b.CastShadow = false
+		if i == 6 or i == 22 then
+			Kit.light(b, C.Gold, 16, 1.2)
+		end
+	end
+	Kit.tag(bulbs, Kit.NIGHT_TAG)
+	-- Sunburst crest behind the top
+	local crest = base:PointToWorldSpace(Vector3.new(0, cy + 9.4, 1.8))
+	Kit.cyl(m, "Crest", 0.8, 9, CFrame.new(crest) * CFrame.Angles(math.rad(90), 0, 0), C.Gold)
+	for i = 0, 8 do
+		local a = math.rad(i * 22.5)
+		local dir = Vector3.new(math.cos(a), math.sin(a), 0)
+		Kit.tri(
+			m,
+			"CrestRay",
+			crest + dir * 4.2,
+			crest + dir * 7.4,
+			Vector3.zAxis:Cross(dir),
+			2.0,
+			0.5,
+			if i % 2 == 0 then C.Sunset else C.Gold
+		)
+	end
+
+	-- Giant shovel stuck in a sand mound (east)
+	local sp = base:PointToWorldSpace(Vector3.new(36, g, 2))
+	Kit.ellipsoid(
+		m,
+		"ShovelMound",
+		Vector3.new(11, 3.2, 9),
+		CFrame.new(sp + Vector3.new(0, 0.4, 0)),
+		C.SandDark,
+		Enum.Material.Sand
+	)
+	local steel = rgb(200, 210, 225)
+	local tilt = CFrame.new(sp) * CFrame.Angles(0, math.rad(-20), math.rad(-14))
+	local blade =
+		Kit.part(m, "GiantShovelBlade", Vector3.new(7, 7, 1), tilt * CFrame.new(0, 2.6, 0), steel, Enum.Material.Metal)
+	blade.Reflectance = 0.2
+	Kit.solid(blade)
+	Kit.cyl(
+		m,
+		"GiantShovelTip",
+		1,
+		7,
+		tilt * CFrame.new(0, -0.9, 0) * CFrame.Angles(math.rad(90), 0, 0),
+		steel,
+		Enum.Material.Metal
+	)
+	Kit.part(
+		m,
+		"GiantShovelCollar",
+		Vector3.new(2.2, 1.6, 1.6),
+		tilt * CFrame.new(0, 6.8, 0),
+		C.Gold,
+		Enum.Material.Metal
+	)
+	Kit.solid(
+		Kit.cyl(m, "GiantShovelHandle", 20, 1.4, tilt * CFrame.new(0, 17.4, 0), rgb(170, 110, 60), Enum.Material.Wood)
+	)
+	for _, sx in { -1, 1 } do
+		Kit.rod(
+			m,
+			"GiantShovelYoke",
+			tilt:PointToWorldSpace(Vector3.new(0, 27, 0)),
+			tilt:PointToWorldSpace(Vector3.new(sx * 2.0, 29, 0)),
+			0.9,
+			C.Coral
+		)
+	end
+	Kit.rod(
+		m,
+		"GiantShovelGrip",
+		tilt:PointToWorldSpace(Vector3.new(-2.3, 29.2, 0)),
+		tilt:PointToWorldSpace(Vector3.new(2.3, 29.2, 0)),
+		1.1,
+		C.Coral
+	)
+
+	-- Overflowing treasure chest (west)
+	local cp = base:PointToWorldSpace(Vector3.new(-36, g, 1))
+	local ccf = CFrame.lookAt(cp, cp + Vector3.new(0.35, 0, -1))
+	local wood = rgb(130, 78, 44)
+	Kit.solid(Kit.part(m, "ChestBody", Vector3.new(7, 4, 4.6), ccf * CFrame.new(0, 2, 0), wood, Enum.Material.Wood))
+	for _, x in { -2.6, 0, 2.6 } do
+		Kit.part(m, "ChestBand", Vector3.new(0.5, 4.1, 4.7), ccf * CFrame.new(x, 2, 0), C.Gold, Enum.Material.Metal)
+	end
+	Kit.part(m, "ChestLock", Vector3.new(1.1, 1.3, 0.3), ccf * CFrame.new(0, 3.2, -2.4), C.Gold, Enum.Material.Metal)
+	local lid = ccf * CFrame.new(0, 4, 2.3) * CFrame.Angles(math.rad(-105), 0, 0) * CFrame.new(0, 0, -2.3)
+	Kit.part(m, "ChestLid", Vector3.new(7, 0.7, 4.6), lid, wood, Enum.Material.Wood)
+	Kit.part(m, "ChestLidBand", Vector3.new(7.1, 0.75, 0.5), lid * CFrame.new(0, 0, -2.0), C.Gold, Enum.Material.Metal)
+	local pile = Kit.ellipsoid(
+		m,
+		"GoldPile",
+		Vector3.new(6.4, 2.4, 4.0),
+		ccf * CFrame.new(0, 4.1, 0),
+		C.Gold,
+		Enum.Material.Metal
+	)
+	pile.Reflectance = 0.15
+	Kit.sparkle(pile, C.Gold, 6)
+	local crng = Random.new(77011)
+	for _ = 1, 7 do
+		local off = Vector3.new(crng:NextNumber(-6, 6), 0.15, crng:NextNumber(-4.5, -1.5))
+		local tiltC = CFrame.Angles(crng:NextNumber(-0.3, 0.3), 0, crng:NextNumber(-0.3, 0.3))
+		Kit.cyl(m, "Coin", 0.25, 1.2, CFrame.new(ccf:PointToWorldSpace(off)) * tiltC, C.Gold, Enum.Material.Metal)
+	end
+	for j, col in { C.Coral, C.Ocean, C.Purple } do
+		local gp = ccf:PointToWorldSpace(Vector3.new(-2 + j * 1.2, 5.1, crng:NextNumber(-0.8, 0.8)))
+		Kit.ball(m, "Gem", 0.9, gp, col, Enum.Material.Glass)
 	end
 end
 
@@ -381,61 +246,73 @@ local function buildBoundaries(parent: Instance)
 	end
 end
 
--- "Dig anywhere" signs on the deck and flags marking both ends of the dig zone.
+-- "Dig anywhere" signs on the deck's sea edge and striped flags at the dig zone corners.
 local function buildDigMarkers(parent: Instance)
-	local m = Util.Model("DigMarkers", parent)
+	local m = Kit.model("DigMarkers", parent)
 	local z = Layout.BOARDWALK_Z0 + 2
 	for _, x in { -40, 40, -200, 200 } do
 		local p = Vector3.new(x, Layout.DECK_TOP, z)
-		Util.Part({
-			Name = "SignPost",
-			Size = Vector3.new(0.8, 5, 0.8),
-			CFrame = CFrame.new(p + Vector3.new(0, 2.5, 0.6)),
-			Color = WOOD_DARK,
-			Material = Enum.Material.Wood,
-			Parent = m,
-		})
+		for _, sx in { -1, 1 } do
+			local postPos = p + Vector3.new(sx * 3.6, 2.8, 0.7)
+			Kit.solid(
+				Kit.part(
+					m,
+					"SignPost",
+					Vector3.new(0.7, 5.6, 0.7),
+					CFrame.new(postPos),
+					Kit.WOOD_DARK,
+					Enum.Material.Wood
+				)
+			)
+			Kit.ball(m, "SignPostKnob", 0.8, p + Vector3.new(sx * 3.6, 5.8, 0.7), C.Coral)
+		end
 		-- Faces inland so it reads while walking down from the hub.
-		Util.Sign(
+		local face = CFrame.lookAt(p + Vector3.new(0, 4.4, 0.4), p + Vector3.new(0, 4.4, 10))
+		Kit.part(m, "DigSignBack", Vector3.new(9.6, 3.4, 0.35), face * CFrame.new(0, 0, 0.3), Kit.NAVY)
+		Util.Sign(m, "DIG ANYWHERE!", Vector3.new(8.8, 2.7, 0.4), face, {
+			Name = "DigSign",
+			BoardColor = C.Gold,
+			SubText = "ON THE SAND",
+			Decor = true,
+		})
+		-- Little shovel stuck in the top of the board + arrow pointing down to the sand
+		local tip = face:PointToWorldSpace(Vector3.new(3.4, 1.4, 0.2))
+		Kit.rod(m, "SignShovelHandle", tip, tip + Vector3.new(0.6, 2.4, 0), 0.22, Kit.WOOD)
+		Kit.part(
 			m,
-			"DIG ANYWHERE!",
-			Vector3.new(9, 2.6, 0.4),
-			CFrame.lookAt(p + Vector3.new(0, 5.4, 0.6), p + Vector3.new(0, 5.4, 10)),
-			{
-				Name = "DigSign",
-				BoardColor = C.Gold,
-				SubText = "ON THE SAND",
-			}
+			"SignShovelBlade",
+			Vector3.new(1.0, 1.1, 0.15),
+			CFrame.new(tip + Vector3.new(-0.1, -0.2, 0)) * CFrame.Angles(0, 0, math.rad(-14)),
+			rgb(200, 210, 225),
+			Enum.Material.Metal
 		)
+		local ab = face:PointToWorldSpace(Vector3.new(0, -1.8, 0))
+		Kit.tri(m, "DigArrow", ab, ab - Vector3.new(0, 1.2, 0), Vector3.xAxis, 1.6, 0.3, C.Coral)
 	end
-	-- Striped flags at the four corners of the dig zone
+	-- Striped flags at the four corners of the dig zone, poles on the visible sand
+	local stripes = { C.Coral, Kit.WHITE, C.Coral }
 	for _, sx in { -1, 1 } do
 		for _, zEdge in { Layout.DIG_Z_INLAND, Layout.DIG_Z_SEA } do
-			local p = Vector3.new(sx * (Layout.DIG_HALF_X + 2), S, zEdge)
-			Util.Part({
-				Name = "ZoneFlagPole",
-				Size = Vector3.new(0.5, 9, 0.5),
-				CFrame = CFrame.new(p + Vector3.new(0, 4.5, 0)),
-				Color = WHITE,
-				Parent = m,
-			})
-			Util.Wedge({
-				Name = "ZoneFlag",
-				Size = Vector3.new(0.2, 2.2, 3.4),
-				CFrame = CFrame.new(p + Vector3.new(0, 7.6, -sx * 1.7)),
-				Color = C.Coral,
-				Decor = true,
-				Parent = m,
-			})
+			local p = Vector3.new(sx * (Layout.DIG_HALF_X + 2), VISIBLE, zEdge)
+			Kit.part(m, "ZoneFlagFoot", Vector3.new(1.4, 0.6, 1.4), CFrame.new(p + Vector3.new(0, 0.1, 0)), Kit.NAVY)
+			Kit.solid(Kit.cyl(m, "ZoneFlagPole", 11, 0.45, CFrame.new(p + Vector3.new(0, 5.5, 0)), Kit.WHITE))
+			for i = 1, 3 do
+				Kit.cyl(m, "ZoneFlagPoleStripe", 0.8, 0.5, CFrame.new(p + Vector3.new(0, i * 2.4, 0)), C.Coral)
+			end
+			Kit.ball(m, "ZoneFlagBall", 0.7, p + Vector3.new(0, 11.2, 0), C.Gold)
+			local flag = Kit.flag(m, p + Vector3.new(0, 10.4, 0), Vector3.new(-sx, 0, 0.15), 3.8, 2.4, stripes)
+			flag.Name = "ZoneFlag"
 		end
 	end
 end
 
 function Boardwalk.Build(parent: Instance)
-	buildPromenade(parent)
+	Kit.Stats.lights = 0
+	Kit.Stats.emitters = 0
+	Promenade.Build(parent)
+	PierCarnival.Build(parent)
 	buildDigMarkers(parent)
 	buildTitle(parent)
-	buildPier(parent)
 	buildBoundaries(parent)
 end
 
