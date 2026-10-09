@@ -22,6 +22,10 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local visualConnections: { [Model]: RBXScriptConnection } = {}
 	local sceneGeneration = 0
 	local sceneAvailable = true
+	local latestSnapshot: any = {}
+	local promptEntries: { [Instance]: any } = {}
+	local expanded = false
+	local nearMara = false
 	local dead = false
 	local eventId: string? = nil
 	local reducedMotion = false
@@ -108,8 +112,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 	aimHint.Parent = gui
 	local card = Instance.new("ScrollingFrame")
 	card.Size = UDim2.new(0, 330, 0, 330)
-	card.AnchorPoint = Vector2.new(0, 0.5)
-	card.Position = UDim2.new(0, 12, 0.5, 0)
+	card.AnchorPoint = Vector2.new(0.5, 0)
+	card.Position = UDim2.new(0.5, 0, 0, 12)
 	card.BackgroundColor3 = Color3.fromRGB(24, 47, 66)
 	card.BorderSizePixel = 0
 	card.ScrollBarThickness = 6
@@ -119,9 +123,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local cardContentHeight = 330
 	local function fitCard()
 		local viewport = gui.AbsoluteSize
-		-- Keep the review card between the touch movement and jump zones.
-		card.AnchorPoint = Vector2.new(if UserInputService.TouchEnabled then 0.5 else 0, 0.5)
-		card.Position = if UserInputService.TouchEnabled then UDim2.new(0.5, 0, 0.5, 0) else UDim2.new(0, 12, 0.5, 0)
+		-- Stay clear of chat and between the touch movement and jump zones.
+		card.AnchorPoint = Vector2.new(0.5, 0)
+		card.Position = UDim2.new(0.5, 0, 0, 12)
 		-- Scroll short viewports instead of shrinking the 48px interaction targets.
 		card.Size = UDim2.fromOffset(
 			math.min(330, math.max(0, viewport.X - 24)),
@@ -150,13 +154,13 @@ function Client.Start(remotes: Folder, scene: Instance)
 		item.Parent = card
 		return item
 	end
-	label("SPRING VAULT · Optional adventure", 10, 28)
+	label("SPRING VAULT · Review", 8, 24)
 	local status = label(
 		"Help uncover a springy surprise · about 5 minutes. Review build: permanent rewards are unavailable.",
-		42,
-		62
+		32,
+		42
 	)
-	local objective = label("Talk to Mara, then try Pip's Broadwave.", 106, 54)
+	local objective = label("Talk to Mara, then try Pip's Broadwave.", 76, 48)
 	local function button(text: string, x: number, y: number, callback: () -> ()): TextButton
 		local item = Instance.new("TextButton")
 		item.Name = string.gsub(text, "[^%w]", "")
@@ -172,20 +176,20 @@ function Client.Start(remotes: Folder, scene: Instance)
 		table.insert(connections, item.Activated:Connect(callback))
 		return item
 	end
-	button("Join", 12, 170, function()
+	local join = button("Join", 12, 170, function()
 		send("Join")
 	end)
-	button("Ignore", 116, 170, function()
+	local ignore = button("Ignore", 116, 170, function()
 		send("Ignore")
 		card.Visible = false
 	end)
-	button("Leave", 220, 170, function()
+	local leave = button("Leave", 220, 170, function()
 		send("Leave")
 	end)
-	button("Start", 12, 224, function()
+	local start = button("Start", 12, 224, function()
 		send("Start")
 	end)
-	button("Ready", 116, 224, function()
+	local ready = button("Ready", 116, 224, function()
 		send("Ready")
 	end)
 	local haul = button("Guide ball", 220, 224, function()
@@ -204,7 +208,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		reducedParticles = not reducedParticles
 		particles.Text = if reducedParticles then "Puffs: off" else "Puffs: on"
 	end)
-	button("Reset ball", 220, 278, function()
+	local resetBall = button("Reset ball", 220, 278, function()
 		send("ResetBall")
 	end)
 	local routeLeft = button("Left route", 12, 332, function()
@@ -215,6 +219,42 @@ function Client.Start(remotes: Folder, scene: Instance)
 	end)
 	routeLeft.Visible = false
 	routeRight.Visible = false
+	local options = button("Options", 220, 332, function()
+		expanded = not expanded
+	end)
+	local function layoutControls()
+		local data = latestSnapshot
+		join.Visible = not data.joined and (not data.trialActive or nearMara)
+		ignore.Visible = not data.joined
+		leave.Visible = data.joined == true
+		start.Visible = data.joined == true
+			and data.phase == "Inviting"
+			and (data.canStart or (data.startWaitSeconds or 0) > 0)
+		start.Text = if (data.startWaitSeconds or 0) > 0 then "Start in " .. data.startWaitSeconds .. "s" else "Start"
+		ready.Visible = data.canReady == true
+		haul.Visible = data.joined == true and data.stage == "ball"
+		resetBall.Visible = expanded and data.joined == true and data.stage == "ball"
+		routeLeft.Visible = data.routeSelectable == true
+		routeRight.Visible = data.routeSelectable == true
+		routeLeft.Text = if data.route == "Left" then "Selected: Left" else "Left route"
+		routeRight.Text = if data.route == "Right" then "Selected: Right" else "Right route"
+		motion.Visible = expanded
+		particles.Visible = expanded
+		options.Text = if expanded then "Less" else "Options"
+		local index = 0
+		for _, control in
+			{ join, ignore, start, ready, haul, routeLeft, routeRight, leave, options, motion, particles, resetBall }
+		do
+			if control.Visible then
+				local column = index % 3
+				control.Position = UDim2.new(column / 3, 12 - column * 6, 0, 132 + math.floor(index / 3) * 54)
+				index += 1
+			end
+		end
+		cardContentHeight = 138 + math.ceil(index / 3) * 54
+		fitCard()
+	end
+	layoutControls()
 	-- These markers only select presentation controls. The server resolves issued tools
 	-- and the loaded license separately; a client marker never grants ordinary digging.
 	local function broadwave(container: Instance?): Tool?
@@ -236,7 +276,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local equip = Instance.new("TextButton")
 	equip.Name = "BroadwaveEquip"
 	equip.AnchorPoint = Vector2.new(0.5, 0)
-	equip.Position = UDim2.new(0.5, 0, 0, 76)
+	equip.Position = UDim2.new(1, -12, 1, -76)
 	equip.Size = UDim2.fromOffset(176, 48)
 	equip.Text = "Equip Broadwave"
 	equip.TextSize = 16
@@ -393,26 +433,74 @@ function Client.Start(remotes: Folder, scene: Instance)
 	table.insert(
 		connections,
 		RunService.RenderStepped:Connect(function()
+			local nearest: any = nil
+			local distance = math.huge
+			local characterRoot = root()
+			local data = latestSnapshot
+			nearMara = false
+			for _, entry in promptEntries do
+				if entry.Target == "npc_mara" and characterRoot then
+					nearMara = (characterRoot.Position - entry.Part.Position).Magnitude <= 10
+				end
+				local allowed = entry.Action == "Talk" and not data.joined
+					or entry.Action == "Leave" and data.joined
+					or entry.Action == "OpenVault" and data.joined and data.ready and data.stage == "vault"
+					or (entry.Action == "RouteLeft" or entry.Action == "RouteRight") and data.routeSelectable
+					or entry.Action == "PushBall" and data.joined and data.stage == "ball"
+					or entry.Action == "ResetBall" and data.joined and data.stage == "ball"
+					or entry.Action == "Excavate"
+						and (data.joined and data.ready and data.stage == "anchors" and string.find(
+							entry.Target,
+							"vault_anchor_"
+						) ~= nil or data.trialActive and data.trialWave and not data.trialComplete and string.find(
+							entry.Target,
+							"trial_target_"
+						) ~= nil)
+				if allowed and data.Anchors and data.Anchors[entry.Target] then
+					local anchor = data.Anchors[entry.Target]
+					allowed = not anchor.Completed
+					entry.Prompt.ActionText = string.format("Scoop · %d/%d", anchor.Work, anchor.Required)
+				end
+				if data.trialTargets and data.trialTargets[entry.Target] then
+					allowed = false
+				end
+				entry.Prompt.Enabled = false
+				if allowed and characterRoot and sceneAvailable and not charging then
+					local range = (characterRoot.Position - entry.Part.Position).Magnitude
+					if range <= entry.Prompt.MaxActivationDistance and range < distance then
+						nearest = entry
+						distance = range
+					end
+				end
+			end
+			if nearest then
+				nearest.Prompt.Enabled = true
+				if nearest.Action == "PushBall" then
+					nearest.Prompt.ActionText = if data.hauling then "Release ball" else "Attach and guide"
+				end
+			end
 			local tool = equipped()
 			equip.Visible = sceneAvailable
 				and (tool ~= nil or broadwave(player:FindFirstChildOfClass("Backpack")) ~= nil)
-			-- Keep the control in the scrolling card when open; retain access after Ignore.
+			-- Keep touch controls in the scrollable panel; desktop equip stays clear of the objective.
 			-- While aiming, neither the card nor the equip button should cover the footprint.
 			equip.Visible = equip.Visible and not charging
-			if card.Visible then
+			if card.Visible and UserInputService.TouchEnabled then
 				equip.Parent = card
 				equip.AnchorPoint = Vector2.zero
 				equip.Size = UDim2.new(1 / 3, -12, 0, 48)
 				equip.Position = UDim2.new(2 / 3, 0, 0, 332)
 			else
 				equip.Parent = gui
-				equip.AnchorPoint = Vector2.new(0.5, 0)
+				equip.AnchorPoint = Vector2.new(1, 1)
 				equip.Size = UDim2.fromOffset(176, 48)
-				equip.Position = UDim2.new(0.5, 0, 0, 76)
+				equip.Position = UDim2.new(1, -12, 1, -76)
 			end
-			local height = if routeLeft.Visible or equip.Visible then 390 else 330
-			if cardContentHeight ~= height then
-				cardContentHeight = height
+			layoutControls()
+			if equip.Visible and card.Visible and UserInputService.TouchEnabled then
+				equip.Position = UDim2.new(0, 12, 0, cardContentHeight - 6)
+				equip.Size = UDim2.new(1, -24, 0, 48)
+				cardContentHeight += 54
 				fitCard()
 			end
 			equip.Text = if tool then "Stow Broadwave" else "Equip Broadwave"
@@ -485,6 +573,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	table.insert(
 		connections,
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
+			latestSnapshot = data
 			eventId = data.eventInstanceId
 			if data.message then
 				status.Text = data.message
@@ -504,18 +593,43 @@ function Client.Start(remotes: Folder, scene: Instance)
 				send("ChargeCancel", "trial_patch")
 				clearCharge()
 			end
-			objective.Text = data.objective
-				or (
-					if type(data.objectives) == "table"
-						then table.concat(data.objectives, "\n")
-						else "Follow the marked objectives."
-				)
+			objective.Text = if type(data.objective) == "string"
+				then string.gsub(data.objective, "Ability", "Q / L1 / Ability")
+				else data.objective or (if type(data.objectives) == "table"
+					then table.concat(data.objectives, "\n")
+					else "Follow the marked objectives.")
 			haul.Text = if data.hauling then "Release ball" else "Guide ball"
-			local choosingRoute = data.joined and data.stage == "vault"
-			routeLeft.Visible = choosingRoute
-			routeRight.Visible = choosingRoute
-			cardContentHeight = if choosingRoute then 390 else 330
-			fitCard()
+			layoutControls()
+			if sceneAvailable then
+				for _, item in scene:GetDescendants() do
+					if item:IsA("BasePart") then
+						local gate = tonumber(string.match(item.Name, "^GateMarker(%d+)$"))
+						if gate then
+							local passed = gate <= (data.GateIndex or 0)
+							item.Color = if passed
+								then Kit.Palette.Cream
+								else if gate == (data.GateIndex or 0) + 1
+									then Kit.Palette.Gold
+									else Kit.Palette.Blue
+							local gateLabel = item:FindFirstChildWhichIsA("BillboardGui")
+							if gateLabel then
+								gateLabel.Enabled = data.joined == true
+									and data.stage == "ball"
+									and gate == (data.GateIndex or 0) + 1
+							end
+						elseif
+							string.find(item.Name, "RouteDash", 1, true)
+							or string.find(item.Name, "RouteArrow", 1, true)
+						then
+							item.Transparency = if data.joined
+									and (data.stage == "vault" or data.stage == "ball")
+									and string.find(item.Name, data.route or "Left", 1, true)
+								then 0
+								else 0.7
+						end
+					end
+				end
+			end
 			if data.joined then
 				if charging then
 					chargeCardVisible = true
@@ -538,7 +652,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 				cooldownUntil = os.clock() + 8
 			end
 			if data.kind == "Gate" then
-				objective.Text = "✓ Gate validated. " .. (data.message or "Keep guiding the ball.")
+				status.Text = "✓ Gate reached · checkpoint saved"
+				messageUntil = os.clock() + 4
 			end
 			if dead or not sceneAvailable then
 				return
@@ -612,6 +727,14 @@ function Client.Start(remotes: Folder, scene: Instance)
 	)
 	-- Prompts are presentation only; forged targets still pass through server validation.
 	local function installPrompt(item: Instance)
+		if item:IsA("ProximityPrompt") then
+			for _, entry in promptEntries do
+				if entry.Part == item.Parent and entry.Prompt ~= item then
+					item.Enabled = false
+					return
+				end
+			end
+		end
 		local ball = if item:IsA("Model") and item.Name == "landmark_spring_vault_ball"
 			then item
 			else item:FindFirstAncestor("landmark_spring_vault_ball")
@@ -684,6 +807,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		end)
 		local ancestryConnection: RBXScriptConnection? = nil
 		local function cleanupPrompt()
+			prompt.Enabled = false
 			triggerConnection:Disconnect()
 			if ancestryConnection then
 				ancestryConnection:Disconnect()
@@ -692,7 +816,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 				prompt:Destroy()
 			end
 			promptCleanups[item] = nil
+			promptEntries[item] = nil
 		end
+		promptEntries[item] = { Prompt = prompt, Part = part, Action = action, Target = targetId }
 		promptCleanups[item] = cleanupPrompt
 		ancestryConnection = item.AncestryChanged:Connect(function()
 			if not item:IsDescendantOf(scene) then
