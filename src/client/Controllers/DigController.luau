@@ -96,12 +96,17 @@ local function ensureToolEquipped()
 		return
 	end
 	local backpack = player:FindFirstChildOfClass("Backpack")
-	local tool = if backpack then backpack:FindFirstChildOfClass("Tool") else nil
-	-- Prefer the shovel over any other tool in the Backpack (e.g. a Broadwave loan/license).
+	-- Prefer the shovel; never auto-equip a Broadwave (loan or licensed). With no shovel Tool in
+	-- the Backpack (the usual case) the adventure loan was the only Tool, so an ordinary surface
+	-- dig put the loan in hand (found in the Studio production review).
+	local tool: Tool? = nil
 	for _, child in if backpack then backpack:GetChildren() else {} do
-		if child:IsA("Tool") and child:GetAttribute("ShovelId") ~= nil then
-			tool = child
-			break
+		if child:IsA("Tool") and not InputArbiter.IsBroadwaveTool(child) then
+			if child:GetAttribute("ShovelId") ~= nil then
+				tool = child
+				break
+			end
+			tool = tool or child
 		end
 	end
 	local humanoid = Character.GetHumanoid()

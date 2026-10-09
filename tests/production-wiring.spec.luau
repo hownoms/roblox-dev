@@ -448,6 +448,24 @@ if mode == "client" then
 	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
 	check(not AdventureController.IsStarted() and controls() == 0, "loan outside: stowed, runtime stops, no control")
 	check(Mock.Actions.BroadwaveEquip == nil, "loan outside: keys unbound again")
+	-- No shovel Tool in the Backpack (the usual production case): an ordinary dig must not pull
+	-- the stowed loan into the hand (Studio production review finding).
+	player.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
+	shovel.Parent = nil
+	player.Character:PivotTo(CF.new(0, S + 3, -26))
+	Mock.Advance(1)
+	before = #Mock.Remote.ToServer
+	local sentDig = DigController.TryDigAt(V.new(0, S, -30))
+	Mock.Advance(0.1)
+	check(sentDig == true, "no shovel tool: ordinary dig still sent")
+	check(
+		loanTool.Parent == player.Backpack and not Arbiter.BroadwaveEquipped(),
+		"no shovel tool: loan not auto-equipped"
+	)
+	shovel.Parent = player.Backpack
+	player.Character:FindFirstChildOfClass("Humanoid"):EquipTool(shovel)
+	toBeach()
+	Mock.Advance(0.1)
 	-- Licensed tool on the beach: only ours, with its own label and Layout region.
 	local licensedTool = newTool("Broadwave", { ToolId = "tool_broadwave", LicensedBroadwave = true }, player.Backpack)
 	Mock.Advance(0.3)
