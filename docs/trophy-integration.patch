@@ -1,0 +1,44 @@
+diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
+index e7fd207..ddf4c1b 100644
+--- a/src/server/Main.server.luau
++++ b/src/server/Main.server.luau
+@@ -59,6 +59,7 @@ local PetDigService = require(Services.PetDigService)
+ local RideService = require(Services.RideService)
+ local OfflineService = require(Services.OfflineService)
+ local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
++local TrophyService = require(Services.TrophyService) -- expansion: permanent trophies + camp display
+ local Net = require(Services.Net)
+ 
+ type Service = {
+@@ -94,6 +95,7 @@ local ordered: { { Name: string, Module: Service } } = {
+ 	{ Name = "PetDigService", Module = PetDigService :: any },
+ 	{ Name = "RideService", Module = RideService :: any },
+ 	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
++	{ Name = "TrophyService", Module = TrophyService :: any }, -- expansion: needs DataService only
+ 	{ Name = "DevCommands", Module = DevCommands :: any },
+ }
+ 
+@@ -121,6 +123,8 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
+ 	return granted
+ end)
+ 
++run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
++
+ for _, entry in ordered do
+ 	local start = entry.Module.Start
+ 	if start then
+diff --git a/src/shared/Remotes.luau b/src/shared/Remotes.luau
+index e93a51d..17205ea 100644
+--- a/src/shared/Remotes.luau
++++ b/src/shared/Remotes.luau
+@@ -43,6 +43,10 @@ Remotes.Events = table.freeze({
+ 	-- answer an excavation with per-ring timing errors in seconds (-1 = no tap)
+ 	"Scan",
+ 	"Excavate",
++	-- expansion trophies (TrophyService): (trophyId: string, x: number, z: number, rot: number)
++	-- place an owned trophy on a camp grid cell; (placementId: number) remove that display
++	"PlaceCampItem",
++	"RemoveCampItem",
+ 	-- server -> client
+ 	"DataChanged",
+ 	"Notify",

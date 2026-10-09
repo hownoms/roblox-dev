@@ -12,6 +12,8 @@ python3 tests/tools/bundle.py || exit 1
 luau tests/smoke.spec.luau -a "$@" || status=1
 echo "== smoke.spec (Studio, no DataStore access) =="
 luau tests/smoke.spec.luau -a studio "$@" || status=1
+echo "== trophy.spec (mock store) =="
+luau tests/trophy.spec.luau || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
