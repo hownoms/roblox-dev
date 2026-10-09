@@ -1,6 +1,6 @@
 # Project status: Dig to the Core! Beach Simulator
 
-**Last updated:** 8 October 2026 (evening). This is the only page that tracks current state. Update it in
+**Last updated:** 9 October 2026. This is the only page that tracks current state. Update it in
 place; don't add dated "current status" blocks to other docs. Measurements and observations go
 in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such as
 [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md).
@@ -30,6 +30,15 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
+- **Adventure trophies (merged, not wired or published):** server-authoritative trophy
+  settlement for the Spring Vault (`landmark_spring_vault` from `event_vault`), Mara's trophy
+  stand granted with the first trophy, a durable outbox for players not loaded at settlement,
+  and camp placement/removal with the kit's stand and replica.
+  - The code is in the tree but not booted. Wiring is the 8-line
+    `docs/trophy-integration.patch`, which is held until Codex's Spring Vault adventure is
+    reviewed.
+  - Mock-tested only: `trophy.spec` 259 checks, and `trophy-wired.spec` 18 with the patch.
+  - Handoff and the owner's 9 October decisions: [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md).
 - **Validation (latest):** client 1,464, server 2,199, Studio-mode 2,166, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
   deprecated-API warnings. CI is green on every merge.
@@ -57,6 +66,12 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
    change was performed. Public launch remains pending readiness checks and the owner's decision.
 
 ## Open
+
+- **Trophies:**
+  - Apply `docs/trophy-integration.patch` together with Codex's adventure PR.
+  - Live-verify on a private test place: grant, leave, rejoin on another server, and an
+    outbox recovery. Same-server-only recovery stays a release blocker until then.
+  - Production gates: the 16 `TrophyCampPad` pads and a camp/trophy UI.
 
 - **Map art overhaul:** mobile frame-time check with ~9.7k surface parts before publishing; motion
   not yet watched live.
@@ -98,5 +113,6 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 | [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md) | Published-build verification, live save/rejoin, v17 fixes and audio measurements |
 | [MAP_ART_DIRECTION.md](MAP_ART_DIRECTION.md) | Map art rules, area ownership, budgets, ambient motion tag contract |
 | [MAP_OVERHAUL_2026-10-08.md](MAP_OVERHAUL_2026-10-08.md) | Map overhaul session record, Studio findings, captures |
+| [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md) | Trophy API for the adventure, persistence design, wiring patch, gates, test evidence |
 | [PUBLISH_HANDOFF_2026-10-08.md](PUBLISH_HANDOFF_2026-10-08.md) | How v15 and v17 were published and verified |
 | [history/](history/) | Old session handoffs and review logs |
