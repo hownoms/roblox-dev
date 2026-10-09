@@ -14,7 +14,7 @@ to watch, and what costs we already know about.
 
 | Setting | Value | Where | Why |
 |---|---|---|---|
-| `Workspace.StreamingEnabled` | `true` | `default.project.json` | The map has about 4,800 parts (3,900 of them palms and props), and the dig strip is 768 studs long. A phone should only hold what is near it. |
+| `Workspace.StreamingEnabled` | `true` | `default.project.json` | After the map art overhaul the surface has about 9,700 parts (was 4,800), and the dig strip is 768 studs long. A phone should only hold what is near it. |
 | `StreamingMinRadius` | 64 | same | Always loaded around the player: the dig reach (20), the pet ring (6–12) and a full 16-stud dig, with room to spare. |
 | `StreamingTargetRadius` | 320 | same | The hub (radius about 120 around x = 0) stays loaded from most of the beach. Pets render to 220 and nameplates to 60, so everything a player can see in detail is loaded. Lower it to 256 if memory is tight on low-end phones. |
 | `StreamingIntegrityMode` | `MinimumRadiusPause` | same | The server teleports players about 1000 studs (from the bottom of a hole to the boardwalk, tide lifts, `/surface`). The player pauses until the ground around them has loaded, instead of falling through terrain that hasn't loaded yet. |
@@ -176,8 +176,8 @@ instance. See `tests/client.spec.luau`, section "streaming".
 |---|---|---|
 | **Dig size** | 1 to 64 voxels per dig | Edge = `Radius × 2` rounded to 4-stud voxels. Hand Spade/Trowel (r ≤ 2.2): a `FillBall` dent (about 1 voxel). r 2.5–2.8: 4³ studs = 1 voxel. r 3.2–3.8: 8³ = 8 voxels. r 4.4–5.5: 12³ = 27 voxels. r 6–8: 16³ = 64 voxels (+1 voxel layer above the surface at the top). Each dig is one `FillBlock`, plus one `ReadVoxels` of 2³ voxels for validation. |
 | **Dig rate** | Shovels: 0.5 s → 0.12 s cooldown. Pets: one dig per 1.4–2.8 s each, up to 6 equipped | Worst case per player: about 8 shovel digs/s + 6 pets × 0.7 = about 12 terrain edits/s, so **about 190/s for 16 players**. Clients re-mesh every changed terrain chunk in range. This is the biggest variable cost. |
-| **Map parts** | about 4,790 BaseParts | Decor 3,904 (palm trees 2,048, crabs 480, umbrellas 320, shells 224, sandcastles 222, stalls 168, rocks 130, lifeguard towers 104), Hub 613 (crate yard 277, egg incubator 187), Boardwalk 271. With streaming, a player on the beach holds a slice of it. **Biggest easy win: palms are 16 parts each**; merge them into fewer parts or one mesh. |
-| **GUIs / lights / emitters on the map** | 40 Surface/Billboard GUIs, 7 lights, 6 particle emitters | All in the hub, except boardwalk and decor signs. |
+| **Map parts** | about 9,700 surface BaseParts (smoke-test cap 10,500; excludes `Underground`) | Map art overhaul (`docs/MAP_OVERHAUL_2026-10-08.md`): beach/Decor ~4,900, boardwalk + pier + carnival ~2,400, hub ~1,650, skyline ~750 (Persistent). With streaming (TargetRadius 320), a player on the beach holds a slice of the beach, boardwalk and hub plus the Persistent skyline. Needs a real-phone profile before publishing. Was 4,790 before the overhaul. |
+| **GUIs / lights / emitters on the map** | 34 lights (cap 40), 14 particle emitters (cap 24) | All PointLights are shadowless, range 16 or less, and tagged AmbientNightLight (off by day). Client motion (`AmbientController`) is one RenderStepped loop with BulkMoveTo, distance-culled at 450 studs. |
 | **Pets** | 13–52 parts each (average 28) | 16 players × 6 pets × 28 = about 2,700 parts if everyone is in view. They are drawn client-side and hidden beyond 220 studs and when LowGraphics is on (other players' pets). |
 | **Ride vehicle** | 93 parts | One per rider. Unanchored and constraint-driven, so it is real physics. |
 | **Shades** | up to 160 parts (largest) | Up to 2 per player (VIP). |

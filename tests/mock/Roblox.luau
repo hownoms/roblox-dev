@@ -1689,9 +1689,16 @@ function methods.AddTag(p, t)
 end
 function methods.RemoveTag(p, t)
 	local self = instances[p]
+	if not self.tags[t] then
+		return
+	end
 	self.tags[t] = nil
 	if tagged[t] then
 		tagged[t][p] = nil
+	end
+	-- engine: GetInstanceRemovedSignal fires when the tag is removed from an in-game instance
+	if isInGame(self) and tagRemoved[t] then
+		tagRemoved[t]:_fire(p)
 	end
 end
 function methods.HasTag(p, t)
@@ -2563,6 +2570,15 @@ local function buildGame()
 		end,
 		GetPartBoundsInBox = function()
 			return {}
+		end,
+		BulkMoveTo = function(_w, parts, cframes, _mode)
+			assert(type(parts) == "table" and type(cframes) == "table", "BulkMoveTo expects two arrays")
+			assert(#parts == #cframes, "BulkMoveTo: parts and cframes differ in length")
+			for i, part in parts do
+				assert(isA(instances[part].className, "BasePart"), "BulkMoveTo: not a BasePart")
+				assert(isCF(cframes[i]), "BulkMoveTo expects CFrames")
+				classMethods.BasePart.PivotTo(part, cframes[i])
+			end
 		end,
 		GetPartsInPart = function()
 			return {}

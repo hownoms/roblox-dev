@@ -12,6 +12,7 @@
 local Types = require(script.Parent.Parent.Types)
 local Build = require(script.Parent.Build)
 local Pets = require(script.Parent.Pets)
+local PropsBeach = require(script.Parent.PropsBeach)
 
 local Props = {}
 
@@ -40,52 +41,13 @@ type PropBuilder = (m: Model, v: number) -> ()
 
 local builders: { [string]: PropBuilder } = {}
 
+-- Big curved palm (18-34 studs, three height classes); crown leans towards local -Z.
 builders.PalmTree = function(m, v)
-	local rng = Random.new(v * 7919 + 13)
-	local lean = rng:NextNumber() * PI * 2
-	local lx, lz = math.cos(lean), math.sin(lean)
-	local H = 10.5 + rng:NextNumber() * 1.5
-	local function at(t: number): Vector3
-		local b = 2.0 * t * t
-		return V(lx * b, t * H, lz * b)
-	end
-	local barkA, barkB = rgb(170, 120, 75), rgb(140, 95, 58)
-	local segs = 6
-	for i = 0, segs - 1 do
-		local a, b = at(i / segs), at((i + 1) / segs)
-		solid(
-			Build.cylBetween(
-				m,
-				"Trunk",
-				a,
-				b + (b - a).Unit * 0.15,
-				1.15 - 0.07 * i,
-				if i % 2 == 0 then barkA else barkB,
-				M.Wood
-			)
-		)
-	end
-	local top = at(1)
-	Build.ball(m, "Crown", 1.3, CF(top), rgb(60, 150, 70))
-	for k = 0, 2 do
-		local a = k / 3 * PI * 2 + 0.4
-		Build.ball(m, "Coconut", 0.7, CF(top + V(math.cos(a) * 0.55, -0.55, math.sin(a) * 0.55)), rgb(120, 80, 45))
-	end
-	local greens = { rgb(70, 200, 100), rgb(50, 170, 80), rgb(90, 215, 110) }
-	local fronds = 7
-	local offset = rng:NextNumber() * PI
-	for k = 0, fronds - 1 do
-		local a = k / fronds * PI * 2 + offset
-		local h = V(math.cos(a), 0, math.sin(a))
-		local perp = V(-h.Z, 0, h.X)
-		local mid = top + h * 2.2 + V(0, 0.55, 0)
-		local tip = top + h * 4.8 + V(0, -1.5, 0)
-		local col = greens[k % #greens + 1]
-		Build.beam(m, "Frond", top, mid, 1.1, 0.14, col, M.SmoothPlastic, perp)
-		Build.triPts(m, "Frond", mid, tip, perp, 1.1, 0.14, col)
-	end
+	PropsBeach.Palm(m, v, true)
 end
 
+-- Styles cycle with the variant: two-tone panels, striped with a scalloped valance, thatched
+-- tiki umbrella. Colour pairs cycle independently (8 sets).
 builders.Umbrella = function(m, v)
 	local pairs_ = {
 		{ rgb(255, 80, 90), WHITE },
@@ -93,21 +55,59 @@ builders.Umbrella = function(m, v)
 		{ rgb(255, 150, 40), WHITE },
 		{ rgb(90, 210, 120), rgb(255, 245, 200) },
 		{ rgb(170, 100, 255), rgb(255, 200, 230) },
+		{ rgb(30, 190, 190), WHITE },
+		{ rgb(31, 55, 73), rgb(250, 246, 236) },
+		{ rgb(255, 205, 40), rgb(255, 96, 92) },
 	}
-	local cols = pick(pairs_, v)
-	local tilt = CFrame.Angles(0.06, 0, 0.04 * ((v % 3) - 1))
+	local iv = math.floor(v)
+	local style = (iv - 1) % 3
+	local cols = pick(pairs_, (iv - 1) // 3 * 2 + iv)
+	if style == 2 then
+		cols = { rgb(214, 178, 106), rgb(190, 152, 84) }
+	end
+	local tilt = CFrame.Angles(0.06, 0, 0.04 * ((iv % 3) - 1))
 	Build.ellipsoid(m, "Mound", V(1.4, 0.45, 1.4), CF(), SAND, M.Sand)
-	solid(Build.cylBetween(m, "Pole", V(0, 0, 0), (tilt * CF(0, 7.3, 0)).Position, 0.25, rgb(235, 235, 240)))
-	local apex = (tilt * CF(0, 7.45, 0)).Position
-	local R = 3.8
+	local poleCol = if style == 2 then rgb(150, 110, 66) else rgb(235, 235, 240)
+	solid(
+		Build.cylBetween(
+			m,
+			"Pole",
+			V(0, 0, 0),
+			(tilt * CF(0, 7.6, 0)).Position,
+			0.26,
+			poleCol,
+			if style == 2 then M.Wood else nil
+		)
+	)
+	local apex = (tilt * CF(0, if style == 2 then 8.3 else 7.75, 0)).Position
+	local R = if style == 2 then 4.0 else 4.3
+	local rimY = 6.3
 	local n = 8
+	local mat = if style == 2 then M.Grass else M.Fabric
 	for k = 0, n - 1 do
 		local a = (k + 0.5) / n * PI * 2
-		local base = (tilt * CF(R * math.cos(PI / n) * math.cos(a), 6.1, R * math.cos(PI / n) * math.sin(a))).Position
+		local rim = V(R * math.cos(PI / n) * math.cos(a), rimY, R * math.cos(PI / n) * math.sin(a))
+		local base = (tilt * CF(rim)).Position
 		local tangent = tilt:VectorToWorldSpace(V(-math.sin(a), 0, math.cos(a)))
-		Build.triPts(m, "Canopy", base, apex, tangent, 2 * R * math.sin(PI / n) + 0.05, 0.1, cols[k % 2 + 1])
+		local out = tilt:VectorToWorldSpace(V(math.cos(a), 0, math.sin(a)))
+		local chord = 2 * R * math.sin(PI / n)
+		Build.triPts(m, "Canopy", base, apex, tangent, chord + 0.05, 0.1, cols[k % 2 + 1], mat)
+		if style == 1 then
+			local p = (tilt * CF(rim + V(0, -0.3, 0))).Position
+			Build.ellipsoid(
+				m,
+				"Valance",
+				V(chord * 0.9, 0.75, 0.08),
+				CFrame.lookAt(p, p + out),
+				cols[(k + 1) % 2 + 1],
+				M.Fabric
+			)
+		elseif style == 2 then
+			local p = (tilt * CF(rim * 1.04 + V(0, -0.45, 0))).Position
+			Build.part(m, "Fringe", V(chord, 0.9, 0.12), CFrame.lookAt(p, p + out), cols[2], M.Grass)
+		end
 	end
-	Build.ball(m, "Finial", 0.4, CF(apex + V(0, 0.1, 0)), cols[1])
+	Build.ball(m, "Finial", 0.45, CF(apex + V(0, 0.1, 0)), if style == 2 then rgb(150, 110, 66) else cols[1])
 end
 
 builders.BeachTowel = function(m, v)
@@ -157,8 +157,19 @@ builders.Sandcastle = function(m, v)
 		Build.ellipsoid(m, "Shell", V(0.45, 0.38, 0.12), CF(side * 1.8, 0.8, -3.03), rgb(255, 170, 180))
 	end
 	local flag = pick({ rgb(255, 70, 80), rgb(60, 160, 255), rgb(255, 200, 40), rgb(90, 210, 120) }, v)
-	Build.cylBetween(m, "FlagPole", V(0, 4.6, 0.4), V(0, 6.5, 0.4), 0.1, WHITE)
-	Build.triPts(m, "Flag", V(0.05, 6.05, 0.4), V(1.0, 6.05, 0.4), Y, 0.7, 0.05, flag)
+	local iv = math.floor(v)
+	local poleBase = 4.6
+	if iv % 3 == 2 then
+		-- spired keep
+		Build.spike(m, "Spire", V(0, 4.6, 0.4), V(0, 6.6, 0.4), 2.6, dark, mat)
+		poleBase = 6.5
+	end
+	if iv % 2 == 0 then
+		local moat = Build.cyl(m, "Moat", 0.1, 8.6, CF(0, 0.05, 0), rgb(70, 190, 220))
+		moat.Transparency = 0.25
+	end
+	Build.cylBetween(m, "FlagPole", V(0, poleBase, 0.4), V(0, poleBase + 1.9, 0.4), 0.1, WHITE)
+	Build.triPts(m, "Flag", V(0.05, poleBase + 1.45, 0.4), V(1.0, poleBase + 1.45, 0.4), Y, 0.7, 0.05, flag)
 end
 
 builders.Crab = function(m, v)
@@ -197,7 +208,8 @@ local function trussPart(m: Model, size: Vector3, cf: CFrame, color: Color3): Tr
 end
 
 builders.LifeguardTower = function(m, v)
-	local wall = pick({ rgb(235, 55, 55), rgb(40, 150, 240), rgb(255, 190, 40) }, v)
+	local wall =
+		pick({ rgb(235, 55, 55), rgb(40, 150, 240), rgb(255, 190, 40), rgb(30, 180, 170), rgb(255, 130, 50) }, v)
 	local wood = M.Wood
 	for sx = -1, 1, 2 do
 		for sz = -1, 1, 2 do
@@ -224,44 +236,103 @@ builders.LifeguardTower = function(m, v)
 	Build.label(sign, Enum.NormalId.Front, "LIFEGUARD", rgb(235, 55, 55), WHITE)
 	Build.cylBetween(m, "Buoy", V(2.36, 7.8, 1.2), V(2.52, 7.8, 1.2), 1.1, rgb(255, 120, 40))
 	Build.cylBetween(m, "BuoyHole", V(2.34, 7.8, 1.2), V(2.54, 7.8, 1.2), 0.5, Build.darken(wall, 0.3))
-	Build.cylBetween(m, "FlagPole", V(0, 10.85, 0), V(0, 12.7, 0), 0.12, WHITE)
-	Build.triPts(m, "Flag", V(0.05, 12.25, 0), V(1.2, 12.25, 0), Y, 0.8, 0.06, wall)
+	Build.cylBetween(m, "FlagPole", V(0, 10.85, 0), V(0, 13.6, 0), 0.12, WHITE)
+	local flag = PropsBeach.swayGroup(m, "TowerFlag", V(0, 13.2, 0), 10, 2.2)
+	local flagCol = if math.floor(v) % 2 == 0 then rgb(255, 205, 40) else rgb(235, 55, 55)
+	Build.part(flag, "Flag", V(1.8, 1.1, 0.06), CF(0.95, 12.95, 0), flagCol, M.Fabric)
+	Build.part(flag, "FlagStripe", V(1.82, 0.3, 0.08), CF(0.95, 12.95, 0), WHITE, M.Fabric)
+	local board = CF(-2.9, 3.4, -1.2) * CFrame.Angles(0.15, 0, -0.18)
+	Build.ellipsoid(m, "RescueBoard", V(1.5, 7.2, 0.3), board, rgb(235, 55, 55))
+	Build.ellipsoid(m, "RescueStripe", V(0.32, 6.8, 0.34), board, WHITE)
+	Build.part(m, "RescueCan", V(0.5, 1.6, 0.4), CF(1.4, 7.3, -2.45) * CFrame.Angles(0, 0, 0.3), rgb(255, 120, 40))
 end
 
+-- Boardwalk snack stall (8.4 x 5.4 footprint, counter faces -Z). The variant picks the kind:
+-- SNACKS, ICE CREAM, SHELLS, DRINKS (cycle), each with its own colours and goods. Night bulbs
+-- along the awning are marked AmbientNightLight.
+type StallKind = { text: string, a: Color3, b: Color3, sign: Color3 }
 builders.BoardwalkStall = function(m, v)
-	local cols = pick({
-		{ rgb(255, 80, 100), WHITE },
-		{ rgb(40, 170, 255), WHITE },
-		{ rgb(255, 170, 40), rgb(255, 250, 220) },
-		{ rgb(90, 200, 120), rgb(255, 250, 220) },
-	}, v)
-	local text = pick({ "SNACKS", "ICE CREAM", "SHELLS", "DRINKS" }, v)
-	solid(Build.part(m, "BackWall", V(5, 3.6, 0.25), CF(0, 1.8, 1.6), WOOD, M.Wood))
-	solid(Build.part(m, "Counter", V(5, 1.15, 1.0), CF(0, 0.575, -1.2), WOOD, M.Wood))
-	solid(Build.part(m, "CounterTop", V(5.3, 0.15, 1.2), CF(0, 1.22, -1.2), WHITE))
+	local kinds: { StallKind } = {
+		{ text = "SNACKS", a = rgb(255, 86, 96), b = WHITE, sign = rgb(255, 205, 40) },
+		{ text = "ICE CREAM", a = rgb(255, 150, 196), b = rgb(200, 250, 230), sign = rgb(120, 210, 230) },
+		{ text = "SHELLS", a = rgb(40, 160, 240), b = WHITE, sign = rgb(255, 236, 200) },
+		{ text = "DRINKS", a = rgb(60, 190, 130), b = rgb(255, 240, 120), sign = rgb(255, 120, 60) },
+	}
+	local k = pick(kinds, v)
+	local kind = (math.floor(v) - 1) % #kinds + 1
+	local W = M.Wood
+	solid(Build.part(m, "Plinth", V(8.4, 0.3, 5.4), CF(0, 0.15, 0), WOOD_DARK, W))
+	solid(Build.part(m, "Counter", V(7.6, 2.4, 1.2), CF(0, 1.5, -1.8), k.a, W))
+	for i = -1, 1 do
+		Build.part(m, "CounterStripe", V(0.7, 2.2, 0.06), CF(i * 2.4, 1.5, -2.43), k.b, W)
+	end
+	solid(Build.part(m, "CounterTop", V(8.0, 0.22, 1.6), CF(0, 2.81, -1.8), WHITE, W))
+	solid(Build.part(m, "BackWall", V(7.6, 6.4, 0.3), CF(0, 3.5, 2.4), WOOD, M.WoodPlanks))
 	for sx = -1, 1, 2 do
-		for _, z in { -1.6, 1.6 } do
-			solid(Build.cyl(m, "Post", 3.9, 0.3, CF(sx * 2.4, 1.95, z), WHITE))
+		solid(Build.part(m, "SideWall", V(0.3, 2.4, 3.8), CF(sx * 3.8, 1.5, 0.4), k.a, W))
+		solid(Build.part(m, "Post", V(0.4, 6.6, 0.4), CF(sx * 3.9, 3.6, -2.3), WHITE, W))
+		Build.part(m, "Post", V(0.4, 6.6, 0.4), CF(sx * 3.9, 3.6, 2.4), WHITE, W)
+	end
+	-- awning: striped slats sloping down to the front, scalloped valance, night bulbs
+	local bulbs = Instance.new("Model")
+	bulbs.Name = "NightBulbs"
+	bulbs:SetAttribute("AmbientTag", "AmbientNightLight")
+	bulbs.Parent = m
+	for i = 0, 6 do
+		local x = -3.6 + i * 1.2
+		local col = if i % 2 == 0 then k.a else k.b
+		Build.part(m, "Awning", V(1.2, 0.15, 5.4), CF(x, 7.3, -0.2) * CFrame.Angles(-0.28, 0, 0), col, M.Fabric)
+		Build.ellipsoid(m, "Valance", V(1.15, 0.9, 0.1), CF(x, 6.35, -2.85), col, M.Fabric)
+		if i % 2 == 1 then
+			Build.ball(bulbs, "Bulb", 0.35, CF(x, 5.95, -2.8), rgb(255, 214, 120), M.Neon)
 		end
 	end
-	for i = 0, 4 do
-		local x = -2.0 + i
-		Build.part(
-			m,
-			"Awning",
-			V(1.0, 0.15, 3.9),
-			CF(x, 4.0, -0.1) * CFrame.Angles(-0.2, 0, 0),
-			cols[i % 2 + 1],
-			M.Fabric
-		)
-		Build.tri(m, "Valance", CF(x, 3.42, -2.03) * CFrame.Angles(0, 0, PI), 1.0, 0.4, 0.06, cols[i % 2 + 1], M.Fabric)
+	local board = Build.part(m, "SignBoard", V(5.6, 1.5, 0.3), CF(0, 8.9, 1.9), k.sign, W)
+	Build.label(board, Enum.NormalId.Front, k.text, WHITE)
+	Build.part(m, "SignTrim", V(6.0, 1.9, 0.2), CF(0, 8.9, 2.05), WHITE, W)
+	local menu = Build.part(m, "Menu", V(2.2, 1.6, 0.12), CF(-2.3, 4.4, 2.2), rgb(40, 50, 56), W)
+	Build.label(menu, Enum.NormalId.Front, "MENU", rgb(255, 236, 160))
+	local top = 2.92
+	if kind == 1 then
+		for i = 0, 1 do
+			local x = -1.8 + i * 1.1
+			Build.part(m, "Popcorn", V(0.8, 1.0, 0.8), CF(x, top + 0.5, -1.8), WHITE)
+			Build.part(m, "PopcornStripe", V(0.3, 1.02, 0.82), CF(x, top + 0.5, -1.8), k.a)
+			Build.ellipsoid(m, "Kernels", V(0.9, 0.55, 0.9), CF(x, top + 1.05, -1.8), rgb(255, 240, 190))
+		end
+		Build.cylBetween(m, "Hotdog", V(1.0, top + 0.25, -1.8), V(2.4, top + 0.25, -1.8), 0.5, rgb(214, 90, 60))
+		Build.cylBetween(m, "Bun", V(1.1, top + 0.15, -1.75), V(2.3, top + 0.15, -1.75), 0.7, rgb(236, 190, 120))
+	elseif kind == 2 then
+		local scoops = { rgb(255, 170, 200), rgb(200, 250, 220), rgb(150, 100, 70), rgb(255, 240, 200) }
+		for i = 0, 3 do
+			local x = -2.4 + i * 1.3
+			Build.tri(m, "Cone", CF(x, top + 0.55, -1.8) * CFrame.Angles(0, 0, PI), 0.6, 1.1, 0.5, rgb(220, 170, 100))
+			Build.ball(m, "Scoop", 0.75, CF(x, top + 1.25, -1.8), scoops[i + 1])
+		end
+		Build.ball(m, "BigScoop", 1.6, CF(0, 9.95, 1.9), rgb(255, 170, 200))
+	elseif kind == 3 then
+		local shells =
+			{ rgb(255, 196, 176), rgb(255, 160, 186), rgb(206, 180, 255), rgb(255, 240, 222), rgb(255, 210, 140) }
+		for i = 0, 4 do
+			Build.ellipsoid(
+				m,
+				"Shell",
+				V(0.8, 0.35, 0.7),
+				CF(-2.6 + i * 1.3, top + 0.18, -1.8) * CFrame.Angles(0, i, 0),
+				shells[i + 1]
+			)
+		end
+		Build.spike(m, "Conch", V(1.6, top + 0.3, -1.2), V(2.8, top + 0.6, -1.4), 0.9, rgb(255, 214, 190))
+	else
+		local juice = { rgb(255, 160, 40), rgb(255, 90, 120), rgb(120, 210, 90) }
+		for i = 0, 2 do
+			local x = -2.2 + i * 1.2
+			Build.cyl(m, "Cup", 1.0, 0.6, CF(x, top + 0.5, -1.8), juice[i + 1], M.Glass)
+			Build.cylBetween(m, "Straw", V(x + 0.1, top + 0.8, -1.8), V(x + 0.3, top + 1.6, -1.8), 0.1, WHITE)
+		end
+		Build.ball(m, "Lemon", 0.9, CF(1.9, top + 0.45, -1.8), rgb(255, 230, 70))
+		Build.ball(m, "Coconut", 1.0, CF(2.9, top + 0.5, -1.7), rgb(118, 82, 46))
 	end
-	local sign = Build.part(m, "SignBoard", V(3.2, 0.9, 0.15), CF(0, 4.85, -1.0), cols[1])
-	Build.label(sign, Enum.NormalId.Front, text, WHITE)
-	for i, col in { rgb(255, 90, 90), rgb(255, 220, 60), rgb(120, 220, 120) } do
-		Build.ball(m, "Goods", 0.45, CF(-1.6 + i * 0.55, 1.52, -1.25), col)
-	end
-	Build.cyl(m, "Goods", 0.6, 0.3, CF(1.4, 1.6, -1.2), rgb(80, 180, 255), M.Glass)
 end
 
 builders.Surfboard = function(m, v)
@@ -357,7 +428,19 @@ builders.Bucket = function(m, v)
 end
 
 builders.Sign = function(m, v)
-	local text = pick({ "DIG!", "SELL", "SHOP", "EGGS", "DANGER!" }, v)
+	local text = pick({
+		"DIG!",
+		"SELL",
+		"SHOP",
+		"EGGS",
+		"DANGER!",
+		"TIDE POOLS",
+		"SWIM ZONE",
+		"BONFIRE",
+		"CABANAS",
+		"SURF'S UP",
+		"SANDCASTLE CONTEST",
+	}, v)
 	solid(Build.part(m, "Post", V(0.35, 4, 0.35), CF(0, 2, 0.12), WOOD_DARK, M.Wood))
 	Build.part(m, "Frame", V(3.4, 1.6, 0.14), CF(0, 3.6, 0.1), WOOD_DARK, M.Wood)
 	local board = solid(Build.part(m, "SignBoard", V(3.2, 1.4, 0.2), CF(0, 3.6, 0), WOOD, M.Wood))
@@ -467,6 +550,12 @@ builders.SurfShack = function(m, v)
 	local trim = pick({ rgb(40, 150, 240), rgb(255, 110, 90), rgb(60, 180, 120) }, v)
 	local W = M.Wood
 	solid(Build.part(m, "Floor", V(12, 0.6, 10), CF(0, 0.3, 0), WOOD, W))
+	-- stilts below the floor (Root at floor level): sink into a sloping beach without floating
+	for sx = -1, 1, 2 do
+		for sz = -1, 1, 2 do
+			Build.part(m, "Stilt", V(0.7, 2.4, 0.7), CF(sx * 5.5, -0.9, sz * 4.5), WOOD_DARK, W)
+		end
+	end
 	solid(Build.part(m, "BackWall", V(12, 5, 0.4), CF(0, 3.1, 4.8), wallCol, W))
 	for side = -1, 1, 2 do
 		solid(Build.part(m, "SideWall", V(0.4, 5, 9.6), CF(side * 5.8, 3.1, 0), wallCol, W))
@@ -482,8 +571,48 @@ builders.SurfShack = function(m, v)
 		Build.tri(m, "Roof", CF(0, 7.0, 0) * CFrame.Angles(0, PI / 2, 0), 11.5, 2.8, 13, rgb(225, 185, 105), M.Fabric)
 	solid(ra)
 	solid(rb)
-	local sign = Build.part(m, "SignBoard", V(6, 1.3, 0.3), CF(1.2, 6.25, -5.35), trim, W)
-	Build.label(sign, Enum.NormalId.Front, "SURF SHACK", WHITE)
+	local sign = Build.part(m, "SignBoard", V(7, 1.4, 0.3), CF(1.2, 6.25, -5.35), trim, W)
+	local text = pick({ "SURF SHACK", "SURF SCHOOL", "SNORKEL RENTAL" }, v)
+	Build.label(sign, Enum.NormalId.Front, text, WHITE)
+	-- striped awning over the serving window
+	for i = 0, 5 do
+		Build.part(
+			m,
+			"Awning",
+			V(1.4, 0.14, 2.2),
+			CF(-1.0 + i * 1.4, 4.55, -5.9) * CFrame.Angles(-0.35, 0, 0),
+			if i % 2 == 0 then trim else WHITE,
+			M.Fabric
+		)
+	end
+	-- thatch fringe along both eaves
+	for _, z in { -5.85, 5.85 } do
+		Build.part(m, "Fringe", V(11.6, 0.9, 0.2), CF(0, 5.25, z), rgb(200, 160, 88), M.Grass)
+	end
+	-- chalkboard A-frame by the door
+	local cb = CF(-5.4, 1.4, -6.6)
+	Build.part(m, "Chalkboard", V(2.0, 2.6, 0.12), cb * CFrame.Angles(0.18, 0, 0), WOOD_DARK, W)
+	local slate = Build.part(
+		m,
+		"ChalkSlate",
+		V(1.7, 2.1, 0.06),
+		cb * CFrame.Angles(0.18, 0, 0) * CF(0, 0, -0.08),
+		rgb(40, 50, 56)
+	)
+	Build.label(
+		slate,
+		Enum.NormalId.Front,
+		if text == "SNORKEL RENTAL" then "SEE FISH!" else "LESSONS!",
+		rgb(255, 236, 160)
+	)
+	Build.part(m, "Chalkboard", V(2.0, 2.6, 0.12), cb * CF(0, 0, 0.5) * CFrame.Angles(-0.18, 0, 0), WOOD_DARK, W)
+	if text == "SNORKEL RENTAL" then
+		for i = 0, 2 do
+			local p = V(-1.6 + i * 2.2, 4.1, -5.05)
+			Build.ellipsoid(m, "Mask", V(1.1, 0.6, 0.3), CF(p), rgb(40, 200, 230), M.Glass)
+			Build.cylBetween(m, "Snorkel", p + V(0.5, 0, 0), p + V(0.6, 1.2, 0), 0.14, rgb(255, 205, 40))
+		end
+	end
 	local boards = { { rgb(255, 120, 60), WHITE }, { rgb(60, 190, 255), rgb(255, 230, 70) } }
 	for i, x in { -5.3, 5.3 } do
 		local cf = CF(x, 3.4, -5.35) * CFrame.Angles(0.12, 0, 0)
@@ -526,6 +655,11 @@ local ORDER = {
 	"Cooler",
 	"SurfShack",
 }
+
+for _, name in PropsBeach.Order do
+	builders[name] = PropsBeach.Builders[name]
+	table.insert(ORDER, name)
+end
 
 local function key(name: string): string
 	return (string.gsub(string.lower(name), "[%s_%-]", ""))

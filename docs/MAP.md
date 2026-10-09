@@ -70,13 +70,27 @@ break. The tide refills dug 8x8 columns (see BeachService).
 | Egg arc (9 pedestals, r = 19, 110°, bulging towards the plaza) | centre (-50, 1024, 92) | each pedestal `EggShop`, attribute `EggId`, prompt "Hatch" |
 | Rebirth shrine | (44, 1024, 72) | pedestal `RebirthStatue` + prompt "Rebirth" |
 | Title sign | (0, 1045, 118) faces south | — |
-| Pier | x -6..6, z -68..-200, deck top Y 1025; end platform 28x24 at z -200..-224 | — |
+| Pier | x -6..6 (viewing bulges x ±14 at z -112..-136), z -68..-178, deck top Y 1027; carnival deck x -40..40, z -178..-230 | Ferris wheel hub (0, 1058, -212), d 48 |
 
 Hub structures face the boardwalk spawns (`Layout.HUB_LOOK_TARGET = (0, 1024, 4)`).
 `Layout.DECK_TOP` is 1027 (voxel surface + 2 visible-surface offset + 1). Spawn pad tops
 are 1028; `World.GetSpawnCFrame` uses a standing root pivot at Y 1031.5.
 `World.GetSurfacePoint(near)` = a pivot on the boardwalk deck (z +4, Y 1030.5) at `near.X`
 (clamped to ±390), looking at the sand — used for spawns, ReturnToSurface and tide lifts.
+
+## Landmarks and scenes (art overhaul, see `docs/MAP_ART_DIRECTION.md`)
+
+| What | Where |
+|---|---|
+| Lighthouse + keeper's cottage | east headland tip, base (340, 1094, -450) |
+| West sea arch / sea stacks | arch (-295, 1020, -505); stacks (-214,-332), (-148,-404), (-254,-276), (252,-382) |
+| Islands / volcano | (-150,-780), (150,-1000), (360,-1220), (860,-1560), (-1240,-1180); volcano (-600,-1560) |
+| Welcome arch | deck, pillars x ±38, z 10.4 |
+| Carnival (Ferris wheel, carousel, ticket booth) | pier end, x -40..40, z -178..-230 |
+| Coast scenes (west → east) | Tide Pool Point x -398..-335, Kite Field, Rowboat Landing x -280..-205, Picnic & Castles, Umbrella Villages x ±16..112 with buoy swim zone, Surf School x 125..235, Snorkel Cove x 245..325, Bonfire Cove (362, -84) |
+| Inland scenes | Sandcastle Contest (-150, 40), volleyball (-262, 52), cabana rows z ≈ 100 (x -338..-206 and 196..300), beach games (170..210, 35..70), sun deck x 249..287 |
+
+Animated scenery is tagged for the client `AmbientController` (contract in `MAP_ART_DIRECTION.md`).
 
 ## Events (visual)
 
@@ -86,6 +100,12 @@ are 1028; `World.GetSpawnCFrame` uses a standing root pivot at Y 1031.5.
 - **GoldenHour**: warm late-afternoon light (Lighting.luau, Polish).
 
 ## Thumbnail cameras
+
+Overhaul views: spawn down the pier to the Ferris wheel
+`CFrame.lookAt(Vector3.new(0, 1036, 18), Vector3.new(0, 1045, -212))`; lighthouse
+`CFrame.lookAt(Vector3.new(180, 1110, -300), Vector3.new(340, 1150, -450))`; hub hero
+`CFrame.lookAt(Vector3.new(0, 1052, -18), Vector3.new(0, 1032, 60))`; aerial
+`CFrame.lookAt(Vector3.new(0, 1400, 400), Vector3.new(0, 1020, -600))`.
 
 Set `workspace.CurrentCamera.CFrame` (Studio command bar, camera type Scriptable).
 
