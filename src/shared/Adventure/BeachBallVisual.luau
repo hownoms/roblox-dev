@@ -1,5 +1,5 @@
 --!strict
--- Decorative near-spherical panels have shallow seams, unlike the kit's deep ellipsoid intersections.
+-- Smooth spherical color caps are separated by actual cream gutters; no nearly coplanar seams.
 -- The fixed contact sphere never squashes. No physics impulse or gameplay authority lives here.
 local Build = require(script.Parent.Parent.Models.Build)
 local Kit = require(script.Parent.Parent.Models.Expansion1)
@@ -17,14 +17,14 @@ function Ball.Create(): Model
 	-- Players can walk beside/through the visual cargo; it cannot pin or shove avatars.
 	contact.CanCollide = false
 	contact.CanQuery = true
-	for index, color in { Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold } do
-		Build.ellipsoid(
-			model,
-			"ColorPanel",
-			Vector3.new(diameter + 0.012, diameter + 0.012, diameter * 0.96),
-			CFrame.new(center) * CFrame.Angles(0, (index - 1) * math.pi / 3, 0),
-			color
-		)
+	-- Six inset-radius spherical caps have actual cream gutters. Avoid nearly coplanar
+	-- ellipsoids: their intersecting surfaces z-fight across entire panels in Studio.
+	for index, color in
+		{ Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold, Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold }
+	do
+		local angle = (index - 1) * math.pi / 3
+		local offset = Vector3.new(math.sin(angle), 0, math.cos(angle)) * 0.46
+		Build.ball(model, "ColorPanel", 6.8, CFrame.new(center + offset), color)
 	end
 	Build.ball(model, "TopCap", 0.8, CFrame.new(0, diameter - 0.32, 0), Kit.Palette.Cream)
 	Build.ball(model, "BottomCap", 0.8, CFrame.new(0, 0.32, 0), Kit.Palette.Cream)

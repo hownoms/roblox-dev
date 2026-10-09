@@ -1,6 +1,11 @@
 --!strict
 -- Review-local configuration. Stable catalog IDs deliberately do not extend legacy catalogs.
-return table.freeze({
+local config = {
+	ContentVersion = 1,
+	ReleaseStage = "SpringVaultReview",
+	DisplayName = "Spring Surprise",
+	Status = "ReviewOnly",
+	AssetKey = "Expansion1",
 	EventId = "event_vault",
 	LandmarkId = "landmark_spring_vault",
 	RegionId = "sunshine_shore",
@@ -39,4 +44,6 @@ return table.freeze({
 	BroadwaveHeight = 8,
 	BroadwaveWork = 1, -- One normalized hit; never grants sand or bypasses an anchor.
 	CompletionBoundaryVersion = 1,
-})
+}
+table.freeze(config)
+return config

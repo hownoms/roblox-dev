@@ -19,7 +19,20 @@ export type Options = {
 	CanEnter: ((Player) -> boolean)?,
 	CanTrial: ((Player) -> boolean)?,
 	OnCompletion: ((any) -> (boolean, string))?,
+	-- Validated, immutable observations only. Settlement remains the receiving service's responsibility.
+	OnStage: ((any) -> ())?,
+	OnFailure: ((any) -> ())?,
 }
+local function immutable(value: any): any
+	if type(value) ~= "table" then
+		return value
+	end
+	local copy = {}
+	for key, child in value do
+		copy[key] = immutable(child)
+	end
+	return table.freeze(copy)
+end
 local function root(player: Player): BasePart?
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
@@ -27,7 +40,7 @@ local function root(player: Player): BasePart?
 	return if humanoid and humanoid.Health > 0 and part and part:IsA("BasePart") then part else nil
 end
 function Service.Start(options: Options?)
-	local opts = options or {}
+	local opts: Options = options or {}
 	assert(not ReplicatedStorage:FindFirstChild("SpringVaultAdventure"), "Adventure already started")
 	local remotes = Instance.new("Folder")
 	remotes.Name = "SpringVaultAdventure"
@@ -46,10 +59,20 @@ function Service.Start(options: Options?)
 	local connections: { RBXScriptConnection } = {}
 	local trial: { [Player]: any } = {}
 	local returns: { [Player]: CFrame } = {}
-	local charges: { [Player]: number } = {}
+	local charges: { [Player]: { At: number, Character: Model, Tool: Tool } } = {}
 	local nextWave: { [Player]: number } = {}
-	local tools: { [Player]: Tool } = {}
+	local tools: { [Player]: Tool? } = {}
+	local loanConnections: { [Player]: RBXScriptConnection? } = {}
+
 	local lastPositions: { [Player]: Vector3 } = {}
+	local walkSpeeds: { [Player]: number } = {}
+	local function releaseSpeed(player: Player)
+		local h = if player.Character then player.Character:FindFirstChildOfClass("Humanoid") else nil
+		if h and walkSpeeds[player] then
+			h.WalkSpeed = walkSpeeds[player]
+		end
+		walkSpeeds[player] = nil
+	end
 	local recovery: { [Player]: number } = {}
 	local session = HttpService:GenerateGUID(false)
 	local sequence = 0
@@ -57,14 +80,18 @@ function Service.Start(options: Options?)
 	local ballPosition = scene.BallStart
 	local checkpoint = ballPosition
 	local waypoint = 2
+	local checkpointWaypoint = 2
+	local haulWork: { [number]: number } = {}
 	local route = "Left"
 	local ballResetAt: number? = nil
 	local completionSent = false
+	local stagesSent: { [string]: boolean } = {}
+
 	local stopped = false
 	local lastBroadcast = 0
 	local lastBounce = 0
 	local adapter = ReviewAdapter.new()
-	local submit = opts.OnCompletion or adapter.Submit
+	local submit: any = opts.OnCompletion or adapter.Submit
 	local self: any = { Scene = scene, ReviewAdapter = adapter }
 	local function near(player: Player, target: Vector3, range: number): boolean
 		local part = root(player)
@@ -72,6 +99,12 @@ function Service.Start(options: Options?)
 	end
 	local function participant(player: Player): any
 		return if event then event.Participants[player.UserId] else nil
+	end
+	local function cancel(player: Player)
+		if charges[player] then
+			charges[player] = nil
+			effect:FireAllClients({ kind = "CancelCharge", playerUserId = player.UserId })
+		end
 	end
 	local function loan(player: Player)
 		if tools[player] then
@@ -84,7 +117,7 @@ function Service.Start(options: Options?)
 		local model = Kit.Broadwave()
 		local handle = model.PrimaryPart :: BasePart
 		local tool = Instance.new("Tool")
-		tool.Name = "Broadwave · Adventure Loan"
+		tool.Name = "Broadwave (Adventure Loan)"
 		tool.CanBeDropped = false
 		tool:SetAttribute("AdventureLoan", true)
 		tool.Grip = handle:GetAttribute("GripOffset") :: CFrame
@@ -100,13 +133,18 @@ function Service.Start(options: Options?)
 		model:Destroy()
 		tool.Parent = backpack
 		tools[player] = tool
-	end
-	local function cancel(player: Player)
-		charges[player] = nil
-		effect:FireAllClients({ kind = "CancelCharge", playerUserId = player.UserId })
+		loanConnections[player] = tool.Unequipped:Connect(function()
+			cancel(player)
+		end)
 	end
 	local function restore(player: Player)
+		releaseSpeed(player)
 		cancel(player)
+		local connection = loanConnections[player]
+		if connection then
+			connection:Disconnect()
+			loanConnections[player] = nil
+		end
 		local tool = tools[player]
 		if tool then
 			tool:Destroy()
@@ -120,6 +158,77 @@ function Service.Start(options: Options?)
 		lastPositions[player] = nil
 		recovery[player] = nil
 	end
+	local function usableAbility(player: Player): boolean
+		local tool = tools[player]
+		local character = player.Character
+		if not tool or not character or tool.Parent ~= character or not root(player) then
+			return false
+		end
+		local p = participant(player)
+		if p and p.Attached then
+			return false
+		end
+		if
+			trial[player]
+			and opts.CanTrial
+			and opts.CanTrial(player)
+			and near(player, scene.Targets.trial_patch, Config.BroadwaveRange)
+		then
+			return true
+		end
+		return event ~= nil
+			and event.Phase == "Active"
+			and event.Stage == "anchors"
+			and p ~= nil
+			and p.Ready
+			and p.Present
+			and p.Connected
+			and not p.Left
+	end
+	local function observations(stageId: string?, failureReason: string?): any
+		local participants = {}
+		for userId, p in event.Participants do
+			table.insert(participants, {
+				UserId = userId,
+				Points = p.Points,
+				ObjectiveIds = table.clone(p.Objectives),
+				Connected = p.Connected,
+				Left = p.Left,
+			})
+		end
+		return immutable({
+			BoundaryVersion = Config.CompletionBoundaryVersion,
+			EventInstanceId = event.EventInstanceId,
+			EventId = Config.EventId,
+			LandmarkId = Config.LandmarkId,
+			RegionId = Config.RegionId,
+			StageId = stageId,
+			FailureReason = failureReason,
+			ObjectiveIds = table.clone(event.CompletedObjectives),
+			CompletedStages = table.clone(event.CompletedStages),
+			Participants = participants,
+		})
+	end
+	local function reportStages()
+		if not event then
+			return
+		end
+		for _, stageId in event.CompletedStages do
+			if not stagesSent[stageId] then
+				stagesSent[stageId] = true
+				if opts.OnStage then
+					local context = observations(stageId, nil)
+					local ok, err = pcall(function()
+						(opts.OnStage :: (any) -> ())(context)
+						return true
+					end)
+					if not ok then
+						warn("[SpringVault] stage boundary failed", err)
+					end
+				end
+			end
+		end
+	end
 	local function send(player: Player, message: string?)
 		local data: any = if event then event:snapshot(os.clock()) else {}
 		data.eventInstanceId = if event then event.EventInstanceId else ""
@@ -130,24 +239,13 @@ function Service.Start(options: Options?)
 		data.hauling = participant(player) ~= nil and participant(player).Attached == true
 		data.trialComplete = trial[player] ~= nil and trial[player].Wave and trial[player].Cleared == 3
 		data.loanAvailable = tools[player] ~= nil
-		data.loanAvailable = tools[player] ~= nil
 		data.message = message
-		data.objective = if not event
-			then "Talk to Mara to join, or Pip for a trial."
-			elseif event.Phase == "Inviting" then "Start after five seconds."
-			elseif event.Phase == "Preparing" then "Press Ready when the arena is visible."
-			elseif event.Stage == "anchors" then "Clear triangle, square and circle anchors."
-			elseif event.Stage == "vault" then "Open the latch. Choose a left or right route."
-			elseif event.Stage == "ball" then "Attach nearby, then walk along the channel. Gates "
-				.. event.GateIndex
-				.. "/3"
-			else "Adventure complete. REVIEW ONLY: no rewards granted."
 		data.objective = if not event
 			then "Talk to Mara to join, or Pip for an optional trial."
 			elseif event.Phase == "Inviting" then "Start after five seconds. Ready confirms loading."
 			elseif event.Phase == "Preparing" then "Press Ready when the arena is visible."
 			elseif event.Stage == "anchors" then "Clear triangle, square and circle anchors: " .. string.format(
-				"%.0f/%.0f � %.0f/%.0f � %.0f/%.0f",
+				"%.0f/%.0f  -  %.0f/%.0f  -  %.0f/%.0f",
 				event.Anchors.vault_anchor_1.Work,
 				event.Anchors.vault_anchor_1.Required,
 				event.Anchors.vault_anchor_2.Work,
@@ -164,8 +262,16 @@ function Service.Start(options: Options?)
 			"Optional: talk to Mara to join Spring Surprise (about 4 minutes).",
 			"Pip lends Broadwave: hold Ability for 0.8 seconds, release toward the marked patch; clear 3 practice targets.",
 			"Clear three shaped anchors, open the latch, then guide the ball through three gates.",
-			"REVIEW ONLY — no coins, certifications or permanent trophies are granted.",
+			"REVIEW ONLY  -  no coins, certifications or permanent trophies are granted.",
 		}
+		if not data.joined then
+			data.objective = if trial[player]
+				then (if not trial[player].Wave
+					then "Equip the loan. Hold Broadwave 0.8s toward the marked patch."
+					elseif trial[player].Cleared < 3 then "Clear practice targets: " .. trial[player].Cleared .. "/3"
+					else "Pip trial complete. Loan only; no permanent rewards.")
+				else "Optional: talk to Mara to join, or Pip to try Broadwave."
+		end
 		snapshot:FireClient(player, data)
 	end
 	local function broadcast()
@@ -182,6 +288,9 @@ function Service.Start(options: Options?)
 		self.Scene = scene
 		event = nil
 		waypoint = 2
+		checkpointWaypoint = 2
+		haulWork = {}
+		stagesSent = {}
 		checkpoint = scene.BallStart
 		ballPosition = checkpoint
 		ballResetAt = nil
@@ -245,7 +354,6 @@ function Service.Start(options: Options?)
 				return
 			end
 			local created = not event
-			local created = not event
 			if not event then
 				newEvent(player)
 			end
@@ -280,7 +388,7 @@ function Service.Start(options: Options?)
 			return
 		end
 		if action == "ChargeBegin" then
-			if not tools[player] or not root(player) or os.clock() < (nextWave[player] or 0) then
+			if not usableAbility(player) or os.clock() < (nextWave[player] or 0) then
 				return
 			end
 			if not isTrial and (not member or not member.Present) then
@@ -289,8 +397,12 @@ function Service.Start(options: Options?)
 			if charges[player] then
 				return
 			end
-			charges[player] = os.clock()
-			effect:FireAllClients({ kind = "Charge", playerUserId = player.UserId, frame = (root(player) :: BasePart).CFrame })
+			charges[player] = { At = os.clock(), Character = player.Character :: Model, Tool = tools[player] :: Tool }
+			effect:FireAllClients({
+				kind = "Charge",
+				playerUserId = player.UserId,
+				frame = (root(player) :: BasePart).CFrame,
+			})
 			return
 		end
 		if action == "ChargeRelease" then
@@ -300,7 +412,11 @@ function Service.Start(options: Options?)
 			if
 				not began
 				or not part
-				or os.clock() - began < Config.BroadwaveChargeSeconds
+				or not usableAbility(player)
+				or began.Character ~= player.Character
+				or began.Tool ~= tools[player]
+				or os.clock() - began.At < Config.BroadwaveChargeSeconds
+				or os.clock() - began.At > 10
 				or os.clock() < (nextWave[player] or 0)
 			then
 				return
@@ -314,6 +430,7 @@ function Service.Start(options: Options?)
 			-- Only whitelisted mutable targets; no Terrain writes or generic object deletion.
 			if
 				isTrial
+				and not trial[player].Wave
 				and near(player, scene.Targets.trial_patch, Config.BroadwaveRange)
 				and Rules.InCorridor(
 					frame,
@@ -442,7 +559,11 @@ function Service.Start(options: Options?)
 			ballResetAt = now + 3
 			ok = true
 		elseif action == "RouteLeft" or action == "RouteRight" then
-			if waypoint ~= 2 or not near(player, scene.Targets.vault_latch, 12) then
+			if
+				waypoint ~= 2
+				or (event.Stage ~= "vault" and event.Stage ~= "ball")
+				or not near(player, scene.Targets.vault_latch, 12)
+			then
 				return
 			end
 			route = if action == "RouteLeft" then "Left" else "Right"
@@ -461,7 +582,10 @@ function Service.Start(options: Options?)
 	table.insert(
 		connections,
 		intent.OnServerEvent:Connect(function(player: Player, payload: any)
-			local ok, err = pcall(handle, player, payload)
+			local ok, err = pcall(function()
+				handle(player, payload)
+				return true
+			end)
 			if not ok then
 				warn("[SpringVault] rejected failed intent", err)
 			end
@@ -481,11 +605,22 @@ function Service.Start(options: Options?)
 	)
 	table.insert(
 		connections,
-		RunService.Heartbeat:Connect(function(delta)
+		RunService.Heartbeat:Connect(function(delta: number)
 			if stopped then
 				return
 			end
 			local now = os.clock()
+			for player in walkSpeeds do
+				local p = participant(player)
+				if not p or not p.Attached then
+					releaseSpeed(player)
+				end
+			end
+			for player, charge in charges do
+				if now - charge.At > 10 or not usableAbility(player) or charge.Character ~= player.Character then
+					cancel(player)
+				end
+			end
 			if event then
 				for _, player in Players:GetPlayers() do
 					local p = event.Participants[player.UserId]
@@ -495,7 +630,8 @@ function Service.Start(options: Options?)
 							player.UserId,
 							part ~= nil
 								and math.abs((part :: BasePart).Position.X - scene.Origin.X) <= 48
-								and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69
+								and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69,
+							now
 						)
 						if p.Left and returns[player] then
 							restore(player)
@@ -503,8 +639,15 @@ function Service.Start(options: Options?)
 					end
 				end
 				event:tick(now)
+				reportStages()
 				if event.Phase == "Active" and event.Stage == "ball" then
 					local moving: { Player } = {}
+					local attachedCount = 0
+					for _, p in event.Participants do
+						if p.Attached and p.Present and not p.Left then
+							attachedCount += 1
+						end
+					end
 					local path = scene.Routes[route]
 					local goal = path[waypoint]
 					for _, player in Players:GetPlayers() do
@@ -514,6 +657,11 @@ function Service.Start(options: Options?)
 							if not part or not near(player, ballPosition, 8) then
 								event:latch(player.UserId, false, now)
 							else
+								local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+								if h then
+									walkSpeeds[player] = walkSpeeds[player] or h.WalkSpeed
+									h.WalkSpeed = if attachedCount >= 2 then Config.CrewSpeed else Config.SoloSpeed
+								end
 								local previous = lastPositions[player] or part.Position
 								local displacement = part.Position - previous
 								lastPositions[player] = part.Position
@@ -523,6 +671,8 @@ function Service.Start(options: Options?)
 									and displacement:Dot((goal - ballPosition).Unit) > 0.005
 								then
 									table.insert(moving, player)
+									haulWork[player.UserId] = (haulWork[player.UserId] or 0)
+										+ math.min(displacement.Magnitude, delta * 16)
 								end
 							end
 						end
@@ -541,12 +691,16 @@ function Service.Start(options: Options?)
 					if ballResetAt and now >= ballResetAt then
 						scene.ResetBall(checkpoint)
 						ballPosition = checkpoint
+						waypoint = checkpointWaypoint
+						haulWork = {}
 						ballResetAt = nil
 					end
 					if not ballResetAt and #moving > 0 and goal then
 						local difference = goal - ballPosition
-						local distance =
-							math.min(difference.Magnitude, (if #moving >= 2 then 12 else 10) * math.min(delta, 0.1))
+						local distance = math.min(
+							difference.Magnitude,
+							(if #moving >= 2 then Config.CrewSpeed else Config.SoloSpeed) * math.min(delta, 0.1)
+						)
 						if difference.Magnitude > 0.01 then
 							ballPosition += difference.Unit * distance
 							scene.MoveBall(ballPosition)
@@ -559,9 +713,11 @@ function Service.Start(options: Options?)
 									waypoint - 1 == gate.WaypointIndex
 									and (ballPosition - gate.Position).Magnitude <= gate.Radius
 								then
-									local accepted = event:advanceBallGate(gate.Id, now)
+									local accepted = event:advanceBallGate(gate.Id, now, haulWork)
 									if accepted then
 										checkpoint = ballPosition
+										checkpointWaypoint = waypoint
+										haulWork = {}
 										effect:FireAllClients({
 											kind = "Gate",
 											frame = CFrame.new(ballPosition),
@@ -587,7 +743,15 @@ function Service.Start(options: Options?)
 					completionSent = true
 					local context = event:completionContext(now)
 					if context then
-						local accepted, message = submit(context)
+						context.ContentVersion = Config.ContentVersion
+						context.CompletedAtUnix = os.time()
+						context = immutable(context)
+						local called, accepted, message = pcall(submit, context)
+						if not called then
+							accepted = false
+							message = "Completion handoff failed; no rewards confirmed."
+							warn("[SpringVault] completion boundary failed")
+						end
 						for _, player in Players:GetPlayers() do
 							send(player, message)
 						end
@@ -599,10 +763,8 @@ function Service.Start(options: Options?)
 				if event.Phase == "Resolving" and event.CompletedAt and now - event.CompletedAt >= 12 then
 					event:cleanup(now)
 				end
-				if event.Phase == "Resolving" and event.CompletedAt and now - event.CompletedAt >= 12 then
-					event:cleanup(now)
-				end
 				if event.Phase == "Cleanup" then
+					self.LastFailure = if event.FailureReason then observations(nil, event.FailureReason) else nil
 					resetEvent()
 				end
 			end
@@ -614,6 +776,14 @@ function Service.Start(options: Options?)
 	)
 	function self.Handle(player: Player, payload: any)
 		handle(player, payload)
+	end
+	function self.ReviewPlayer(player: Player): any
+		return {
+			Trial = trial[player] and immutable(trial[player]) or nil,
+			Loan = tools[player] ~= nil,
+			Charging = charges[player] ~= nil,
+			CooldownUntil = nextWave[player],
+		}
 	end
 	function self.Event(): any
 		return event

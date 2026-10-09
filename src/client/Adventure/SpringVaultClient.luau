@@ -25,6 +25,50 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local waves = 0
 	local puffActive = false
 	local lastPuff = -math.huge
+	local messageUntil = 0
+	local bounceSizes: { [BasePart]: Vector3 } = {}
+	local bounceToken = 0
+	local function restorePanels()
+		bounceToken += 1
+		for panel, size in bounceSizes do
+			if panel.Parent then
+				panel.Size = size
+			end
+		end
+		bounceSizes = {}
+	end
+	local function decorativeBounce()
+		if reducedMotion then
+			return
+		end
+		restorePanels()
+		local token = bounceToken
+		local ball = scene:FindFirstChild("landmark_spring_vault_ball")
+		if not ball then
+			return
+		end
+		for _, panel in ball:GetDescendants() do
+			if panel:IsA("BasePart") and panel.Name == "ColorPanel" then
+				bounceSizes[panel] = panel.Size
+			end
+		end
+		task.spawn(function()
+			local started = os.clock()
+			while not dead and token == bounceToken and os.clock() - started < 0.25 do
+				local t = (os.clock() - started) / 0.25
+				local amount = math.sin(t * math.pi) * 0.025
+				for panel, size in bounceSizes do
+					if panel.Parent then
+						panel.Size = Vector3.new(size.X * (1 + amount), size.Y * (1 - amount), size.Z * (1 + amount))
+					end
+				end
+				RunService.RenderStepped:Wait()
+			end
+			if token == bounceToken then
+				restorePanels()
+			end
+		end)
+	end
 	local snapshot: any = {}
 	local intent = remotes:WaitForChild("Intent") :: RemoteEvent
 	local function send(action: string, targetId: string?)
@@ -209,7 +253,20 @@ function Client.Start(remotes: Folder, scene: Instance)
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
 			snapshot = data
 			eventId = data.eventInstanceId
-			status.Text = data.message or ("Stage: " .. tostring(data.stage or data.state or "Inviting"))
+			if data.message then
+				status.Text = data.message
+				messageUntil = os.clock() + 4
+			elseif os.clock() >= messageUntil then
+				status.Text = "Stage: "
+					.. tostring(data.stage or "Optional")
+					.. (
+						if data.joined
+								and data.RemainingSeconds
+								and data.RemainingSeconds > 0
+							then " · " .. math.ceil(data.RemainingSeconds) .. "s"
+							else ""
+					)
+			end
 			objective.Text = data.objective
 				or (
 					if type(data.objectives) == "table"
@@ -258,12 +315,15 @@ function Client.Start(remotes: Folder, scene: Instance)
 					waves -= 1
 				end)
 			elseif
-				data.kind == "Bounce"
+				(data.kind == "Bounce" or data.kind == "Gate")
 				and not reducedParticles
 				and not puffActive
 				and os.clock() - lastPuff >= 0.6
 			then
 				puffActive = true
+				if data.kind == "Bounce" then
+					decorativeBounce()
+				end
 				lastPuff = os.clock()
 				task.spawn(function()
 					local model = Kit.BallEffect(reducedMotion)
@@ -316,6 +376,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 		table.insert(
 			sceneConnections,
 			prompt.Triggered:Connect(function()
+				if action == "Talk" then
+					card.Visible = true
+				end
 				send(action, targetId)
 			end)
 		)
@@ -332,6 +395,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 	end
 	local function bindScene(newScene: Instance)
 		clearScene()
+		restorePanels()
+		scene = newScene
 		for _, item in newScene:GetDescendants() do
 			installPrompt(item)
 		end
@@ -350,6 +415,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	send("Sync")
 	local handle = {}
 	function handle.Destroy()
+		restorePanels()
 		if dead then
 			return
 		end

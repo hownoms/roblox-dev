@@ -2,28 +2,28 @@
 -- Pure server progression. Runtime validates geometry, identity, requests and authoritative time.
 -- No Instances, client effects, player save mutation, currency or reward settlement belong here.
 export type Config = {
-	read EventId: string,
-	read LandmarkId: string,
-	read RegionId: string,
-	read AnchorIds: { string },
-	read GateIds: { string },
-	read MinPlayers: number,
-	read MaxPlayers: number,
-	read EarliestStartSeconds: number,
-	read InvitationSeconds: number,
-	read ReadyTimeoutSeconds: number,
-	read ActiveSeconds: number,
-	read AdmissionLockSeconds: number,
-	read AbandonSeconds: number,
-	read DisconnectHoldSeconds: number,
-	read SoloAnchorWork: number,
-	read CrewAnchorWork: number,
-	read HitCooldownSeconds: number,
-	read AnchorPoints: number,
-	read GatePoints: number,
-	read MinimumPoints: number,
-	read MinimumActiveSeconds: number,
-	read CompletionBoundaryVersion: number,
+	EventId: string,
+	LandmarkId: string,
+	RegionId: string,
+	AnchorIds: { string },
+	GateIds: { string },
+	MinPlayers: number,
+	MaxPlayers: number,
+	EarliestStartSeconds: number,
+	InvitationSeconds: number,
+	ReadyTimeoutSeconds: number,
+	ActiveSeconds: number,
+	AdmissionLockSeconds: number,
+	AbandonSeconds: number,
+	DisconnectHoldSeconds: number,
+	SoloAnchorWork: number,
+	CrewAnchorWork: number,
+	HitCooldownSeconds: number,
+	AnchorPoints: number,
+	GatePoints: number,
+	MinimumPoints: number,
+	MinimumActiveSeconds: number,
+	CompletionBoundaryVersion: number,
 }
 export type Participant = {
 	UserId: number,
@@ -324,7 +324,12 @@ function State.latch(self: State, userId: number, attached: boolean, now: number
 	return true, if attached then "attached" else "detached"
 end
 
-function State.advanceBallGate(self: State, gateId: string, now: number): (boolean, string)
+function State.advanceBallGate(
+	self: State,
+	gateId: string,
+	now: number,
+	haulWork: { [number]: number }?
+): (boolean, string)
 	if self.Phase ~= "Active" or self.Stage ~= "ball" then
 		return false, "wrong_stage"
 	end
@@ -336,10 +341,20 @@ function State.advanceBallGate(self: State, gateId: string, now: number): (boole
 	end
 	local shares: { [number]: number } = {}
 	local count = 0
-	for userId, p in self.Participants do
-		if p.Attached and participant(self, userId) then
-			shares[userId] = 1
-			count += 1
+	if haulWork then
+		-- Values are runtime-validated movement shares, never payload/client scores.
+		for userId, work in haulWork do
+			if work == work and work > 0 and work < math.huge and participant(self, userId) then
+				shares[userId] = work
+				count += work
+			end
+		end
+	else
+		for userId, p in self.Participants do
+			if p.Attached and participant(self, userId) then
+				shares[userId] = 1
+				count += 1
+			end
 		end
 	end
 	if count == 0 then

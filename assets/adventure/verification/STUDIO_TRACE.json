@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "studio": "Expansion1Review.rbxlx",
+  "studioId": "82642668-be2c-4e4a-b778-96542ee53b84",
+  "classification": "Assisted Studio setup and movement; not uncoached human play or real-device evidence",
+  "trialAndJoin": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"grip\":true,\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":0,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":239.78361930002576,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_2\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_1\":{\"Work\":0,\"Required\":6,\"Completed\":false}},\"Phase\":\"Active\",\"Stage\":\"anchors\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"equipped\":true,\"rig\":\"R15\"}"
+      }
+    ],
+    "isError": false
+  },
+  "solo": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"completion\":{\"EventId\":\"event_vault\",\"LandmarkId\":\"landmark_spring_vault\",\"CompletedStages\":{\"1\":\"excavation\",\"3\":\"ball_return\",\"2\":\"vault_open\"},\"Participants\":{\"1\":{\"ActiveSeconds\":61.065249099978249,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"Points\":65,\"UserId\":72220195,\"Eligible\":true}},\"CompletedAt\":1785.7887354999839,\"StartedAt\":1724.7234864000057,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"BoundaryVersion\":1,\"Success\":true,\"RegionId\":\"sunshine_shore\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"route\":{\"1\":{\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":35,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":186.3006149000139,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"position\":\"700, 23.150390625, -12\"},\"4\":{\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":65,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":178.48535370000173,\"AdmissionLocked\":true,\"GateIndex\":3,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Resolving\",\"Stage\":\"complete\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"position\":\"708, 23.150390625, -83.35549926757812\"},\"3\":{\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":55,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":181.0353674000071,\"AdmissionLocked\":true,\"GateIndex\":2,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"position\":\"707.98974609375, 23.150390625, -59.10885238647461\"},\"2\":{\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":45,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":183.6188408000162,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"},\"position\":\"707.73779296875, 23.150390625, -35.21068572998047\"}},\"adapter\":{\"1\":{\"EventId\":\"event_vault\",\"LandmarkId\":\"landmark_spring_vault\",\"CompletedStages\":{\"1\":\"excavation\",\"3\":\"ball_return\",\"2\":\"vault_open\"},\"Participants\":{\"1\":{\"ActiveSeconds\":61.065249099978249,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"Points\":65,\"UserId\":72220195,\"Eligible\":true}},\"CompletedAt\":1785.7887354999839,\"StartedAt\":1724.7234864000057,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"BoundaryVersion\":1,\"Success\":true,\"RegionId\":\"sunshine_shore\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:1\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "reset": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"ballAfter\":\"692, 20, -36\",\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":45,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":221.95018939999864,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"5d4e18a2-d03f-4354-a065-381b26f3fe5c:2\"},\"checkpointBefore\":\"692, 20, -37.82437515258789\",\"gate\":1}"
+      }
+    ],
+    "isError": false
+  }
+}
