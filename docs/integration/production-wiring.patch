@@ -1,0 +1,151 @@
+diff --git a/src/client/Controllers/DigController.luau b/src/client/Controllers/DigController.luau
+index f4b7e46..9e8a2ec 100644
+--- a/src/client/Controllers/DigController.luau
++++ b/src/client/Controllers/DigController.luau
+@@ -31,6 +31,7 @@ local EffectsController = require(script.Parent.EffectsController)
+ local ShovelPoseController = require(script.Parent.ShovelPoseController)
+ local LayerController = require(script.Parent.LayerController)
+ local GuideController = require(script.Parent.GuideController)
++local InputArbiter = require(script.Parent.InputArbiter) -- named dig pauses (adventure hauling/dialogue)
+ local Signal = require(script.Parent.Parent.Util.Signal)
+ local Character = require(script.Parent.Parent.Util.Character)
+ local ItemStats = require(script.Parent.Parent.UI.ItemStats)
+@@ -96,6 +97,13 @@ local function ensureToolEquipped()
+ 	end
+ 	local backpack = player:FindFirstChildOfClass("Backpack")
+ 	local tool = if backpack then backpack:FindFirstChildOfClass("Tool") else nil
++	-- Prefer the shovel over any other tool in the Backpack (e.g. a Broadwave loan/license).
++	for _, child in if backpack then backpack:GetChildren() else {} do
++		if child:IsA("Tool") and child:GetAttribute("ShovelId") ~= nil then
++			tool = child
++			break
++		end
++	end
+ 	local humanoid = Character.GetHumanoid()
+ 	if tool and humanoid then
+ 		humanoid:EquipTool(tool)
+@@ -134,7 +142,7 @@ end
+ 
+ -- Returns true if a dig request was sent.
+ function DigController.TryDigAt(position: Vector3): boolean
+-	if not DigController.Enabled then
++	if not DigController.Enabled or InputArbiter.DigBlocked() then
+ 		return false
+ 	end
+ 	local root = Character.GetRoot()
+@@ -294,7 +302,9 @@ local function getCursor(): Part
+ end
+ 
+ local function updateCursor()
+-	local show = DigController.Enabled and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
++	local show = DigController.Enabled
++		and not InputArbiter.DigBlocked()
++		and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
+ 	local root = Character.GetRoot()
+ 	local result: RaycastResult? = nil
+ 	if show and root then
+diff --git a/src/client/Controllers/InputController.luau b/src/client/Controllers/InputController.luau
+index ba5b24b..bb75774 100644
+--- a/src/client/Controllers/InputController.luau
++++ b/src/client/Controllers/InputController.luau
+@@ -1,5 +1,6 @@
+ --!strict
+ -- InputController — console/PC shortcuts. Gamepad: R2 dig (DigController), X = Surface,
++-- (Q yields to the adventure's Broadwave charge only while a Broadwave tool is equipped),
+ -- Y = jump into the HUD menu with selection (B closes panels, see Panel). Keyboard: Q = Surface,
+ -- G = Shop, P = Pets.
+ local ContextActionService = game:GetService("ContextActionService")
+@@ -8,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
+ 
+ local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+ local SoundController = require(script.Parent.SoundController)
++local InputArbiter = require(script.Parent.InputArbiter)
+ local HUD = require(script.Parent.Parent.UI.HUD)
+ local Panel = require(script.Parent.Parent.UI.Components.Panel)
+ 
+@@ -23,13 +25,23 @@ local function onBegin(fn: () -> ()): (string, Enum.UserInputState, InputObject)
+ end
+ 
+ function InputController.Init()
+-	ContextActionService:BindAction(
++	-- Q is shared with the adventure's Broadwave charge (Q / L1). Bound one step above default
++	-- priority so Q surfaces as before unless a Broadwave tool is equipped, in which case Q passes
++	-- to the charge action (InputArbiter). ButtonX always surfaces.
++	ContextActionService:BindActionAtPriority(
+ 		"DigSurface",
+-		onBegin(function()
+-			SoundController.Play("Teleport")
+-			Remotes.Get("ReturnToSurface"):FireServer()
+-		end),
++		function(_, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
++			if input.KeyCode == Enum.KeyCode.Q and InputArbiter.BroadwaveEquipped() then
++				return Enum.ContextActionResult.Pass
++			end
++			if state == Enum.UserInputState.Begin then
++				SoundController.Play("Teleport")
++				Remotes.Get("ReturnToSurface"):FireServer()
++			end
++			return Enum.ContextActionResult.Sink
++		end,
+ 		false,
++		Enum.ContextActionPriority.Medium.Value + 1,
+ 		Enum.KeyCode.ButtonX,
+ 		Enum.KeyCode.Q
+ 	)
+diff --git a/src/client/Main.client.luau b/src/client/Main.client.luau
+index cf1ee35..5bb8e71 100644
+--- a/src/client/Main.client.luau
++++ b/src/client/Main.client.luau
+@@ -80,6 +80,8 @@ local Reveal = require(UI:WaitForChild("Reveal"))
+ local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
+ -- Map overhaul: client-side ambient motion for tagged decor (Ferris wheel, boats, gulls, flags...)
+ local AmbientController = require(Controllers:WaitForChild("AmbientController"))
++-- Expansion adventure: starts only when the server has created the adventure remotes
++local AdventureController = require(Controllers:WaitForChild("AdventureController"))
+ 
+ local function start(name: string, fn: () -> ())
+ 	local ok, err = xpcall(function(): any
+@@ -157,3 +159,4 @@ start("RideButton", RideButton.Init)
+ start("Status", StatusController.Init)
+ start("Discovery", DiscoveryController.Init)
+ start("Ambient", AmbientController.Init)
++start("Adventure", AdventureController.Init)
+diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
+index 09e87cc..24acf54 100644
+--- a/src/server/Main.server.luau
++++ b/src/server/Main.server.luau
+@@ -61,6 +61,8 @@ local OfflineService = require(Services.OfflineService)
+ local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
+ local TrophyService = require(Services.TrophyService) -- expansion: permanent trophies + camp display
+ local AdventureSettlement = require(Services.AdventureSettlement) -- expansion: adventure stage/final rewards
++-- expansion: Spring Vault runtime under server-owned, default-off AdventureFlags (no-op when off)
++local AdventureBoot = require(Services.AdventureBoot)
+ local Net = require(Services.Net)
+ 
+ type Service = {
+@@ -98,6 +100,7 @@ local ordered: { { Name: string, Module: Service } } = {
+ 	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
+ 	{ Name = "TrophyService", Module = TrophyService :: any }, -- expansion: needs DataService only
+ 	{ Name = "AdventureSettlement", Module = AdventureSettlement :: any }, -- expansion: after TrophyService
++	{ Name = "AdventureBoot", Module = AdventureBoot :: any }, -- expansion: after Dig + AdventureSettlement
+ 	{ Name = "DevCommands", Module = DevCommands :: any },
+ }
+ 
+diff --git a/tests/run.sh b/tests/run.sh
+index 161210a..41563bb 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -16,6 +16,13 @@ echo "== trophy.spec (mock store) =="
+ luau tests/trophy.spec.luau || status=1
+ echo "== adventure-settlement.spec (mock store) =="
+ luau tests/adventure-settlement.spec.luau || status=1
++echo "== trophy-wired.spec (real Main) =="
++luau tests/trophy-wired.spec.luau || status=1
++echo "== production-wiring.spec (flags off / on) =="
++luau tests/production-wiring.spec.luau || status=1
++luau tests/production-wiring.spec.luau -a on || status=1
++luau tests/production-wiring.spec.luau -a rejoin || status=1
++luau tests/production-wiring.spec.luau -a client || status=1
+ echo "== persistence boot failure (live / Studio) =="
+ luau tests/persistence-boot.spec.luau || status=1
+ luau tests/persistence-boot.spec.luau -a studio || status=1
