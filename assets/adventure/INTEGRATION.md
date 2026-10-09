@@ -115,6 +115,47 @@ UI and sixteen pads remain later scope.
 
 ## Evidence and gates
 
+## Gameplay and presentation continuation (9 October 2026)
+
+Branch `codex/spring-vault-gameplay-polish` starts at merged PR #31 (`9cd1ebd`).
+Reward persistence, settlement, trophy storage, camp UI and their shared boot wiring remain
+Claude's ownership. No boot file or configuration catalog is edited by this continuation.
+
+Ordinary Broadwave now has an explicit server adapter. In the jointly reviewed production
+integration, construct `BroadwaveDigBridge.Create({CanUse = authoritativeLicenseCheck,
+Dig = DigService.DigBroadwave})` and supply it as `OnOrdinaryBroadwave` to `Service.Start`.
+`CanUse` must read loaded server-owned permanent license/prerequisite and enablement evidence;
+an adventure loan or client tool name never establishes ownership. The runtime supplies the
+server-observed charge duration and character-facing frame. The callback is attempted only
+when no event/practice target accepted work, so one release cannot award both work and sand.
+Review boot deliberately supplies no ordinary adapter and loads no production saves/services.
+
+`DigBroadwave` performs one ordinary shovel-equivalent scoop using equipped shovel stats and
+the existing DigService cooldown, zone, reach, hardness, filled terrain, capacity, yield and
+bookkeeping. It checks the full actual carve bounds before mutation, including the upper
+surface voxel/dent sphere, against tagged or attribute-marked protected geometry and model
+descendants. Its conservative intersection test can refuse scoops near protected corners.
+It does not multiply sand across the visual corridor or add a new ownership/save ID.
+Production equip and input arbitration still require the joint integration, not a hidden boot
+change in this PR. The new callback does not implement rewards or settlement.
+
+Returning held participants can rejoin within 90 seconds after admission locks, preserving
+contribution and cooldowns without automatic cargo attachment. Repeated ball reset requests
+cannot postpone recovery; reset releases speed overrides and cargo. Leave remains available
+while absent/dead. Speed restoration targets the original Humanoid; respawn renews the loan.
+
+Ball presentation uses local primitive caps separated by wider cream gutters; the contact
+sphere remains 7.6 studs. Client reduced-motion waves stay stationary, and switching to low
+motion immediately restores squash. Scene replacement clears transient effects and charges.
+Gate confirmation is independent of particle settings. Review controls scale for short viewports.
+
+New evidence and remaining device/multiplayer limits are recorded in
+`verification/GAMEPLAY_POLISH.md` and `verification/GAMEPLAY_POLISH_TRACE.json`.
+Latest default`a4167d9` (Claude's settlement bridge and protected camp pad) was incorporated
+into this branch before delivery. Its World.IsProtected footprint guard remains in DigService
+alongside the Broadwave-specific volume guard. Joint mock settlement/contract checks pass;
+production boot patch, actual callback injection and live durability remain integration gates.
+
 See `verification/VALIDATION.md`, `STUDIO_TRACE.json`, and the saved before/after ball captures.
 Automated and assisted Studio checks do not establish real phone/controller use, real multiplayer,
 live durability, uncoached onboarding, audio audition or full populated performance. Those remain

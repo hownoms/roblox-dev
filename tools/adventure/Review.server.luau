@@ -3,6 +3,7 @@
 local RunService = game:GetService("RunService")
 assert(RunService:IsStudio(), "Adventure review is local Studio only")
 local Service = require(script.Parent.Adventure.SpringVaultService)
+local Players = game:GetService("Players")
 local runtime = Service.Start({
 	Origin = Vector3.new(700, 20, 0),
 	CanEnter = function(_player: Player): boolean
@@ -15,8 +16,34 @@ local runtime = Service.Start({
 -- Review inspection handle is never installed in production boot.
 local probe = Instance.new("BindableFunction")
 probe.Name = "AdventureReviewProbe"
-probe.OnInvoke = function(command: string, payload: any): any
-	local player = game:GetService("Players"):GetPlayers()[1]
+local networkTrace: { any } = {}
+local networkConnection = game.ReplicatedStorage.SpringVaultAdventure.Intent.OnServerEvent:Connect(
+	function(player: Player, payload: any)
+		table.insert(networkTrace, {
+			UserId = player.UserId,
+			At = os.clock(),
+			Action = if type(payload) == "table" then payload.action else "InvalidPayload",
+		})
+		if #networkTrace > 200 then
+			table.remove(networkTrace, 1)
+		end
+	end
+)
+probe.OnInvoke = function(command: string, payload: any, userId: number?): any
+	local player = if userId then Players:GetPlayerByUserId(userId) else Players:GetPlayers()[1]
+	if command == "NetworkTrace" then
+		return table.clone(networkTrace)
+	end
+	if command == "Players" then
+		local result = {}
+		for _, current in Players:GetPlayers() do
+			table.insert(
+				result,
+				{ UserId = current.UserId, Name = current.Name, State = runtime.ReviewPlayer(current) }
+			)
+		end
+		return result
+	end
 	if command == "Player" and player then
 		return runtime.ReviewPlayer(player)
 	end
@@ -41,6 +68,7 @@ probe.OnInvoke = function(command: string, payload: any): any
 end
 probe.Parent = script.Parent
 script.Destroying:Connect(function()
+	networkConnection:Disconnect()
 	runtime.Destroy()
 end)
 print("[SpringVault REVIEW] starter/prerequisite loans enabled; permanent rewards DISABLED")

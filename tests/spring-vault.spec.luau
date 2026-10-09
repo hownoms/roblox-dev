@@ -1,6 +1,7 @@
 --!strict
 local Config = require("../src/shared/Adventure/SpringVaultConfig")
 local State = require("../src/server/Adventure/SpringVaultState")
+local HaulBudget = require("../src/server/Adventure/HaulMovementBudget")
 local passed = 0
 local function eq(actual: any, expected: any)
 	assert(actual == expected, "expected " .. tostring(expected) .. ", got " .. tostring(actual))
@@ -271,4 +272,87 @@ test("one hundred progression lifecycles remain isolated", function()
 		eq(s.Phase, "Cleanup")
 	end
 end)
+test("held reconnect preserves work cooldown and excludes offline presence", function()
+	local s = active(2)
+	eq(s:hitAnchor(2, Config.AnchorIds[1], 6), true)
+	s:leave(2, 6.1, true)
+	eq(s:join(2, 6.2), true)
+	eq(s.Participants[2].Ready, true)
+	eq(s.Participants[2].Attached, false)
+	eq(s.Participants[2].LastHitAt, 6)
+	eq(s:hitAnchor(2, Config.AnchorIds[1], 6.49), false)
+	eq(s:hitAnchor(2, Config.AnchorIds[1], 6.5), true)
+	eq(s.Anchors[Config.AnchorIds[1]].Work, 2)
+	eq(s:join(2, 7), false)
+	s:cleanup(10)
+	assert(math.abs(s.Participants[2].ActiveSeconds - 4.9) < 0.00001)
+end)
+
+test("held reconnect remains available after new admission locks", function()
+	local s = active(2)
+	s:leave(2, 170, true)
+	s:tick(185)
+	eq(s.AdmissionLocked, true)
+	eq(s:join(3, 186), false)
+	eq(s:join(2, 186), true)
+	eq(s.Participants[2].Connected, true)
+end)
+
+test("hold expiry cannot be bypassed before watchdog tick", function()
+	local s = active(2)
+	s:leave(2, 6, true)
+	eq(s:join(2, 96), false)
+	s:tick(96)
+	eq(s.Participants[2].Left, true)
+	eq(s:join(2, 97), false)
+end)
+
+test("repeated ready and latch requests do not change contribution", function()
+	local s = active()
+	eq(s:ready(1, 6), false)
+	local now = excavate(s, 1, 6)
+	s:openVault(1, now)
+	eq(s:openVault(1, now), false)
+	eq(s:latch(1, true, now), true)
+	eq(s:latch(1, true, now), false)
+	eq(s.Participants[1].Points, 35)
+	s:leave(1, now, true)
+	eq(s:join(1, now + 1), true)
+	eq(s.Participants[1].Attached, false)
+	eq(s.Participants[1].Points, 35)
+	eq(s:advanceBallGate(Config.GateIds[1], now + 1), false)
+end)
+
+test("sparse replicated hauling samples fund smooth movement without idle credit", function()
+	local banks: HaulBudget.Banks = {}
+	local moved = 0
+	local credit = 0
+	for frame = 1, 600 do
+		if frame % 6 == 1 then
+			eq(HaulBudget.Record(banks, 1, 1.2, 1.2, 0.1), true)
+		end
+		local distance, shares = HaulBudget.Consume(banks, { 1, 2 }, 12 / 60)
+		moved += distance
+		credit += shares[1] or 0
+		eq(shares[2], nil)
+	end
+	assert(math.abs(moved - 120) < 0.00001)
+	assert(math.abs(credit - moved) < 0.00001)
+	local idle = HaulBudget.Consume(banks, { 1, 2 }, 1)
+	assert(idle < 0.00001)
+end)
+
+test("hauling rejects teleports reverse movement and bounds delayed travel", function()
+	local banks: HaulBudget.Banks = {}
+	eq(HaulBudget.Record(banks, 1, 20, 20, 1 / 60), false)
+	eq(HaulBudget.Record(banks, 1, -1, 1, 0.1), false)
+	eq(HaulBudget.Record(banks, 1, 0 / 0, 1, 0.1), false)
+	eq(HaulBudget.Record(banks, 1, 4, 4, 10), true)
+	eq(HaulBudget.Record(banks, 1, 4, 4, 10), true)
+	eq(banks[1], 4)
+	local distance = HaulBudget.Consume(banks, { 1 }, 0.2)
+	eq(distance, 0.2)
+	eq(HaulBudget.Consume(banks, { 2 }, 1), 0)
+end)
+
 print("Spring Vault: " .. tostring(passed) .. " tests passed")
