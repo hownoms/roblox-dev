@@ -3631,6 +3631,139 @@ do
 	check(#Mock.Warnings == w0, "no warnings in ambient motion")
 end
 
+-- Trophy camp display action (docs/integration/camp-display-action.md) ---------------------------
+section("trophy camp action")
+do
+	local e0, w0 = #Mock.Errors, #Mock.Warnings
+	local sent0 = #Mock.Remote.ToServer
+	local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
+	local Camp = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/CampDisplayController"])
+	Camp.Init() -- Main starts it once the integration patch is applied; Init is idempotent
+	Mock.Advance(0.2)
+	local deck = Mock.Tagged("TrophyCampPad")[1]
+	local entry = deck and Camp.GetEntry(deck)
+	if check(entry ~= nil, "controller watches the authored camp pad deck") then
+		local card = entry.Card
+		check(card:IsA("BillboardGui") and card.Adornee == deck, "status card adorns the deck")
+		check(card.Enabled == false, "nothing shown before the server publishes a status")
+		-- what the server's TrophyService.ConnectCampPrompts puts on the deck
+		local function prompt(name)
+			local p = Mock.Env.Instance.new("ProximityPrompt")
+			p.Name = name
+			p.Parent = deck
+			return p
+		end
+		local show = prompt(CampAction.DISPLAY_PROMPT)
+		local put = prompt(CampAction.REMOVE_PROMPT)
+		Mock.Advance(0.1)
+		check(entry.Show == show and entry.Put == put, "prompts that arrive after the deck are hooked")
+		check(show.Enabled == false and put.Enabled == false, "no status yet: both prompts hidden")
+
+		local function set(status, queue)
+			player:SetAttribute(CampAction.STATUS_ATTR, status)
+			player:SetAttribute(CampAction.QUEUE_ATTR, queue or 0)
+			Mock.Advance(0.1)
+		end
+		local function ghost()
+			return entry.Ghost
+		end
+
+		set("NoTrophy")
+		check(
+			card.Enabled and entry.Body.Text == "Finish the Spring Vault to earn a trophy.",
+			"no trophy: card says so"
+		)
+		check(show.Enabled == false and put.Enabled == false, "no trophy: no action")
+		set("NoStand")
+		check(entry.Body.Text == "You need Mara's trophy stand first.", "no stand: card says so")
+		check(show.Enabled == false and put.Enabled == false, "no stand: no action")
+
+		set("Ready")
+		check(show.Enabled == true and put.Enabled == false, "ready: only the display prompt")
+		check(show.ActionText == "Display trophy", "display wording")
+		check(ghost() == nil, "no preview until the prompt is on screen")
+		Mock.FireEvent(show, "PromptShown", Enum.ProximityPromptInputType.Keyboard)
+		Mock.Advance(0.1)
+		local g = ghost()
+		if check(g ~= nil and g.Parent ~= nil, "preview appears while the display prompt is shown") then
+			check(g:GetAttribute("Cell") == "5,5", "preview on the server's first free cell")
+			local top = deck.CFrame * CFrame.new(0, deck.Size.Y / 2, 0)
+			local want = CampAction.CellCFrame(top, 5, 5, CampAction.ROT)
+			local stand = g:FindFirstChild("camp_trophy_stand")
+			check(
+				stand and (stand:GetPivot().Position - want.Position).Magnitude < 1e-4,
+				"preview stand exactly where the display will be"
+			)
+			check(g:FindFirstChild("landmark_spring_vault_trophy") ~= nil, "preview includes the replica")
+			local solid = 0
+			for _, d in g:GetDescendants() do
+				if d:IsA("BasePart") and (d.CanCollide or d.CanQuery or d.CanTouch or d.Transparency < 0.5) then
+					solid += 1
+				end
+			end
+			check(solid == 0, "preview is see-through and non-colliding")
+		end
+		-- the saved layout moves the next free cell
+		Mock.FireClientEvent("DataChanged", {
+			CampLayout = { NextId = 2, Placements = { { Id = 1, TrophyId = "x", X = 5, Z = 5, Rot = 0 } } },
+		})
+		Mock.Advance(0.2)
+		check(ghost() and ghost():GetAttribute("Cell") ~= "5,5", "preview follows the replicated layout")
+		Mock.FireClientEvent("DataChanged", { CampLayout = { NextId = 1, Placements = {} } })
+		Mock.Advance(0.2)
+
+		-- someone else holds the pad: no ghost over their camp, honest wording
+		deck:SetAttribute("OwnerName", "Mo")
+		deck:SetAttribute("OwnerUserId", 4242)
+		Mock.Advance(0.1)
+		check(ghost() == nil, "no preview over another player's camp")
+		check(string.find(entry.Body.Text, "Mo's camp is up", 1, true) ~= nil, "busy pad: names the holder")
+		check(show.Enabled and show.ActionText == "Save & join line", "busy pad: action says it queues")
+		deck:SetAttribute("OwnerUserId", 0)
+		deck:SetAttribute("OwnerName", "")
+		Mock.Advance(0.1)
+		check(ghost() ~= nil, "pad free again: preview back")
+		Mock.FireEvent(show, "PromptHidden")
+		Mock.Advance(0.1)
+		check(ghost() == nil, "walking away removes the preview")
+		Mock.FireEvent(show, "PromptShown", Enum.ProximityPromptInputType.Touch)
+		Mock.Advance(0.1)
+
+		set("Displayed")
+		check(ghost() == nil, "displayed: preview gone")
+		check(show.Enabled == false and put.Enabled == true, "displayed: only put-away")
+		check(entry.Body.Text == "Your trophy is on display.", "displayed wording")
+		set("Queued", 2)
+		check(put.Enabled == true and string.find(entry.Body.Text, "#2", 1, true) ~= nil, "queued: place in line")
+		set("NoPad")
+		check(string.find(entry.Body.Text, "nothing is shown", 1, true) ~= nil, "no pad: honest wording")
+		set("Off")
+		check(card.Enabled == false and show.Enabled == false and put.Enabled == false, "feature off: hidden")
+		check(ghost() == nil, "feature off: no preview")
+
+		-- streaming: the deck streams out and back in as a new instance
+		set("Ready")
+		local token = Mock.StreamOut(deck)
+		Mock.Advance(0.1)
+		check(Camp.GetEntry(deck) == nil and card.Parent == nil, "stream-out cleans up card and preview")
+		local fresh = Mock.StreamIn(token)
+		Mock.Advance(0.1)
+		local again = Camp.GetEntry(fresh)
+		check(again ~= nil and again.Card.Enabled, "stream-in rebuilds the card")
+		check(again and again.Show ~= nil, "streamed-in prompts hooked")
+		for _, c in fresh:GetChildren() do
+			if c:IsA("ProximityPrompt") then
+				c:Destroy()
+			end
+		end
+		player:SetAttribute(CampAction.STATUS_ATTR, nil)
+		Mock.Advance(0.1)
+	end
+	check(#Mock.Remote.ToServer == sent0, "the camp action sends nothing from the client")
+	check(#Mock.Errors == e0, "no errors in the camp action")
+	check(#Mock.Warnings == w0, "no warnings in the camp action")
+end
+
 section("report")
 check(#Mock.Errors == 0, #Mock.Errors .. " uncaught errors (see above)")
 check(#Mock.Remote.Problems == 0, "remote payloads serializable: " .. table.concat(Mock.Remote.Problems, " | "))

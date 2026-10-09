@@ -970,6 +970,269 @@ step("everyone leaving frees the pad", function()
 	check(campModel(M1) == nil and campModel(M2) == nil, "no camps left")
 end)
 
+-- Camp display action (docs/integration/camp-display-action.md) ----------------------------
+section("camp display action: prompts, preview cell, status, queue, no pad")
+local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
+local actionNotes = {}
+local actionNet = {
+	Notify = function(player, kind, text)
+		table.insert(actionNotes, { Player = player, Kind = kind, Text = text })
+	end,
+}
+local function lastNote(player)
+	for i = #actionNotes, 1, -1 do
+		if actionNotes[i].Player == player then
+			return actionNotes[i]
+		end
+	end
+	return nil
+end
+local function status(player)
+	return player:GetAttribute(CampAction.STATUS_ATTR), player:GetAttribute(CampAction.QUEUE_ATTR)
+end
+local showPrompt, putPrompt
+local function trigger(prompt, player)
+	Mock.FireEvent(prompt, "Triggered", player)
+	Mock.Advance(0.1)
+end
+local function grantBoth(player, tag)
+	local report = settle(result("srv-act:" .. tag, { participant(player.UserId, 9, 60, 1, true) }))
+	return report.ByUserId[player.UserId].Status == "Granted"
+end
+local function seedTrophyOnly(userId)
+	seedTrophyWithoutStand(userId)
+	Mock.DataStores[STORE]["Player_" .. userId].Data.CampLayout = { NextId = 1, Placements = {} }
+end
+local A1, A2, A3, A4, A5 = 9501, 9502, 9503, 9504, 9505
+local a1, a2, a3
+
+step("pure: first free cell, request, preview CFrame matches the display", function()
+	local empty = { Placements = {}, NextId = 1 }
+	local x, z = CampAction.FirstFreeCell(empty)
+	check(
+		x == 5 and z == 5,
+		"first free cell is the plaza-side centre cell (" .. tostring(x) .. "," .. tostring(z) .. ")"
+	)
+	local taken = { Placements = { { Id = 1, TrophyId = TROPHY, X = 5, Z = 5, Rot = 0 } }, NextId = 2 }
+	local x2, z2 = CampAction.FirstFreeCell(taken)
+	check(not (x2 == 5 and z2 == 5) and x2 ~= nil, "occupied cell skipped")
+	local full = { Placements = {}, NextId = 1 }
+	for cx = 0, Rules.CELLS - 1 do
+		for cz = 0, Rules.CELLS - 1 do
+			table.insert(full.Placements, { Id = #full.Placements + 1, TrophyId = "t", X = cx, Z = cz, Rot = 0 })
+		end
+	end
+	check(CampAction.FirstFreeCell(full) == nil, "full grid: no cell")
+	check(CampAction.Request({}, empty) == nil, "no trophy: no request")
+	local req = CampAction.Request({ [TROPHY] = {} }, empty)
+	check(
+		req and req.TrophyId == TROPHY and req.X == 5 and req.Z == 5 and req.Rot == 90,
+		"request: trophy, centre, faces plaza"
+	)
+	local okV = Rules.ValidatePlacement({ [TROPHY] = {} }, empty, req, Rules.TROPHY_SLOTS, true)
+	check(okV == true, "the request passes the normal server validation")
+	check(CampAction.NextTrophy({ [TROPHY] = {} }, taken) == nil, "already displayed trophy is not offered again")
+	local pad = CFrame.new(80, 1027, 76) * CFrame.Angles(0, math.rad(30), 0)
+	local a = CampAction.CellCFrame(pad, 5, 5, 90)
+	local b = Display.PlacementCFrame(pad, { Id = 1, TrophyId = TROPHY, X = 5, Z = 5, Rot = 90 })
+	check(
+		(a.Position - b.Position).Magnitude < 1e-6 and a.LookVector:Dot(b.LookVector) > 0.9999,
+		"preview CFrame == display CFrame"
+	)
+	check(a.LookVector:Dot(pad.RightVector * -1) > 0.999, "the stand front faces the plaza (-X of the pad)")
+	for _, s in { "NoTrophy", "NoStand", "Ready", "Displayed", "Queued", "NoPad" } do
+		check(CampAction.Text(s, 1) ~= "", "text for " .. s)
+	end
+	check(CampAction.Text("NoTrophy") == "Finish the Spring Vault to earn a trophy.", "no-trophy wording")
+	check(CampAction.Text("NoStand") == "You need Mara's trophy stand first.", "no-stand wording")
+	check(string.find(CampAction.Text("Queued", 2), "#2", 1, true) ~= nil, "queue position in the wording")
+	check(CampAction.Text("Off") == "", "off: no text")
+end)
+
+step("server prompts on the authored deck", function()
+	TrophyService.ConnectCampPrompts(actionNet)
+	TrophyService.ConnectCampPrompts(actionNet) -- idempotent
+	showPrompt = deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
+	putPrompt = deck:FindFirstChild(CampAction.REMOVE_PROMPT)
+	check(showPrompt and showPrompt:IsA("ProximityPrompt"), "display prompt on the deck")
+	check(putPrompt and putPrompt:IsA("ProximityPrompt"), "put-away prompt on the deck")
+	local n = 0
+	for _, c in deck:GetChildren() do
+		if c:IsA("ProximityPrompt") then
+			n += 1
+		end
+	end
+	check(n == 2, "exactly two prompts after connecting twice")
+	check(owner() == nil, "pad free")
+end)
+
+step("no trophy: honest status, action refused, nothing saved", function()
+	a1 = join(A1, "Ada")
+	local s = status(a1)
+	check(s == "NoTrophy", "status NoTrophy (" .. tostring(s) .. ")")
+	trigger(showPrompt, a1)
+	check(#TrophyService.GetCampLayout(a1).Placements == 0, "nothing placed")
+	local note = lastNote(a1)
+	check(
+		note and note.Text == "Finish the Spring Vault to earn a trophy." and note.Kind == "Error",
+		"told to finish the vault"
+	)
+	check(TrophyService.Owns(a1, TROPHY) == false, "the prompt grants nothing")
+end)
+
+step("trophy without stand: refused with the stand message", function()
+	seedTrophyOnly(A4)
+	local d = join(A4, "Dee")
+	check(status(d) == "NoStand", "status NoStand")
+	local ok, why, text = TrophyService.DisplayAction(d)
+	check(not ok and why == "NoStand" and text == "You need Mara's trophy stand first.", "action refused: NoStand")
+	check(#TrophyService.GetCampLayout(d).Placements == 0 and owner() == nil, "nothing saved or shown")
+	leave(d)
+end)
+
+step("trophy + stand: the action places on the first free cell and shows it", function()
+	check(grantBoth(a1, "1"), "Ada earns trophy + stand")
+	check(status(a1) == "Ready", "status Ready after the grant")
+	trigger(showPrompt, a1)
+	local layout = TrophyService.GetCampLayout(a1)
+	local p = layout.Placements[1]
+	check(
+		#layout.Placements == 1 and p.TrophyId == TROPHY and p.X == 5 and p.Z == 5 and p.Rot == 90,
+		"placed at the first free cell"
+	)
+	check(owner() == A1 and TrophyService.GetCampPad(a1) == 1, "shown on the pad")
+	check(status(a1) == "Displayed", "status Displayed")
+	local note = lastNote(a1)
+	check(note and note.Kind == "Success" and note.Text == "Trophy on display!", "success toast")
+	local camp = campModel(A1)
+	local holder = camp and camp:FindFirstChild("Placement_" .. p.Id)
+	local stand = holder and holder:FindFirstChild("camp_trophy_stand")
+	if check(stand ~= nil, "stand built") then
+		local top = deck.CFrame * CFrame.new(0, deck.Size.Y / 2, 0)
+		local want = CampAction.CellCFrame(top, 5, 5, 90)
+		check(
+			(stand:GetPivot().Position - want.Position).Magnitude < 1e-4,
+			"display sits exactly on the previewed cell"
+		)
+	end
+	local again, why = TrophyService.DisplayAction(a1)
+	check(not again and why == "Displayed", "a second press does not place again")
+	check(#TrophyService.GetCampLayout(a1).Placements == 1, "still one placement")
+end)
+
+step("pad busy: layout saves, player queued in order, nothing shown", function()
+	a2 = join(A2, "Bea")
+	a3 = join(A3, "Cy")
+	check(grantBoth(a2, "2") and grantBoth(a3, "3"), "both earn trophy + stand")
+	check(status(a2) == "Ready", "Ready while the pad is busy (client shows 'next in line')")
+	trigger(showPrompt, a2)
+	local s2, q2 = status(a2)
+	check(s2 == "Queued" and q2 == 1, "Bea queued #1 (" .. tostring(s2) .. "," .. tostring(q2) .. ")")
+	check(#TrophyService.GetCampLayout(a2).Placements == 1, "Bea's layout saved")
+	check(campModel(A2) == nil and owner() == A1, "nothing of Bea's shown; owner unchanged")
+	local note = lastNote(a2)
+	check(note and note.Kind == "Info" and string.find(note.Text, "#1", 1, true) ~= nil, "told the place in line")
+	local ok3, st3, text3 = TrophyService.DisplayAction(a3)
+	local _, q3 = status(a3)
+	check(ok3 and st3 == "Queued" and q3 == 2 and string.find(text3, "#2", 1, true) ~= nil, "Cy queued #2")
+end)
+
+step("other players' actions never change someone else's camp", function()
+	local before = TrophyService.GetCampLayout(a1)
+	local campBefore = campModel(A1)
+	-- Bea puts hers away: only her saved layout changes; Cy moves up
+	trigger(putPrompt, a2)
+	check(#TrophyService.GetCampLayout(a2).Placements == 0, "Bea's layout emptied")
+	check(
+		TrophyService.Owns(a2, TROPHY) == true and TrophyService.OwnsStand(a2) == true,
+		"Bea still owns trophy + stand"
+	)
+	check(status(a2) == "Ready", "Bea back to Ready")
+	local s3, q3 = status(a3)
+	check(s3 == "Queued" and q3 == 1, "Cy moved up to #1")
+	check(deepEqual(TrophyService.GetCampLayout(a1), before), "Ada's layout untouched")
+	check(campModel(A1) == campBefore and owner() == A1, "Ada's camp untouched")
+	local okNone, why = TrophyService.RemoveAction(a2)
+	check(not okNone and why == "NothingDisplayed", "nothing to put away")
+	check(deepEqual(TrophyService.GetCampLayout(a1), before) and owner() == A1, "Ada still untouched")
+end)
+
+step("put away keeps ownership and hands the pad to the next in line", function()
+	trigger(putPrompt, a1)
+	check(#TrophyService.GetCampLayout(a1).Placements == 0, "Ada's display removed")
+	check(TrophyService.Owns(a1, TROPHY) == true and TrophyService.OwnsStand(a1) == true, "Ada keeps trophy + stand")
+	local note = lastNote(a1)
+	check(note and note.Text == "Trophy put away. You still own it.", "put-away toast")
+	check(status(a1) == "Ready", "Ada can display again")
+	check(owner() == A3 and status(a3) == "Displayed", "pad handed to Cy, status follows")
+	check(campModel(A1) == nil and campModel(A3) ~= nil, "only Cy's camp shown")
+	local saved = DataService.Get(a1)
+	check(saved.TrophyRecords[TROPHY] ~= nil and saved.Cosmetics.camp_trophy_stand ~= nil, "save still holds ownership")
+end)
+
+step("leaving updates everyone's place in line", function()
+	TrophyService.DisplayAction(a1) -- Ada #1 behind Cy
+	TrophyService.DisplayAction(a2) -- Bea #2
+	check(select(2, status(a1)) == 1 and select(2, status(a2)) == 2, "Ada #1, Bea #2")
+	leave(a1)
+	check(status(a2) == "Queued" and select(2, status(a2)) == 1, "Bea moves up to #1 when Ada leaves")
+	leave(a3)
+	check(owner() == A2 and status(a2) == "Displayed", "Cy leaving hands the pad to Bea")
+	leave(a2)
+	check(owner() == nil, "pad free")
+end)
+
+step("no pad at all: layout saves, honest message, nothing shown", function()
+	TrophyService.SetCampPads({}) -- an explicit empty list: this server has no camp pad
+	check(TrophyService.GetCampPadCount() == 0, "pad count 0")
+	local e = join(A5, "Eli")
+	check(grantBoth(e, "5"), "Eli earns trophy + stand")
+	local ok, st, text = TrophyService.DisplayAction(e)
+	check(ok and st == "NoPad", "action saves the layout and reports NoPad (" .. tostring(st) .. ")")
+	check(
+		text == CampAction.Text("NoPad") and string.find(text, "nothing is shown", 1, true) ~= nil,
+		"honest no-pad text"
+	)
+	check(#TrophyService.GetCampLayout(e).Placements == 1 and TrophyService.GetCampPad(e) == nil, "saved, not shown")
+	check(status(e) == "NoPad", "status attribute NoPad")
+	check(campModel(A5) == nil, "no camp model")
+	TrophyService.SetCampPads(nil)
+	TrophyService.SetReviewPreview(false) -- any refresh: the authored pad is back
+	check(owner() == A5 and status(e) == "Displayed", "with the pad back, the saved layout shows")
+	trigger(putPrompt, e)
+	check(owner() == nil and status(e) == "Ready", "put away")
+	leave(e)
+end)
+
+step("feature disabled: action hidden and refused", function()
+	local f = join(A5, "Eli")
+	TrophyService.SetEnabled(false)
+	check(status(f) == "Off", "status Off")
+	check(showPrompt.Enabled == false and putPrompt.Enabled == false, "prompts disabled for everyone")
+	local ok, st = TrophyService.DisplayAction(f)
+	check(not ok and st == "Off", "action refused while off")
+	check(#TrophyService.GetCampLayout(f).Placements == 0, "nothing placed")
+	TrophyService.SetEnabled(true)
+	check(status(f) == "Ready" and showPrompt.Enabled == true, "back on")
+	leave(f)
+end)
+
+step("Studio review preview: displays without a stand, grants nothing", function()
+	seedTrophyOnly(A4)
+	local d = join(A4, "Dee")
+	Mock.IsStudio = true
+	TrophyService.SetReviewPreview(true)
+	check(status(d) == "Ready", "preview: Ready without a stand")
+	trigger(showPrompt, d)
+	check(owner() == A4 and status(d) == "Displayed", "preview shows it on the pad")
+	TrophyService.SetReviewPreview(false)
+	Mock.IsStudio = false
+	check(owner() == nil and status(d) == "NoStand", "preview off: hidden again, honest NoStand")
+	check(TrophyService.OwnsStand(d) == false, "preview granted no stand")
+	check(#TrophyService.GetCampLayout(d).Placements == 1, "the reviewed layout stays saved")
+	leave(d)
+end)
+
 check(#Mock.Errors == 0, "no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))

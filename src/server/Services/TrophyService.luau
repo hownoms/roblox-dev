@@ -34,13 +34,20 @@
 	Camp: PlaceTrophy(player, request), RemovePlacement(player, placementId). Production display
 	requires the stand; SetReviewPreview(true) (Studio only) bypasses that for review. Removing a
 	display only edits CampLayout; TrophyRecords are never touched by camp code.
+
+	Camp display action (docs/integration/camp-display-action.md): GetCampStatus(player),
+	DisplayAction(player), RemoveAction(player), and ConnectCampPrompts(net) which hangs two
+	server-owned ProximityPrompts on every camp pad deck. Each player's status is published as
+	read-only Player attributes CampStatus / CampQueue (Trophies/CampAction).
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
+local CampAction = require(Shared.Trophies.CampAction)
 local Catalog = require(Shared.Trophies.Catalog)
 local Rules = require(Shared.Trophies.Rules)
 local Signal = require(Shared.Util.Signal)
@@ -104,6 +111,8 @@ TrophyService.CampChanged = Signal.new() :: Signal.Signal<Player, Rules.CampLayo
 local enabled = true
 local reviewPreview = false
 local draining: { [number]: boolean } = {}
+local notifier: any = nil -- the Net module, once ConnectRemotes / ConnectCampPrompts ran
+local campPrompts: { ProximityPrompt } = {}
 
 -- Camp display ----------------------------------------------------------------------------------
 --[[
@@ -162,6 +171,66 @@ local function handOver()
 	end
 end
 
+-- Camp status ----------------------------------------------------------------------------------
+
+local function queuePosition(player: Player): number
+	local mine = waiting[player]
+	if mine == nil then
+		return 0
+	end
+	local ahead = 0
+	for _, seq in waiting do
+		if seq < mine then
+			ahead += 1
+		end
+	end
+	return ahead + 1
+end
+
+local function campStatus(player: Player, data: { [string]: any }): (CampAction.Status, number)
+	if not enabled then
+		return "Off", 0
+	end
+	local layout = data.CampLayout :: Rules.CampLayout
+	local mayDisplay = Rules.HasStand(data) or reviewPreview
+	if #layout.Placements > 0 then
+		if not mayDisplay then
+			return "NoStand", 0
+		elseif Display.GetPad(player) ~= nil then
+			return "Displayed", 0
+		elseif Display.GetPadCount() == 0 then
+			return "NoPad", 0
+		end
+		return "Queued", queuePosition(player)
+	end
+	if CampAction.NextTrophy(data.TrophyRecords, layout) == nil then
+		return "NoTrophy", 0
+	elseif not mayDisplay then
+		return "NoStand", 0
+	end
+	return "Ready", 0
+end
+
+-- Mirrors one player's status onto read-only Player attributes (server-written).
+local function publishStatus(player: Player)
+	local data = TrophyData.Get(player)
+	if not data or player.Parent == nil then
+		return
+	end
+	local status, queue = campStatus(player, data)
+	player:SetAttribute(CampAction.STATUS_ATTR, status)
+	player:SetAttribute(CampAction.QUEUE_ATTR, queue)
+end
+
+-- Queue places shift for everyone when anyone's camp changes, so publish all (<= 16 players).
+local function publishAll(except: Player?)
+	for _, player in Players:GetPlayers() do
+		if player ~= except then
+			publishStatus(player)
+		end
+	end
+end
+
 local function refreshDisplay(player: Player)
 	local data = TrophyData.Get(player)
 	if not data then
@@ -170,6 +239,7 @@ local function refreshDisplay(player: Player)
 	if applyDisplay(player, data) then
 		handOver()
 	end
+	publishAll()
 end
 
 -- Grants --------------------------------------------------------------------------------------
@@ -211,6 +281,8 @@ function TrophyService.AfterGrantApplied(
 )
 	if standGranted then
 		refreshDisplay(player)
+	elseif record then
+		publishAll() -- NoTrophy -> NoStand / Ready
 	end
 	if record then
 		TrophyService.TrophyGranted:Fire(player, trophyId, TableUtil.DeepCopy(record :: any))
@@ -667,6 +739,10 @@ end
 -- trophies stay owned and queries keep working.
 function TrophyService.SetEnabled(on: boolean)
 	enabled = on
+	for _, prompt in campPrompts do
+		prompt.Enabled = on
+	end
+	publishAll()
 end
 
 function TrophyService.IsEnabled(): boolean
@@ -710,7 +786,7 @@ function TrophyService.GetCampPad(player: Player): number?
 	return Display.GetPad(player)
 end
 
--- Remotes -------------------------------------------------------------------------------------
+-- Camp display action -------------------------------------------------------------------------
 
 local PLACE_TEXT: { [string]: string } = {
 	NotOwned = "You don't own that trophy yet.",
@@ -723,11 +799,84 @@ local PLACE_TEXT: { [string]: string } = {
 }
 
 --[[
+	The one small camp action (docs/integration/camp-display-action.md). Both calls act only on
+	the caller's own CampLayout through PlaceTrophy / RemovePlacement, so every validation, the
+	stand rule, pad ownership and the wait list apply unchanged. They take no client input.
+]]
+
+-- (status, queuePosition). nil status when the player's data is not loaded.
+function TrophyService.GetCampStatus(player: Player): (CampAction.Status?, number)
+	local data = TrophyData.Get(player)
+	if not data then
+		return nil, 0
+	end
+	return campStatus(player, data)
+end
+
+--[[
+	Displays the player's next owned trophy on the first free cell of their camp, facing the
+	plaza. Returns (ok, statusOrReason, text): on success the status afterwards (Displayed,
+	Queued or NoPad: the layout is saved in every case); on refusal the status or placement
+	reason that stopped it. `text` is the player-facing sentence.
+]]
+function TrophyService.DisplayAction(player: Player): (boolean, string, string)
+	local data = TrophyData.Get(player)
+	if not data then
+		return false, "NotLoaded", ""
+	end
+	local status, queue = campStatus(player, data)
+	if status ~= "Ready" then
+		return false, status, CampAction.Text(status, queue)
+	end
+	local request, why = CampAction.Request(data.TrophyRecords, data.CampLayout)
+	if not request then
+		return false, why or "NoTrophy", PLACE_TEXT[why or ""] or CampAction.Text("NoTrophy")
+	end
+	local ok, reason = TrophyService.PlaceTrophy(player, request)
+	if not ok then
+		return false, reason, PLACE_TEXT[reason] or "That trophy can't go on display right now."
+	end
+	local after, place = TrophyService.GetCampStatus(player)
+	local final: string = after or "NotLoaded"
+	return true, final, CampAction.ResultText(true, final, place)
+end
+
+-- Puts away the player's newest display (ownership untouched). Returns (ok, statusOrReason, text).
+function TrophyService.RemoveAction(player: Player): (boolean, string, string)
+	local data = TrophyData.Get(player)
+	if not data then
+		return false, "NotLoaded", ""
+	end
+	local status = campStatus(player, data)
+	if status == "Off" then
+		return false, status, ""
+	end
+	local newest: number? = nil
+	for _, p in (data.CampLayout :: Rules.CampLayout).Placements do
+		if newest == nil or p.Id > (newest :: number) then
+			newest = p.Id
+		end
+	end
+	if newest == nil then
+		return false, "NothingDisplayed", "Nothing of yours is on display."
+	end
+	local ok, reason = TrophyService.RemovePlacement(player, newest)
+	if not ok then
+		return false, reason or "Refused", ""
+	end
+	local after = TrophyService.GetCampStatus(player)
+	return true, after or "NotLoaded", CampAction.ResultText(false)
+end
+
+-- Remotes -------------------------------------------------------------------------------------
+
+--[[
 	Connects the camp remotes. Call from Main only after the integration patch has added
 	"PlaceCampItem" and "RemoveCampItem" to Remotes.Events (Remotes.Get asserts unknown names).
 	Clients send only (trophyId, x, z, rot) and (placementId); nothing a client sends can grant.
 ]]
 function TrophyService.ConnectRemotes(net: any)
+	notifier = net
 	net.On("PlaceCampItem", function(player: Player, trophyId: any, x: any, z: any, rot: any)
 		if not net.IsString(trophyId, 64) then
 			return
@@ -735,6 +884,14 @@ function TrophyService.ConnectRemotes(net: any)
 		local ok, reason = TrophyService.PlaceTrophy(player, { TrophyId = trophyId, X = x, Z = z, Rot = rot })
 		if not ok and PLACE_TEXT[reason] then
 			net.Notify(player, "Error", PLACE_TEXT[reason])
+		elseif ok then
+			-- say honestly whether it is shown, queued, or there is no pad at all
+			local status, queue = TrophyService.GetCampStatus(player)
+			net.Notify(
+				player,
+				if status == "Displayed" then "Success" else "Info",
+				CampAction.ResultText(true, status, queue)
+			)
 		end
 	end, { Rate = 4, Window = 1 })
 	net.On("RemoveCampItem", function(player: Player, placementId: any)
@@ -743,6 +900,66 @@ function TrophyService.ConnectRemotes(net: any)
 		end
 		TrophyService.RemovePlacement(player, placementId)
 	end, { Rate = 4, Window = 1 })
+end
+
+--[[
+	Hangs the camp display action on every camp pad deck (parts tagged TrophyCampPad, including
+	ones built later): two server-owned ProximityPrompts. The client (CampDisplayController)
+	shows only the one that applies to its own status and draws the local preview; the server
+	decides everything from the triggering player's own save. Call from Main after Init.
+]]
+function TrophyService.ConnectCampPrompts(net: any?)
+	if net then
+		notifier = net
+	end
+	local function say(player: Player, ok: boolean, status: string, text: string)
+		if notifier and text ~= "" then
+			local kind = if not ok then "Error" elseif status == "Displayed" then "Success" else "Info"
+			notifier.Notify(player, kind, text)
+		end
+	end
+	local function attach(inst: Instance)
+		if not inst:IsA("BasePart") or inst:FindFirstChild(CampAction.DISPLAY_PROMPT) then
+			return
+		end
+		local show = Instance.new("ProximityPrompt")
+		show.Name = CampAction.DISPLAY_PROMPT
+		show.ActionText = "Display trophy"
+		show.ObjectText = "Trophy Camp"
+		show.HoldDuration = 0.5
+		show.MaxActivationDistance = 18
+		show.RequiresLineOfSight = false
+		show.Enabled = enabled
+		show.Parent = inst
+		local put = Instance.new("ProximityPrompt")
+		put.Name = CampAction.REMOVE_PROMPT
+		put.ActionText = "Put trophy away"
+		put.ObjectText = "Trophy Camp"
+		put.HoldDuration = 0.75
+		put.MaxActivationDistance = 18
+		put.RequiresLineOfSight = false
+		put.Enabled = enabled
+		put.Parent = inst
+		table.insert(campPrompts, show)
+		table.insert(campPrompts, put)
+		show.Triggered:Connect(function(player: Player)
+			say(player, TrophyService.DisplayAction(player))
+		end)
+		put.Triggered:Connect(function(player: Player)
+			say(player, TrophyService.RemoveAction(player))
+		end)
+		inst.Destroying:Connect(function()
+			for i = #campPrompts, 1, -1 do
+				if campPrompts[i] == show or campPrompts[i] == put then
+					table.remove(campPrompts, i)
+				end
+			end
+		end)
+	end
+	CollectionService:GetInstanceAddedSignal(Display.PAD_TAG):Connect(attach)
+	for _, inst in CollectionService:GetTagged(Display.PAD_TAG) do
+		attach(inst)
+	end
 end
 
 -- Lifecycle -----------------------------------------------------------------------------------
@@ -771,11 +988,15 @@ function TrophyService.OnPlayerAdded(player: Player)
 end
 
 function TrophyService.OnPlayerRemoving(player: Player)
+	local wasWaiting = waiting[player] ~= nil
 	waiting[player] = nil
 	local held = Display.GetPad(player) ~= nil
 	Display.Hide(player)
 	if held then
 		handOver() -- the freed pad goes to the longest-waiting eligible player
+	end
+	if held or wasWaiting then
+		publishAll(player) -- queue places moved up
 	end
 end
 
