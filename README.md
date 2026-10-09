@@ -8,6 +8,10 @@ permanent multiplier.
 Everything is code. The map, models and UI are all built by scripts at runtime, so the whole
 game lives in this repo and syncs into Studio with [Rojo](https://rojo.space).
 
+## Expanded-game plan
+
+Read the [game plan and contributor guide](docs/game-bible/README.md) before working on the expansion. It links the complete game bible, existing and proposed content, and the [milestone roadmap](docs/game-bible/05-roadmap-validation-and-handoff.md). New features are design proposals until implemented and verified; [STATUS.md](docs/STATUS.md) records actual progress.
+
 ## First-expansion visual kit
 
 [Review the visual kit](assets/expansion1/README.md) for Mara/Pip designs and portraits,
@@ -24,7 +28,8 @@ the expansion is not enabled or published.
 | [`docs/PLAYTEST_EVIDENCE.md`](docs/PLAYTEST_EVIDENCE.md) | Dated log of playtest observations and measurements |
 | [`docs/V2.md`](docs/V2.md) | v2/v2.1 contract: open beach, survival, companions, ride |
 | [`docs/UI_STYLE.md`](docs/UI_STYLE.md) | UI style guide and layout map |
-| [`docs/GDD.md`](docs/GDD.md) | Original game design: loop, layers, economy, retention, monetization, roadmap, launch checklist |
+| [`docs/game-bible/00-start-here.md`](docs/game-bible/00-start-here.md) | Complete expansion design draft: current baseline, future world/content, mechanics, migration and roadmap. Readable book: `docs/game-bible/GAME_BIBLE.html` |
+| [`docs/GDD.md`](docs/GDD.md) | Historical original design; current runtime code and newer contracts supersede old assumptions |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Code layout, remotes, data schema, module ownership |
 | [`docs/MAP.md`](docs/MAP.md) | Map layout, coordinates, thumbnail camera positions |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Streaming settings, budgets, the `/stress` load test, MicroProfiler on desktop and Android |

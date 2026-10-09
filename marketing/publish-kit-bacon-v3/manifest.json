@@ -1,0 +1,42 @@
+[
+  {
+    "file": "icon-512.png",
+    "size": [
+      512,
+      512
+    ],
+    "bytes": 324656
+  },
+  {
+    "file": "thumbnail-01-dig.jpg",
+    "size": [
+      1920,
+      1080
+    ],
+    "bytes": 489460
+  },
+  {
+    "file": "thumbnail-02-find.jpg",
+    "size": [
+      1920,
+      1080
+    ],
+    "bytes": 424429
+  },
+  {
+    "file": "thumbnail-03-deep.jpg",
+    "size": [
+      1920,
+      1080
+    ],
+    "bytes": 492148
+  },
+  {
+    "file": "social-banner-960x540.jpg",
+    "size": [
+      960,
+      540
+    ],
+    "bytes": 190755
+  }
+]

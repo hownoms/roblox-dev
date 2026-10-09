@@ -62,7 +62,7 @@ def entity(path):
 
 assets=[]
 for p in sorted(OUT.rglob('*')):
-    if not p.is_file() or p.name=='manifest.json': continue
+    if not p.is_file() or p.name=='manifest.json' or p.suffix=='.lock': continue
     rel=p.relative_to(ROOT).as_posix(); category=p.parent.name
     status='reference_document'; origin='tools/expansion1/manifest.py'; target='local development handoff'
     purpose=p.stem.replace('_',' ')
@@ -73,16 +73,19 @@ for p in sorted(OUT.rglob('*')):
         origin='built-in image_gen; PROMPTS.json' if 'portrait' in p.stem else 'tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer'
         target='future NPC dialogue / contextual ability / event objective / settled result UI'
     elif category=='models':
-        status='roblox_compatible_review_place_studio_pending'; origin='expansion1.project.json + '+source; target='Studio isolated local review; Play builds models'
+        status='roblox_compatible_review_place_basic_studio_review_passed'; origin='expansion1.project.json + '+source; target='Studio isolated local review; Play builds models'
     elif category=='previews':
         status='review_preview_not_gameplay_screenshot'; origin='tools/expansion1/export_visuals.py / manifest.py'; target='local visual review'
     elif category=='verification':
         status='headless_or_build_evidence_not_studio_evidence'; origin='local Rojo / Luau / image inspection'; target='reviewer evidence only'
+        if p.name=='STUDIO_REVIEW.md':
+            status='studio_review_evidence_with_remaining_limits'; origin='Roblox Studio MCP isolated review'; target='Studio validation handoff'
     assets.append({'asset_id':p.relative_to(OUT).as_posix(),'entity_id':entity(p),'purpose':purpose,'status':status,'source':origin,'integration_location':target,'path':rel,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
 factories=[('npc_mara','NPC("npc_mara", pose)','blocky lifeguard; Idle/Point/Celebrate'),('npc_pip','NPC("npc_pip", pose)','blocky shopkeeper; Idle/Point/Celebrate'),('tool_broadwave','Broadwave()','held welded shovel'),('landmark_spring_vault','SpringVault(state)','Covered/Partial/Opened 12x10x8 shared vault'),('landmark_spring_vault','BeachBall()','giant springy controlled cargo ball'),('camp_trophy_stand','TrophyStand()','2x2 cream camp pedestal'),('landmark_spring_vault','TrophyReplica()','first-adventure display replica'),('tool_broadwave','ChargeEffect(progress)','three filling charge dots'),('tool_broadwave','AbilityEffect(progress, reducedMotion)','local blue foam release cue'),('landmark_spring_vault','BallEffect(reducedMotion)','small bounce ground puffs')]
 for id,api,purpose in factories:
     assets.append({'asset_id':'factory:'+api,'entity_id':id,'purpose':purpose,'status':'roblox_compatible_factory_integration_and_studio_pending','source':source,'path':source,'api':'Kit.'+api,'integration_location':'ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers','sha256':hashlib.sha256((ROOT/source).read_bytes()).hexdigest()})
 manifest={'kit':'Dig to the Core! first expansion','version':1,'prepared_date':'2026-10-08','scope':'Mara, Pip, Broadwave, Spring Vault, controlled beach ball and first trophy; no future regions','source_specs':bible,'preserved_references':['docs/UI_STYLE.md','src/shared/Models/Build.luau','src/shared/Models/Shovels.luau','src/shared/Models/Props.luau','assets/icons/preview_32.png','marketing/publish-kit-bacon-v3/contact-sheet.jpg'],'ownership':'Original repo procedural assets and newly generated artwork; no third-party Roblox asset IDs','uploaded':False,'published':False,'studio_verified':False,'assets':assets}
 manifest['source_specs_snapshot']='assets/expansion1/SPEC.md'
+manifest['studio_review']={'status':'basic_visual_and_equip_review_passed_gameplay_pending','evidence':'assets/expansion1/verification/STUDIO_REVIEW.md','panel_polish_pending':True}
 (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(f'{len(assets)} manifest entries; {len(imageqa)} PNG audits; {len(counts)} constructed model variants; vault envelopes passed')
