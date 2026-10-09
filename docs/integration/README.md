@@ -22,6 +22,7 @@ Every adventure flag (`AdventureFlags`) defaults to off.
 | Camp pad display action and preview | `camp-display-action.md` |
 | Flags, eligibility, licensed Broadwave, input arbitration, boot | `production-wiring.md` |
 | Review of Codex's `codex/spring-vault-gameplay-polish` | `codex-polish-review.md` |
+| Adversarial settlement and durability audit, live test plan | `settlement-durability.md` |
 
 ## Joint evidence (9 Oct 2026, headless mock store)
 

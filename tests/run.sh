@@ -20,6 +20,9 @@ echo "== adventure-outcome.spec (client card) =="
 luau tests/adventure-outcome.spec.luau || status=1
 echo "== trophy-wired.spec (real Main) =="
 luau tests/trophy-wired.spec.luau || status=1
+echo "== settlement-durability.spec (real Main; runtime on in-process / flags off) =="
+luau tests/settlement-durability.spec.luau || status=1
+luau tests/settlement-durability.spec.luau -a off || status=1
 echo "== production-wiring.spec (flags off / on) =="
 luau tests/production-wiring.spec.luau || status=1
 luau tests/production-wiring.spec.luau -a on || status=1

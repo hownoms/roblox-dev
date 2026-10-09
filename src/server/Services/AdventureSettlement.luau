@@ -363,7 +363,11 @@ local function retryUnconfirmed(
 	for _, delay in AdventureSettlement.RetryDelays do
 		task.wait(delay)
 		if not player.Parent or not DataService.IsLoaded(player) then
-			return -- left: the leave save (or the outbox) is all that is left to carry it
+			-- Left: the leave save should carry it, but that save can fail too. One more outbox
+			-- attempt makes it durable either way (a Duplicate on their next load if the leave
+			-- save did land). Nobody is left here to tell.
+			queueParts(player.UserId, intent, entry, grant)
+			return
 		end
 		if entry.Status == "Unconfirmed" then
 			entry.Status = "Applied"
@@ -447,11 +451,17 @@ local function settle(kind: "Stage" | "Final", context: any, decisions: { Reward
 	local trophyReport: TrophyService.SettlementReport? = nil
 	local trophyWrites: TrophyService.OutboxWrites = {}
 	if kind == "Final" then
-		local r, w = TrophyService.PrepareCompletionContext(context, { CallerSaves = true })
-		trophyReport, trophyWrites = r, w
-		report.Trophy = r
-		if not r.Ok then
-			warn("[AdventureSettlement] trophy settlement refused: " .. tostring(r.Error))
+		-- A throw in the trophy part must not take the coins/cert settlement (or the runtime's
+		-- completion) down with it: the trophy part then reports TrophyUnavailable.
+		local prepared, r, w = pcall(TrophyService.PrepareCompletionContext, context, { CallerSaves = true })
+		if prepared then
+			trophyReport, trophyWrites = r, w
+			report.Trophy = r
+			if not r.Ok then
+				warn("[AdventureSettlement] trophy settlement refused: " .. tostring(r.Error))
+			end
+		else
+			warn("[AdventureSettlement] trophy settlement failed: " .. tostring(r))
 		end
 	end
 	local trophyAvailable = trophyReport ~= nil and trophyReport.Ok
@@ -472,8 +482,19 @@ local function settle(kind: "Stage" | "Final", context: any, decisions: { Reward
 			end)
 		else
 			local player = Players:GetPlayerByUserId(userId)
-			local applied = if player then applyLive(player, intent) else nil
-			if player and applied then
+			local applyOk, applied = true, nil
+			if player then
+				applyOk, applied = pcall(applyLive, player, intent)
+			end
+			if not applyOk then
+				-- one bad save must not abort everyone else's settlement; say so truthfully
+				warn(string.format("[AdventureSettlement] apply failed for %d: %s", userId, tostring(applied)))
+				entry = { UserId = userId, Status = "Refused", Reason = "SettlementError" }
+				local failedEntry = entry
+				table.insert(work, function()
+					publish(report, failedEntry)
+				end)
+			elseif player and applied then
 				entry = toResult(userId, applied)
 				if kind == "Final" then
 					attachTrophy(entry, trophyEntry, trophyAvailable)
@@ -589,29 +610,44 @@ function AdventureSettlement.OnStage(observation: any)
 	end
 end
 
+-- Broadcast texts. The runtime sends the message to EVERY player in the server (participants,
+-- refused watchers, ineligible players and bystanders), so it must be true for all of them:
+-- it never says that anyone was rewarded or that anything was saved. Each participant's own
+-- truthful result is their outcome card, sent once their durable writes resolve.
+AdventureSettlement.COMPLETION_MESSAGE = "Adventure complete! Crew members: your reward card shows what you earned."
+AdventureSettlement.REFUSED_MESSAGE =
+	"Adventure complete. Completion rewards are unavailable right now; stage rewards already earned are kept."
+
 -- Drop-in for SpringVaultService.Start({ OnCompletion = ... }): returns (accepted, message).
--- The runtime broadcasts the message to everyone, so it stays generic; each participant gets
--- their own outcome once it is durable.
 function AdventureSettlement.OnCompletion(context: any): (boolean, string)
 	local report = AdventureSettlement.SettleCompletion(context)
 	if not report.Ok then
 		warn("[AdventureSettlement] completion refused: " .. tostring(report.Error))
-		return false, "Adventure complete. Rewards are unavailable right now."
+		return false, AdventureSettlement.REFUSED_MESSAGE
 	end
-	return true, "Adventure complete! Rewards are on their way."
+	return true, AdventureSettlement.COMPLETION_MESSAGE
 end
 
 -- Drain ---------------------------------------------------------------------------------------
 
 type Drained = { Intent: Rewards.Intent, Applied: Rewards.Applied }
 
--- Applies this bridge's durable intents, saves, then acknowledges. Yields. Returns what was
--- applied and acknowledged, or nil.
-local function drainIntents(player: Player): { Drained }?
+-- What an earlier drain applied to the live save but could not acknowledge (its save failed),
+-- by user and receipt. The retry re-applies them as Duplicates, so these are what it announces.
+local owedIntents: { [number]: { [string]: Drained } } = {}
+local owedTrophies: { [number]: { [string]: TrophyService.DrainedGrant } } = {}
+local drainRetries: { [number]: number } = {}
+
+-- Applies this bridge's durable intents, saves, then acknowledges. Yields. Returns (what was
+-- applied and acknowledged, or nil; retry: the read or the save failed, try again later).
+local function drainIntents(player: Player): ({ Drained }?, boolean)
 	local userId = player.UserId
 	local stored = outbox.Read(userId)
-	if not stored or next(stored) == nil or getData(player) == nil then
-		return nil
+	if stored == nil then
+		return nil, true -- unreadable right now
+	end
+	if next(stored) == nil or getData(player) == nil then
+		return nil, false
 	end
 	local intents: { Rewards.Intent } = {}
 	for _, intent in stored do
@@ -631,13 +667,36 @@ local function drainIntents(player: Player): { Drained }?
 			AdventureSettlement.Granted:Fire(player, toResult(userId, applied), intent.Kind)
 		end
 	end
-	-- Acknowledge only once the save holding them is written; otherwise the next load
-	-- re-applies them as Duplicates and acknowledges then.
-	if #ids > 0 and DataService.SaveAsync(player) then
-		outbox.Ack(userId, ids)
-		return done
+	if #ids == 0 then
+		return nil, false
 	end
-	return nil
+	-- Acknowledge only once the save holding them is written; otherwise the next drain
+	-- re-applies them as Duplicates and acknowledges then.
+	if DataService.SaveAsync(player) then
+		outbox.Ack(userId, ids)
+		local owed = owedIntents[userId]
+		if owed then
+			for i, item in done do
+				local earlier = owed[Rewards.ReceiptFor(item.Intent)]
+				if earlier and item.Applied.Status == "Duplicate" then
+					done[i] = earlier
+				end
+			end
+			owedIntents[userId] = nil
+		end
+		return done, false
+	end
+	if getData(player) == nil then
+		return nil, false -- left: the leave save carries it, the next load acknowledges it
+	end
+	local owed = owedIntents[userId] or {}
+	for _, item in done do
+		if item.Applied.Status == "Applied" then
+			owed[Rewards.ReceiptFor(item.Intent)] = item
+		end
+	end
+	owedIntents[userId] = owed
+	return nil, true
 end
 
 -- "trophy:<InstanceId>:<UserId>:final:v<n>" -> InstanceId (InstanceIds may contain ':').
@@ -700,15 +759,38 @@ local function publishDrained(player: Player, intents: { Drained }?, trophies: {
 	end
 end
 
-local function drainLoop(player: Player)
+-- Returns true when the last pass could not finish (a read or save failed).
+local function drainLoop(player: Player): boolean
 	local userId = player.UserId
+	local retry = false
 	repeat
 		drainAgain[userId] = nil
-		local trophies = TrophyService.DrainPending(player)
-		local intents = if outbox.IsAvailable() then drainIntents(player) else nil
+		local trophies, trophyRetry, trophyUnacked = TrophyService.DrainPending(player)
+		if trophyUnacked then
+			local owed = owedTrophies[userId] or {}
+			for _, grant in trophyUnacked do
+				if grant.Status == "Granted" or grant.StandGranted then
+					owed[grant.ReceiptId] = grant
+				end
+			end
+			owedTrophies[userId] = owed
+		end
+		local owedGrants = owedTrophies[userId]
+		if trophies and owedGrants then
+			for i, grant in trophies do
+				trophies[i] = owedGrants[grant.ReceiptId] or grant
+			end
+			owedTrophies[userId] = nil
+		end
+		local intents, intentRetry = nil, false
+		if outbox.IsAvailable() then
+			intents, intentRetry = drainIntents(player)
+		end
 		publishDrained(player, intents, trophies)
+		retry = trophyRetry or intentRetry
 	until not drainAgain[userId] or not player.Parent
 	drainAgain[userId] = nil
+	return retry
 end
 
 -- again = true when new intents may have landed since a drain that is already running started.
@@ -721,10 +803,27 @@ requestDrain = function(player: Player, again: boolean)
 		return
 	end
 	draining[userId] = true
-	local ok, err = pcall(drainLoop, player)
+	local ok, result = pcall(drainLoop, player)
 	draining[userId] = nil
 	if not ok then
-		warn("[AdventureSettlement] drain failed: " .. tostring(err))
+		warn("[AdventureSettlement] drain failed: " .. tostring(result))
+	end
+	-- A failed read or save leaves intents queued; try again while they are here (else their
+	-- next load anywhere does it).
+	if (not ok or result == true) and player.Parent then
+		local attempt = (drainRetries[userId] or 0) + 1
+		local delay = AdventureSettlement.RetryDelays[attempt]
+		if delay then
+			drainRetries[userId] = attempt
+			task.spawn(function()
+				task.wait(delay)
+				if player.Parent and DataService.IsLoaded(player) then
+					requestDrain(player, true)
+				end
+			end)
+		end
+	else
+		drainRetries[userId] = nil
 	end
 end
 
