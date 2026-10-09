@@ -78,25 +78,23 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 	part("ProtectedArenaFloor", V(100, 2, 140), point(0, -1, -36), Kit.Palette.Sand, true)
 	-- Production never creates a neutral spawn; only dedicated review opts in.
 	if reviewSpawn == true then
-		-- Production never creates a neutral spawn; only dedicated review opts in.
-		if reviewSpawn == true then
-			local spawn = Instance.new("SpawnLocation")
-			spawn.Name = "AdventureReviewSpawn"
-			spawn.Size = V(6, 1, 6)
-			spawn.Position = point(0, 0.5, 20)
-			spawn.Anchored = true
-			spawn.CanCollide = true
-			spawn.CanTouch = false
-			spawn.Neutral = true
-			spawn.Duration = 0
-			spawn.Color = Kit.Palette.Cream
-			spawn.Parent = model
-			protect(spawn)
-		end
+		local spawn = Instance.new("SpawnLocation")
+		spawn.Name = "AdventureReviewSpawn"
+		spawn.Size = V(6, 1, 6)
+		spawn.Position = point(0, 0.5, 20)
+		spawn.Anchored = true
+		spawn.CanCollide = true
+		spawn.CanTouch = false
+		spawn.Neutral = true
+		spawn.Duration = 0
+		spawn.Color = Kit.Palette.Cream
+		spawn.Parent = model
+		protect(spawn)
 	end
 	part("LeftBoundary", V(2, 8, 140), point(-49, 4, -36), Kit.Palette.Navy, true)
 	part("RightBoundary", V(2, 8, 140), point(49, 4, -36), Kit.Palette.Navy, true)
 	part("FarBoundary", V(100, 8, 2), point(0, 4, -105), Kit.Palette.Navy, true)
+	part("NearBoundary", V(100, 8, 2), point(0, 4, 33), Kit.Palette.Navy, true)
 	-- Low channel curbs leave wide avatar walkways; no enclosed or mutable tunnel supports.
 	for _, x in { -18, 18 } do
 		part("ChannelCurb", V(1, 1.5, 75), point(x, 0.75, -54), Kit.Palette.Blue, true)
