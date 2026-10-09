@@ -50,17 +50,27 @@
       "source": "tools/expansion1/manifest.py",
       "integration_location": "local development handoff",
       "path": "assets/expansion1/INTEGRATION.md",
-      "sha256": "3739d74bbc9d0ba3fbfa23df0abd1714e00182d6016e5aa7030d249b0ce2f15d"
+      "sha256": "cf801b3eac4ba9a017e6e9a94dcd0c258ccc76beba44335fe45528c083d61de5"
     },
     {
       "asset_id": "models/Expansion1Review.rbxlx",
       "entity_id": "expansion1_visual_kit",
       "purpose": "Expansion1Review",
-      "status": "roblox_compatible_review_place_studio_pending",
+      "status": "roblox_compatible_review_place_basic_studio_review_passed",
       "source": "expansion1.project.json + src/shared/Models/Expansion1.luau",
       "integration_location": "Studio isolated local review; Play builds models",
       "path": "assets/expansion1/models/Expansion1Review.rbxlx",
-      "sha256": "22aa5f2387baf5234f9224f24a7b5e3f8abba70920159cd3eed0b616fedaa03b"
+      "sha256": "45b9d6f5b4d684cedf28a3f7d7ffa7baee56023b73fc1f3ca257567e64aa8b5b"
+    },
+    {
+      "asset_id": "models/Expansion1Review.rbxlx.lock",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "Expansion1Review.rbxlx",
+      "status": "roblox_compatible_review_place_basic_studio_review_passed",
+      "source": "expansion1.project.json + src/shared/Models/Expansion1.luau",
+      "integration_location": "Studio isolated local review; Play builds models",
+      "path": "assets/expansion1/models/Expansion1Review.rbxlx.lock",
+      "sha256": "fb715826ebce39780a51736f125c97ad94ccbd6a6637b90823f0623bfcc15e14"
     },
     {
       "asset_id": "previews/camp_trophy_display.png",
@@ -580,7 +590,7 @@
       "source": "local Rojo / Luau / image inspection",
       "integration_location": "reviewer evidence only",
       "path": "assets/expansion1/verification/RESULTS.md",
-      "sha256": "73c46dc38d331d574ba4fada1ca7e66b0ea266698eccc8babfb72a125bbaef9a"
+      "sha256": "524238e3cc7a0edec292068d83d68ea13bf7b943111baccbc9089bd2b41acc8a"
     },
     {
       "asset_id": "verification/review-sourcemap.json",
@@ -621,6 +631,16 @@
       "integration_location": "reviewer evidence only",
       "path": "assets/expansion1/verification/sourcemap.json",
       "sha256": "45f07dc5926fc001cc9503f316e2a8182fde2531a78b65a17620bd20c00506e5"
+    },
+    {
+      "asset_id": "verification/STUDIO_REVIEW.md",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "STUDIO REVIEW",
+      "status": "studio_review_evidence_with_remaining_limits",
+      "source": "Roblox Studio MCP isolated review",
+      "integration_location": "Studio validation handoff",
+      "path": "assets/expansion1/verification/STUDIO_REVIEW.md",
+      "sha256": "f4b5f300ba8b44bf2db3ea5df771463a14e5711cae6c49377ccc43f329a0a45b"
     },
     {
       "asset_id": "factory:NPC(\"npc_mara\", pose)",
@@ -733,5 +753,10 @@
       "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
     }
   ],
-  "source_specs_snapshot": "assets/expansion1/SPEC.md"
+  "source_specs_snapshot": "assets/expansion1/SPEC.md",
+  "studio_review": {
+    "status": "basic_visual_and_equip_review_passed_gameplay_pending",
+    "evidence": "assets/expansion1/verification/STUDIO_REVIEW.md",
+    "panel_polish_pending": true
+  }
 }

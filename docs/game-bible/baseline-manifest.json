@@ -1,0 +1,132 @@
+{
+  "snapshot_date": "2026-10-08",
+  "counts": {
+    "Backpacks": 13,
+    "Badges": 15,
+    "Boosts": 6,
+    "Codes": 4,
+    "Consumables": 7,
+    "DailyRewards": 7,
+    "Eggs": 13,
+    "Events": 2,
+    "Layers": 15,
+    "Pets": 56,
+    "Quests": 12,
+    "Rarities": 7,
+    "RebirthPerks": 8,
+    "Shades": 7,
+    "Shovels": 14,
+    "Titles": 15,
+    "Treasures": 53
+  },
+  "files": [
+    {
+      "path": "src/shared/Config/Backpacks.luau",
+      "sha256": "09ab3824ddc9136d5db5233fa024b3e2ff3d9881cca369d04c137b41e737e7a6"
+    },
+    {
+      "path": "src/shared/Config/Badges.luau",
+      "sha256": "b07abdaaa3922da13ac0923270e34344f7de0e5441291534fff64ae598d2e85d"
+    },
+    {
+      "path": "src/shared/Config/Boosts.luau",
+      "sha256": "d401a6db4cd09e9e5834e7a823b414c35f3e0a62ee3adcda45d5b24c33bb8b19"
+    },
+    {
+      "path": "src/shared/Config/Codes.luau",
+      "sha256": "f3df285af7d534a15b34acff2509ab5abb5504468bf58bb723171544269b27b8"
+    },
+    {
+      "path": "src/shared/Config/Consumables.luau",
+      "sha256": "dfda46f04d136ab4487ddad173b51485774d66ea659e1559442ce53e382c0a76"
+    },
+    {
+      "path": "src/shared/Config/DailyRewards.luau",
+      "sha256": "5c71a7dae3b0e450e5e0455a10bd1c15d878bd505afae324c27730fda72d6c18"
+    },
+    {
+      "path": "src/shared/Config/Discovery.luau",
+      "sha256": "dd7427f6546f8de5cc46450d560847d7128b5bda93efb7d9729e7ea0ffb0edc4"
+    },
+    {
+      "path": "src/shared/Config/Eggs.luau",
+      "sha256": "861afbc987e851571c0e06fddf0d9f41ef2ece72a42fff8e5830d3b56df0880c"
+    },
+    {
+      "path": "src/shared/Config/Events.luau",
+      "sha256": "6531688dbf9474b5b1c194b678386d83fb8dfbfe6f2279ea946538e4ba8af98a"
+    },
+    {
+      "path": "src/shared/Config/Heat.luau",
+      "sha256": "8f00b2553f3fb4f3328e827fa898aabced76023115d5715cdaf84da08f570a32"
+    },
+    {
+      "path": "src/shared/Config/IconAtlas.luau",
+      "sha256": "a85ea2fc7ff5244637d53757dbfcf9769aa106182f65da24086d95378979deaa"
+    },
+    {
+      "path": "src/shared/Config/init.luau",
+      "sha256": "17ea916112a67808b721cea82f1dcf5415301e4b0189304ed9a838606e01773e"
+    },
+    {
+      "path": "src/shared/Config/Layers.luau",
+      "sha256": "45ff3cda82a268ccbf972d8905008a5f8f478b0083777f5dc3e2a8242c4621b0"
+    },
+    {
+      "path": "src/shared/Config/Monetization.luau",
+      "sha256": "c39f69d8b962f5492e11b59cc9d585d9fd478971742d904867a964710b4f3cd4"
+    },
+    {
+      "path": "src/shared/Config/Pets.luau",
+      "sha256": "57c3c5e990b3e96adf0e23610dc5cfbc15725d4c3cea128a62e58e91ff515f5b"
+    },
+    {
+      "path": "src/shared/Config/Quests.luau",
+      "sha256": "1f939191ac12234c557fe0c53608c472bca1d5dd6aec7b1a2b4463f746f3953a"
+    },
+    {
+      "path": "src/shared/Config/Rarities.luau",
+      "sha256": "e360cb3f646a1e3b515ad2a59c01826a89c84008c217db89231ab372db9a6f96"
+    },
+    {
+      "path": "src/shared/Config/RebirthPerks.luau",
+      "sha256": "e0ec198da96f6693f68cde005f5bbfb7d720751ccba4a419675b85a3737580ad"
+    },
+    {
+      "path": "src/shared/Config/Rebirths.luau",
+      "sha256": "7de0a9ab47f4fee63a49dde8d4cccade8505bf6034e9ee443eaa3ad8a0dbfc78"
+    },
+    {
+      "path": "src/shared/Config/Ride.luau",
+      "sha256": "d335f6127322b3ef741fb81ef87eae83957a6b29b56d2d4f33d35952046eb466"
+    },
+    {
+      "path": "src/shared/Config/Shades.luau",
+      "sha256": "c2e1ad473345b953fbc37b5e9857a253ea8a42a5c01db67aa0221e4520365884"
+    },
+    {
+      "path": "src/shared/Config/Shovels.luau",
+      "sha256": "948350c4fc51962c91c1763da7247f9e0ae645d073c9241d9f46c5400d442890"
+    },
+    {
+      "path": "src/shared/Config/Social.luau",
+      "sha256": "c47c3301d817da7fa9daa4bc0048376391a3704abc9a68cdc470a611cbcef051"
+    },
+    {
+      "path": "src/shared/Config/Sounds.luau",
+      "sha256": "2479f427acb5bbb1a10d4698fce088833f2adc4c727ac2b1f7ecf2e01647135c"
+    },
+    {
+      "path": "src/shared/Config/Theme.luau",
+      "sha256": "1a3e106a77704a3107beab41d7b757d7d31b8ed93362a4fdf8c84908d8f915dc"
+    },
+    {
+      "path": "src/shared/Config/Titles.luau",
+      "sha256": "7335fa55a454ac1a1faf069dd9431216124391083c63001f7cfb023e67120ae1"
+    },
+    {
+      "path": "src/shared/Config/Treasures.luau",
+      "sha256": "a18e66674874b9d16d96d89b6de8f46fdb6a649e67aa12701f5e360f862b1aac"
+    }
+  ]
+}

@@ -1,0 +1,3851 @@
+{
+  "Backpacks": [
+    {
+      "id": "bucket",
+      "name": "Beach Bucket",
+      "fields": {
+        "Id": "\"bucket\"",
+        "Name": "\"Beach Bucket\"",
+        "Price": "0",
+        "Capacity": "20",
+        "RebirthsRequired": "0",
+        "Description": "\"A trusty plastic bucket. Holds a little sand.\"",
+        "Look": "{",
+        "Color": "rgb(60, 170, 255)",
+        "AccentColor": "rgb(255, 230, 60)",
+        "Shape": "\"Bucket\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"bucket\",\n\t\tName = \"Beach Bucket\",\n\t\tPrice = 0,\n\t\tCapacity = 20,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"A trusty plastic bucket. Holds a little sand.\",\n\t\tLook = {\n\t\t\tColor = rgb(60, 170, 255),\n\t\t\tAccentColor = rgb(255, 230, 60),\n\t\t\tShape = \"Bucket\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sand_pail",
+      "name": "Sand Pail",
+      "fields": {
+        "Id": "\"sand_pail\"",
+        "Name": "\"Sand Pail\"",
+        "Price": "50",
+        "Capacity": "60",
+        "RebirthsRequired": "0",
+        "Description": "\"Bigger bucket, bigger trips.\"",
+        "Look": "{",
+        "Color": "rgb(255, 120, 60)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Bucket\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"sand_pail\",\n\t\tName = \"Sand Pail\",\n\t\tPrice = 50,\n\t\tCapacity = 60,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Bigger bucket, bigger trips.\",\n\t\tLook = {\n\t\t\tColor = rgb(255, 120, 60),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Bucket\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "beach_bag",
+      "name": "Beach Bag",
+      "fields": {
+        "Id": "\"beach_bag\"",
+        "Name": "\"Beach Bag\"",
+        "Price": "300",
+        "Capacity": "200",
+        "RebirthsRequired": "0",
+        "Description": "\"Towel, sunscreen... and LOTS of sand.\"",
+        "Look": "{",
+        "Color": "rgb(255, 90, 160)",
+        "AccentColor": "rgb(255, 240, 120)",
+        "Shape": "\"Bag\"",
+        "Material": "Enum.Material.Fabric",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"beach_bag\",\n\t\tName = \"Beach Bag\",\n\t\tPrice = 300,\n\t\tCapacity = 200,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Towel, sunscreen... and LOTS of sand.\",\n\t\tLook = {\n\t\t\tColor = rgb(255, 90, 160),\n\t\t\tAccentColor = rgb(255, 240, 120),\n\t\t\tShape = \"Bag\",\n\t\t\tMaterial = Enum.Material.Fabric,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "cooler",
+      "name": "Cooler",
+      "fields": {
+        "Id": "\"cooler\"",
+        "Name": "\"Cooler\"",
+        "Price": "1500",
+        "Capacity": "700",
+        "RebirthsRequired": "0",
+        "Description": "\"Keeps your sand nice and cool.\"",
+        "Look": "{",
+        "Color": "rgb(40, 200, 230)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Box\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"cooler\",\n\t\tName = \"Cooler\",\n\t\tPrice = 1500,\n\t\tCapacity = 700,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Keeps your sand nice and cool.\",\n\t\tLook = {\n\t\t\tColor = rgb(40, 200, 230),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Box\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "treasure_sack",
+      "name": "Treasure Sack",
+      "fields": {
+        "Id": "\"treasure_sack\"",
+        "Name": "\"Treasure Sack\"",
+        "Price": "7000",
+        "Capacity": "2500",
+        "RebirthsRequired": "0",
+        "Description": "\"A pirate's loot bag, patched with gold thread.\"",
+        "Look": "{",
+        "Color": "rgb(170, 120, 70)",
+        "AccentColor": "rgb(255, 210, 60)",
+        "Shape": "\"Bag\"",
+        "Material": "Enum.Material.Fabric",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"treasure_sack\",\n\t\tName = \"Treasure Sack\",\n\t\tPrice = 7000,\n\t\tCapacity = 2500,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"A pirate's loot bag, patched with gold thread.\",\n\t\tLook = {\n\t\t\tColor = rgb(170, 120, 70),\n\t\t\tAccentColor = rgb(255, 210, 60),\n\t\t\tShape = \"Bag\",\n\t\t\tMaterial = Enum.Material.Fabric,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "barrel",
+      "name": "Pirate Barrel",
+      "fields": {
+        "Id": "\"barrel\"",
+        "Name": "\"Pirate Barrel\"",
+        "Price": "30000",
+        "Capacity": "9000",
+        "RebirthsRequired": "0",
+        "Description": "\"Rum not included. Sand very included.\"",
+        "Look": "{",
+        "Color": "rgb(140, 90, 50)",
+        "AccentColor": "rgb(80, 80, 90)",
+        "Shape": "\"Barrel\"",
+        "Material": "Enum.Material.Wood",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"barrel\",\n\t\tName = \"Pirate Barrel\",\n\t\tPrice = 30000,\n\t\tCapacity = 9000,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Rum not included. Sand very included.\",\n\t\tLook = {\n\t\t\tColor = rgb(140, 90, 50),\n\t\t\tAccentColor = rgb(80, 80, 90),\n\t\t\tShape = \"Barrel\",\n\t\t\tMaterial = Enum.Material.Wood,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mine_cart",
+      "name": "Mine Cart",
+      "fields": {
+        "Id": "\"mine_cart\"",
+        "Name": "\"Mine Cart\"",
+        "Price": "130000",
+        "Capacity": "30000",
+        "RebirthsRequired": "0",
+        "Description": "\"Rolls on tiny rails strapped to your back.\"",
+        "Look": "{",
+        "Color": "rgb(110, 110, 125)",
+        "AccentColor": "rgb(200, 60, 50)",
+        "Shape": "\"Cart\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"mine_cart\",\n\t\tName = \"Mine Cart\",\n\t\tPrice = 130000,\n\t\tCapacity = 30000,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Rolls on tiny rails strapped to your back.\",\n\t\tLook = {\n\t\t\tColor = rgb(110, 110, 125),\n\t\t\tAccentColor = rgb(200, 60, 50),\n\t\t\tShape = \"Cart\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "wheelbarrow",
+      "name": "Wheelbarrow",
+      "fields": {
+        "Id": "\"wheelbarrow\"",
+        "Name": "\"Wheelbarrow\"",
+        "Price": "600000",
+        "Capacity": "100000",
+        "RebirthsRequired": "0",
+        "Description": "\"Somehow fits on your back. Don't ask.\"",
+        "Look": "{",
+        "Color": "rgb(60, 180, 90)",
+        "AccentColor": "rgb(60, 60, 60)",
+        "Shape": "\"Cart\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"wheelbarrow\",\n\t\tName = \"Wheelbarrow\",\n\t\tPrice = 600000,\n\t\tCapacity = 100000,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Somehow fits on your back. Don't ask.\",\n\t\tLook = {\n\t\t\tColor = rgb(60, 180, 90),\n\t\t\tAccentColor = rgb(60, 60, 60),\n\t\t\tShape = \"Cart\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "dump_truck",
+      "name": "Dump Truck",
+      "fields": {
+        "Id": "\"dump_truck\"",
+        "Name": "\"Dump Truck\"",
+        "Price": "3000000",
+        "Capacity": "400000",
+        "RebirthsRequired": "0",
+        "Description": "\"A whole toy dump truck... that isn't a toy.\"",
+        "Look": "{",
+        "Color": "rgb(255, 200, 30)",
+        "AccentColor": "rgb(50, 50, 60)",
+        "Shape": "\"Vehicle\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"dump_truck\",\n\t\tName = \"Dump Truck\",\n\t\tPrice = 3000000,\n\t\tCapacity = 400000,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"A whole toy dump truck... that isn't a toy.\",\n\t\tLook = {\n\t\t\tColor = rgb(255, 200, 30),\n\t\t\tAccentColor = rgb(50, 50, 60),\n\t\t\tShape = \"Vehicle\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sand_truck",
+      "name": "Sand Truck",
+      "fields": {
+        "Id": "\"sand_truck\"",
+        "Name": "\"Sand Truck\"",
+        "Price": "18000000",
+        "Capacity": "1600000",
+        "RebirthsRequired": "1",
+        "Description": "\"The biggest truck on the beach. Requires 1 Rebirth.\"",
+        "Look": "{",
+        "Color": "rgb(255, 130, 30)",
+        "AccentColor": "rgb(240, 240, 240)",
+        "Shape": "\"Vehicle\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"sand_truck\",\n\t\tName = \"Sand Truck\",\n\t\tPrice = 18000000,\n\t\tCapacity = 1600000,\n\t\tRebirthsRequired = 1,\n\t\tDescription = \"The biggest truck on the beach. Requires 1 Rebirth.\",\n\t\tLook = {\n\t\t\tColor = rgb(255, 130, 30),\n\t\t\tAccentColor = rgb(240, 240, 240),\n\t\t\tShape = \"Vehicle\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "cargo_ship",
+      "name": "Cargo Ship",
+      "fields": {
+        "Id": "\"cargo_ship\"",
+        "Name": "\"Cargo Ship\"",
+        "Price": "120000000",
+        "Capacity": "8000000",
+        "RebirthsRequired": "3",
+        "Description": "\"Carry a shipyard of sand. Requires 3 Rebirths.\"",
+        "Look": "{",
+        "Color": "rgb(40, 90, 200)",
+        "AccentColor": "rgb(230, 60, 60)",
+        "Shape": "\"Vehicle\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"cargo_ship\",\n\t\tName = \"Cargo Ship\",\n\t\tPrice = 120000000,\n\t\tCapacity = 8000000,\n\t\tRebirthsRequired = 3,\n\t\tDescription = \"Carry a shipyard of sand. Requires 3 Rebirths.\",\n\t\tLook = {\n\t\t\tColor = rgb(40, 90, 200),\n\t\t\tAccentColor = rgb(230, 60, 60),\n\t\t\tShape = \"Vehicle\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "black_hole_bag",
+      "name": "Black Hole Bag",
+      "fields": {
+        "Id": "\"black_hole_bag\"",
+        "Name": "\"Black Hole Bag\"",
+        "Price": "900000000",
+        "Capacity": "50000000",
+        "RebirthsRequired": "6",
+        "Description": "\"Bigger on the inside. Requires 6 Rebirths.\"",
+        "Look": "{",
+        "Color": "rgb(80, 20, 140)",
+        "AccentColor": "rgb(255, 120, 255)",
+        "Shape": "\"Orb\"",
+        "Material": "Enum.Material.Neon",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"black_hole_bag\",\n\t\tName = \"Black Hole Bag\",\n\t\tPrice = 900000000,\n\t\tCapacity = 50000000,\n\t\tRebirthsRequired = 6,\n\t\tDescription = \"Bigger on the inside. Requires 6 Rebirths.\",\n\t\tLook = {\n\t\t\tColor = rgb(80, 20, 140),\n\t\t\tAccentColor = rgb(255, 120, 255),\n\t\t\tShape = \"Orb\",\n\t\t\tMaterial = Enum.Material.Neon,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "pocket_dimension",
+      "name": "Pocket Dimension",
+      "fields": {
+        "Id": "\"pocket_dimension\"",
+        "Name": "\"Pocket Dimension\"",
+        "Price": "6000000000",
+        "Capacity": "400000000",
+        "RebirthsRequired": "9",
+        "Description": "\"An entire beach folded into a marble. Requires 9 Rebirths.\"",
+        "Look": "{",
+        "Color": "rgb(255, 215, 90)",
+        "AccentColor": "rgb(120, 255, 255)",
+        "Shape": "\"Orb\"",
+        "Material": "Enum.Material.Neon",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"pocket_dimension\",\n\t\tName = \"Pocket Dimension\",\n\t\tPrice = 6000000000,\n\t\tCapacity = 400000000,\n\t\tRebirthsRequired = 9,\n\t\tDescription = \"An entire beach folded into a marble. Requires 9 Rebirths.\",\n\t\tLook = {\n\t\t\tColor = rgb(255, 215, 90),\n\t\t\tAccentColor = rgb(120, 255, 255),\n\t\t\tShape = \"Orb\",\n\t\t\tMaterial = Enum.Material.Neon,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    }
+  ],
+  "Badges": [
+    {
+      "id": "Welcome",
+      "name": "Welcome to the Beach!",
+      "fields": {},
+      "source": "{ Key = \"Welcome\", Id = 305615989875213, Name = \"Welcome to the Beach!\", Kind = \"FirstDig\" }"
+    },
+    {
+      "id": "FirstPet",
+      "name": "New Best Friend",
+      "fields": {},
+      "source": "{ Key = \"FirstPet\", Id = 1399687731914868, Name = \"New Best Friend\", Kind = \"FirstPet\" }"
+    },
+    {
+      "id": "PirateCove",
+      "name": "Arrr, Pirate Cove!",
+      "fields": {
+        "Key": "\"PirateCove\"",
+        "Id": "3721202346547107",
+        "Name": "\"Arrr, Pirate Cove!\"",
+        "Kind": "\"ReachLayer\"",
+        "Layer": "\"Pirate Cove\""
+      },
+      "source": "{\n\t\tKey = \"PirateCove\",\n\t\tId = 3721202346547107,\n\t\tName = \"Arrr, Pirate Cove!\",\n\t\tKind = \"ReachLayer\",\n\t\tLayer = \"Pirate Cove\",\n\t}"
+    },
+    {
+      "id": "FossilBed",
+      "name": "Dino Digger",
+      "fields": {},
+      "source": "{ Key = \"FossilBed\", Id = 1841450014262918, Name = \"Dino Digger\", Kind = \"ReachLayer\", Layer = \"Fossil Bed\" }"
+    },
+    {
+      "id": "CrystalCaverns",
+      "name": "Crystal Clear",
+      "fields": {
+        "Key": "\"CrystalCaverns\"",
+        "Id": "3808710393122420",
+        "Name": "\"Crystal Clear\"",
+        "Kind": "\"ReachLayer\"",
+        "Layer": "\"Crystal Caverns\""
+      },
+      "source": "{\n\t\tKey = \"CrystalCaverns\",\n\t\tId = 3808710393122420,\n\t\tName = \"Crystal Clear\",\n\t\tKind = \"ReachLayer\",\n\t\tLayer = \"Crystal Caverns\",\n\t}"
+    },
+    {
+      "id": "FrozenAbyss",
+      "name": "Underground Ice Age",
+      "fields": {},
+      "source": "{ Key = \"FrozenAbyss\", Id = 0, Name = \"Underground Ice Age\", Kind = \"ReachLayer\", Layer = \"Frozen Abyss\" }"
+    },
+    {
+      "id": "MagmaChamber",
+      "name": "Too Hot to Handle",
+      "fields": {},
+      "source": "{ Key = \"MagmaChamber\", Id = 0, Name = \"Too Hot to Handle\", Kind = \"ReachLayer\", Layer = \"Magma Chamber\" }"
+    },
+    {
+      "id": "AlienHive",
+      "name": "Close Encounter",
+      "fields": {},
+      "source": "{ Key = \"AlienHive\", Id = 0, Name = \"Close Encounter\", Kind = \"ReachLayer\", Layer = \"Alien Hive\" }"
+    },
+    {
+      "id": "TheCore",
+      "name": "I Reached the Core!",
+      "fields": {},
+      "source": "{ Key = \"TheCore\", Id = 0, Name = \"I Reached the Core!\", Kind = \"ReachLayer\", Layer = \"The Core\" }"
+    },
+    {
+      "id": "FirstRebirth",
+      "name": "Born Again",
+      "fields": {},
+      "source": "{ Key = \"FirstRebirth\", Id = 0, Name = \"Born Again\", Kind = \"Rebirth\", Count = 1 }"
+    },
+    {
+      "id": "MythicLuck",
+      "name": "Mythic Luck",
+      "fields": {},
+      "source": "{ Key = \"MythicLuck\", Id = 0, Name = \"Mythic Luck\", Kind = \"FindRarity\", Rarity = \"Mythic\" }"
+    },
+    {
+      "id": "Collector",
+      "name": "Collector",
+      "fields": {},
+      "source": "{ Key = \"Collector\", Id = 0, Name = \"Collector\", Kind = \"CompleteLayer\" }"
+    },
+    {
+      "id": "AncientRuins",
+      "name": "Lost Civilization",
+      "fields": {},
+      "source": "{ Key = \"AncientRuins\", Id = 0, Name = \"Lost Civilization\", Kind = \"ReachLayer\", Layer = \"Ancient Ruins\" }"
+    },
+    {
+      "id": "BeachRegular",
+      "name": "Beach Regular",
+      "fields": {},
+      "source": "{ Key = \"BeachRegular\", Id = 0, Name = \"Beach Regular\", Kind = \"DailyStreak\", Count = 7 }"
+    },
+    {
+      "id": "CoreBreaker",
+      "name": "Core Breaker",
+      "fields": {},
+      "source": "{ Key = \"CoreBreaker\", Id = 0, Name = \"Core Breaker\", Kind = \"Rebirth\", Count = 10 }"
+    }
+  ],
+  "Boosts": [
+    {
+      "id": "SandBoost",
+      "name": "2x Sand",
+      "fields": {
+        "Id": "\"SandBoost\"",
+        "Name": "\"2x Sand\"",
+        "Kind": "\"Sand\"",
+        "Multiplier": "2",
+        "Description": "\"Double sand from every dig!\"",
+        "Color": "rgb(255, 205, 60)"
+      },
+      "source": "{\n\t\tId = \"SandBoost\",\n\t\tName = \"2x Sand\",\n\t\tKind = \"Sand\",\n\t\tMultiplier = 2,\n\t\tDescription = \"Double sand from every dig!\",\n\t\tColor = rgb(255, 205, 60),\n\t}"
+    },
+    {
+      "id": "LuckBoost",
+      "name": "2x Luck",
+      "fields": {
+        "Id": "\"LuckBoost\"",
+        "Name": "\"2x Luck\"",
+        "Kind": "\"Luck\"",
+        "Multiplier": "2",
+        "Description": "\"Double treasure chance and better pets from eggs!\"",
+        "Color": "rgb(90, 230, 120)"
+      },
+      "source": "{\n\t\tId = \"LuckBoost\",\n\t\tName = \"2x Luck\",\n\t\tKind = \"Luck\",\n\t\tMultiplier = 2,\n\t\tDescription = \"Double treasure chance and better pets from eggs!\",\n\t\tColor = rgb(90, 230, 120),\n\t}"
+    },
+    {
+      "id": "CoinBoost",
+      "name": "2x Coins",
+      "fields": {
+        "Id": "\"CoinBoost\"",
+        "Name": "\"2x Coins\"",
+        "Kind": "\"Coins\"",
+        "Multiplier": "2",
+        "Description": "\"Double coins every time you sell!\"",
+        "Color": "rgb(255, 170, 30)"
+      },
+      "source": "{\n\t\tId = \"CoinBoost\",\n\t\tName = \"2x Coins\",\n\t\tKind = \"Coins\",\n\t\tMultiplier = 2,\n\t\tDescription = \"Double coins every time you sell!\",\n\t\tColor = rgb(255, 170, 30),\n\t}"
+    },
+    {
+      "id": "SpeedBoost",
+      "name": "Fast Dig",
+      "fields": {
+        "Id": "\"SpeedBoost\"",
+        "Name": "\"Fast Dig\"",
+        "Kind": "\"Speed\"",
+        "Multiplier": "1.5",
+        "Description": "\"Dig 50% faster!\"",
+        "Color": "rgb(60, 190, 255)"
+      },
+      "source": "{\n\t\tId = \"SpeedBoost\",\n\t\tName = \"Fast Dig\",\n\t\tKind = \"Speed\",\n\t\tMultiplier = 1.5,\n\t\tDescription = \"Dig 50% faster!\",\n\t\tColor = rgb(60, 190, 255),\n\t}"
+    },
+    {
+      "id": "SugarRush",
+      "name": "Sugar Rush",
+      "fields": {
+        "Id": "\"SugarRush\"",
+        "Name": "\"Sugar Rush\"",
+        "Kind": "\"Speed\"",
+        "Multiplier": "1.25",
+        "Description": "\"Brain freeze! Dig 25% faster for a little while.\"",
+        "Color": "rgb(255, 120, 200)"
+      },
+      "source": "{\n\t\tId = \"SugarRush\",\n\t\tName = \"Sugar Rush\",\n\t\tKind = \"Speed\",\n\t\tMultiplier = 1.25,\n\t\tDescription = \"Brain freeze! Dig 25% faster for a little while.\",\n\t\tColor = rgb(255, 120, 200),\n\t}"
+    },
+    {
+      "id": "MelonPower",
+      "name": "Melon Power",
+      "fields": {
+        "Id": "\"MelonPower\"",
+        "Name": "\"Melon Power\"",
+        "Kind": "\"Sand\"",
+        "Multiplier": "1.5",
+        "Description": "\"Juicy! +50% sand for a little while.\"",
+        "Color": "rgb(90, 220, 110)"
+      },
+      "source": "{\n\t\tId = \"MelonPower\",\n\t\tName = \"Melon Power\",\n\t\tKind = \"Sand\",\n\t\tMultiplier = 1.5,\n\t\tDescription = \"Juicy! +50% sand for a little while.\",\n\t\tColor = rgb(90, 220, 110),\n\t}"
+    }
+  ],
+  "Codes": [
+    {
+      "id": "RELEASE",
+      "name": "RELEASE",
+      "fields": {
+        "Code": "\"RELEASE\"",
+        "Reward": "{ ScaledCoins = 300, Coins = 500, Pet = \"launch_crab\" }",
+        "Enabled": "true",
+        "Expires": "nil",
+        "Note": "\"Launch code. Gives the exclusive Launch Party Crab.\""
+      },
+      "source": "{\n\t\tCode = \"RELEASE\",\n\t\tReward = { ScaledCoins = 300, Coins = 500, Pet = \"launch_crab\" },\n\t\tEnabled = true,\n\t\tExpires = nil,\n\t\tNote = \"Launch code. Gives the exclusive Launch Party Crab.\",\n\t}"
+    },
+    {
+      "id": "SANDY",
+      "name": "SANDY",
+      "fields": {
+        "Code": "\"SANDY\"",
+        "Reward": "{ Boost = \"SandBoost\", BoostSeconds = 900 }",
+        "Enabled": "true",
+        "Expires": "nil",
+        "Note": "\"Evergreen code shown on the loading screen / game description.\""
+      },
+      "source": "{\n\t\tCode = \"SANDY\",\n\t\tReward = { Boost = \"SandBoost\", BoostSeconds = 900 },\n\t\tEnabled = true,\n\t\tExpires = nil,\n\t\tNote = \"Evergreen code shown on the loading screen / game description.\",\n\t}"
+    },
+    {
+      "id": "DIGDEEP",
+      "name": "DIGDEEP",
+      "fields": {
+        "Code": "\"DIGDEEP\"",
+        "Reward": "{ Boost = \"LuckBoost\", BoostSeconds = 900, Egg = \"beach_egg\", EggCount = 1 }",
+        "Enabled": "true",
+        "Expires": "nil",
+        "GroupOnly": "true",
+        "Note": "\"Group code: post it in the Roblox group and Discord.\""
+      },
+      "source": "{\n\t\tCode = \"DIGDEEP\",\n\t\tReward = { Boost = \"LuckBoost\", BoostSeconds = 900, Egg = \"beach_egg\", EggCount = 1 },\n\t\tEnabled = true,\n\t\tExpires = nil,\n\t\tGroupOnly = true,\n\t\tNote = \"Group code: post it in the Roblox group and Discord.\",\n\t}"
+    },
+    {
+      "id": "1KLIKES",
+      "name": "1KLIKES",
+      "fields": {
+        "Code": "\"1KLIKES\"",
+        "Reward": "{ ScaledCoins = 600, RebirthTokens = 1 }",
+        "Enabled": "false",
+        "Expires": "nil",
+        "Note": "\"Enable when the game reaches 1,000 likes.\""
+      },
+      "source": "{\n\t\tCode = \"1KLIKES\",\n\t\tReward = { ScaledCoins = 600, RebirthTokens = 1 },\n\t\tEnabled = false,\n\t\tExpires = nil,\n\t\tNote = \"Enable when the game reaches 1,000 likes.\",\n\t}"
+    }
+  ],
+  "Consumables": [
+    {
+      "id": "water",
+      "name": "Fountain Water",
+      "fields": {
+        "Id": "\"water\"",
+        "Name": "\"Fountain Water\"",
+        "Price": "0",
+        "Cooling": "70",
+        "Icon": "\"💧\"",
+        "Description": "\"Free at the fountain! Cools you right down.\"",
+        "Look": "{ Style = \"Bottle\", Color = rgb(120, 200, 255) }"
+      },
+      "source": "{\n\t\tId = \"water\",\n\t\tName = \"Fountain Water\",\n\t\tPrice = 0,\n\t\tCooling = 70,\n\t\tIcon = \"💧\",\n\t\tDescription = \"Free at the fountain! Cools you right down.\",\n\t\tLook = { Style = \"Bottle\", Color = rgb(120, 200, 255) },\n\t}"
+    },
+    {
+      "id": "lemonade",
+      "name": "Lemonade",
+      "fields": {
+        "Id": "\"lemonade\"",
+        "Name": "\"Lemonade\"",
+        "Price": "40",
+        "Cooling": "35",
+        "Icon": "\"🍋\"",
+        "Description": "\"Fresh and fizzy. A quick cool-down.\"",
+        "Look": "{ Style = \"Cup\", Color = rgb(255, 235, 90) }"
+      },
+      "source": "{\n\t\tId = \"lemonade\",\n\t\tName = \"Lemonade\",\n\t\tPrice = 40,\n\t\tCooling = 35,\n\t\tIcon = \"🍋\",\n\t\tDescription = \"Fresh and fizzy. A quick cool-down.\",\n\t\tLook = { Style = \"Cup\", Color = rgb(255, 235, 90) },\n\t}"
+    },
+    {
+      "id": "coconut_water",
+      "name": "Coconut Water",
+      "fields": {
+        "Id": "\"coconut_water\"",
+        "Name": "\"Coconut Water\"",
+        "Price": "250",
+        "Cooling": "60",
+        "Icon": "\"🥥\"",
+        "Description": "\"Straight from the palm tree. Big cool-down.\"",
+        "Look": "{ Style = \"Coconut\", Color = rgb(130, 85, 50) }"
+      },
+      "source": "{\n\t\tId = \"coconut_water\",\n\t\tName = \"Coconut Water\",\n\t\tPrice = 250,\n\t\tCooling = 60,\n\t\tIcon = \"🥥\",\n\t\tDescription = \"Straight from the palm tree. Big cool-down.\",\n\t\tLook = { Style = \"Coconut\", Color = rgb(130, 85, 50) },\n\t}"
+    },
+    {
+      "id": "popsicle",
+      "name": "Popsicle",
+      "fields": {
+        "Id": "\"popsicle\"",
+        "Name": "\"Popsicle\"",
+        "Price": "1200",
+        "Cooling": "50",
+        "Boost": "\"SugarRush\"",
+        "BoostSeconds": "30",
+        "Icon": "\"🍭\"",
+        "Description": "\"Brain freeze! Dig 25% faster for 30s.\"",
+        "Look": "{ Style = \"Popsicle\", Color = rgb(255, 90, 140) }"
+      },
+      "source": "{\n\t\tId = \"popsicle\",\n\t\tName = \"Popsicle\",\n\t\tPrice = 1200,\n\t\tCooling = 50,\n\t\tBoost = \"SugarRush\",\n\t\tBoostSeconds = 30,\n\t\tIcon = \"🍭\",\n\t\tDescription = \"Brain freeze! Dig 25% faster for 30s.\",\n\t\tLook = { Style = \"Popsicle\", Color = rgb(255, 90, 140) },\n\t}"
+    },
+    {
+      "id": "shaved_ice",
+      "name": "Shaved Ice",
+      "fields": {
+        "Id": "\"shaved_ice\"",
+        "Name": "\"Shaved Ice\"",
+        "Price": "6000",
+        "Cooling": "80",
+        "Boost": "\"SugarRush\"",
+        "BoostSeconds": "60",
+        "Icon": "\"🍧\"",
+        "Description": "\"Rainbow syrup! Dig 25% faster for 60s.\"",
+        "Look": "{ Style = \"ShavedIce\", Color = rgb(90, 180, 255) }"
+      },
+      "source": "{\n\t\tId = \"shaved_ice\",\n\t\tName = \"Shaved Ice\",\n\t\tPrice = 6000,\n\t\tCooling = 80,\n\t\tBoost = \"SugarRush\",\n\t\tBoostSeconds = 60,\n\t\tIcon = \"🍧\",\n\t\tDescription = \"Rainbow syrup! Dig 25% faster for 60s.\",\n\t\tLook = { Style = \"ShavedIce\", Color = rgb(90, 180, 255) },\n\t}"
+    },
+    {
+      "id": "watermelon_slice",
+      "name": "Watermelon Slice",
+      "fields": {
+        "Id": "\"watermelon_slice\"",
+        "Name": "\"Watermelon Slice\"",
+        "Price": "25000",
+        "Cooling": "100",
+        "Boost": "\"MelonPower\"",
+        "BoostSeconds": "45",
+        "Icon": "\"🍉\"",
+        "Description": "\"Fully cooled AND +50% sand for 45s.\"",
+        "Look": "{ Style = \"Slice\", Color = rgb(255, 80, 90) }"
+      },
+      "source": "{\n\t\tId = \"watermelon_slice\",\n\t\tName = \"Watermelon Slice\",\n\t\tPrice = 25000,\n\t\tCooling = 100,\n\t\tBoost = \"MelonPower\",\n\t\tBoostSeconds = 45,\n\t\tIcon = \"🍉\",\n\t\tDescription = \"Fully cooled AND +50% sand for 45s.\",\n\t\tLook = { Style = \"Slice\", Color = rgb(255, 80, 90) },\n\t}"
+    },
+    {
+      "id": "giant_watermelon",
+      "name": "Giant Watermelon",
+      "fields": {
+        "Id": "\"giant_watermelon\"",
+        "Name": "\"Giant Watermelon\"",
+        "Price": "250000",
+        "Cooling": "100",
+        "Boost": "\"MelonPower\"",
+        "BoostSeconds": "150",
+        "Icon": "\"🍈\"",
+        "Description": "\"A whole melon! Fully cooled AND +50% sand for 2.5 min.\"",
+        "Look": "{ Style = \"Melon\", Color = rgb(70, 170, 80) }"
+      },
+      "source": "{\n\t\tId = \"giant_watermelon\",\n\t\tName = \"Giant Watermelon\",\n\t\tPrice = 250000,\n\t\tCooling = 100,\n\t\tBoost = \"MelonPower\",\n\t\tBoostSeconds = 150,\n\t\tIcon = \"🍈\",\n\t\tDescription = \"A whole melon! Fully cooled AND +50% sand for 2.5 min.\",\n\t\tLook = { Style = \"Melon\", Color = rgb(70, 170, 80) },\n\t}"
+    }
+  ],
+  "DailyRewards": [
+    {
+      "id": "1",
+      "name": "Coins",
+      "fields": {},
+      "source": "{ Day = 1, Label = \"Coins\", Reward = { ScaledCoins = 120, Coins = 100 } }"
+    },
+    {
+      "id": "2",
+      "name": "2x Sand (15 min)",
+      "fields": {},
+      "source": "{ Day = 2, Label = \"2x Sand (15 min)\", Reward = { Boost = \"SandBoost\", BoostSeconds = 900 } }"
+    },
+    {
+      "id": "3",
+      "name": "Big Coins",
+      "fields": {},
+      "source": "{ Day = 3, Label = \"Big Coins\", Reward = { ScaledCoins = 300, Coins = 250 } }"
+    },
+    {
+      "id": "4",
+      "name": "2x Luck (15 min)",
+      "fields": {},
+      "source": "{ Day = 4, Label = \"2x Luck (15 min)\", Reward = { Boost = \"LuckBoost\", BoostSeconds = 900 } }"
+    },
+    {
+      "id": "5",
+      "name": "Free Eggs",
+      "fields": {},
+      "source": "{ Day = 5, Label = \"Free Eggs\", Reward = { Egg = \"beach_egg\", EggCount = 3 } }"
+    },
+    {
+      "id": "6",
+      "name": "Huge Coins + Token",
+      "fields": {},
+      "source": "{ Day = 6, Label = \"Huge Coins + Token\", Reward = { ScaledCoins = 600, Coins = 500, RebirthTokens = 1 } }"
+    },
+    {
+      "id": "7",
+      "name": "Sunny Seal Pet!",
+      "fields": {
+        "Day": "7",
+        "Label": "\"Sunny Seal Pet!\"",
+        "Reward": "{ Pet = \"sunny_seal\", Boost = \"CoinBoost\", BoostSeconds = 1800 }"
+      },
+      "source": "{\n\t\tDay = 7,\n\t\tLabel = \"Sunny Seal Pet!\",\n\t\tReward = { Pet = \"sunny_seal\", Boost = \"CoinBoost\", BoostSeconds = 1800 },\n\t}"
+    }
+  ],
+  "Eggs": [
+    {
+      "id": "beach_egg",
+      "name": "Beach Egg",
+      "fields": {
+        "Id": "\"beach_egg\"",
+        "Name": "\"Beach Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "100",
+        "UnlockLayer": "1",
+        "PityAt": "40",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(255, 240, 200), SpotColor = rgb(80, 200, 255), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"beach_egg\",\n\t\tName = \"Beach Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 100,\n\t\tUnlockLayer = 1,\n\t\tPityAt = 40,\n\t\tPets = {\n\t\t\t{ PetId = \"sandy_crab\", Weight = 60 },\n\t\t\t{ PetId = \"seagull\", Weight = 28 },\n\t\t\t{ PetId = \"starfish\", Weight = 10 },\n\t\t\t{ PetId = \"baby_turtle\", Weight = 1.9 },\n\t\t\t{ PetId = \"golden_crab\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(255, 240, 200), SpotColor = rgb(80, 200, 255), Glow = false },\n\t}"
+    },
+    {
+      "id": "tidepool_egg",
+      "name": "Tide Pool Egg",
+      "fields": {
+        "Id": "\"tidepool_egg\"",
+        "Name": "\"Tide Pool Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "2500",
+        "UnlockLayer": "3",
+        "PityAt": "30",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(120, 220, 240), SpotColor = rgb(255, 150, 180), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"tidepool_egg\",\n\t\tName = \"Tide Pool Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 2500,\n\t\tUnlockLayer = 3,\n\t\tPityAt = 30,\n\t\tPets = {\n\t\t\t{ PetId = \"clownfish\", Weight = 60 },\n\t\t\t{ PetId = \"pufferfish\", Weight = 28 },\n\t\t\t{ PetId = \"octopus\", Weight = 10 },\n\t\t\t{ PetId = \"sea_turtle\", Weight = 1.9 },\n\t\t\t{ PetId = \"rainbow_starfish\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(120, 220, 240), SpotColor = rgb(255, 150, 180), Glow = false },\n\t}"
+    },
+    {
+      "id": "pirate_egg",
+      "name": "Pirate Egg",
+      "fields": {
+        "Id": "\"pirate_egg\"",
+        "Name": "\"Pirate Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "40000",
+        "UnlockLayer": "5",
+        "PityAt": "30",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(150, 100, 60), SpotColor = rgb(255, 210, 50), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"pirate_egg\",\n\t\tName = \"Pirate Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 40000,\n\t\tUnlockLayer = 5,\n\t\tPityAt = 30,\n\t\tPets = {\n\t\t\t{ PetId = \"parrot\", Weight = 60 },\n\t\t\t{ PetId = \"pirate_crab\", Weight = 28 },\n\t\t\t{ PetId = \"ghost_blob\", Weight = 10 },\n\t\t\t{ PetId = \"skeleton_shark\", Weight = 1.9 },\n\t\t\t{ PetId = \"kraken\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(150, 100, 60), SpotColor = rgb(255, 210, 50), Glow = false },\n\t}"
+    },
+    {
+      "id": "fossil_egg",
+      "name": "Fossil Egg",
+      "fields": {
+        "Id": "\"fossil_egg\"",
+        "Name": "\"Fossil Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "600000",
+        "UnlockLayer": "7",
+        "PityAt": "30",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(230, 215, 180), SpotColor = rgb(140, 120, 90), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"fossil_egg\",\n\t\tName = \"Fossil Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 600000,\n\t\tUnlockLayer = 7,\n\t\tPityAt = 30,\n\t\tPets = {\n\t\t\t{ PetId = \"mole\", Weight = 60 },\n\t\t\t{ PetId = \"baby_raptor\", Weight = 28 },\n\t\t\t{ PetId = \"stegosaurus\", Weight = 10 },\n\t\t\t{ PetId = \"trex\", Weight = 1.9 },\n\t\t\t{ PetId = \"bone_dragon\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(230, 215, 180), SpotColor = rgb(140, 120, 90), Glow = false },\n\t}"
+    },
+    {
+      "id": "crystal_egg",
+      "name": "Crystal Egg",
+      "fields": {
+        "Id": "\"crystal_egg\"",
+        "Name": "\"Crystal Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "8000000",
+        "UnlockLayer": "9",
+        "PityAt": "30",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(180, 120, 255), SpotColor = rgb(150, 240, 255), Glow = true }"
+      },
+      "source": "{\n\t\tId = \"crystal_egg\",\n\t\tName = \"Crystal Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 8000000,\n\t\tUnlockLayer = 9,\n\t\tPityAt = 30,\n\t\tPets = {\n\t\t\t{ PetId = \"crystal_bat\", Weight = 60 },\n\t\t\t{ PetId = \"gem_blob\", Weight = 28 },\n\t\t\t{ PetId = \"crystal_golem\", Weight = 10 },\n\t\t\t{ PetId = \"frost_seal\", Weight = 1.9 },\n\t\t\t{ PetId = \"diamond_dragon\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(180, 120, 255), SpotColor = rgb(150, 240, 255), Glow = true },\n\t}"
+    },
+    {
+      "id": "magma_egg",
+      "name": "Magma Egg",
+      "fields": {
+        "Id": "\"magma_egg\"",
+        "Name": "\"Magma Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "150000000",
+        "UnlockLayer": "12",
+        "PityAt": "30",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(60, 30, 30), SpotColor = rgb(255, 100, 30), Glow = true }"
+      },
+      "source": "{\n\t\tId = \"magma_egg\",\n\t\tName = \"Magma Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 150000000,\n\t\tUnlockLayer = 12,\n\t\tPityAt = 30,\n\t\tPets = {\n\t\t\t{ PetId = \"lava_salamander\", Weight = 60 },\n\t\t\t{ PetId = \"magma_golem\", Weight = 28 },\n\t\t\t{ PetId = \"fire_bird\", Weight = 10 },\n\t\t\t{ PetId = \"lava_kraken\", Weight = 1.9 },\n\t\t\t{ PetId = \"phoenix\", Weight = 0.09 },\n\t\t\t{ PetId = \"core_dragon\", Weight = 0.01 },\n\t\t},\n\t\tLook = { ShellColor = rgb(60, 30, 30), SpotColor = rgb(255, 100, 30), Glow = true },\n\t}"
+    },
+    {
+      "id": "cosmic_egg",
+      "name": "Cosmic Egg",
+      "fields": {
+        "Id": "\"cosmic_egg\"",
+        "Name": "\"Cosmic Egg\"",
+        "Currency": "\"Coins\"",
+        "Price": "3000000000",
+        "UnlockLayer": "14",
+        "PityAt": "25",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(40, 30, 100), SpotColor = rgb(120, 255, 160), Glow = true }"
+      },
+      "source": "{\n\t\tId = \"cosmic_egg\",\n\t\tName = \"Cosmic Egg\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 3000000000,\n\t\tUnlockLayer = 14,\n\t\tPityAt = 25,\n\t\tPets = {\n\t\t\t{ PetId = \"alien_blob\", Weight = 70 },\n\t\t\t{ PetId = \"cosmic_turtle\", Weight = 25 },\n\t\t\t{ PetId = \"star_golem\", Weight = 4.9 },\n\t\t\t{ PetId = \"galaxy_dragon\", Weight = 0.1 },\n\t\t},\n\t\tLook = { ShellColor = rgb(40, 30, 100), SpotColor = rgb(120, 255, 160), Glow = true },\n\t}"
+    },
+    {
+      "id": "rebirth_egg",
+      "name": "Rebirth Egg",
+      "fields": {
+        "Id": "\"rebirth_egg\"",
+        "Name": "\"Rebirth Egg\"",
+        "Currency": "\"Tokens\"",
+        "Price": "3",
+        "UnlockLayer": "1",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(120, 255, 200), SpotColor = rgb(255, 255, 255), Glow = true }"
+      },
+      "source": "{\n\t\tId = \"rebirth_egg\",\n\t\tName = \"Rebirth Egg\",\n\t\tCurrency = \"Tokens\",\n\t\tPrice = 3,\n\t\tUnlockLayer = 1,\n\t\tPets = {\n\t\t\t{ PetId = \"tide_spirit\", Weight = 70 },\n\t\t\t{ PetId = \"rebirth_phoenix\", Weight = 25 },\n\t\t\t{ PetId = \"sandlantis_guardian\", Weight = 5 },\n\t\t},\n\t\tLook = { ShellColor = rgb(120, 255, 200), SpotColor = rgb(255, 255, 255), Glow = true },\n\t}"
+    },
+    {
+      "id": "golden_egg",
+      "name": "Golden Egg",
+      "fields": {
+        "Id": "\"golden_egg\"",
+        "Name": "\"Golden Egg\"",
+        "Currency": "\"Tokens\"",
+        "Price": "10",
+        "UnlockLayer": "1",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(255, 210, 50), SpotColor = rgb(255, 255, 255), Glow = true }"
+      },
+      "source": "{\n\t\t-- v2.3: earnable only (was a Robux product). 10 Rebirth Tokens ~ 4 early rebirths.\n\t\tId = \"golden_egg\",\n\t\tName = \"Golden Egg\",\n\t\tCurrency = \"Tokens\",\n\t\tPrice = 10,\n\t\tUnlockLayer = 1,\n\t\tPets = {\n\t\t\t{ PetId = \"golden_seagull\", Weight = 70 },\n\t\t\t{ PetId = \"golden_turtle\", Weight = 27 },\n\t\t\t{ PetId = \"sun_dragon\", Weight = 3 },\n\t\t},\n\t\tLook = { ShellColor = rgb(255, 210, 50), SpotColor = rgb(255, 255, 255), Glow = true },\n\t}"
+    },
+    {
+      "id": "sandbox_crate",
+      "name": "Sandbox Crate",
+      "fields": {
+        "Id": "\"sandbox_crate\"",
+        "Name": "\"Sandbox Crate\"",
+        "Kind": "\"Crate\"",
+        "Currency": "\"Coins\"",
+        "Price": "1000",
+        "UnlockLayer": "3",
+        "PityAt": "35",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(214, 160, 96), SpotColor = rgb(255, 200, 40), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"sandbox_crate\",\n\t\tName = \"Sandbox Crate\",\n\t\tKind = \"Crate\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 1000,\n\t\tUnlockLayer = 3,\n\t\tPityAt = 35,\n\t\tPets = {\n\t\t\t{ PetId = \"toy_truck\", Weight = 65 },\n\t\t\t{ PetId = \"dump_truck\", Weight = 28 },\n\t\t\t{ PetId = \"mini_excavator\", Weight = 7 },\n\t\t},\n\t\tLook = { ShellColor = rgb(214, 160, 96), SpotColor = rgb(255, 200, 40), Glow = false },\n\t}"
+    },
+    {
+      "id": "quarry_crate",
+      "name": "Quarry Crate",
+      "fields": {
+        "Id": "\"quarry_crate\"",
+        "Name": "\"Quarry Crate\"",
+        "Kind": "\"Crate\"",
+        "Currency": "\"Coins\"",
+        "Price": "75000",
+        "UnlockLayer": "6",
+        "PityAt": "35",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(150, 156, 168), SpotColor = rgb(255, 170, 30), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"quarry_crate\",\n\t\tName = \"Quarry Crate\",\n\t\tKind = \"Crate\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 75000,\n\t\tUnlockLayer = 6,\n\t\tPityAt = 35,\n\t\tPets = {\n\t\t\t{ PetId = \"skid_steer\", Weight = 65 },\n\t\t\t{ PetId = \"bulldozer\", Weight = 28 },\n\t\t\t{ PetId = \"backhoe\", Weight = 7 },\n\t\t},\n\t\tLook = { ShellColor = rgb(150, 156, 168), SpotColor = rgb(255, 170, 30), Glow = false },\n\t}"
+    },
+    {
+      "id": "mine_crate",
+      "name": "Deep Mine Crate",
+      "fields": {
+        "Id": "\"mine_crate\"",
+        "Name": "\"Deep Mine Crate\"",
+        "Kind": "\"Crate\"",
+        "Currency": "\"Coins\"",
+        "Price": "6000000",
+        "UnlockLayer": "10",
+        "PityAt": "35",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(110, 80, 60), SpotColor = rgb(255, 120, 30), Glow = false }"
+      },
+      "source": "{\n\t\tId = \"mine_crate\",\n\t\tName = \"Deep Mine Crate\",\n\t\tKind = \"Crate\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 6000000,\n\t\tUnlockLayer = 10,\n\t\tPityAt = 35,\n\t\tPets = {\n\t\t\t{ PetId = \"drill_rig\", Weight = 65 },\n\t\t\t{ PetId = \"mining_drill\", Weight = 28 },\n\t\t\t{ PetId = \"tunnel_borer\", Weight = 7 },\n\t\t},\n\t\tLook = { ShellColor = rgb(110, 80, 60), SpotColor = rgb(255, 120, 30), Glow = false },\n\t}"
+    },
+    {
+      "id": "core_crate",
+      "name": "Core Crate",
+      "fields": {
+        "Id": "\"core_crate\"",
+        "Name": "\"Core Crate\"",
+        "Kind": "\"Crate\"",
+        "Currency": "\"Coins\"",
+        "Price": "1500000000",
+        "UnlockLayer": "14",
+        "PityAt": "25",
+        "Pets": "{",
+        "Look": "{ ShellColor = rgb(60, 60, 72), SpotColor = rgb(255, 210, 60), Glow = true }"
+      },
+      "source": "{\n\t\tId = \"core_crate\",\n\t\tName = \"Core Crate\",\n\t\tKind = \"Crate\",\n\t\tCurrency = \"Coins\",\n\t\tPrice = 1500000000,\n\t\tUnlockLayer = 14,\n\t\tPityAt = 25,\n\t\tPets = {\n\t\t\t{ PetId = \"mole_machine\", Weight = 62 },\n\t\t\t{ PetId = \"lava_drill\", Weight = 30 },\n\t\t\t{ PetId = \"core_driller\", Weight = 7.5 },\n\t\t\t{ PetId = \"mega_excavator\", Weight = 0.5 },\n\t\t},\n\t\tLook = { ShellColor = rgb(60, 60, 72), SpotColor = rgb(255, 210, 60), Glow = true },\n\t}"
+    }
+  ],
+  "Events": [
+    {
+      "id": "HighTide",
+      "name": "High Tide",
+      "fields": {
+        "Id": "\"HighTide\"",
+        "Name": "\"High Tide\"",
+        "Description": "\"The tide washes treasure into the sand! 2x Luck for everyone.\"",
+        "Kind": "\"Luck\"",
+        "Multiplier": "2",
+        "IntervalSeconds": "20 * 60",
+        "DurationSeconds": "3 * 60",
+        "OffsetSeconds": "0",
+        "Color": "rgb(50, 170, 255)"
+      },
+      "source": "{\n\t\tId = \"HighTide\",\n\t\tName = \"High Tide\",\n\t\tDescription = \"The tide washes treasure into the sand! 2x Luck for everyone.\",\n\t\tKind = \"Luck\",\n\t\tMultiplier = 2,\n\t\tIntervalSeconds = 20 * 60,\n\t\tDurationSeconds = 3 * 60,\n\t\tOffsetSeconds = 0,\n\t\tColor = rgb(50, 170, 255),\n\t}"
+    },
+    {
+      "id": "GoldenHour",
+      "name": "Golden Hour",
+      "fields": {
+        "Id": "\"GoldenHour\"",
+        "Name": "\"Golden Hour\"",
+        "Description": "\"The sunset makes everything shine. 2x Coins when you sell!\"",
+        "Kind": "\"Coins\"",
+        "Multiplier": "2",
+        "IntervalSeconds": "45 * 60",
+        "DurationSeconds": "5 * 60",
+        "OffsetSeconds": "10 * 60",
+        "Color": "rgb(255, 160, 40)"
+      },
+      "source": "{\n\t\tId = \"GoldenHour\",\n\t\tName = \"Golden Hour\",\n\t\tDescription = \"The sunset makes everything shine. 2x Coins when you sell!\",\n\t\tKind = \"Coins\",\n\t\tMultiplier = 2,\n\t\tIntervalSeconds = 45 * 60,\n\t\tDurationSeconds = 5 * 60,\n\t\tOffsetSeconds = 10 * 60,\n\t\tColor = rgb(255, 160, 40),\n\t}"
+    }
+  ],
+  "Layers": [
+    {
+      "id": "dry_sand",
+      "name": "Dry Sand",
+      "fields": {
+        "Id": "\"dry_sand\"",
+        "Name": "\"Dry Sand\"",
+        "DepthStart": "0",
+        "DepthEnd": "20",
+        "Material": "Enum.Material.Sand",
+        "Color": "rgb(255, 224, 150)",
+        "Hardness": "1",
+        "SandValue": "1",
+        "TreasureChance": "0.04",
+        "LootTable": "{",
+        "RewardScale": "1",
+        "FlavorText": "\"Warm, sunny and full of stuff tourists dropped. Every legend starts with a bucket!\"",
+        "AmbientColor": "rgb(255, 236, 190)"
+      },
+      "source": "{\n\t\tId = \"dry_sand\",\n\t\tName = \"Dry Sand\",\n\t\tDepthStart = 0,\n\t\tDepthEnd = 20,\n\t\tMaterial = Enum.Material.Sand,\n\t\tColor = rgb(255, 224, 150),\n\t\tHardness = 1,\n\t\tSandValue = 1,\n\t\tTreasureChance = 0.04,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"bottle_cap\", Weight = 70 },\n\t\t\t{ TreasureId = \"lost_flip_flop\", Weight = 22 },\n\t\t\t{ TreasureId = \"cool_sunglasses\", Weight = 8 },\n\t\t},\n\t\tRewardScale = 1,\n\t\tFlavorText = \"Warm, sunny and full of stuff tourists dropped. Every legend starts with a bucket!\",\n\t\tAmbientColor = rgb(255, 236, 190),\n\t}"
+    },
+    {
+      "id": "wet_sand",
+      "name": "Wet Sand",
+      "fields": {
+        "Id": "\"wet_sand\"",
+        "Name": "\"Wet Sand\"",
+        "DepthStart": "20",
+        "DepthEnd": "45",
+        "Material": "Enum.Material.Sandstone",
+        "Color": "rgb(214, 172, 112)",
+        "Hardness": "2",
+        "SandValue": "2",
+        "TreasureChance": "0.035",
+        "LootTable": "{",
+        "RewardScale": "1.5",
+        "FlavorText": "\"Squishy, salty and perfect for sandcastles. The tide hides little gifts down here.\"",
+        "AmbientColor": "rgb(230, 200, 150)"
+      },
+      "source": "{\n\t\tId = \"wet_sand\",\n\t\tName = \"Wet Sand\",\n\t\tDepthStart = 20,\n\t\tDepthEnd = 45,\n\t\tMaterial = Enum.Material.Sandstone,\n\t\tColor = rgb(214, 172, 112),\n\t\tHardness = 2,\n\t\tSandValue = 2,\n\t\tTreasureChance = 0.035,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"seashell\", Weight = 70 },\n\t\t\t{ TreasureId = \"sand_dollar\", Weight = 22 },\n\t\t\t{ TreasureId = \"message_in_a_bottle\", Weight = 8 },\n\t\t},\n\t\tRewardScale = 1.5,\n\t\tFlavorText = \"Squishy, salty and perfect for sandcastles. The tide hides little gifts down here.\",\n\t\tAmbientColor = rgb(230, 200, 150),\n\t}"
+    },
+    {
+      "id": "shell_bed",
+      "name": "Shell Bed",
+      "fields": {
+        "Id": "\"shell_bed\"",
+        "Name": "\"Shell Bed\"",
+        "DepthStart": "45",
+        "DepthEnd": "75",
+        "Material": "Enum.Material.Salt",
+        "Color": "rgb(255, 214, 214)",
+        "Hardness": "4",
+        "SandValue": "4",
+        "TreasureChance": "0.035",
+        "LootTable": "{",
+        "RewardScale": "3",
+        "FlavorText": "\"A million years of seashells packed together. Hold one to your ear... is that the Core humming?\"",
+        "AmbientColor": "rgb(255, 210, 220)"
+      },
+      "source": "{\n\t\tId = \"shell_bed\",\n\t\tName = \"Shell Bed\",\n\t\tDepthStart = 45,\n\t\tDepthEnd = 75,\n\t\tMaterial = Enum.Material.Salt,\n\t\tColor = rgb(255, 214, 214),\n\t\tHardness = 4,\n\t\tSandValue = 4,\n\t\tTreasureChance = 0.035,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"conch_shell\", Weight = 70 },\n\t\t\t{ TreasureId = \"glowing_pearl\", Weight = 25 },\n\t\t\t{ TreasureId = \"giant_clam\", Weight = 5 },\n\t\t},\n\t\tRewardScale = 3,\n\t\tFlavorText = \"A million years of seashells packed together. Hold one to your ear... is that the Core humming?\",\n\t\tAmbientColor = rgb(255, 210, 220),\n\t}"
+    },
+    {
+      "id": "tidal_clay",
+      "name": "Tidal Clay",
+      "fields": {
+        "Id": "\"tidal_clay\"",
+        "Name": "\"Tidal Clay\"",
+        "DepthStart": "75",
+        "DepthEnd": "110",
+        "Material": "Enum.Material.Mud",
+        "Color": "rgb(150, 108, 82)",
+        "Hardness": "8",
+        "SandValue": "8",
+        "TreasureChance": "0.03",
+        "LootTable": "{",
+        "RewardScale": "8",
+        "FlavorText": "\"Sticky clay that swallowed whole fishing boats. Something shiny is stuck in it.\"",
+        "AmbientColor": "rgb(170, 130, 100)"
+      },
+      "source": "{\n\t\tId = \"tidal_clay\",\n\t\tName = \"Tidal Clay\",\n\t\tDepthStart = 75,\n\t\tDepthEnd = 110,\n\t\tMaterial = Enum.Material.Mud,\n\t\tColor = rgb(150, 108, 82),\n\t\tHardness = 8,\n\t\tSandValue = 8,\n\t\tTreasureChance = 0.03,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"rusty_anchor\", Weight = 70 },\n\t\t\t{ TreasureId = \"pocket_watch\", Weight = 22 },\n\t\t\t{ TreasureId = \"mermaid_comb\", Weight = 8 },\n\t\t},\n\t\tRewardScale = 8,\n\t\tFlavorText = \"Sticky clay that swallowed whole fishing boats. Something shiny is stuck in it.\",\n\t\tAmbientColor = rgb(170, 130, 100),\n\t}"
+    },
+    {
+      "id": "pirate_cove",
+      "name": "Pirate Cove",
+      "fields": {
+        "Id": "\"pirate_cove\"",
+        "Name": "\"Pirate Cove\"",
+        "DepthStart": "110",
+        "DepthEnd": "150",
+        "Material": "Enum.Material.Ground",
+        "Color": "rgb(122, 86, 56)",
+        "Hardness": "15",
+        "SandValue": "15",
+        "TreasureChance": "0.03",
+        "LootTable": "{",
+        "RewardScale": "25",
+        "FlavorText": "\"Captain Sandbeard buried his loot here 300 years ago. His map says 'X marks... deeper'.\"",
+        "AmbientColor": "rgb(140, 100, 60)"
+      },
+      "source": "{\n\t\tId = \"pirate_cove\",\n\t\tName = \"Pirate Cove\",\n\t\tDepthStart = 110,\n\t\tDepthEnd = 150,\n\t\tMaterial = Enum.Material.Ground,\n\t\tColor = rgb(122, 86, 56),\n\t\tHardness = 15,\n\t\tSandValue = 15,\n\t\tTreasureChance = 0.03,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"gold_doubloon\", Weight = 68 },\n\t\t\t{ TreasureId = \"pirate_hook\", Weight = 22 },\n\t\t\t{ TreasureId = \"treasure_map\", Weight = 9 },\n\t\t\t{ TreasureId = \"pirate_chest\", Weight = 1 },\n\t\t},\n\t\tRewardScale = 25,\n\t\tFlavorText = \"Captain Sandbeard buried his loot here 300 years ago. His map says 'X marks... deeper'.\",\n\t\tAmbientColor = rgb(140, 100, 60),\n\t}"
+    },
+    {
+      "id": "shipwreck",
+      "name": "Sunken Shipwreck",
+      "fields": {
+        "Id": "\"shipwreck\"",
+        "Name": "\"Sunken Shipwreck\"",
+        "DepthStart": "150",
+        "DepthEnd": "200",
+        "Material": "Enum.Material.WoodPlanks",
+        "Color": "rgb(128, 88, 54)",
+        "Hardness": "25",
+        "SandValue": "30",
+        "TreasureChance": "0.03",
+        "LootTable": "{",
+        "RewardScale": "80",
+        "FlavorText": "\"The Salty Gull sank into the sand, not the sea. You're digging through its decks.\"",
+        "AmbientColor": "rgb(110, 80, 55)"
+      },
+      "source": "{\n\t\tId = \"shipwreck\",\n\t\tName = \"Sunken Shipwreck\",\n\t\tDepthStart = 150,\n\t\tDepthEnd = 200,\n\t\tMaterial = Enum.Material.WoodPlanks,\n\t\tColor = rgb(128, 88, 54),\n\t\tHardness = 25,\n\t\tSandValue = 30,\n\t\tTreasureChance = 0.03,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"ships_wheel\", Weight = 70 },\n\t\t\t{ TreasureId = \"captains_spyglass\", Weight = 26 },\n\t\t\t{ TreasureId = \"cursed_skull\", Weight = 4 },\n\t\t},\n\t\tRewardScale = 80,\n\t\tFlavorText = \"The Salty Gull sank into the sand, not the sea. You're digging through its decks.\",\n\t\tAmbientColor = rgb(110, 80, 55),\n\t}"
+    },
+    {
+      "id": "fossil_bed",
+      "name": "Fossil Bed",
+      "fields": {
+        "Id": "\"fossil_bed\"",
+        "Name": "\"Fossil Bed\"",
+        "DepthStart": "200",
+        "DepthEnd": "260",
+        "Material": "Enum.Material.Limestone",
+        "Color": "rgb(228, 212, 176)",
+        "Hardness": "45",
+        "SandValue": "60",
+        "TreasureChance": "0.03",
+        "LootTable": "{",
+        "RewardScale": "250",
+        "FlavorText": "\"Before the beach there was a jungle. Before the jungle there were DINOSAURS.\"",
+        "AmbientColor": "rgb(220, 205, 170)"
+      },
+      "source": "{\n\t\tId = \"fossil_bed\",\n\t\tName = \"Fossil Bed\",\n\t\tDepthStart = 200,\n\t\tDepthEnd = 260,\n\t\tMaterial = Enum.Material.Limestone,\n\t\tColor = rgb(228, 212, 176),\n\t\tHardness = 45,\n\t\tSandValue = 60,\n\t\tTreasureChance = 0.03,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"trilobite\", Weight = 66 },\n\t\t\t{ TreasureId = \"ammonite\", Weight = 24 },\n\t\t\t{ TreasureId = \"trex_tooth\", Weight = 9 },\n\t\t\t{ TreasureId = \"dino_skull\", Weight = 1 },\n\t\t},\n\t\tRewardScale = 250,\n\t\tFlavorText = \"Before the beach there was a jungle. Before the jungle there were DINOSAURS.\",\n\t\tAmbientColor = rgb(220, 205, 170),\n\t}"
+    },
+    {
+      "id": "bedrock",
+      "name": "Bedrock",
+      "fields": {
+        "Id": "\"bedrock\"",
+        "Name": "\"Bedrock\"",
+        "DepthStart": "260",
+        "DepthEnd": "330",
+        "Material": "Enum.Material.Rock",
+        "Color": "rgb(108, 110, 122)",
+        "Hardness": "80",
+        "SandValue": "120",
+        "TreasureChance": "0.025",
+        "LootTable": "{",
+        "RewardScale": "450",
+        "FlavorText": "\"Solid stone that most diggers never get past. Crack a geode and see what sparkles.\"",
+        "AmbientColor": "rgb(100, 100, 115)"
+      },
+      "source": "{\n\t\tId = \"bedrock\",\n\t\tName = \"Bedrock\",\n\t\tDepthStart = 260,\n\t\tDepthEnd = 330,\n\t\tMaterial = Enum.Material.Rock,\n\t\tColor = rgb(108, 110, 122),\n\t\tHardness = 80,\n\t\tSandValue = 120,\n\t\tTreasureChance = 0.025,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"geode\", Weight = 70 },\n\t\t\t{ TreasureId = \"iron_nugget\", Weight = 22 },\n\t\t\t{ TreasureId = \"ancient_arrowhead\", Weight = 8 },\n\t\t},\n\t\tRewardScale = 450,\n\t\tFlavorText = \"Solid stone that most diggers never get past. Crack a geode and see what sparkles.\",\n\t\tAmbientColor = rgb(100, 100, 115),\n\t}"
+    },
+    {
+      "id": "crystal_caverns",
+      "name": "Crystal Caverns",
+      "fields": {
+        "Id": "\"crystal_caverns\"",
+        "Name": "\"Crystal Caverns\"",
+        "DepthStart": "330",
+        "DepthEnd": "410",
+        "Material": "Enum.Material.Glacier",
+        "Color": "rgb(176, 112, 255)",
+        "Hardness": "140",
+        "SandValue": "250",
+        "TreasureChance": "0.025",
+        "LootTable": "{",
+        "RewardScale": "1200",
+        "FlavorText": "\"Glittering purple caves that glow in the dark. Nobody knows who lit them.\"",
+        "AmbientColor": "rgb(150, 100, 230)"
+      },
+      "source": "{\n\t\tId = \"crystal_caverns\",\n\t\tName = \"Crystal Caverns\",\n\t\tDepthStart = 330,\n\t\tDepthEnd = 410,\n\t\tMaterial = Enum.Material.Glacier,\n\t\tColor = rgb(176, 112, 255),\n\t\tHardness = 140,\n\t\tSandValue = 250,\n\t\tTreasureChance = 0.025,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"amethyst\", Weight = 66 },\n\t\t\t{ TreasureId = \"sapphire\", Weight = 24 },\n\t\t\t{ TreasureId = \"glow_crystal\", Weight = 9 },\n\t\t\t{ TreasureId = \"rainbow_diamond\", Weight = 1 },\n\t\t},\n\t\tRewardScale = 1200,\n\t\tFlavorText = \"Glittering purple caves that glow in the dark. Nobody knows who lit them.\",\n\t\tAmbientColor = rgb(150, 100, 230),\n\t}"
+    },
+    {
+      "id": "frozen_abyss",
+      "name": "Frozen Abyss",
+      "fields": {
+        "Id": "\"frozen_abyss\"",
+        "Name": "\"Frozen Abyss\"",
+        "DepthStart": "410",
+        "DepthEnd": "495",
+        "Material": "Enum.Material.Ice",
+        "Color": "rgb(160, 226, 255)",
+        "Hardness": "250",
+        "SandValue": "550",
+        "TreasureChance": "0.025",
+        "LootTable": "{",
+        "RewardScale": "4000",
+        "FlavorText": "\"An underground ice age! Brr... a woolly mammoth is still frozen in here somewhere.\"",
+        "AmbientColor": "rgb(170, 225, 255)"
+      },
+      "source": "{\n\t\tId = \"frozen_abyss\",\n\t\tName = \"Frozen Abyss\",\n\t\tDepthStart = 410,\n\t\tDepthEnd = 495,\n\t\tMaterial = Enum.Material.Ice,\n\t\tColor = rgb(160, 226, 255),\n\t\tHardness = 250,\n\t\tSandValue = 550,\n\t\tTreasureChance = 0.025,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"frozen_fish\", Weight = 70 },\n\t\t\t{ TreasureId = \"mammoth_tusk\", Weight = 26 },\n\t\t\t{ TreasureId = \"ice_crown\", Weight = 4 },\n\t\t},\n\t\tRewardScale = 4000,\n\t\tFlavorText = \"An underground ice age! Brr... a woolly mammoth is still frozen in here somewhere.\",\n\t\tAmbientColor = rgb(170, 225, 255),\n\t}"
+    },
+    {
+      "id": "ancient_ruins",
+      "name": "Ancient Ruins",
+      "fields": {
+        "Id": "\"ancient_ruins\"",
+        "Name": "\"Ancient Ruins\"",
+        "DepthStart": "495",
+        "DepthEnd": "585",
+        "Material": "Enum.Material.Brick",
+        "Color": "rgb(206, 176, 110)",
+        "Hardness": "450",
+        "SandValue": "1200",
+        "TreasureChance": "0.025",
+        "LootTable": "{",
+        "RewardScale": "15000",
+        "FlavorText": "\"The lost city of Sandlantis. Its people dug down too... and never came back up.\"",
+        "AmbientColor": "rgb(200, 170, 110)"
+      },
+      "source": "{\n\t\tId = \"ancient_ruins\",\n\t\tName = \"Ancient Ruins\",\n\t\tDepthStart = 495,\n\t\tDepthEnd = 585,\n\t\tMaterial = Enum.Material.Brick,\n\t\tColor = rgb(206, 176, 110),\n\t\tHardness = 450,\n\t\tSandValue = 1200,\n\t\tTreasureChance = 0.025,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"stone_tablet\", Weight = 66 },\n\t\t\t{ TreasureId = \"golden_idol\", Weight = 26 },\n\t\t\t{ TreasureId = \"sun_mask\", Weight = 7 },\n\t\t\t{ TreasureId = \"atlantis_crown\", Weight = 1 },\n\t\t},\n\t\tRewardScale = 15000,\n\t\tFlavorText = \"The lost city of Sandlantis. Its people dug down too... and never came back up.\",\n\t\tAmbientColor = rgb(200, 170, 110),\n\t}"
+    },
+    {
+      "id": "magma_chamber",
+      "name": "Magma Chamber",
+      "fields": {
+        "Id": "\"magma_chamber\"",
+        "Name": "\"Magma Chamber\"",
+        "DepthStart": "585",
+        "DepthEnd": "680",
+        "Material": "Enum.Material.CrackedLava",
+        "Color": "rgb(255, 92, 32)",
+        "Hardness": "800",
+        "SandValue": "2800",
+        "TreasureChance": "0.02",
+        "LootTable": "{",
+        "RewardScale": "60000",
+        "FlavorText": "\"Hot hot HOT! Rivers of lava light the way. Don't touch the glowing bits.\"",
+        "AmbientColor": "rgb(255, 110, 50)"
+      },
+      "source": "{\n\t\tId = \"magma_chamber\",\n\t\tName = \"Magma Chamber\",\n\t\tDepthStart = 585,\n\t\tDepthEnd = 680,\n\t\tMaterial = Enum.Material.CrackedLava,\n\t\tColor = rgb(255, 92, 32),\n\t\tHardness = 800,\n\t\tSandValue = 2800,\n\t\tTreasureChance = 0.02,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"obsidian_shard\", Weight = 70 },\n\t\t\t{ TreasureId = \"fire_ruby\", Weight = 28 },\n\t\t\t{ TreasureId = \"dragon_egg\", Weight = 2 },\n\t\t},\n\t\tRewardScale = 60000,\n\t\tFlavorText = \"Hot hot HOT! Rivers of lava light the way. Don't touch the glowing bits.\",\n\t\tAmbientColor = rgb(255, 110, 50),\n\t}"
+    },
+    {
+      "id": "obsidian_depths",
+      "name": "Obsidian Depths",
+      "fields": {
+        "Id": "\"obsidian_depths\"",
+        "Name": "\"Obsidian Depths\"",
+        "DepthStart": "680",
+        "DepthEnd": "780",
+        "Material": "Enum.Material.Basalt",
+        "Color": "rgb(52, 40, 72)",
+        "Hardness": "1400",
+        "SandValue": "6500",
+        "TreasureChance": "0.02",
+        "LootTable": "{",
+        "RewardScale": "250000",
+        "FlavorText": "\"Black glass, total silence. Strange footprints lead deeper... they aren't human.\"",
+        "AmbientColor": "rgb(70, 50, 100)"
+      },
+      "source": "{\n\t\tId = \"obsidian_depths\",\n\t\tName = \"Obsidian Depths\",\n\t\tDepthStart = 680,\n\t\tDepthEnd = 780,\n\t\tMaterial = Enum.Material.Basalt,\n\t\tColor = rgb(52, 40, 72),\n\t\tHardness = 1400,\n\t\tSandValue = 6500,\n\t\tTreasureChance = 0.02,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"shadow_gem\", Weight = 70 },\n\t\t\t{ TreasureId = \"void_pearl\", Weight = 26 },\n\t\t\t{ TreasureId = \"dragon_scale\", Weight = 4 },\n\t\t},\n\t\tRewardScale = 250000,\n\t\tFlavorText = \"Black glass, total silence. Strange footprints lead deeper... they aren't human.\",\n\t\tAmbientColor = rgb(70, 50, 100),\n\t}"
+    },
+    {
+      "id": "alien_hive",
+      "name": "Alien Hive",
+      "fields": {
+        "Id": "\"alien_hive\"",
+        "Name": "\"Alien Hive\"",
+        "DepthStart": "780",
+        "DepthEnd": "885",
+        "Material": "Enum.Material.Slate",
+        "Color": "rgb(96, 232, 124)",
+        "Hardness": "2500",
+        "SandValue": "16000",
+        "TreasureChance": "0.02",
+        "LootTable": "{",
+        "RewardScale": "700000",
+        "FlavorText": "\"A crashed spaceship grew into a glowing green hive. The aliens were looking for the Core too.\"",
+        "AmbientColor": "rgb(110, 240, 140)"
+      },
+      "source": "{\n\t\tId = \"alien_hive\",\n\t\tName = \"Alien Hive\",\n\t\tDepthStart = 780,\n\t\tDepthEnd = 885,\n\t\tMaterial = Enum.Material.Slate,\n\t\tColor = rgb(96, 232, 124),\n\t\tHardness = 2500,\n\t\tSandValue = 16000,\n\t\tTreasureChance = 0.02,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"alien_goo\", Weight = 66 },\n\t\t\t{ TreasureId = \"ufo_part\", Weight = 24 },\n\t\t\t{ TreasureId = \"alien_artifact\", Weight = 9 },\n\t\t\t{ TreasureId = \"alien_egg\", Weight = 1 },\n\t\t},\n\t\tRewardScale = 700000,\n\t\tFlavorText = \"A crashed spaceship grew into a glowing green hive. The aliens were looking for the Core too.\",\n\t\tAmbientColor = rgb(110, 240, 140),\n\t}"
+    },
+    {
+      "id": "the_core",
+      "name": "The Core",
+      "fields": {
+        "Id": "\"the_core\"",
+        "Name": "\"The Core\"",
+        "DepthStart": "885",
+        "DepthEnd": "1000",
+        "Material": "Enum.Material.Pavement",
+        "Color": "rgb(255, 200, 60)",
+        "Hardness": "4500",
+        "SandValue": "40000",
+        "TreasureChance": "0.02",
+        "LootTable": "{",
+        "RewardScale": "1800000",
+        "FlavorText": "\"The golden heart of the planet. Legends say the very first beach ball was made here.\"",
+        "AmbientColor": "rgb(255, 210, 90)"
+      },
+      "source": "{\n\t\tId = \"the_core\",\n\t\tName = \"The Core\",\n\t\tDepthStart = 885,\n\t\tDepthEnd = 1000,\n\t\tMaterial = Enum.Material.Pavement,\n\t\tColor = rgb(255, 200, 60),\n\t\tHardness = 4500,\n\t\tSandValue = 40000,\n\t\tTreasureChance = 0.02,\n\t\tLootTable = {\n\t\t\t{ TreasureId = \"core_fragment\", Weight = 75 },\n\t\t\t{ TreasureId = \"molten_gold\", Weight = 22 },\n\t\t\t{ TreasureId = \"heart_of_the_earth\", Weight = 2.9 },\n\t\t\t{ TreasureId = \"beach_ball_of_creation\", Weight = 0.1 },\n\t\t},\n\t\tRewardScale = 1800000,\n\t\tFlavorText = \"The golden heart of the planet. Legends say the very first beach ball was made here.\",\n\t\tAmbientColor = rgb(255, 210, 90),\n\t}"
+    }
+  ],
+  "Pets": [
+    {
+      "id": "sandy_crab",
+      "name": "Sandy Crab",
+      "fields": {
+        "Id": "\"sandy_crab\"",
+        "Name": "\"Sandy Crab\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.05",
+        "Dig": "{ Power = 4, Interval = 4, Radius = 2, SandMultiplier = 1 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 110, 80)",
+        "AccentColor": "rgb(255, 220, 180)",
+        "Shape": "\"Crab\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"sandy_crab\",\n\t\tName = \"Sandy Crab\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.05,\n\t\tDig = { Power = 4, Interval = 4, Radius = 2, SandMultiplier = 1 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 110, 80),\n\t\t\tAccentColor = rgb(255, 220, 180),\n\t\t\tShape = \"Crab\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "seagull",
+      "name": "Seagull",
+      "fields": {
+        "Id": "\"seagull\"",
+        "Name": "\"Seagull\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.08",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(250, 250, 250)",
+        "AccentColor": "rgb(255, 190, 40)",
+        "Shape": "\"Bird\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"seagull\",\n\t\tName = \"Seagull\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.08,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(250, 250, 250),\n\t\t\tAccentColor = rgb(255, 190, 40),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "starfish",
+      "name": "Starfish",
+      "fields": {
+        "Id": "\"starfish\"",
+        "Name": "\"Starfish\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.12",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 150, 60)",
+        "AccentColor": "rgb(255, 230, 120)",
+        "Shape": "\"Star\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"starfish\",\n\t\tName = \"Starfish\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.12,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 150, 60),\n\t\t\tAccentColor = rgb(255, 230, 120),\n\t\t\tShape = \"Star\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "baby_turtle",
+      "name": "Baby Turtle",
+      "fields": {
+        "Id": "\"baby_turtle\"",
+        "Name": "\"Baby Turtle\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.2",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(110, 200, 90)",
+        "AccentColor": "rgb(190, 140, 80)",
+        "Shape": "\"Turtle\"",
+        "Size": "0.9",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"baby_turtle\",\n\t\tName = \"Baby Turtle\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.2,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(110, 200, 90),\n\t\t\tAccentColor = rgb(190, 140, 80),\n\t\t\tShape = \"Turtle\",\n\t\t\tSize = 0.9,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "golden_crab",
+      "name": "Golden Crab",
+      "fields": {
+        "Id": "\"golden_crab\"",
+        "Name": "\"Golden Crab\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "1.5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 210, 40)",
+        "AccentColor": "rgb(255, 255, 200)",
+        "Shape": "\"Crab\"",
+        "Size": "1.2",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"golden_crab\",\n\t\tName = \"Golden Crab\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 1.5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 210, 40),\n\t\t\tAccentColor = rgb(255, 255, 200),\n\t\t\tShape = \"Crab\",\n\t\t\tSize = 1.2,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "clownfish",
+      "name": "Clownfish",
+      "fields": {
+        "Id": "\"clownfish\"",
+        "Name": "\"Clownfish\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.15",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 130, 30)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Fish\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"clownfish\",\n\t\tName = \"Clownfish\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.15,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 130, 30),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Fish\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "pufferfish",
+      "name": "Pufferfish",
+      "fields": {
+        "Id": "\"pufferfish\"",
+        "Name": "\"Pufferfish\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.22",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(250, 220, 100)",
+        "AccentColor": "rgb(120, 90, 60)",
+        "Shape": "\"Blob\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"pufferfish\",\n\t\tName = \"Pufferfish\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.22,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(250, 220, 100),\n\t\t\tAccentColor = rgb(120, 90, 60),\n\t\t\tShape = \"Blob\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "octopus",
+      "name": "Octopus",
+      "fields": {
+        "Id": "\"octopus\"",
+        "Name": "\"Octopus\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(240, 90, 170)",
+        "AccentColor": "rgb(255, 200, 230)",
+        "Shape": "\"Squid\"",
+        "Size": "1.1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"octopus\",\n\t\tName = \"Octopus\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(240, 90, 170),\n\t\t\tAccentColor = rgb(255, 200, 230),\n\t\t\tShape = \"Squid\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sea_turtle",
+      "name": "Sea Turtle",
+      "fields": {
+        "Id": "\"sea_turtle\"",
+        "Name": "\"Sea Turtle\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "1.45",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(40, 170, 140)",
+        "AccentColor": "rgb(220, 190, 120)",
+        "Shape": "\"Turtle\"",
+        "Size": "1.2",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"sea_turtle\",\n\t\tName = \"Sea Turtle\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 1.45,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(40, 170, 140),\n\t\t\tAccentColor = rgb(220, 190, 120),\n\t\t\tShape = \"Turtle\",\n\t\t\tSize = 1.2,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "rainbow_starfish",
+      "name": "Rainbow Starfish",
+      "fields": {
+        "Id": "\"rainbow_starfish\"",
+        "Name": "\"Rainbow Starfish\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "1.8",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 90, 200)",
+        "AccentColor": "rgb(90, 220, 255)",
+        "Shape": "\"Star\"",
+        "Size": "1.3",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"rainbow_starfish\",\n\t\tName = \"Rainbow Starfish\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 1.8,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 90, 200),\n\t\t\tAccentColor = rgb(90, 220, 255),\n\t\t\tShape = \"Star\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "parrot",
+      "name": "Pirate Parrot",
+      "fields": {
+        "Id": "\"parrot\"",
+        "Name": "\"Pirate Parrot\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(230, 40, 40)",
+        "AccentColor": "rgb(40, 120, 255)",
+        "Shape": "\"Bird\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"parrot\",\n\t\tName = \"Pirate Parrot\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(230, 40, 40),\n\t\t\tAccentColor = rgb(40, 120, 255),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "pirate_crab",
+      "name": "Pirate Crab",
+      "fields": {
+        "Id": "\"pirate_crab\"",
+        "Name": "\"Pirate Crab\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.4",
+        "Dig": "{ Power = 25, Interval = 3.5, Radius = 2.2, SandMultiplier = 3 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(200, 50, 40)",
+        "AccentColor": "rgb(30, 30, 30)",
+        "Shape": "\"Crab\"",
+        "Size": "1.1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"pirate_crab\",\n\t\tName = \"Pirate Crab\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.4,\n\t\tDig = { Power = 25, Interval = 3.5, Radius = 2.2, SandMultiplier = 3 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(200, 50, 40),\n\t\t\tAccentColor = rgb(30, 30, 30),\n\t\t\tShape = \"Crab\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "ghost_blob",
+      "name": "Ghost Blob",
+      "fields": {
+        "Id": "\"ghost_blob\"",
+        "Name": "\"Ghost Blob\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.55",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(200, 255, 230)",
+        "AccentColor": "rgb(120, 220, 200)",
+        "Shape": "\"Blob\"",
+        "Size": "1.1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"ghost_blob\",\n\t\tName = \"Ghost Blob\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.55,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(200, 255, 230),\n\t\t\tAccentColor = rgb(120, 220, 200),\n\t\t\tShape = \"Blob\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "skeleton_shark",
+      "name": "Skeleton Shark",
+      "fields": {
+        "Id": "\"skeleton_shark\"",
+        "Name": "\"Skeleton Shark\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "1.75",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(240, 235, 220)",
+        "AccentColor": "rgb(80, 80, 90)",
+        "Shape": "\"Fish\"",
+        "Size": "1.3",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"skeleton_shark\",\n\t\tName = \"Skeleton Shark\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 1.75,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(240, 235, 220),\n\t\t\tAccentColor = rgb(80, 80, 90),\n\t\t\tShape = \"Fish\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "kraken",
+      "name": "Kraken",
+      "fields": {
+        "Id": "\"kraken\"",
+        "Name": "\"Kraken\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "2.3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(120, 40, 160)",
+        "AccentColor": "rgb(255, 120, 200)",
+        "Shape": "\"Squid\"",
+        "Size": "1.5",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"kraken\",\n\t\tName = \"Kraken\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 2.3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 40, 160),\n\t\t\tAccentColor = rgb(255, 120, 200),\n\t\t\tShape = \"Squid\",\n\t\t\tSize = 1.5,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mole",
+      "name": "Mole",
+      "fields": {
+        "Id": "\"mole\"",
+        "Name": "\"Mole\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.5",
+        "Dig": "{ Power = 45, Interval = 3, Radius = 2.2, SandMultiplier = 4.2 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(110, 80, 70)",
+        "AccentColor": "rgb(255, 170, 180)",
+        "Shape": "\"Mole\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"mole\",\n\t\tName = \"Mole\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.5,\n\t\tDig = { Power = 45, Interval = 3, Radius = 2.2, SandMultiplier = 4.2 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(110, 80, 70),\n\t\t\tAccentColor = rgb(255, 170, 180),\n\t\t\tShape = \"Mole\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "baby_raptor",
+      "name": "Baby Raptor",
+      "fields": {
+        "Id": "\"baby_raptor\"",
+        "Name": "\"Baby Raptor\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.7",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(120, 180, 80)",
+        "AccentColor": "rgb(230, 200, 120)",
+        "Shape": "\"Dino\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"baby_raptor\",\n\t\tName = \"Baby Raptor\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.7,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 180, 80),\n\t\t\tAccentColor = rgb(230, 200, 120),\n\t\t\tShape = \"Dino\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "stegosaurus",
+      "name": "Stegosaurus",
+      "fields": {
+        "Id": "\"stegosaurus\"",
+        "Name": "\"Stegosaurus\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.9",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(90, 150, 200)",
+        "AccentColor": "rgb(255, 140, 60)",
+        "Shape": "\"Dino\"",
+        "Size": "1.2",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"stegosaurus\",\n\t\tName = \"Stegosaurus\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.9,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(90, 150, 200),\n\t\t\tAccentColor = rgb(255, 140, 60),\n\t\t\tShape = \"Dino\",\n\t\t\tSize = 1.2,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "trex",
+      "name": "T-Rex",
+      "fields": {
+        "Id": "\"trex\"",
+        "Name": "\"T-Rex\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "2.2",
+        "Dig": "{ Power = 80, Interval = 2.8, Radius = 2.4, SandMultiplier = 7.2 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(70, 140, 70)",
+        "AccentColor": "rgb(250, 240, 220)",
+        "Shape": "\"Dino\"",
+        "Size": "1.4",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"trex\",\n\t\tName = \"T-Rex\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 2.2,\n\t\tDig = { Power = 80, Interval = 2.8, Radius = 2.4, SandMultiplier = 7.2 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(70, 140, 70),\n\t\t\tAccentColor = rgb(250, 240, 220),\n\t\t\tShape = \"Dino\",\n\t\t\tSize = 1.4,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "bone_dragon",
+      "name": "Bone Dragon",
+      "fields": {
+        "Id": "\"bone_dragon\"",
+        "Name": "\"Bone Dragon\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(245, 240, 225)",
+        "AccentColor": "rgb(120, 255, 180)",
+        "Shape": "\"Dragon\"",
+        "Size": "1.5",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"bone_dragon\",\n\t\tName = \"Bone Dragon\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(245, 240, 225),\n\t\t\tAccentColor = rgb(120, 255, 180),\n\t\t\tShape = \"Dragon\",\n\t\t\tSize = 1.5,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "crystal_bat",
+      "name": "Crystal Bat",
+      "fields": {
+        "Id": "\"crystal_bat\"",
+        "Name": "\"Crystal Bat\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.8",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(120, 70, 200)",
+        "AccentColor": "rgb(220, 170, 255)",
+        "Shape": "\"Bird\"",
+        "Size": "1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"crystal_bat\",\n\t\tName = \"Crystal Bat\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.8,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 70, 200),\n\t\t\tAccentColor = rgb(220, 170, 255),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "gem_blob",
+      "name": "Gem Blob",
+      "fields": {
+        "Id": "\"gem_blob\"",
+        "Name": "\"Gem Blob\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "2.1",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(80, 200, 255)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Blob\"",
+        "Size": "1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"gem_blob\",\n\t\tName = \"Gem Blob\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 2.1,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(80, 200, 255),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Blob\",\n\t\t\tSize = 1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "crystal_golem",
+      "name": "Crystal Golem",
+      "fields": {
+        "Id": "\"crystal_golem\"",
+        "Name": "\"Crystal Golem\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "2.5",
+        "Dig": "{ Power = 140, Interval = 3, Radius = 2.4, SandMultiplier = 12 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(180, 110, 255)",
+        "AccentColor": "rgb(240, 220, 255)",
+        "Shape": "\"Golem\"",
+        "Size": "1.3",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"crystal_golem\",\n\t\tName = \"Crystal Golem\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 2.5,\n\t\tDig = { Power = 140, Interval = 3, Radius = 2.4, SandMultiplier = 12 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(180, 110, 255),\n\t\t\tAccentColor = rgb(240, 220, 255),\n\t\t\tShape = \"Golem\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "frost_seal",
+      "name": "Frost Seal",
+      "fields": {
+        "Id": "\"frost_seal\"",
+        "Name": "\"Frost Seal\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(200, 240, 255)",
+        "AccentColor": "rgb(80, 160, 255)",
+        "Shape": "\"Seal\"",
+        "Size": "1.2",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"frost_seal\",\n\t\tName = \"Frost Seal\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(200, 240, 255),\n\t\t\tAccentColor = rgb(80, 160, 255),\n\t\t\tShape = \"Seal\",\n\t\t\tSize = 1.2,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "diamond_dragon",
+      "name": "Diamond Dragon",
+      "fields": {
+        "Id": "\"diamond_dragon\"",
+        "Name": "\"Diamond Dragon\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "4",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(200, 250, 255)",
+        "AccentColor": "rgb(150, 120, 255)",
+        "Shape": "\"Dragon\"",
+        "Size": "1.5",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"diamond_dragon\",\n\t\tName = \"Diamond Dragon\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 4,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(200, 250, 255),\n\t\t\tAccentColor = rgb(150, 120, 255),\n\t\t\tShape = \"Dragon\",\n\t\t\tSize = 1.5,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "lava_salamander",
+      "name": "Lava Salamander",
+      "fields": {
+        "Id": "\"lava_salamander\"",
+        "Name": "\"Lava Salamander\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "2.5",
+        "Dig": "{ Power = 800, Interval = 3, Radius = 2.4, SandMultiplier = 34 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 110, 30)",
+        "AccentColor": "rgb(60, 30, 30)",
+        "Shape": "\"Dino\"",
+        "Size": "1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"lava_salamander\",\n\t\tName = \"Lava Salamander\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 2.5,\n\t\tDig = { Power = 800, Interval = 3, Radius = 2.4, SandMultiplier = 34 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 110, 30),\n\t\t\tAccentColor = rgb(60, 30, 30),\n\t\t\tShape = \"Dino\",\n\t\t\tSize = 1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "magma_golem",
+      "name": "Magma Golem",
+      "fields": {
+        "Id": "\"magma_golem\"",
+        "Name": "\"Magma Golem\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(100, 65, 60)",
+        "AccentColor": "rgb(255, 120, 30)",
+        "Shape": "\"Golem\"",
+        "Size": "1.3",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"magma_golem\",\n\t\tName = \"Magma Golem\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(100, 65, 60),\n\t\t\tAccentColor = rgb(255, 120, 30),\n\t\t\tShape = \"Golem\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "fire_bird",
+      "name": "Fire Bird",
+      "fields": {
+        "Id": "\"fire_bird\"",
+        "Name": "\"Fire Bird\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "3.5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 80, 30)",
+        "AccentColor": "rgb(255, 220, 60)",
+        "Shape": "\"Bird\"",
+        "Size": "1.1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"fire_bird\",\n\t\tName = \"Fire Bird\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 3.5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 80, 30),\n\t\t\tAccentColor = rgb(255, 220, 60),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "lava_kraken",
+      "name": "Lava Kraken",
+      "fields": {
+        "Id": "\"lava_kraken\"",
+        "Name": "\"Lava Kraken\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "4.5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(200, 40, 20)",
+        "AccentColor": "rgb(255, 200, 40)",
+        "Shape": "\"Squid\"",
+        "Size": "1.4",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"lava_kraken\",\n\t\tName = \"Lava Kraken\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 4.5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(200, 40, 20),\n\t\t\tAccentColor = rgb(255, 200, 40),\n\t\t\tShape = \"Squid\",\n\t\t\tSize = 1.4,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix",
+      "fields": {
+        "Id": "\"phoenix\"",
+        "Name": "\"Phoenix\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "6",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 170, 30)",
+        "AccentColor": "rgb(255, 60, 40)",
+        "Shape": "\"Bird\"",
+        "Size": "1.5",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"phoenix\",\n\t\tName = \"Phoenix\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 6,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 170, 30),\n\t\t\tAccentColor = rgb(255, 60, 40),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1.5,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "core_dragon",
+      "name": "Core Dragon",
+      "fields": {
+        "Id": "\"core_dragon\"",
+        "Name": "\"Core Dragon\"",
+        "Rarity": "\"Mythic\"",
+        "Multiplier": "10",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 210, 60)",
+        "AccentColor": "rgb(255, 90, 20)",
+        "Shape": "\"Dragon\"",
+        "Size": "1.6",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"core_dragon\",\n\t\tName = \"Core Dragon\",\n\t\tRarity = \"Mythic\",\n\t\tMultiplier = 10,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 210, 60),\n\t\t\tAccentColor = rgb(255, 90, 20),\n\t\t\tShape = \"Dragon\",\n\t\t\tSize = 1.6,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "alien_blob",
+      "name": "Alien Blob",
+      "fields": {
+        "Id": "\"alien_blob\"",
+        "Name": "\"Alien Blob\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "3.5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(110, 255, 120)",
+        "AccentColor": "rgb(40, 120, 60)",
+        "Shape": "\"Blob\"",
+        "Size": "1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"alien_blob\",\n\t\tName = \"Alien Blob\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 3.5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(110, 255, 120),\n\t\t\tAccentColor = rgb(40, 120, 60),\n\t\t\tShape = \"Blob\",\n\t\t\tSize = 1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "cosmic_turtle",
+      "name": "Cosmic Turtle",
+      "fields": {
+        "Id": "\"cosmic_turtle\"",
+        "Name": "\"Cosmic Turtle\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(60, 40, 140)",
+        "AccentColor": "rgb(150, 220, 255)",
+        "Shape": "\"Turtle\"",
+        "Size": "1.3",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"cosmic_turtle\",\n\t\tName = \"Cosmic Turtle\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(60, 40, 140),\n\t\t\tAccentColor = rgb(150, 220, 255),\n\t\t\tShape = \"Turtle\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "star_golem",
+      "name": "Star Golem",
+      "fields": {
+        "Id": "\"star_golem\"",
+        "Name": "\"Star Golem\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "7",
+        "Dig": "{ Power = 2500, Interval = 2.8, Radius = 2.6, SandMultiplier = 104 }",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(65, 65, 110)",
+        "AccentColor": "rgb(255, 240, 120)",
+        "Shape": "\"Golem\"",
+        "Size": "1.4",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"star_golem\",\n\t\tName = \"Star Golem\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 7,\n\t\tDig = { Power = 2500, Interval = 2.8, Radius = 2.6, SandMultiplier = 104 },\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(65, 65, 110),\n\t\t\tAccentColor = rgb(255, 240, 120),\n\t\t\tShape = \"Golem\",\n\t\t\tSize = 1.4,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "galaxy_dragon",
+      "name": "Galaxy Dragon",
+      "fields": {
+        "Id": "\"galaxy_dragon\"",
+        "Name": "\"Galaxy Dragon\"",
+        "Rarity": "\"Mythic\"",
+        "Multiplier": "15",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(90, 40, 200)",
+        "AccentColor": "rgb(255, 120, 255)",
+        "Shape": "\"Dragon\"",
+        "Size": "1.6",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"galaxy_dragon\",\n\t\tName = \"Galaxy Dragon\",\n\t\tRarity = \"Mythic\",\n\t\tMultiplier = 15,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(90, 40, 200),\n\t\t\tAccentColor = rgb(255, 120, 255),\n\t\t\tShape = \"Dragon\",\n\t\t\tSize = 1.6,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "tide_spirit",
+      "name": "Tide Spirit",
+      "fields": {
+        "Id": "\"tide_spirit\"",
+        "Name": "\"Tide Spirit\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.6",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(120, 220, 255)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Blob\"",
+        "Size": "1.1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"tide_spirit\",\n\t\tName = \"Tide Spirit\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.6,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 220, 255),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Blob\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "rebirth_phoenix",
+      "name": "Rebirth Phoenix",
+      "fields": {
+        "Id": "\"rebirth_phoenix\"",
+        "Name": "\"Rebirth Phoenix\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "2",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(120, 255, 200)",
+        "AccentColor": "rgb(255, 255, 140)",
+        "Shape": "\"Bird\"",
+        "Size": "1.3",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"rebirth_phoenix\",\n\t\tName = \"Rebirth Phoenix\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 2,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 255, 200),\n\t\t\tAccentColor = rgb(255, 255, 140),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1.3,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sandlantis_guardian",
+      "name": "Sandlantis Guardian",
+      "fields": {
+        "Id": "\"sandlantis_guardian\"",
+        "Name": "\"Sandlantis Guardian\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "3",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(230, 190, 100)",
+        "AccentColor": "rgb(60, 200, 200)",
+        "Shape": "\"Golem\"",
+        "Size": "1.5",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"sandlantis_guardian\",\n\t\tName = \"Sandlantis Guardian\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 3,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(230, 190, 100),\n\t\t\tAccentColor = rgb(60, 200, 200),\n\t\t\tShape = \"Golem\",\n\t\t\tSize = 1.5,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "golden_seagull",
+      "name": "Golden Seagull",
+      "fields": {
+        "Id": "\"golden_seagull\"",
+        "Name": "\"Golden Seagull\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "1.8",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 215, 60)",
+        "AccentColor": "rgb(255, 255, 255)",
+        "Shape": "\"Bird\"",
+        "Size": "1.2",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"golden_seagull\",\n\t\tName = \"Golden Seagull\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 1.8,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 215, 60),\n\t\t\tAccentColor = rgb(255, 255, 255),\n\t\t\tShape = \"Bird\",\n\t\t\tSize = 1.2,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "golden_turtle",
+      "name": "Golden Turtle",
+      "fields": {
+        "Id": "\"golden_turtle\"",
+        "Name": "\"Golden Turtle\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "2.6",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 200, 40)",
+        "AccentColor": "rgb(255, 240, 170)",
+        "Shape": "\"Turtle\"",
+        "Size": "1.4",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"golden_turtle\",\n\t\tName = \"Golden Turtle\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 2.6,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 200, 40),\n\t\t\tAccentColor = rgb(255, 240, 170),\n\t\t\tShape = \"Turtle\",\n\t\t\tSize = 1.4,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sun_dragon",
+      "name": "Sun Dragon",
+      "fields": {
+        "Id": "\"sun_dragon\"",
+        "Name": "\"Sun Dragon\"",
+        "Rarity": "\"Mythic\"",
+        "Multiplier": "4.5",
+        "Exclusive": "false",
+        "Look": "{",
+        "BodyColor": "rgb(255, 180, 30)",
+        "AccentColor": "rgb(255, 255, 180)",
+        "Shape": "\"Dragon\"",
+        "Size": "1.6",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"sun_dragon\",\n\t\tName = \"Sun Dragon\",\n\t\tRarity = \"Mythic\",\n\t\tMultiplier = 4.5,\n\t\tExclusive = false,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 180, 30),\n\t\t\tAccentColor = rgb(255, 255, 180),\n\t\t\tShape = \"Dragon\",\n\t\t\tSize = 1.6,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "sunny_seal",
+      "name": "Sunny Seal",
+      "fields": {
+        "Id": "\"sunny_seal\"",
+        "Name": "\"Sunny Seal\"",
+        "Rarity": "\"Epic\"",
+        "Multiplier": "1.5",
+        "Exclusive": "true",
+        "Look": "{",
+        "BodyColor": "rgb(250, 250, 255)",
+        "AccentColor": "rgb(255, 190, 60)",
+        "Shape": "\"Seal\"",
+        "Size": "1.1",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"sunny_seal\",\n\t\tName = \"Sunny Seal\",\n\t\tRarity = \"Epic\",\n\t\tMultiplier = 1.5,\n\t\tExclusive = true,\n\t\tLook = {\n\t\t\tBodyColor = rgb(250, 250, 255),\n\t\t\tAccentColor = rgb(255, 190, 60),\n\t\t\tShape = \"Seal\",\n\t\t\tSize = 1.1,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "launch_crab",
+      "name": "Launch Party Crab",
+      "fields": {
+        "Id": "\"launch_crab\"",
+        "Name": "\"Launch Party Crab\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.25",
+        "Exclusive": "true",
+        "Look": "{",
+        "BodyColor": "rgb(60, 200, 255)",
+        "AccentColor": "rgb(255, 230, 60)",
+        "Shape": "\"Crab\"",
+        "Size": "1",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"launch_crab\",\n\t\tName = \"Launch Party Crab\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.25,\n\t\tExclusive = true,\n\t\tLook = {\n\t\t\tBodyColor = rgb(60, 200, 255),\n\t\t\tAccentColor = rgb(255, 230, 60),\n\t\t\tShape = \"Crab\",\n\t\t\tSize = 1,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "toy_truck",
+      "name": "Toy Sand Truck",
+      "fields": {
+        "Id": "\"toy_truck\"",
+        "Name": "\"Toy Sand Truck\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.05",
+        "Exclusive": "false",
+        "VehicleKind": "\"ToyTruck\"",
+        "Dig": "{ Power = 15, Interval = 3, Radius = 2.2, SandMultiplier = 2.25 }",
+        "Look": "{",
+        "BodyColor": "rgb(255, 210, 50)",
+        "AccentColor": "rgb(240, 70, 70)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.95",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"toy_truck\",\n\t\tName = \"Toy Sand Truck\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.05,\n\t\tExclusive = false,\n\t\tVehicleKind = \"ToyTruck\",\n\t\tDig = { Power = 15, Interval = 3, Radius = 2.2, SandMultiplier = 2.25 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 210, 50),\n\t\t\tAccentColor = rgb(240, 70, 70),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.95,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "dump_truck",
+      "name": "Little Dump Truck",
+      "fields": {
+        "Id": "\"dump_truck\"",
+        "Name": "\"Little Dump Truck\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.08",
+        "Exclusive": "false",
+        "VehicleKind": "\"DumpTruck\"",
+        "Dig": "{ Power = 25, Interval = 2.8, Radius = 2.2, SandMultiplier = 3.6 }",
+        "Look": "{",
+        "BodyColor": "rgb(255, 150, 40)",
+        "AccentColor": "rgb(70, 80, 95)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.85",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"dump_truck\",\n\t\tName = \"Little Dump Truck\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.08,\n\t\tExclusive = false,\n\t\tVehicleKind = \"DumpTruck\",\n\t\tDig = { Power = 25, Interval = 2.8, Radius = 2.2, SandMultiplier = 3.6 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 150, 40),\n\t\t\tAccentColor = rgb(70, 80, 95),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.85,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mini_excavator",
+      "name": "Mini Excavator",
+      "fields": {
+        "Id": "\"mini_excavator\"",
+        "Name": "\"Mini Excavator\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.12",
+        "Exclusive": "false",
+        "VehicleKind": "\"Excavator\"",
+        "Dig": "{ Power = 45, Interval = 2.6, Radius = 2.4, SandMultiplier = 6.4 }",
+        "Look": "{",
+        "BodyColor": "rgb(255, 200, 30)",
+        "AccentColor": "rgb(55, 55, 65)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.85",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"mini_excavator\",\n\t\tName = \"Mini Excavator\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.12,\n\t\tExclusive = false,\n\t\tVehicleKind = \"Excavator\",\n\t\tDig = { Power = 45, Interval = 2.6, Radius = 2.4, SandMultiplier = 6.4 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 200, 30),\n\t\t\tAccentColor = rgb(55, 55, 65),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.85,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "skid_steer",
+      "name": "Skid Steer",
+      "fields": {
+        "Id": "\"skid_steer\"",
+        "Name": "\"Skid Steer\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.15",
+        "Exclusive": "false",
+        "VehicleKind": "\"SkidSteer\"",
+        "Dig": "{ Power = 80, Interval = 2.4, Radius = 2.4, SandMultiplier = 6.2 }",
+        "Look": "{",
+        "BodyColor": "rgb(80, 200, 90)",
+        "AccentColor": "rgb(45, 50, 60)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.85",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"skid_steer\",\n\t\tName = \"Skid Steer\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.15,\n\t\tExclusive = false,\n\t\tVehicleKind = \"SkidSteer\",\n\t\tDig = { Power = 80, Interval = 2.4, Radius = 2.4, SandMultiplier = 6.2 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(80, 200, 90),\n\t\t\tAccentColor = rgb(45, 50, 60),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.85,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "bulldozer",
+      "name": "Bulldozer",
+      "fields": {
+        "Id": "\"bulldozer\"",
+        "Name": "\"Bulldozer\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.2",
+        "Exclusive": "false",
+        "VehicleKind": "\"Bulldozer\"",
+        "Dig": "{ Power = 140, Interval = 2.3, Radius = 2.6, SandMultiplier = 10.8 }",
+        "Look": "{",
+        "BodyColor": "rgb(255, 185, 20)",
+        "AccentColor": "rgb(60, 60, 70)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.8",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"bulldozer\",\n\t\tName = \"Bulldozer\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.2,\n\t\tExclusive = false,\n\t\tVehicleKind = \"Bulldozer\",\n\t\tDig = { Power = 140, Interval = 2.3, Radius = 2.6, SandMultiplier = 10.8 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 185, 20),\n\t\t\tAccentColor = rgb(60, 60, 70),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.8,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "backhoe",
+      "name": "Backhoe Loader",
+      "fields": {
+        "Id": "\"backhoe\"",
+        "Name": "\"Backhoe Loader\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.3",
+        "Exclusive": "false",
+        "VehicleKind": "\"Backhoe\"",
+        "Dig": "{ Power = 250, Interval = 2.2, Radius = 2.6, SandMultiplier = 18.5 }",
+        "Look": "{",
+        "BodyColor": "rgb(90, 170, 255)",
+        "AccentColor": "rgb(40, 60, 110)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.8",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"backhoe\",\n\t\tName = \"Backhoe Loader\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.3,\n\t\tExclusive = false,\n\t\tVehicleKind = \"Backhoe\",\n\t\tDig = { Power = 250, Interval = 2.2, Radius = 2.6, SandMultiplier = 18.5 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(90, 170, 255),\n\t\t\tAccentColor = rgb(40, 60, 110),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.8,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "drill_rig",
+      "name": "Drill Rig",
+      "fields": {
+        "Id": "\"drill_rig\"",
+        "Name": "\"Drill Rig\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "1.4",
+        "Exclusive": "false",
+        "VehicleKind": "\"DrillRig\"",
+        "Dig": "{ Power = 450, Interval = 2, Radius = 2.8, SandMultiplier = 18 }",
+        "Look": "{",
+        "BodyColor": "rgb(230, 60, 60)",
+        "AccentColor": "rgb(200, 205, 215)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.8",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"drill_rig\",\n\t\tName = \"Drill Rig\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 1.4,\n\t\tExclusive = false,\n\t\tVehicleKind = \"DrillRig\",\n\t\tDig = { Power = 450, Interval = 2, Radius = 2.8, SandMultiplier = 18 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(230, 60, 60),\n\t\t\tAccentColor = rgb(200, 205, 215),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.8,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mining_drill",
+      "name": "Mining Cart Drill",
+      "fields": {
+        "Id": "\"mining_drill\"",
+        "Name": "\"Mining Cart Drill\"",
+        "Rarity": "\"Uncommon\"",
+        "Multiplier": "1.55",
+        "Exclusive": "false",
+        "VehicleKind": "\"MiningDrill\"",
+        "Dig": "{ Power = 800, Interval = 1.9, Radius = 2.8, SandMultiplier = 32 }",
+        "Look": "{",
+        "BodyColor": "rgb(150, 100, 60)",
+        "AccentColor": "rgb(255, 120, 30)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.8",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"mining_drill\",\n\t\tName = \"Mining Cart Drill\",\n\t\tRarity = \"Uncommon\",\n\t\tMultiplier = 1.55,\n\t\tExclusive = false,\n\t\tVehicleKind = \"MiningDrill\",\n\t\tDig = { Power = 800, Interval = 1.9, Radius = 2.8, SandMultiplier = 32 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(150, 100, 60),\n\t\t\tAccentColor = rgb(255, 120, 30),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.8,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "tunnel_borer",
+      "name": "Tunnel Borer",
+      "fields": {
+        "Id": "\"tunnel_borer\"",
+        "Name": "\"Tunnel Borer\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "1.75",
+        "Exclusive": "false",
+        "VehicleKind": "\"TunnelBorer\"",
+        "Dig": "{ Power = 1400, Interval = 1.8, Radius = 2.8, SandMultiplier = 56 }",
+        "Look": "{",
+        "BodyColor": "rgb(120, 70, 200)",
+        "AccentColor": "rgb(60, 40, 90)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.75",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"tunnel_borer\",\n\t\tName = \"Tunnel Borer\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 1.75,\n\t\tExclusive = false,\n\t\tVehicleKind = \"TunnelBorer\",\n\t\tDig = { Power = 1400, Interval = 1.8, Radius = 2.8, SandMultiplier = 56 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(120, 70, 200),\n\t\t\tAccentColor = rgb(60, 40, 90),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.75,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mole_machine",
+      "name": "Mole Machine",
+      "fields": {
+        "Id": "\"mole_machine\"",
+        "Name": "\"Mole Machine\"",
+        "Rarity": "\"Common\"",
+        "Multiplier": "2",
+        "Exclusive": "false",
+        "VehicleKind": "\"Mole\"",
+        "Dig": "{ Power = 2500, Interval = 1.7, Radius = 2.8, SandMultiplier = 63 }",
+        "Look": "{",
+        "BodyColor": "rgb(140, 110, 95)",
+        "AccentColor": "rgb(90, 255, 140)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.75",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"mole_machine\",\n\t\tName = \"Mole Machine\",\n\t\tRarity = \"Common\",\n\t\tMultiplier = 2,\n\t\tExclusive = false,\n\t\tVehicleKind = \"Mole\",\n\t\tDig = { Power = 2500, Interval = 1.7, Radius = 2.8, SandMultiplier = 63 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(140, 110, 95),\n\t\t\tAccentColor = rgb(90, 255, 140),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.75,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "lava_drill",
+      "name": "Lava Drill",
+      "fields": {
+        "Id": "\"lava_drill\"",
+        "Name": "\"Lava Drill\"",
+        "Rarity": "\"Rare\"",
+        "Multiplier": "2.4",
+        "Exclusive": "false",
+        "VehicleKind": "\"LavaDrill\"",
+        "Dig": "{ Power = 2500, Interval = 1.6, Radius = 2.8, SandMultiplier = 77 }",
+        "Look": "{",
+        "BodyColor": "rgb(50, 35, 35)",
+        "AccentColor": "rgb(255, 100, 20)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.75",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"lava_drill\",\n\t\tName = \"Lava Drill\",\n\t\tRarity = \"Rare\",\n\t\tMultiplier = 2.4,\n\t\tExclusive = false,\n\t\tVehicleKind = \"LavaDrill\",\n\t\tDig = { Power = 2500, Interval = 1.6, Radius = 2.8, SandMultiplier = 77 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(50, 35, 35),\n\t\t\tAccentColor = rgb(255, 100, 20),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.75,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "core_driller",
+      "name": "Core Driller",
+      "fields": {
+        "Id": "\"core_driller\"",
+        "Name": "\"Core Driller\"",
+        "Rarity": "\"Legendary\"",
+        "Multiplier": "3",
+        "Exclusive": "false",
+        "VehicleKind": "\"CoreDriller\"",
+        "Dig": "{ Power = 4500, Interval = 1.5, Radius = 3.2, SandMultiplier = 140 }",
+        "Look": "{",
+        "BodyColor": "rgb(255, 210, 60)",
+        "AccentColor": "rgb(255, 120, 40)",
+        "Shape": "\"Vehicle\"",
+        "Size": "0.75",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"core_driller\",\n\t\tName = \"Core Driller\",\n\t\tRarity = \"Legendary\",\n\t\tMultiplier = 3,\n\t\tExclusive = false,\n\t\tVehicleKind = \"CoreDriller\",\n\t\tDig = { Power = 4500, Interval = 1.5, Radius = 3.2, SandMultiplier = 140 },\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 210, 60),\n\t\t\tAccentColor = rgb(255, 120, 40),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 0.75,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "mega_excavator",
+      "name": "Mega Excavator",
+      "fields": {
+        "Id": "\"mega_excavator\"",
+        "Name": "\"Mega Excavator\"",
+        "Rarity": "\"Mythic\"",
+        "Multiplier": "4",
+        "Exclusive": "false",
+        "VehicleKind": "\"Excavator\"",
+        "Dig": "{ Power = 4500, Interval = 1.4, Radius = 3.6, SandMultiplier = 140 }",
+        "Rideable": "true",
+        "Look": "{",
+        "BodyColor": "rgb(255, 190, 20)",
+        "AccentColor": "rgb(255, 90, 160)",
+        "Shape": "\"Vehicle\"",
+        "Size": "1.25",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"mega_excavator\",\n\t\tName = \"Mega Excavator\",\n\t\tRarity = \"Mythic\",\n\t\tMultiplier = 4,\n\t\tExclusive = false,\n\t\tVehicleKind = \"Excavator\",\n\t\tDig = { Power = 4500, Interval = 1.4, Radius = 3.6, SandMultiplier = 140 },\n\t\tRideable = true,\n\t\tLook = {\n\t\t\tBodyColor = rgb(255, 190, 20),\n\t\t\tAccentColor = rgb(255, 90, 160),\n\t\t\tShape = \"Vehicle\",\n\t\t\tSize = 1.25,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    }
+  ],
+  "Quests": [
+    {
+      "id": "daily_dig_100",
+      "name": "Busy Beaver",
+      "fields": {
+        "Id": "\"daily_dig_100\"",
+        "Name": "\"Busy Beaver\"",
+        "Description": "\"Dig 100 times\"",
+        "Kind": "\"DigTimes\"",
+        "Target": "100",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 60 }"
+      },
+      "source": "{\n\t\tId = \"daily_dig_100\",\n\t\tName = \"Busy Beaver\",\n\t\tDescription = \"Dig 100 times\",\n\t\tKind = \"DigTimes\",\n\t\tTarget = 100,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 60 },\n\t}"
+    },
+    {
+      "id": "daily_dig_1000",
+      "name": "Dig Machine",
+      "fields": {
+        "Id": "\"daily_dig_1000\"",
+        "Name": "\"Dig Machine\"",
+        "Description": "\"Dig 1,000 times\"",
+        "Kind": "\"DigTimes\"",
+        "Target": "1000",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 240, Boost = \"SandBoost\", BoostSeconds = 600 }"
+      },
+      "source": "{\n\t\tId = \"daily_dig_1000\",\n\t\tName = \"Dig Machine\",\n\t\tDescription = \"Dig 1,000 times\",\n\t\tKind = \"DigTimes\",\n\t\tTarget = 1000,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 240, Boost = \"SandBoost\", BoostSeconds = 600 },\n\t}"
+    },
+    {
+      "id": "daily_sell_10",
+      "name": "Sand Salesman",
+      "fields": {
+        "Id": "\"daily_sell_10\"",
+        "Name": "\"Sand Salesman\"",
+        "Description": "\"Sell your sand 10 times\"",
+        "Kind": "\"SellTimes\"",
+        "Target": "10",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 120 }"
+      },
+      "source": "{\n\t\tId = \"daily_sell_10\",\n\t\tName = \"Sand Salesman\",\n\t\tDescription = \"Sell your sand 10 times\",\n\t\tKind = \"SellTimes\",\n\t\tTarget = 10,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 120 },\n\t}"
+    },
+    {
+      "id": "daily_treasure_10",
+      "name": "Treasure Hunter",
+      "fields": {
+        "Id": "\"daily_treasure_10\"",
+        "Name": "\"Treasure Hunter\"",
+        "Description": "\"Find 10 treasures\"",
+        "Kind": "\"FindTreasures\"",
+        "Target": "10",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 120, Boost = \"LuckBoost\", BoostSeconds = 600 }"
+      },
+      "source": "{\n\t\tId = \"daily_treasure_10\",\n\t\tName = \"Treasure Hunter\",\n\t\tDescription = \"Find 10 treasures\",\n\t\tKind = \"FindTreasures\",\n\t\tTarget = 10,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 120, Boost = \"LuckBoost\", BoostSeconds = 600 },\n\t}"
+    },
+    {
+      "id": "daily_rare_1",
+      "name": "Lucky Find",
+      "fields": {
+        "Id": "\"daily_rare_1\"",
+        "Name": "\"Lucky Find\"",
+        "Description": "\"Find a Rare (or better) treasure\"",
+        "Kind": "\"FindRarity\"",
+        "Target": "1",
+        "Rarity": "\"Rare\"",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 180 }"
+      },
+      "source": "{\n\t\tId = \"daily_rare_1\",\n\t\tName = \"Lucky Find\",\n\t\tDescription = \"Find a Rare (or better) treasure\",\n\t\tKind = \"FindRarity\",\n\t\tTarget = 1,\n\t\tRarity = \"Rare\",\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 180 },\n\t}"
+    },
+    {
+      "id": "daily_hatch_5",
+      "name": "Egg-cellent",
+      "fields": {
+        "Id": "\"daily_hatch_5\"",
+        "Name": "\"Egg-cellent\"",
+        "Description": "\"Hatch 5 eggs\"",
+        "Kind": "\"HatchEggs\"",
+        "Target": "5",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 150 }"
+      },
+      "source": "{\n\t\tId = \"daily_hatch_5\",\n\t\tName = \"Egg-cellent\",\n\t\tDescription = \"Hatch 5 eggs\",\n\t\tKind = \"HatchEggs\",\n\t\tTarget = 5,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 150 },\n\t}"
+    },
+    {
+      "id": "daily_play_20",
+      "name": "Beach Day",
+      "fields": {
+        "Id": "\"daily_play_20\"",
+        "Name": "\"Beach Day\"",
+        "Description": "\"Play for 20 minutes\"",
+        "Kind": "\"PlayMinutes\"",
+        "Target": "20",
+        "Reset": "\"Daily\"",
+        "Reward": "{ ScaledCoins = 120, Boost = \"CoinBoost\", BoostSeconds = 600 }"
+      },
+      "source": "{\n\t\tId = \"daily_play_20\",\n\t\tName = \"Beach Day\",\n\t\tDescription = \"Play for 20 minutes\",\n\t\tKind = \"PlayMinutes\",\n\t\tTarget = 20,\n\t\tReset = \"Daily\",\n\t\tReward = { ScaledCoins = 120, Boost = \"CoinBoost\", BoostSeconds = 600 },\n\t}"
+    },
+    {
+      "id": "reach_pirate_cove",
+      "name": "Yo Ho Ho!",
+      "fields": {
+        "Id": "\"reach_pirate_cove\"",
+        "Name": "\"Yo Ho Ho!\"",
+        "Description": "\"Reach the Pirate Cove (110m)\"",
+        "Kind": "\"ReachDepth\"",
+        "Target": "110",
+        "Reset": "\"Once\"",
+        "Reward": "{ Coins = 1500 }"
+      },
+      "source": "{\n\t\tId = \"reach_pirate_cove\",\n\t\tName = \"Yo Ho Ho!\",\n\t\tDescription = \"Reach the Pirate Cove (110m)\",\n\t\tKind = \"ReachDepth\",\n\t\tTarget = 110,\n\t\tReset = \"Once\",\n\t\tReward = { Coins = 1500 },\n\t}"
+    },
+    {
+      "id": "reach_fossil_bed",
+      "name": "Jurassic Beach",
+      "fields": {
+        "Id": "\"reach_fossil_bed\"",
+        "Name": "\"Jurassic Beach\"",
+        "Description": "\"Reach the Fossil Bed (200m)\"",
+        "Kind": "\"ReachDepth\"",
+        "Target": "200",
+        "Reset": "\"Once\"",
+        "Reward": "{ Coins = 25000, Egg = \"beach_egg\", EggCount = 3 }"
+      },
+      "source": "{\n\t\tId = \"reach_fossil_bed\",\n\t\tName = \"Jurassic Beach\",\n\t\tDescription = \"Reach the Fossil Bed (200m)\",\n\t\tKind = \"ReachDepth\",\n\t\tTarget = 200,\n\t\tReset = \"Once\",\n\t\tReward = { Coins = 25000, Egg = \"beach_egg\", EggCount = 3 },\n\t}"
+    },
+    {
+      "id": "reach_crystal_caverns",
+      "name": "Shiny!",
+      "fields": {
+        "Id": "\"reach_crystal_caverns\"",
+        "Name": "\"Shiny!\"",
+        "Description": "\"Reach the Crystal Caverns (330m)\"",
+        "Kind": "\"ReachDepth\"",
+        "Target": "330",
+        "Reset": "\"Once\"",
+        "Reward": "{ Coins = 250000, Boost = \"LuckBoost\", BoostSeconds = 900 }"
+      },
+      "source": "{\n\t\tId = \"reach_crystal_caverns\",\n\t\tName = \"Shiny!\",\n\t\tDescription = \"Reach the Crystal Caverns (330m)\",\n\t\tKind = \"ReachDepth\",\n\t\tTarget = 330,\n\t\tReset = \"Once\",\n\t\tReward = { Coins = 250000, Boost = \"LuckBoost\", BoostSeconds = 900 },\n\t}"
+    },
+    {
+      "id": "first_rebirth",
+      "name": "Born Again Digger",
+      "fields": {
+        "Id": "\"first_rebirth\"",
+        "Name": "\"Born Again Digger\"",
+        "Description": "\"Rebirth for the first time\"",
+        "Kind": "\"Rebirth\"",
+        "Target": "1",
+        "Reset": "\"Once\"",
+        "Reward": "{ RebirthTokens = 2 }"
+      },
+      "source": "{\n\t\tId = \"first_rebirth\",\n\t\tName = \"Born Again Digger\",\n\t\tDescription = \"Rebirth for the first time\",\n\t\tKind = \"Rebirth\",\n\t\tTarget = 1,\n\t\tReset = \"Once\",\n\t\tReward = { RebirthTokens = 2 },\n\t}"
+    },
+    {
+      "id": "reach_the_core",
+      "name": "Journey to the Center",
+      "fields": {
+        "Id": "\"reach_the_core\"",
+        "Name": "\"Journey to the Center\"",
+        "Description": "\"Reach THE CORE (885m)\"",
+        "Kind": "\"ReachDepth\"",
+        "Target": "885",
+        "Reset": "\"Once\"",
+        "Reward": "{ RebirthTokens = 10, ScaledCoins = 1800 }"
+      },
+      "source": "{\n\t\tId = \"reach_the_core\",\n\t\tName = \"Journey to the Center\",\n\t\tDescription = \"Reach THE CORE (885m)\",\n\t\tKind = \"ReachDepth\",\n\t\tTarget = 885,\n\t\tReset = \"Once\",\n\t\tReward = { RebirthTokens = 10, ScaledCoins = 1800 },\n\t}"
+    }
+  ],
+  "Rarities": [
+    {
+      "id": "Common",
+      "name": "Common",
+      "fields": {
+        "Name": "\"Common\"",
+        "Order": "1",
+        "Color": "rgb(200, 205, 215)",
+        "Gradient": "{ rgb(230, 232, 238), rgb(170, 176, 190) }",
+        "Announce": "false"
+      },
+      "source": "{\n\t\tName = \"Common\",\n\t\tOrder = 1,\n\t\tColor = rgb(200, 205, 215),\n\t\tGradient = { rgb(230, 232, 238), rgb(170, 176, 190) },\n\t\tAnnounce = false,\n\t}"
+    },
+    {
+      "id": "Uncommon",
+      "name": "Uncommon",
+      "fields": {
+        "Name": "\"Uncommon\"",
+        "Order": "2",
+        "Color": "rgb(90, 220, 100)",
+        "Gradient": "{ rgb(150, 255, 150), rgb(40, 180, 80) }",
+        "Announce": "false"
+      },
+      "source": "{\n\t\tName = \"Uncommon\",\n\t\tOrder = 2,\n\t\tColor = rgb(90, 220, 100),\n\t\tGradient = { rgb(150, 255, 150), rgb(40, 180, 80) },\n\t\tAnnounce = false,\n\t}"
+    },
+    {
+      "id": "Rare",
+      "name": "Rare",
+      "fields": {
+        "Name": "\"Rare\"",
+        "Order": "3",
+        "Color": "rgb(60, 160, 255)",
+        "Gradient": "{ rgb(120, 210, 255), rgb(30, 100, 240) }",
+        "Announce": "false"
+      },
+      "source": "{\n\t\tName = \"Rare\",\n\t\tOrder = 3,\n\t\tColor = rgb(60, 160, 255),\n\t\tGradient = { rgb(120, 210, 255), rgb(30, 100, 240) },\n\t\tAnnounce = false,\n\t}"
+    },
+    {
+      "id": "Epic",
+      "name": "Epic",
+      "fields": {
+        "Name": "\"Epic\"",
+        "Order": "4",
+        "Color": "rgb(180, 90, 255)",
+        "Gradient": "{ rgb(220, 150, 255), rgb(130, 50, 230) }",
+        "Announce": "false"
+      },
+      "source": "{\n\t\tName = \"Epic\",\n\t\tOrder = 4,\n\t\tColor = rgb(180, 90, 255),\n\t\tGradient = { rgb(220, 150, 255), rgb(130, 50, 230) },\n\t\tAnnounce = false,\n\t}"
+    },
+    {
+      "id": "Legendary",
+      "name": "Legendary",
+      "fields": {
+        "Name": "\"Legendary\"",
+        "Order": "5",
+        "Color": "rgb(255, 190, 30)",
+        "Gradient": "{ rgb(255, 235, 100), rgb(255, 130, 20) }",
+        "Announce": "true"
+      },
+      "source": "{\n\t\tName = \"Legendary\",\n\t\tOrder = 5,\n\t\tColor = rgb(255, 190, 30),\n\t\tGradient = { rgb(255, 235, 100), rgb(255, 130, 20) },\n\t\tAnnounce = true,\n\t}"
+    },
+    {
+      "id": "Mythic",
+      "name": "Mythic",
+      "fields": {
+        "Name": "\"Mythic\"",
+        "Order": "6",
+        "Color": "rgb(255, 70, 140)",
+        "Gradient": "{ rgb(255, 90, 90), rgb(255, 210, 60), rgb(90, 220, 255), rgb(200, 90, 255) }",
+        "Announce": "true"
+      },
+      "source": "{\n\t\tName = \"Mythic\",\n\t\tOrder = 6,\n\t\tColor = rgb(255, 70, 140),\n\t\tGradient = { rgb(255, 90, 90), rgb(255, 210, 60), rgb(90, 220, 255), rgb(200, 90, 255) },\n\t\tAnnounce = true,\n\t}"
+    },
+    {
+      "id": "Relic",
+      "name": "Relic",
+      "fields": {
+        "Name": "\"Relic\"",
+        "Order": "7",
+        "Color": "rgb(120, 255, 230)",
+        "Gradient": "{ rgb(255, 255, 255), rgb(120, 255, 230), rgb(255, 120, 230), rgb(255, 230, 120) }",
+        "Announce": "true"
+      },
+      "source": "{\n\t\tName = \"Relic\",\n\t\tOrder = 7,\n\t\tColor = rgb(120, 255, 230),\n\t\tGradient = { rgb(255, 255, 255), rgb(120, 255, 230), rgb(255, 120, 230), rgb(255, 230, 120) },\n\t\tAnnounce = true,\n\t}"
+    }
+  ],
+  "RebirthPerks": [
+    {
+      "id": "SellAnywhere",
+      "name": "Sell Anywhere",
+      "fields": {
+        "Id": "\"SellAnywhere\"",
+        "Name": "\"Sell Anywhere\"",
+        "Icon": "\"sell|💸\"",
+        "Description": "\"Sell from anywhere with one tap, like the game pass.\"",
+        "Costs": "{ 5 }",
+        "Levels": "{ { Unlocked = true } }",
+        "Order": "1"
+      },
+      "source": "{\n\t\tId = \"SellAnywhere\",\n\t\tName = \"Sell Anywhere\",\n\t\tIcon = \"sell|💸\",\n\t\tDescription = \"Sell from anywhere with one tap, like the game pass.\",\n\t\tCosts = { 5 },\n\t\tLevels = { { Unlocked = true } },\n\t\tOrder = 1,\n\t}"
+    },
+    {
+      "id": "HeadStart",
+      "name": "Head Start",
+      "fields": {
+        "Id": "\"HeadStart\"",
+        "Name": "\"Head Start\"",
+        "Icon": "\"shovel|⛏️\"",
+        "Description": "\"Start every rebirth with a better shovel and some coins.\"",
+        "Costs": "{ 1, 2, 3, 5, 8 }",
+        "Levels": "{",
+        "Order": "2"
+      },
+      "source": "{\n\t\tId = \"HeadStart\",\n\t\tName = \"Head Start\",\n\t\tIcon = \"shovel|⛏️\",\n\t\tDescription = \"Start every rebirth with a better shovel and some coins.\",\n\t\tCosts = { 1, 2, 3, 5, 8 },\n\t\tLevels = {\n\t\t\t{ ShovelIndex = 4, Coins = 500 }, -- Lifeguard Shovel\n\t\t\t{ ShovelIndex = 5, Coins = 5_000 }, -- Pirate Shovel\n\t\t\t{ ShovelIndex = 6, Coins = 25_000 }, -- Bone Claw\n\t\t\t{ ShovelIndex = 7, Coins = 100_000 }, -- Steel Pickaxe\n\t\t\t{ ShovelIndex = 8, Coins = 400_000 }, -- Crystal Spade\n\t\t},\n\t\tOrder = 2,\n\t}"
+    },
+    {
+      "id": "GoldenTouch",
+      "name": "Golden Touch",
+      "fields": {
+        "Id": "\"GoldenTouch\"",
+        "Name": "\"Golden Touch\"",
+        "Icon": "\"boost_coins|💰\"",
+        "Description": "\"More coins every time you sell.\"",
+        "Costs": "{ 1, 2, 3, 4, 5 }",
+        "Levels": "{ { Coin = 1.1 }, { Coin = 1.2 }, { Coin = 1.3 }, { Coin = 1.4 }, { Coin = 1.5 } }",
+        "Order": "3"
+      },
+      "source": "{\n\t\tId = \"GoldenTouch\",\n\t\tName = \"Golden Touch\",\n\t\tIcon = \"boost_coins|💰\",\n\t\tDescription = \"More coins every time you sell.\",\n\t\tCosts = { 1, 2, 3, 4, 5 },\n\t\tLevels = { { Coin = 1.1 }, { Coin = 1.2 }, { Coin = 1.3 }, { Coin = 1.4 }, { Coin = 1.5 } },\n\t\tOrder = 3,\n\t}"
+    },
+    {
+      "id": "KeepBackpack",
+      "name": "Keep Backpack",
+      "fields": {
+        "Id": "\"KeepBackpack\"",
+        "Name": "\"Keep Backpack\"",
+        "Icon": "\"backpack|🎒\"",
+        "Description": "\"Keep your backpack when you rebirth.\"",
+        "Costs": "{ 1, 3, 6 }",
+        "Levels": "{",
+        "Order": "4"
+      },
+      "source": "{\n\t\tId = \"KeepBackpack\",\n\t\tName = \"Keep Backpack\",\n\t\tIcon = \"backpack|🎒\",\n\t\tDescription = \"Keep your backpack when you rebirth.\",\n\t\tCosts = { 1, 3, 6 },\n\t\tLevels = {\n\t\t\t{ KeepIndex = 5 }, -- up to Treasure Sack\n\t\t\t{ KeepIndex = 8 }, -- up to Wheelbarrow\n\t\t\t{ KeepIndex = 99 }, -- any backpack\n\t\t},\n\t\tOrder = 4,\n\t}"
+    },
+    {
+      "id": "DeepPockets",
+      "name": "Deep Pockets",
+      "fields": {
+        "Id": "\"DeepPockets\"",
+        "Name": "\"Deep Pockets\"",
+        "Icon": "\"sand|⏳\"",
+        "Description": "\"Your backpack holds more sand.\"",
+        "Costs": "{ 1, 1, 2, 3, 4 }",
+        "Levels": "{",
+        "Order": "5"
+      },
+      "source": "{\n\t\tId = \"DeepPockets\",\n\t\tName = \"Deep Pockets\",\n\t\tIcon = \"sand|⏳\",\n\t\tDescription = \"Your backpack holds more sand.\",\n\t\tCosts = { 1, 1, 2, 3, 4 },\n\t\tLevels = {\n\t\t\t{ Capacity = 1.1 },\n\t\t\t{ Capacity = 1.2 },\n\t\t\t{ Capacity = 1.3 },\n\t\t\t{ Capacity = 1.4 },\n\t\t\t{ Capacity = 1.5 },\n\t\t},\n\t\tOrder = 5,\n\t}"
+    },
+    {
+      "id": "LuckyDigger",
+      "name": "Lucky Digger",
+      "fields": {
+        "Id": "\"LuckyDigger\"",
+        "Name": "\"Lucky Digger\"",
+        "Icon": "\"boost_luck|🍀\"",
+        "Description": "\"Find treasure more often while digging.\"",
+        "Costs": "{ 1, 2, 2, 3, 4 }",
+        "Levels": "{",
+        "Order": "6"
+      },
+      "source": "{\n\t\tId = \"LuckyDigger\",\n\t\tName = \"Lucky Digger\",\n\t\tIcon = \"boost_luck|🍀\",\n\t\tDescription = \"Find treasure more often while digging.\",\n\t\tCosts = { 1, 2, 2, 3, 4 },\n\t\tLevels = {\n\t\t\t{ TreasureChance = 1.1 },\n\t\t\t{ TreasureChance = 1.2 },\n\t\t\t{ TreasureChance = 1.3 },\n\t\t\t{ TreasureChance = 1.4 },\n\t\t\t{ TreasureChance = 1.5 },\n\t\t},\n\t\tOrder = 6,\n\t}"
+    },
+    {
+      "id": "LongNap",
+      "name": "Long Nap",
+      "fields": {
+        "Id": "\"LongNap\"",
+        "Name": "\"Long Nap\"",
+        "Icon": "\"hourglass|⏳\"",
+        "Description": "\"Your pets dig longer and harder while you are away.\"",
+        "Costs": "{ 1, 2, 3, 4 }",
+        "Levels": "{",
+        "Order": "7"
+      },
+      "source": "{\n\t\tId = \"LongNap\",\n\t\tName = \"Long Nap\",\n\t\tIcon = \"hourglass|⏳\",\n\t\tDescription = \"Your pets dig longer and harder while you are away.\",\n\t\tCosts = { 1, 2, 3, 4 },\n\t\tLevels = {\n\t\t\t{ OfflineHours = 1, OfflineEfficiency = 0.1 },\n\t\t\t{ OfflineHours = 2, OfflineEfficiency = 0.2 },\n\t\t\t{ OfflineHours = 3, OfflineEfficiency = 0.3 },\n\t\t\t{ OfflineHours = 4, OfflineEfficiency = 0.4 },\n\t\t},\n\t\tOrder = 7,\n\t}"
+    },
+    {
+      "id": "PetDen",
+      "name": "Pet Den",
+      "fields": {
+        "Id": "\"PetDen\"",
+        "Name": "\"Pet Den\"",
+        "Icon": "\"pets|🐾\"",
+        "Description": "\"+1 pet slot.\"",
+        "Costs": "{ 3, 6 }",
+        "Levels": "{ { PetSlots = 1 }, { PetSlots = 2 } }",
+        "Order": "8"
+      },
+      "source": "{\n\t\tId = \"PetDen\",\n\t\tName = \"Pet Den\",\n\t\tIcon = \"pets|🐾\",\n\t\tDescription = \"+1 pet slot.\",\n\t\tCosts = { 3, 6 },\n\t\tLevels = { { PetSlots = 1 }, { PetSlots = 2 } },\n\t\tOrder = 8,\n\t}"
+    }
+  ],
+  "Shades": [
+    {
+      "id": "beach_umbrella",
+      "name": "Beach Umbrella",
+      "fields": {
+        "Id": "\"beach_umbrella\"",
+        "Name": "\"Beach Umbrella\"",
+        "Price": "120",
+        "Radius": "6",
+        "Cooling": "1",
+        "Height": "7.5",
+        "Description": "\"A trusty umbrella. Shade for you and a friend.\"",
+        "Look": "{ Style = \"Umbrella\", Color = rgb(255, 80, 90), Accent = rgb(255, 255, 255) }"
+      },
+      "source": "{\n\t\tId = \"beach_umbrella\",\n\t\tName = \"Beach Umbrella\",\n\t\tPrice = 120,\n\t\tRadius = 6,\n\t\tCooling = 1,\n\t\tHeight = 7.5,\n\t\tDescription = \"A trusty umbrella. Shade for you and a friend.\",\n\t\tLook = { Style = \"Umbrella\", Color = rgb(255, 80, 90), Accent = rgb(255, 255, 255) },\n\t}"
+    },
+    {
+      "id": "striped_umbrella",
+      "name": "Striped Umbrella",
+      "fields": {
+        "Id": "\"striped_umbrella\"",
+        "Name": "\"Striped Umbrella\"",
+        "Price": "1200",
+        "Radius": "8",
+        "Cooling": "1.4",
+        "Height": "8",
+        "Description": "\"Extra-wide rainbow stripes. Cools faster!\"",
+        "Look": "{ Style = \"Striped\", Color = rgb(40, 170, 255), Accent = rgb(255, 225, 60) }"
+      },
+      "source": "{\n\t\tId = \"striped_umbrella\",\n\t\tName = \"Striped Umbrella\",\n\t\tPrice = 1200,\n\t\tRadius = 8,\n\t\tCooling = 1.4,\n\t\tHeight = 8,\n\t\tDescription = \"Extra-wide rainbow stripes. Cools faster!\",\n\t\tLook = { Style = \"Striped\", Color = rgb(40, 170, 255), Accent = rgb(255, 225, 60) },\n\t}"
+    },
+    {
+      "id": "palm_tarp",
+      "name": "Palm Tarp",
+      "fields": {
+        "Id": "\"palm_tarp\"",
+        "Name": "\"Palm Tarp\"",
+        "Price": "12000",
+        "Radius": "10",
+        "Cooling": "1.8",
+        "Height": "8.5",
+        "Description": "\"A big tarp tied between palm-wood poles. Room for the squad.\"",
+        "Look": "{ Style = \"Tarp\", Color = rgb(255, 150, 40), Accent = rgb(176, 120, 72) }"
+      },
+      "source": "{\n\t\tId = \"palm_tarp\",\n\t\tName = \"Palm Tarp\",\n\t\tPrice = 12000,\n\t\tRadius = 10,\n\t\tCooling = 1.8,\n\t\tHeight = 8.5,\n\t\tDescription = \"A big tarp tied between palm-wood poles. Room for the squad.\",\n\t\tLook = { Style = \"Tarp\", Color = rgb(255, 150, 40), Accent = rgb(176, 120, 72) },\n\t}"
+    },
+    {
+      "id": "party_canopy",
+      "name": "Party Canopy",
+      "fields": {
+        "Id": "\"party_canopy\"",
+        "Name": "\"Party Canopy\"",
+        "Price": "100000",
+        "Radius": "12",
+        "Cooling": "2.3",
+        "Height": "9",
+        "Description": "\"A pop-up party tent with bunting. Very cool. Literally.\"",
+        "Look": "{ Style = \"Canopy\", Color = rgb(90, 210, 120), Accent = rgb(255, 255, 255) }"
+      },
+      "source": "{\n\t\tId = \"party_canopy\",\n\t\tName = \"Party Canopy\",\n\t\tPrice = 100000,\n\t\tRadius = 12,\n\t\tCooling = 2.3,\n\t\tHeight = 9,\n\t\tDescription = \"A pop-up party tent with bunting. Very cool. Literally.\",\n\t\tLook = { Style = \"Canopy\", Color = rgb(90, 210, 120), Accent = rgb(255, 255, 255) },\n\t}"
+    },
+    {
+      "id": "tiki_cabana",
+      "name": "Tiki Cabana",
+      "fields": {
+        "Id": "\"tiki_cabana\"",
+        "Name": "\"Tiki Cabana\"",
+        "Price": "750000",
+        "Radius": "14",
+        "Cooling": "2.8",
+        "Height": "9",
+        "Description": "\"A thatched tiki hut with curtains. Island vibes.\"",
+        "Look": "{ Style = \"Cabana\", Color = rgb(225, 190, 110), Accent = rgb(255, 120, 150) }"
+      },
+      "source": "{\n\t\tId = \"tiki_cabana\",\n\t\tName = \"Tiki Cabana\",\n\t\tPrice = 750000,\n\t\tRadius = 14,\n\t\tCooling = 2.8,\n\t\tHeight = 9,\n\t\tDescription = \"A thatched tiki hut with curtains. Island vibes.\",\n\t\tLook = { Style = \"Cabana\", Color = rgb(225, 190, 110), Accent = rgb(255, 120, 150) },\n\t}"
+    },
+    {
+      "id": "luxury_tent",
+      "name": "Luxury Beach Tent",
+      "fields": {
+        "Id": "\"luxury_tent\"",
+        "Name": "\"Luxury Beach Tent\"",
+        "Price": "6000000",
+        "RebirthsRequired": "1",
+        "Radius": "17",
+        "Cooling": "3.5",
+        "Height": "9.5",
+        "Description": "\"Silk walls and gold poles. Requires 1 Rebirth.\"",
+        "Look": "{ Style = \"Tent\", Color = rgb(250, 245, 235), Accent = rgb(255, 200, 40) }"
+      },
+      "source": "{\n\t\tId = \"luxury_tent\",\n\t\tName = \"Luxury Beach Tent\",\n\t\tPrice = 6000000,\n\t\tRebirthsRequired = 1,\n\t\tRadius = 17,\n\t\tCooling = 3.5,\n\t\tHeight = 9.5,\n\t\tDescription = \"Silk walls and gold poles. Requires 1 Rebirth.\",\n\t\tLook = { Style = \"Tent\", Color = rgb(250, 245, 235), Accent = rgb(255, 200, 40) },\n\t}"
+    },
+    {
+      "id": "royal_pavilion",
+      "name": "Royal Sand Pavilion",
+      "fields": {
+        "Id": "\"royal_pavilion\"",
+        "Name": "\"Royal Sand Pavilion\"",
+        "Price": "80000000",
+        "RebirthsRequired": "3",
+        "Radius": "21",
+        "Cooling": "4.5",
+        "Height": "10",
+        "Description": "\"Fit for the King of Sandlantis. Shade for the whole beach! Requires 3 Rebirths.\"",
+        "Look": "{ Style = \"Pavilion\", Color = rgb(150, 90, 255), Accent = rgb(255, 205, 40) }"
+      },
+      "source": "{\n\t\tId = \"royal_pavilion\",\n\t\tName = \"Royal Sand Pavilion\",\n\t\tPrice = 80000000,\n\t\tRebirthsRequired = 3,\n\t\tRadius = 21,\n\t\tCooling = 4.5,\n\t\tHeight = 10,\n\t\tDescription = \"Fit for the King of Sandlantis. Shade for the whole beach! Requires 3 Rebirths.\",\n\t\tLook = { Style = \"Pavilion\", Color = rgb(150, 90, 255), Accent = rgb(255, 205, 40) },\n\t}"
+    }
+  ],
+  "Shovels": [
+    {
+      "id": "toy_shovel",
+      "name": "Hand Spade",
+      "fields": {
+        "Id": "\"toy_shovel\"",
+        "Name": "\"Hand Spade\"",
+        "Price": "0",
+        "Power": "2",
+        "Cooldown": "0.5",
+        "Radius": "2",
+        "SandMultiplier": "1",
+        "RebirthsRequired": "0",
+        "Description": "\"A little plastic beach spade. Everyone starts somewhere! Digs Dry and Wet Sand.\"",
+        "Look": "{",
+        "HeadColor": "rgb(255, 70, 70)",
+        "HandleColor": "rgb(255, 210, 50)",
+        "HeadShape": "\"Scoop\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false",
+        "Size": "\"Hand\""
+      },
+      "source": "{\n\t\tId = \"toy_shovel\", -- id kept from v1 (\"Plastic Toy Shovel\") so saves keep working\n\t\tName = \"Hand Spade\",\n\t\tPrice = 0,\n\t\tPower = 2,\n\t\tCooldown = 0.5,\n\t\tRadius = 2,\n\t\tSandMultiplier = 1,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"A little plastic beach spade. Everyone starts somewhere! Digs Dry and Wet Sand.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(255, 70, 70),\n\t\t\tHandleColor = rgb(255, 210, 50),\n\t\t\tHeadShape = \"Scoop\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t\tSize = \"Hand\",\n\t\t},\n\t}"
+    },
+    {
+      "id": "garden_trowel",
+      "name": "Garden Trowel",
+      "fields": {
+        "Id": "\"garden_trowel\"",
+        "Name": "\"Garden Trowel\"",
+        "Price": "30",
+        "Power": "4",
+        "Cooldown": "0.46",
+        "Radius": "2.2",
+        "SandMultiplier": "1.5",
+        "RebirthsRequired": "0",
+        "Description": "\"Borrowed from Grandma's garden. Breaks into the Shell Bed!\"",
+        "Look": "{",
+        "HeadColor": "rgb(190, 195, 205)",
+        "HandleColor": "rgb(70, 200, 90)",
+        "HeadShape": "\"Trowel\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false",
+        "Size": "\"Hand\""
+      },
+      "source": "{\n\t\tId = \"garden_trowel\",\n\t\tName = \"Garden Trowel\",\n\t\tPrice = 30,\n\t\tPower = 4,\n\t\tCooldown = 0.46,\n\t\tRadius = 2.2,\n\t\tSandMultiplier = 1.5,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Borrowed from Grandma's garden. Breaks into the Shell Bed!\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(190, 195, 205),\n\t\t\tHandleColor = rgb(70, 200, 90),\n\t\t\tHeadShape = \"Trowel\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t\tSize = \"Hand\",\n\t\t},\n\t}"
+    },
+    {
+      "id": "metal_spade",
+      "name": "Metal Spade",
+      "fields": {
+        "Id": "\"metal_spade\"",
+        "Name": "\"Metal Spade\"",
+        "Price": "150",
+        "Power": "8",
+        "Cooldown": "0.43",
+        "Radius": "2.5",
+        "SandMultiplier": "2",
+        "RebirthsRequired": "0",
+        "Description": "\"A real grown-up shovel. Cuts through sticky Tidal Clay.\"",
+        "Look": "{",
+        "HeadColor": "rgb(170, 175, 185)",
+        "HandleColor": "rgb(140, 95, 55)",
+        "HeadShape": "\"Spade\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"metal_spade\",\n\t\tName = \"Metal Spade\",\n\t\tPrice = 150,\n\t\tPower = 8,\n\t\tCooldown = 0.43,\n\t\tRadius = 2.5,\n\t\tSandMultiplier = 2,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"A real grown-up shovel. Cuts through sticky Tidal Clay.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(170, 175, 185),\n\t\t\tHandleColor = rgb(140, 95, 55),\n\t\t\tHeadShape = \"Spade\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "lifeguard_shovel",
+      "name": "Lifeguard Shovel",
+      "fields": {
+        "Id": "\"lifeguard_shovel\"",
+        "Name": "\"Lifeguard Shovel\"",
+        "Price": "600",
+        "Power": "15",
+        "Cooldown": "0.4",
+        "Radius": "2.8",
+        "SandMultiplier": "3",
+        "RebirthsRequired": "0",
+        "Description": "\"Red, white and ready for rescue digs. Reaches Pirate Cove.\"",
+        "Look": "{",
+        "HeadColor": "rgb(235, 40, 40)",
+        "HandleColor": "rgb(255, 255, 255)",
+        "HeadShape": "\"Spade\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"lifeguard_shovel\",\n\t\tName = \"Lifeguard Shovel\",\n\t\tPrice = 600,\n\t\tPower = 15,\n\t\tCooldown = 0.4,\n\t\tRadius = 2.8,\n\t\tSandMultiplier = 3,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Red, white and ready for rescue digs. Reaches Pirate Cove.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(235, 40, 40),\n\t\t\tHandleColor = rgb(255, 255, 255),\n\t\t\tHeadShape = \"Spade\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "pirate_shovel",
+      "name": "Pirate Shovel",
+      "fields": {
+        "Id": "\"pirate_shovel\"",
+        "Name": "\"Pirate Shovel\"",
+        "Price": "2500",
+        "Power": "25",
+        "Cooldown": "0.37",
+        "Radius": "3.2",
+        "SandMultiplier": "4",
+        "RebirthsRequired": "0",
+        "Description": "\"Captain Sandbeard's own. Smashes through shipwreck planks.\"",
+        "Look": "{",
+        "HeadColor": "rgb(255, 200, 40)",
+        "HandleColor": "rgb(90, 55, 30)",
+        "HeadShape": "\"Spade\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"pirate_shovel\",\n\t\tName = \"Pirate Shovel\",\n\t\tPrice = 2500,\n\t\tPower = 25,\n\t\tCooldown = 0.37,\n\t\tRadius = 3.2,\n\t\tSandMultiplier = 4,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Captain Sandbeard's own. Smashes through shipwreck planks.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(255, 200, 40),\n\t\t\tHandleColor = rgb(90, 55, 30),\n\t\t\tHeadShape = \"Spade\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "bone_claw",
+      "name": "Bone Claw",
+      "fields": {
+        "Id": "\"bone_claw\"",
+        "Name": "\"Bone Claw\"",
+        "Price": "9000",
+        "Power": "45",
+        "Cooldown": "0.34",
+        "Radius": "3.5",
+        "SandMultiplier": "6",
+        "RebirthsRequired": "0",
+        "Description": "\"Made from a raptor claw. Perfect for fossil hunting.\"",
+        "Look": "{",
+        "HeadColor": "rgb(245, 238, 215)",
+        "HandleColor": "rgb(160, 120, 80)",
+        "HeadShape": "\"Claw\"",
+        "Material": "Enum.Material.SmoothPlastic",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"bone_claw\",\n\t\tName = \"Bone Claw\",\n\t\tPrice = 9000,\n\t\tPower = 45,\n\t\tCooldown = 0.34,\n\t\tRadius = 3.5,\n\t\tSandMultiplier = 6,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Made from a raptor claw. Perfect for fossil hunting.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(245, 238, 215),\n\t\t\tHandleColor = rgb(160, 120, 80),\n\t\t\tHeadShape = \"Claw\",\n\t\t\tMaterial = Enum.Material.SmoothPlastic,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "steel_pickaxe",
+      "name": "Steel Pickaxe",
+      "fields": {
+        "Id": "\"steel_pickaxe\"",
+        "Name": "\"Steel Pickaxe\"",
+        "Price": "35000",
+        "Power": "80",
+        "Cooldown": "0.31",
+        "Radius": "3.8",
+        "SandMultiplier": "8",
+        "RebirthsRequired": "0",
+        "Description": "\"Miner-grade steel. Cracks Bedrock like a cookie.\"",
+        "Look": "{",
+        "HeadColor": "rgb(165, 180, 195)",
+        "HandleColor": "rgb(60, 60, 70)",
+        "HeadShape": "\"Pick\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "false"
+      },
+      "source": "{\n\t\tId = \"steel_pickaxe\",\n\t\tName = \"Steel Pickaxe\",\n\t\tPrice = 35000,\n\t\tPower = 80,\n\t\tCooldown = 0.31,\n\t\tRadius = 3.8,\n\t\tSandMultiplier = 8,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Miner-grade steel. Cracks Bedrock like a cookie.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(165, 180, 195),\n\t\t\tHandleColor = rgb(60, 60, 70),\n\t\t\tHeadShape = \"Pick\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = false,\n\t\t},\n\t}"
+    },
+    {
+      "id": "crystal_spade",
+      "name": "Crystal Spade",
+      "fields": {
+        "Id": "\"crystal_spade\"",
+        "Name": "\"Crystal Spade\"",
+        "Price": "140000",
+        "Power": "140",
+        "Cooldown": "0.28",
+        "Radius": "4.4",
+        "SandMultiplier": "11",
+        "RebirthsRequired": "0",
+        "Description": "\"Carved from a single giant amethyst. Opens the Crystal Caverns.\"",
+        "Look": "{",
+        "HeadColor": "rgb(180, 110, 255)",
+        "HandleColor": "rgb(240, 220, 255)",
+        "HeadShape": "\"Spade\"",
+        "Material": "Enum.Material.Glass",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"crystal_spade\",\n\t\tName = \"Crystal Spade\",\n\t\tPrice = 140000,\n\t\tPower = 140,\n\t\tCooldown = 0.28,\n\t\tRadius = 4.4,\n\t\tSandMultiplier = 11,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"Carved from a single giant amethyst. Opens the Crystal Caverns.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(180, 110, 255),\n\t\t\tHandleColor = rgb(240, 220, 255),\n\t\t\tHeadShape = \"Spade\",\n\t\t\tMaterial = Enum.Material.Glass,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "frostbite_pick",
+      "name": "Frostbite Pick",
+      "fields": {
+        "Id": "\"frostbite_pick\"",
+        "Name": "\"Frostbite Pick\"",
+        "Price": "600000",
+        "Power": "250",
+        "Cooldown": "0.25",
+        "Radius": "5",
+        "SandMultiplier": "15",
+        "RebirthsRequired": "0",
+        "Description": "\"So cold it freezes the ice before it breaks it.\"",
+        "Look": "{",
+        "HeadColor": "rgb(150, 230, 255)",
+        "HandleColor": "rgb(40, 90, 160)",
+        "HeadShape": "\"Pick\"",
+        "Material": "Enum.Material.Ice",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"frostbite_pick\",\n\t\tName = \"Frostbite Pick\",\n\t\tPrice = 600000,\n\t\tPower = 250,\n\t\tCooldown = 0.25,\n\t\tRadius = 5,\n\t\tSandMultiplier = 15,\n\t\tRebirthsRequired = 0,\n\t\tDescription = \"So cold it freezes the ice before it breaks it.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(150, 230, 255),\n\t\t\tHandleColor = rgb(40, 90, 160),\n\t\t\tHeadShape = \"Pick\",\n\t\t\tMaterial = Enum.Material.Ice,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "ancient_trident",
+      "name": "Ancient Trident",
+      "fields": {
+        "Id": "\"ancient_trident\"",
+        "Name": "\"Ancient Trident\"",
+        "Price": "2500000",
+        "Power": "450",
+        "Cooldown": "0.22",
+        "Radius": "5.5",
+        "SandMultiplier": "20",
+        "RebirthsRequired": "1",
+        "Description": "\"The royal digging fork of Sandlantis. Requires 1 Rebirth.\"",
+        "Look": "{",
+        "HeadColor": "rgb(255, 205, 60)",
+        "HandleColor": "rgb(30, 160, 170)",
+        "HeadShape": "\"Trident\"",
+        "Material": "Enum.Material.Metal",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"ancient_trident\",\n\t\tName = \"Ancient Trident\",\n\t\tPrice = 2500000,\n\t\tPower = 450,\n\t\tCooldown = 0.22,\n\t\tRadius = 5.5,\n\t\tSandMultiplier = 20,\n\t\tRebirthsRequired = 1,\n\t\tDescription = \"The royal digging fork of Sandlantis. Requires 1 Rebirth.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(255, 205, 60),\n\t\t\tHandleColor = rgb(30, 160, 170),\n\t\t\tHeadShape = \"Trident\",\n\t\t\tMaterial = Enum.Material.Metal,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "magma_pick",
+      "name": "Magma Pick",
+      "fields": {
+        "Id": "\"magma_pick\"",
+        "Name": "\"Magma Pick\"",
+        "Price": "12000000",
+        "Power": "800",
+        "Cooldown": "0.2",
+        "Radius": "6",
+        "SandMultiplier": "28",
+        "RebirthsRequired": "2",
+        "Description": "\"Forged in lava, cooled in a dragon's sneeze. Requires 2 Rebirths.\"",
+        "Look": "{",
+        "HeadColor": "rgb(255, 90, 20)",
+        "HandleColor": "rgb(50, 30, 30)",
+        "HeadShape": "\"Pick\"",
+        "Material": "Enum.Material.CrackedLava",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"magma_pick\",\n\t\tName = \"Magma Pick\",\n\t\tPrice = 12000000,\n\t\tPower = 800,\n\t\tCooldown = 0.2,\n\t\tRadius = 6,\n\t\tSandMultiplier = 28,\n\t\tRebirthsRequired = 2,\n\t\tDescription = \"Forged in lava, cooled in a dragon's sneeze. Requires 2 Rebirths.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(255, 90, 20),\n\t\t\tHandleColor = rgb(50, 30, 30),\n\t\t\tHeadShape = \"Pick\",\n\t\t\tMaterial = Enum.Material.CrackedLava,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "obsidian_drill",
+      "name": "Obsidian Drill",
+      "fields": {
+        "Id": "\"obsidian_drill\"",
+        "Name": "\"Obsidian Drill\"",
+        "Price": "60000000",
+        "Power": "1400",
+        "Cooldown": "0.17",
+        "Radius": "6.6",
+        "SandMultiplier": "38",
+        "RebirthsRequired": "4",
+        "Description": "\"A spinning drill of black volcanic glass. Requires 4 Rebirths.\"",
+        "Look": "{",
+        "HeadColor": "rgb(60, 40, 90)",
+        "HandleColor": "rgb(180, 70, 255)",
+        "HeadShape": "\"Drill\"",
+        "Material": "Enum.Material.Glass",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"obsidian_drill\",\n\t\tName = \"Obsidian Drill\",\n\t\tPrice = 60000000,\n\t\tPower = 1400,\n\t\tCooldown = 0.17,\n\t\tRadius = 6.6,\n\t\tSandMultiplier = 38,\n\t\tRebirthsRequired = 4,\n\t\tDescription = \"A spinning drill of black volcanic glass. Requires 4 Rebirths.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(60, 40, 90),\n\t\t\tHandleColor = rgb(180, 70, 255),\n\t\t\tHeadShape = \"Drill\",\n\t\t\tMaterial = Enum.Material.Glass,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "plasma_drill",
+      "name": "Plasma Drill",
+      "fields": {
+        "Id": "\"plasma_drill\"",
+        "Name": "\"Plasma Drill\"",
+        "Price": "350000000",
+        "Power": "2500",
+        "Cooldown": "0.14",
+        "Radius": "7.2",
+        "SandMultiplier": "52",
+        "RebirthsRequired": "6",
+        "Description": "\"Alien tech that melts through anything. Requires 6 Rebirths.\"",
+        "Look": "{",
+        "HeadColor": "rgb(90, 255, 140)",
+        "HandleColor": "rgb(200, 210, 220)",
+        "HeadShape": "\"Drill\"",
+        "Material": "Enum.Material.Neon",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"plasma_drill\",\n\t\tName = \"Plasma Drill\",\n\t\tPrice = 350000000,\n\t\tPower = 2500,\n\t\tCooldown = 0.14,\n\t\tRadius = 7.2,\n\t\tSandMultiplier = 52,\n\t\tRebirthsRequired = 6,\n\t\tDescription = \"Alien tech that melts through anything. Requires 6 Rebirths.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(90, 255, 140),\n\t\t\tHandleColor = rgb(200, 210, 220),\n\t\t\tHeadShape = \"Drill\",\n\t\t\tMaterial = Enum.Material.Neon,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    },
+    {
+      "id": "core_breaker",
+      "name": "Core Breaker",
+      "fields": {
+        "Id": "\"core_breaker\"",
+        "Name": "\"Core Breaker\"",
+        "Price": "2500000000",
+        "Power": "4500",
+        "Cooldown": "0.12",
+        "Radius": "8",
+        "SandMultiplier": "75",
+        "RebirthsRequired": "10",
+        "Description": "\"The legendary shovel that can touch the Core. Requires 10 Rebirths.\"",
+        "Look": "{",
+        "HeadColor": "rgb(255, 215, 70)",
+        "HandleColor": "rgb(255, 120, 40)",
+        "HeadShape": "\"Claw\"",
+        "Material": "Enum.Material.Neon",
+        "Glow": "true"
+      },
+      "source": "{\n\t\tId = \"core_breaker\",\n\t\tName = \"Core Breaker\",\n\t\tPrice = 2500000000,\n\t\tPower = 4500,\n\t\tCooldown = 0.12,\n\t\tRadius = 8,\n\t\tSandMultiplier = 75,\n\t\tRebirthsRequired = 10,\n\t\tDescription = \"The legendary shovel that can touch the Core. Requires 10 Rebirths.\",\n\t\tLook = {\n\t\t\tHeadColor = rgb(255, 215, 70),\n\t\t\tHandleColor = rgb(255, 120, 40),\n\t\t\tHeadShape = \"Claw\",\n\t\t\tMaterial = Enum.Material.Neon,\n\t\t\tGlow = true,\n\t\t},\n\t}"
+    }
+  ],
+  "Titles": [
+    {
+      "id": "dry_sand",
+      "name": "Sandcastle Rookie",
+      "fields": {},
+      "source": "{ LayerId = \"dry_sand\", Title = \"Sandcastle Rookie\" }"
+    },
+    {
+      "id": "wet_sand",
+      "name": "Bucket Brigade",
+      "fields": {},
+      "source": "{ LayerId = \"wet_sand\", Title = \"Bucket Brigade\" }"
+    },
+    {
+      "id": "shell_bed",
+      "name": "Shell Seeker",
+      "fields": {},
+      "source": "{ LayerId = \"shell_bed\", Title = \"Shell Seeker\" }"
+    },
+    {
+      "id": "tidal_clay",
+      "name": "Clay Crawler",
+      "fields": {},
+      "source": "{ LayerId = \"tidal_clay\", Title = \"Clay Crawler\", Color = rgb(214, 160, 126) }"
+    },
+    {
+      "id": "pirate_cove",
+      "name": "Pirate Plunderer",
+      "fields": {},
+      "source": "{ LayerId = \"pirate_cove\", Title = \"Pirate Plunderer\", Color = rgb(222, 168, 110) }"
+    },
+    {
+      "id": "shipwreck",
+      "name": "Wreck Diver",
+      "fields": {},
+      "source": "{ LayerId = \"shipwreck\", Title = \"Wreck Diver\", Color = rgb(214, 156, 104) }"
+    },
+    {
+      "id": "fossil_bed",
+      "name": "Fossil Hunter",
+      "fields": {},
+      "source": "{ LayerId = \"fossil_bed\", Title = \"Fossil Hunter\" }"
+    },
+    {
+      "id": "bedrock",
+      "name": "Rock Breaker",
+      "fields": {},
+      "source": "{ LayerId = \"bedrock\", Title = \"Rock Breaker\", Color = rgb(184, 188, 204) }"
+    },
+    {
+      "id": "crystal_caverns",
+      "name": "Crystal Miner",
+      "fields": {},
+      "source": "{ LayerId = \"crystal_caverns\", Title = \"Crystal Miner\" }"
+    },
+    {
+      "id": "frozen_abyss",
+      "name": "Ice Tunneler",
+      "fields": {},
+      "source": "{ LayerId = \"frozen_abyss\", Title = \"Ice Tunneler\" }"
+    },
+    {
+      "id": "ancient_ruins",
+      "name": "Ruin Raider",
+      "fields": {},
+      "source": "{ LayerId = \"ancient_ruins\", Title = \"Ruin Raider\" }"
+    },
+    {
+      "id": "magma_chamber",
+      "name": "Magma Diver",
+      "fields": {},
+      "source": "{ LayerId = \"magma_chamber\", Title = \"Magma Diver\" }"
+    },
+    {
+      "id": "obsidian_depths",
+      "name": "Obsidian Delver",
+      "fields": {},
+      "source": "{ LayerId = \"obsidian_depths\", Title = \"Obsidian Delver\", Color = rgb(170, 130, 240) }"
+    },
+    {
+      "id": "alien_hive",
+      "name": "Hive Invader",
+      "fields": {},
+      "source": "{ LayerId = \"alien_hive\", Title = \"Hive Invader\" }"
+    },
+    {
+      "id": "the_core",
+      "name": "Core Breaker",
+      "fields": {},
+      "source": "{ LayerId = \"the_core\", Title = \"Core Breaker\" }"
+    }
+  ],
+  "Treasures": [
+    {
+      "id": "bottle_cap",
+      "name": "Bottle Cap",
+      "fields": {
+        "Id": "\"bottle_cap\"",
+        "Name": "\"Bottle Cap\"",
+        "Layer": "1",
+        "Rarity": "\"Common\"",
+        "SellValue": "8",
+        "FlavorText": "\"Somebody's soda. Gross, but it's a start!\"",
+        "Look": "{ Color = rgb(220, 60, 60), Shape = \"Cap\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"bottle_cap\",\n\t\tName = \"Bottle Cap\",\n\t\tLayer = 1,\n\t\tRarity = \"Common\",\n\t\tSellValue = 8,\n\t\tFlavorText = \"Somebody's soda. Gross, but it's a start!\",\n\t\tLook = { Color = rgb(220, 60, 60), Shape = \"Cap\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "lost_flip_flop",
+      "name": "Lost Flip-Flop",
+      "fields": {
+        "Id": "\"lost_flip_flop\"",
+        "Name": "\"Lost Flip-Flop\"",
+        "Layer": "1",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "20",
+        "FlavorText": "\"Every beach has one. Where is the other one?!\"",
+        "Look": "{ Color = rgb(60, 190, 255), Shape = \"Box\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"lost_flip_flop\",\n\t\tName = \"Lost Flip-Flop\",\n\t\tLayer = 1,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 20,\n\t\tFlavorText = \"Every beach has one. Where is the other one?!\",\n\t\tLook = { Color = rgb(60, 190, 255), Shape = \"Box\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "cool_sunglasses",
+      "name": "Cool Sunglasses",
+      "fields": {
+        "Id": "\"cool_sunglasses\"",
+        "Name": "\"Cool Sunglasses\"",
+        "Layer": "1",
+        "Rarity": "\"Rare\"",
+        "SellValue": "60",
+        "FlavorText": "\"Instantly 200% cooler.\"",
+        "Look": "{ Color = rgb(30, 30, 40), Shape = \"Box\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"cool_sunglasses\",\n\t\tName = \"Cool Sunglasses\",\n\t\tLayer = 1,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 60,\n\t\tFlavorText = \"Instantly 200% cooler.\",\n\t\tLook = { Color = rgb(30, 30, 40), Shape = \"Box\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "seashell",
+      "name": "Seashell",
+      "fields": {
+        "Id": "\"seashell\"",
+        "Name": "\"Seashell\"",
+        "Layer": "2",
+        "Rarity": "\"Common\"",
+        "SellValue": "16",
+        "FlavorText": "\"A classic. Smells like the ocean.\"",
+        "Look": "{ Color = rgb(255, 200, 170), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"seashell\",\n\t\tName = \"Seashell\",\n\t\tLayer = 2,\n\t\tRarity = \"Common\",\n\t\tSellValue = 16,\n\t\tFlavorText = \"A classic. Smells like the ocean.\",\n\t\tLook = { Color = rgb(255, 200, 170), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "sand_dollar",
+      "name": "Sand Dollar",
+      "fields": {
+        "Id": "\"sand_dollar\"",
+        "Name": "\"Sand Dollar\"",
+        "Layer": "2",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "40",
+        "FlavorText": "\"Sadly, shops won't accept it. The sell stand will!\"",
+        "Look": "{ Color = rgb(240, 230, 200), Shape = \"Coin\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"sand_dollar\",\n\t\tName = \"Sand Dollar\",\n\t\tLayer = 2,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 40,\n\t\tFlavorText = \"Sadly, shops won't accept it. The sell stand will!\",\n\t\tLook = { Color = rgb(240, 230, 200), Shape = \"Coin\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "message_in_a_bottle",
+      "name": "Message in a Bottle",
+      "fields": {
+        "Id": "\"message_in_a_bottle\"",
+        "Name": "\"Message in a Bottle\"",
+        "Layer": "2",
+        "Rarity": "\"Rare\"",
+        "SellValue": "120",
+        "FlavorText": "\"'Dig deeper. The Core is real.' - A.D.\"",
+        "Look": "{ Color = rgb(120, 220, 180), Shape = \"Bottle\", Material = Enum.Material.Glass, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"message_in_a_bottle\",\n\t\tName = \"Message in a Bottle\",\n\t\tLayer = 2,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 120,\n\t\tFlavorText = \"'Dig deeper. The Core is real.' - A.D.\",\n\t\tLook = { Color = rgb(120, 220, 180), Shape = \"Bottle\", Material = Enum.Material.Glass, Glow = false },\n\t}"
+    },
+    {
+      "id": "conch_shell",
+      "name": "Conch Shell",
+      "fields": {
+        "Id": "\"conch_shell\"",
+        "Name": "\"Conch Shell\"",
+        "Layer": "3",
+        "Rarity": "\"Common\"",
+        "SellValue": "50",
+        "FlavorText": "\"Blow it to call the seagulls.\"",
+        "Look": "{ Color = rgb(255, 170, 150), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"conch_shell\",\n\t\tName = \"Conch Shell\",\n\t\tLayer = 3,\n\t\tRarity = \"Common\",\n\t\tSellValue = 50,\n\t\tFlavorText = \"Blow it to call the seagulls.\",\n\t\tLook = { Color = rgb(255, 170, 150), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "glowing_pearl",
+      "name": "Glowing Pearl",
+      "fields": {
+        "Id": "\"glowing_pearl\"",
+        "Name": "\"Glowing Pearl\"",
+        "Layer": "3",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "120",
+        "FlavorText": "\"It glows a little brighter the deeper you go.\"",
+        "Look": "{ Color = rgb(255, 245, 255), Shape = \"Orb\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"glowing_pearl\",\n\t\tName = \"Glowing Pearl\",\n\t\tLayer = 3,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 120,\n\t\tFlavorText = \"It glows a little brighter the deeper you go.\",\n\t\tLook = { Color = rgb(255, 245, 255), Shape = \"Orb\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "giant_clam",
+      "name": "Giant Clam",
+      "fields": {
+        "Id": "\"giant_clam\"",
+        "Name": "\"Giant Clam\"",
+        "Layer": "3",
+        "Rarity": "\"Rare\"",
+        "SellValue": "360",
+        "FlavorText": "\"It's still a little grumpy about being dug up.\"",
+        "Look": "{ Color = rgb(170, 140, 255), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"giant_clam\",\n\t\tName = \"Giant Clam\",\n\t\tLayer = 3,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 360,\n\t\tFlavorText = \"It's still a little grumpy about being dug up.\",\n\t\tLook = { Color = rgb(170, 140, 255), Shape = \"Shell\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "rusty_anchor",
+      "name": "Rusty Anchor",
+      "fields": {
+        "Id": "\"rusty_anchor\"",
+        "Name": "\"Rusty Anchor\"",
+        "Layer": "4",
+        "Rarity": "\"Common\"",
+        "SellValue": "130",
+        "FlavorText": "\"From a boat that got stuck in the mud.\"",
+        "Look": "{ Color = rgb(150, 90, 60), Shape = \"Anchor\", Material = Enum.Material.CorrodedMetal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"rusty_anchor\",\n\t\tName = \"Rusty Anchor\",\n\t\tLayer = 4,\n\t\tRarity = \"Common\",\n\t\tSellValue = 130,\n\t\tFlavorText = \"From a boat that got stuck in the mud.\",\n\t\tLook = { Color = rgb(150, 90, 60), Shape = \"Anchor\", Material = Enum.Material.CorrodedMetal, Glow = false },\n\t}"
+    },
+    {
+      "id": "pocket_watch",
+      "name": "Old Pocket Watch",
+      "fields": {
+        "Id": "\"pocket_watch\"",
+        "Name": "\"Old Pocket Watch\"",
+        "Layer": "4",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "320",
+        "FlavorText": "\"Stopped at exactly high tide.\"",
+        "Look": "{ Color = rgb(220, 190, 80), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"pocket_watch\",\n\t\tName = \"Old Pocket Watch\",\n\t\tLayer = 4,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 320,\n\t\tFlavorText = \"Stopped at exactly high tide.\",\n\t\tLook = { Color = rgb(220, 190, 80), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "mermaid_comb",
+      "name": "Mermaid's Comb",
+      "fields": {
+        "Id": "\"mermaid_comb\"",
+        "Name": "\"Mermaid's Comb\"",
+        "Layer": "4",
+        "Rarity": "\"Rare\"",
+        "SellValue": "960",
+        "FlavorText": "\"Mermaids lose these ALL the time.\"",
+        "Look": "{ Color = rgb(120, 240, 230), Shape = \"Shard\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"mermaid_comb\",\n\t\tName = \"Mermaid's Comb\",\n\t\tLayer = 4,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 960,\n\t\tFlavorText = \"Mermaids lose these ALL the time.\",\n\t\tLook = { Color = rgb(120, 240, 230), Shape = \"Shard\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "gold_doubloon",
+      "name": "Gold Doubloon",
+      "fields": {
+        "Id": "\"gold_doubloon\"",
+        "Name": "\"Gold Doubloon\"",
+        "Layer": "5",
+        "Rarity": "\"Common\"",
+        "SellValue": "360",
+        "FlavorText": "\"Pirate money! Arrr.\"",
+        "Look": "{ Color = rgb(255, 205, 40), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"gold_doubloon\",\n\t\tName = \"Gold Doubloon\",\n\t\tLayer = 5,\n\t\tRarity = \"Common\",\n\t\tSellValue = 360,\n\t\tFlavorText = \"Pirate money! Arrr.\",\n\t\tLook = { Color = rgb(255, 205, 40), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "pirate_hook",
+      "name": "Pirate Hook",
+      "fields": {
+        "Id": "\"pirate_hook\"",
+        "Name": "\"Pirate Hook\"",
+        "Layer": "5",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "900",
+        "FlavorText": "\"Captain Sandbeard's spare.\"",
+        "Look": "{ Color = rgb(190, 190, 200), Shape = \"Anchor\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"pirate_hook\",\n\t\tName = \"Pirate Hook\",\n\t\tLayer = 5,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 900,\n\t\tFlavorText = \"Captain Sandbeard's spare.\",\n\t\tLook = { Color = rgb(190, 190, 200), Shape = \"Anchor\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "treasure_map",
+      "name": "Treasure Map",
+      "fields": {
+        "Id": "\"treasure_map\"",
+        "Name": "\"Treasure Map\"",
+        "Layer": "5",
+        "Rarity": "\"Rare\"",
+        "SellValue": "2700",
+        "FlavorText": "\"The X is... below you. Way below.\"",
+        "Look": "{ Color = rgb(230, 200, 140), Shape = \"Tablet\", Material = Enum.Material.Fabric, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"treasure_map\",\n\t\tName = \"Treasure Map\",\n\t\tLayer = 5,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 2700,\n\t\tFlavorText = \"The X is... below you. Way below.\",\n\t\tLook = { Color = rgb(230, 200, 140), Shape = \"Tablet\", Material = Enum.Material.Fabric, Glow = false },\n\t}"
+    },
+    {
+      "id": "pirate_chest",
+      "name": "Pirate Chest",
+      "fields": {
+        "Id": "\"pirate_chest\"",
+        "Name": "\"Pirate Chest\"",
+        "Layer": "5",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "36000",
+        "FlavorText": "\"Sandbeard's legendary loot chest!\"",
+        "Look": "{ Color = rgb(150, 95, 45), Shape = \"Chest\", Material = Enum.Material.Wood, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"pirate_chest\",\n\t\tName = \"Pirate Chest\",\n\t\tLayer = 5,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 36000,\n\t\tFlavorText = \"Sandbeard's legendary loot chest!\",\n\t\tLook = { Color = rgb(150, 95, 45), Shape = \"Chest\", Material = Enum.Material.Wood, Glow = false },\n\t}"
+    },
+    {
+      "id": "ships_wheel",
+      "name": "Ship's Wheel",
+      "fields": {
+        "Id": "\"ships_wheel\"",
+        "Name": "\"Ship's Wheel\"",
+        "Layer": "6",
+        "Rarity": "\"Common\"",
+        "SellValue": "960",
+        "FlavorText": "\"Steer the ship! Oh wait, it sank.\"",
+        "Look": "{ Color = rgb(140, 90, 50), Shape = \"Wheel\", Material = Enum.Material.Wood, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"ships_wheel\",\n\t\tName = \"Ship's Wheel\",\n\t\tLayer = 6,\n\t\tRarity = \"Common\",\n\t\tSellValue = 960,\n\t\tFlavorText = \"Steer the ship! Oh wait, it sank.\",\n\t\tLook = { Color = rgb(140, 90, 50), Shape = \"Wheel\", Material = Enum.Material.Wood, Glow = false },\n\t}"
+    },
+    {
+      "id": "captains_spyglass",
+      "name": "Captain's Spyglass",
+      "fields": {
+        "Id": "\"captains_spyglass\"",
+        "Name": "\"Captain's Spyglass\"",
+        "Layer": "6",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "2400",
+        "FlavorText": "\"Spot treasure from a mile away.\"",
+        "Look": "{ Color = rgb(200, 160, 60), Shape = \"Bottle\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"captains_spyglass\",\n\t\tName = \"Captain's Spyglass\",\n\t\tLayer = 6,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 2400,\n\t\tFlavorText = \"Spot treasure from a mile away.\",\n\t\tLook = { Color = rgb(200, 160, 60), Shape = \"Bottle\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "cursed_skull",
+      "name": "Cursed Skull",
+      "fields": {
+        "Id": "\"cursed_skull\"",
+        "Name": "\"Cursed Skull\"",
+        "Layer": "6",
+        "Rarity": "\"Epic\"",
+        "SellValue": "24000",
+        "FlavorText": "\"It winks at you when nobody is looking.\"",
+        "Look": "{ Color = rgb(120, 255, 140), Shape = \"Skull\", Material = Enum.Material.SmoothPlastic, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"cursed_skull\",\n\t\tName = \"Cursed Skull\",\n\t\tLayer = 6,\n\t\tRarity = \"Epic\",\n\t\tSellValue = 24000,\n\t\tFlavorText = \"It winks at you when nobody is looking.\",\n\t\tLook = { Color = rgb(120, 255, 140), Shape = \"Skull\", Material = Enum.Material.SmoothPlastic, Glow = true },\n\t}"
+    },
+    {
+      "id": "trilobite",
+      "name": "Trilobite",
+      "fields": {
+        "Id": "\"trilobite\"",
+        "Name": "\"Trilobite\"",
+        "Layer": "7",
+        "Rarity": "\"Common\"",
+        "SellValue": "2900",
+        "FlavorText": "\"A 500-million-year-old bug. Cute!\"",
+        "Look": "{ Color = rgb(140, 130, 110), Shape = \"Shell\", Material = Enum.Material.Slate, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"trilobite\",\n\t\tName = \"Trilobite\",\n\t\tLayer = 7,\n\t\tRarity = \"Common\",\n\t\tSellValue = 2900,\n\t\tFlavorText = \"A 500-million-year-old bug. Cute!\",\n\t\tLook = { Color = rgb(140, 130, 110), Shape = \"Shell\", Material = Enum.Material.Slate, Glow = false },\n\t}"
+    },
+    {
+      "id": "ammonite",
+      "name": "Ammonite",
+      "fields": {
+        "Id": "\"ammonite\"",
+        "Name": "\"Ammonite\"",
+        "Layer": "7",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "7200",
+        "FlavorText": "\"A spiral shell from the age of sea monsters.\"",
+        "Look": "{ Color = rgb(210, 170, 120), Shape = \"Shell\", Material = Enum.Material.Marble, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"ammonite\",\n\t\tName = \"Ammonite\",\n\t\tLayer = 7,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 7200,\n\t\tFlavorText = \"A spiral shell from the age of sea monsters.\",\n\t\tLook = { Color = rgb(210, 170, 120), Shape = \"Shell\", Material = Enum.Material.Marble, Glow = false },\n\t}"
+    },
+    {
+      "id": "trex_tooth",
+      "name": "T-Rex Tooth",
+      "fields": {
+        "Id": "\"trex_tooth\"",
+        "Name": "\"T-Rex Tooth\"",
+        "Layer": "7",
+        "Rarity": "\"Rare\"",
+        "SellValue": "22000",
+        "FlavorText": "\"Bigger than your hand. Imagine the smile.\"",
+        "Look": "{ Color = rgb(250, 245, 225), Shape = \"Bone\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"trex_tooth\",\n\t\tName = \"T-Rex Tooth\",\n\t\tLayer = 7,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 22000,\n\t\tFlavorText = \"Bigger than your hand. Imagine the smile.\",\n\t\tLook = { Color = rgb(250, 245, 225), Shape = \"Bone\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "dino_skull",
+      "name": "Dino Skull",
+      "fields": {
+        "Id": "\"dino_skull\"",
+        "Name": "\"Dino Skull\"",
+        "Layer": "7",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "290000",
+        "FlavorText": "\"The museum would pay a fortune for this.\"",
+        "Look": "{ Color = rgb(245, 235, 210), Shape = \"Skull\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"dino_skull\",\n\t\tName = \"Dino Skull\",\n\t\tLayer = 7,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 290000,\n\t\tFlavorText = \"The museum would pay a fortune for this.\",\n\t\tLook = { Color = rgb(245, 235, 210), Shape = \"Skull\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "geode",
+      "name": "Geode",
+      "fields": {
+        "Id": "\"geode\"",
+        "Name": "\"Geode\"",
+        "Layer": "8",
+        "Rarity": "\"Common\"",
+        "SellValue": "7700",
+        "FlavorText": "\"Boring outside, sparkly inside.\"",
+        "Look": "{ Color = rgb(120, 110, 130), Shape = \"Orb\", Material = Enum.Material.Rock, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"geode\",\n\t\tName = \"Geode\",\n\t\tLayer = 8,\n\t\tRarity = \"Common\",\n\t\tSellValue = 7700,\n\t\tFlavorText = \"Boring outside, sparkly inside.\",\n\t\tLook = { Color = rgb(120, 110, 130), Shape = \"Orb\", Material = Enum.Material.Rock, Glow = false },\n\t}"
+    },
+    {
+      "id": "iron_nugget",
+      "name": "Iron Nugget",
+      "fields": {
+        "Id": "\"iron_nugget\"",
+        "Name": "\"Iron Nugget\"",
+        "Layer": "8",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "19000",
+        "FlavorText": "\"Heavy, shiny, and useful for shovels.\"",
+        "Look": "{ Color = rgb(160, 160, 170), Shape = \"Shard\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"iron_nugget\",\n\t\tName = \"Iron Nugget\",\n\t\tLayer = 8,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 19000,\n\t\tFlavorText = \"Heavy, shiny, and useful for shovels.\",\n\t\tLook = { Color = rgb(160, 160, 170), Shape = \"Shard\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "ancient_arrowhead",
+      "name": "Ancient Arrowhead",
+      "fields": {
+        "Id": "\"ancient_arrowhead\"",
+        "Name": "\"Ancient Arrowhead\"",
+        "Layer": "8",
+        "Rarity": "\"Rare\"",
+        "SellValue": "58000",
+        "FlavorText": "\"Somebody explored down here before you.\"",
+        "Look": "{ Color = rgb(90, 90, 100), Shape = \"Shard\", Material = Enum.Material.Slate, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"ancient_arrowhead\",\n\t\tName = \"Ancient Arrowhead\",\n\t\tLayer = 8,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 58000,\n\t\tFlavorText = \"Somebody explored down here before you.\",\n\t\tLook = { Color = rgb(90, 90, 100), Shape = \"Shard\", Material = Enum.Material.Slate, Glow = false },\n\t}"
+    },
+    {
+      "id": "amethyst",
+      "name": "Amethyst",
+      "fields": {
+        "Id": "\"amethyst\"",
+        "Name": "\"Amethyst\"",
+        "Layer": "9",
+        "Rarity": "\"Common\"",
+        "SellValue": "22000",
+        "FlavorText": "\"Purple and sparkly.\"",
+        "Look": "{ Color = rgb(170, 90, 255), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"amethyst\",\n\t\tName = \"Amethyst\",\n\t\tLayer = 9,\n\t\tRarity = \"Common\",\n\t\tSellValue = 22000,\n\t\tFlavorText = \"Purple and sparkly.\",\n\t\tLook = { Color = rgb(170, 90, 255), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "sapphire",
+      "name": "Sapphire",
+      "fields": {
+        "Id": "\"sapphire\"",
+        "Name": "\"Sapphire\"",
+        "Layer": "9",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "55000",
+        "FlavorText": "\"Deep blue, like the ocean far above.\"",
+        "Look": "{ Color = rgb(40, 110, 255), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"sapphire\",\n\t\tName = \"Sapphire\",\n\t\tLayer = 9,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 55000,\n\t\tFlavorText = \"Deep blue, like the ocean far above.\",\n\t\tLook = { Color = rgb(40, 110, 255), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "glow_crystal",
+      "name": "Glow Crystal",
+      "fields": {
+        "Id": "\"glow_crystal\"",
+        "Name": "\"Glow Crystal\"",
+        "Layer": "9",
+        "Rarity": "\"Rare\"",
+        "SellValue": "160000",
+        "FlavorText": "\"This is what lights the caverns.\"",
+        "Look": "{ Color = rgb(140, 255, 250), Shape = \"Shard\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"glow_crystal\",\n\t\tName = \"Glow Crystal\",\n\t\tLayer = 9,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 160000,\n\t\tFlavorText = \"This is what lights the caverns.\",\n\t\tLook = { Color = rgb(140, 255, 250), Shape = \"Shard\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "rainbow_diamond",
+      "name": "Rainbow Diamond",
+      "fields": {
+        "Id": "\"rainbow_diamond\"",
+        "Name": "\"Rainbow Diamond\"",
+        "Layer": "9",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "2200000",
+        "FlavorText": "\"Every colour at once!\"",
+        "Look": "{ Color = rgb(255, 140, 220), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"rainbow_diamond\",\n\t\tName = \"Rainbow Diamond\",\n\t\tLayer = 9,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 2200000,\n\t\tFlavorText = \"Every colour at once!\",\n\t\tLook = { Color = rgb(255, 140, 220), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "frozen_fish",
+      "name": "Frozen Fish",
+      "fields": {
+        "Id": "\"frozen_fish\"",
+        "Name": "\"Frozen Fish\"",
+        "Layer": "10",
+        "Rarity": "\"Common\"",
+        "SellValue": "66000",
+        "FlavorText": "\"It's been chilling for 10,000 years.\"",
+        "Look": "{ Color = rgb(150, 210, 255), Shape = \"Box\", Material = Enum.Material.Ice, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"frozen_fish\",\n\t\tName = \"Frozen Fish\",\n\t\tLayer = 10,\n\t\tRarity = \"Common\",\n\t\tSellValue = 66000,\n\t\tFlavorText = \"It's been chilling for 10,000 years.\",\n\t\tLook = { Color = rgb(150, 210, 255), Shape = \"Box\", Material = Enum.Material.Ice, Glow = false },\n\t}"
+    },
+    {
+      "id": "mammoth_tusk",
+      "name": "Mammoth Tusk",
+      "fields": {
+        "Id": "\"mammoth_tusk\"",
+        "Name": "\"Mammoth Tusk\"",
+        "Layer": "10",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "160000",
+        "FlavorText": "\"The mammoth wants it back.\"",
+        "Look": "{ Color = rgb(245, 240, 220), Shape = \"Bone\", Material = Enum.Material.SmoothPlastic, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"mammoth_tusk\",\n\t\tName = \"Mammoth Tusk\",\n\t\tLayer = 10,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 160000,\n\t\tFlavorText = \"The mammoth wants it back.\",\n\t\tLook = { Color = rgb(245, 240, 220), Shape = \"Bone\", Material = Enum.Material.SmoothPlastic, Glow = false },\n\t}"
+    },
+    {
+      "id": "ice_crown",
+      "name": "Ice Crown",
+      "fields": {
+        "Id": "\"ice_crown\"",
+        "Name": "\"Ice Crown\"",
+        "Layer": "10",
+        "Rarity": "\"Epic\"",
+        "SellValue": "1600000",
+        "FlavorText": "\"Crown of the Frost King. Never melts.\"",
+        "Look": "{ Color = rgb(190, 240, 255), Shape = \"Crown\", Material = Enum.Material.Ice, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"ice_crown\",\n\t\tName = \"Ice Crown\",\n\t\tLayer = 10,\n\t\tRarity = \"Epic\",\n\t\tSellValue = 1600000,\n\t\tFlavorText = \"Crown of the Frost King. Never melts.\",\n\t\tLook = { Color = rgb(190, 240, 255), Shape = \"Crown\", Material = Enum.Material.Ice, Glow = true },\n\t}"
+    },
+    {
+      "id": "stone_tablet",
+      "name": "Stone Tablet",
+      "fields": {
+        "Id": "\"stone_tablet\"",
+        "Name": "\"Stone Tablet\"",
+        "Layer": "11",
+        "Rarity": "\"Common\"",
+        "SellValue": "190000",
+        "FlavorText": "\"Instructions for a giant shovel?\"",
+        "Look": "{ Color = rgb(170, 160, 140), Shape = \"Tablet\", Material = Enum.Material.Slate, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"stone_tablet\",\n\t\tName = \"Stone Tablet\",\n\t\tLayer = 11,\n\t\tRarity = \"Common\",\n\t\tSellValue = 190000,\n\t\tFlavorText = \"Instructions for a giant shovel?\",\n\t\tLook = { Color = rgb(170, 160, 140), Shape = \"Tablet\", Material = Enum.Material.Slate, Glow = false },\n\t}"
+    },
+    {
+      "id": "golden_idol",
+      "name": "Golden Idol",
+      "fields": {
+        "Id": "\"golden_idol\"",
+        "Name": "\"Golden Idol\"",
+        "Layer": "11",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "480000",
+        "FlavorText": "\"Don't swap it with a bag of sand...\"",
+        "Look": "{ Color = rgb(255, 200, 50), Shape = \"Skull\", Material = Enum.Material.Metal, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"golden_idol\",\n\t\tName = \"Golden Idol\",\n\t\tLayer = 11,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 480000,\n\t\tFlavorText = \"Don't swap it with a bag of sand...\",\n\t\tLook = { Color = rgb(255, 200, 50), Shape = \"Skull\", Material = Enum.Material.Metal, Glow = false },\n\t}"
+    },
+    {
+      "id": "sun_mask",
+      "name": "Sun Mask",
+      "fields": {
+        "Id": "\"sun_mask\"",
+        "Name": "\"Sun Mask\"",
+        "Layer": "11",
+        "Rarity": "\"Rare\"",
+        "SellValue": "1400000",
+        "FlavorText": "\"The Sandlantis people worshipped the beach sun.\"",
+        "Look": "{ Color = rgb(255, 170, 40), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"sun_mask\",\n\t\tName = \"Sun Mask\",\n\t\tLayer = 11,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 1400000,\n\t\tFlavorText = \"The Sandlantis people worshipped the beach sun.\",\n\t\tLook = { Color = rgb(255, 170, 40), Shape = \"Coin\", Material = Enum.Material.Metal, Glow = true },\n\t}"
+    },
+    {
+      "id": "atlantis_crown",
+      "name": "Crown of Sandlantis",
+      "fields": {
+        "Id": "\"atlantis_crown\"",
+        "Name": "\"Crown of Sandlantis\"",
+        "Layer": "11",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "19000000",
+        "FlavorText": "\"The crown of the lost underground city.\"",
+        "Look": "{ Color = rgb(255, 215, 80), Shape = \"Crown\", Material = Enum.Material.Metal, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"atlantis_crown\",\n\t\tName = \"Crown of Sandlantis\",\n\t\tLayer = 11,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 19000000,\n\t\tFlavorText = \"The crown of the lost underground city.\",\n\t\tLook = { Color = rgb(255, 215, 80), Shape = \"Crown\", Material = Enum.Material.Metal, Glow = true },\n\t}"
+    },
+    {
+      "id": "obsidian_shard",
+      "name": "Obsidian Shard",
+      "fields": {
+        "Id": "\"obsidian_shard\"",
+        "Name": "\"Obsidian Shard\"",
+        "Layer": "12",
+        "Rarity": "\"Common\"",
+        "SellValue": "630000",
+        "FlavorText": "\"Volcanic glass. Sharp!\"",
+        "Look": "{ Color = rgb(40, 30, 50), Shape = \"Shard\", Material = Enum.Material.Glass, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"obsidian_shard\",\n\t\tName = \"Obsidian Shard\",\n\t\tLayer = 12,\n\t\tRarity = \"Common\",\n\t\tSellValue = 630000,\n\t\tFlavorText = \"Volcanic glass. Sharp!\",\n\t\tLook = { Color = rgb(40, 30, 50), Shape = \"Shard\", Material = Enum.Material.Glass, Glow = false },\n\t}"
+    },
+    {
+      "id": "fire_ruby",
+      "name": "Fire Ruby",
+      "fields": {
+        "Id": "\"fire_ruby\"",
+        "Name": "\"Fire Ruby\"",
+        "Layer": "12",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "1600000",
+        "FlavorText": "\"Warm to the touch. Very warm. OUCH.\"",
+        "Look": "{ Color = rgb(255, 40, 40), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"fire_ruby\",\n\t\tName = \"Fire Ruby\",\n\t\tLayer = 12,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 1600000,\n\t\tFlavorText = \"Warm to the touch. Very warm. OUCH.\",\n\t\tLook = { Color = rgb(255, 40, 40), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "dragon_egg",
+      "name": "Dragon Egg",
+      "fields": {
+        "Id": "\"dragon_egg\"",
+        "Name": "\"Dragon Egg\"",
+        "Layer": "12",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "63000000",
+        "FlavorText": "\"Something inside is moving...\"",
+        "Look": "{ Color = rgb(200, 50, 30), Shape = \"Egg\", Material = Enum.Material.Slate, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"dragon_egg\",\n\t\tName = \"Dragon Egg\",\n\t\tLayer = 12,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 63000000,\n\t\tFlavorText = \"Something inside is moving...\",\n\t\tLook = { Color = rgb(200, 50, 30), Shape = \"Egg\", Material = Enum.Material.Slate, Glow = true },\n\t}"
+    },
+    {
+      "id": "shadow_gem",
+      "name": "Shadow Gem",
+      "fields": {
+        "Id": "\"shadow_gem\"",
+        "Name": "\"Shadow Gem\"",
+        "Layer": "13",
+        "Rarity": "\"Common\"",
+        "SellValue": "2000000",
+        "FlavorText": "\"Absorbs all light around it.\"",
+        "Look": "{ Color = rgb(80, 40, 120), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = false }"
+      },
+      "source": "{\n\t\tId = \"shadow_gem\",\n\t\tName = \"Shadow Gem\",\n\t\tLayer = 13,\n\t\tRarity = \"Common\",\n\t\tSellValue = 2000000,\n\t\tFlavorText = \"Absorbs all light around it.\",\n\t\tLook = { Color = rgb(80, 40, 120), Shape = \"Gem\", Material = Enum.Material.Glass, Glow = false },\n\t}"
+    },
+    {
+      "id": "void_pearl",
+      "name": "Void Pearl",
+      "fields": {
+        "Id": "\"void_pearl\"",
+        "Name": "\"Void Pearl\"",
+        "Layer": "13",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "4900000",
+        "FlavorText": "\"Look inside and you see stars.\"",
+        "Look": "{ Color = rgb(40, 20, 80), Shape = \"Orb\", Material = Enum.Material.Glass, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"void_pearl\",\n\t\tName = \"Void Pearl\",\n\t\tLayer = 13,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 4900000,\n\t\tFlavorText = \"Look inside and you see stars.\",\n\t\tLook = { Color = rgb(40, 20, 80), Shape = \"Orb\", Material = Enum.Material.Glass, Glow = true },\n\t}"
+    },
+    {
+      "id": "dragon_scale",
+      "name": "Ancient Dragon Scale",
+      "fields": {
+        "Id": "\"dragon_scale\"",
+        "Name": "\"Ancient Dragon Scale\"",
+        "Layer": "13",
+        "Rarity": "\"Epic\"",
+        "SellValue": "49000000",
+        "FlavorText": "\"Harder than any shovel... almost.\"",
+        "Look": "{ Color = rgb(150, 30, 200), Shape = \"Shard\", Material = Enum.Material.Metal, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"dragon_scale\",\n\t\tName = \"Ancient Dragon Scale\",\n\t\tLayer = 13,\n\t\tRarity = \"Epic\",\n\t\tSellValue = 49000000,\n\t\tFlavorText = \"Harder than any shovel... almost.\",\n\t\tLook = { Color = rgb(150, 30, 200), Shape = \"Shard\", Material = Enum.Material.Metal, Glow = true },\n\t}"
+    },
+    {
+      "id": "alien_goo",
+      "name": "Alien Goo",
+      "fields": {
+        "Id": "\"alien_goo\"",
+        "Name": "\"Alien Goo\"",
+        "Layer": "14",
+        "Rarity": "\"Common\"",
+        "SellValue": "6700000",
+        "FlavorText": "\"Squishy. Do NOT eat it.\"",
+        "Look": "{ Color = rgb(110, 255, 120), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"alien_goo\",\n\t\tName = \"Alien Goo\",\n\t\tLayer = 14,\n\t\tRarity = \"Common\",\n\t\tSellValue = 6700000,\n\t\tFlavorText = \"Squishy. Do NOT eat it.\",\n\t\tLook = { Color = rgb(110, 255, 120), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "ufo_part",
+      "name": "UFO Part",
+      "fields": {
+        "Id": "\"ufo_part\"",
+        "Name": "\"UFO Part\"",
+        "Layer": "14",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "17000000",
+        "FlavorText": "\"Looks important. Probably from the engine.\"",
+        "Look": "{ Color = rgb(180, 190, 200), Shape = \"Wheel\", Material = Enum.Material.Metal, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"ufo_part\",\n\t\tName = \"UFO Part\",\n\t\tLayer = 14,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 17000000,\n\t\tFlavorText = \"Looks important. Probably from the engine.\",\n\t\tLook = { Color = rgb(180, 190, 200), Shape = \"Wheel\", Material = Enum.Material.Metal, Glow = true },\n\t}"
+    },
+    {
+      "id": "alien_artifact",
+      "name": "Alien Artifact",
+      "fields": {
+        "Id": "\"alien_artifact\"",
+        "Name": "\"Alien Artifact\"",
+        "Layer": "14",
+        "Rarity": "\"Rare\"",
+        "SellValue": "50000000",
+        "FlavorText": "\"It hums a song about the Core.\"",
+        "Look": "{ Color = rgb(90, 255, 200), Shape = \"Tablet\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"alien_artifact\",\n\t\tName = \"Alien Artifact\",\n\t\tLayer = 14,\n\t\tRarity = \"Rare\",\n\t\tSellValue = 50000000,\n\t\tFlavorText = \"It hums a song about the Core.\",\n\t\tLook = { Color = rgb(90, 255, 200), Shape = \"Tablet\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "alien_egg",
+      "name": "Alien Egg",
+      "fields": {
+        "Id": "\"alien_egg\"",
+        "Name": "\"Alien Egg\"",
+        "Layer": "14",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "670000000",
+        "FlavorText": "\"Not a chicken egg. Definitely not.\"",
+        "Look": "{ Color = rgb(150, 255, 90), Shape = \"Egg\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"alien_egg\",\n\t\tName = \"Alien Egg\",\n\t\tLayer = 14,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 670000000,\n\t\tFlavorText = \"Not a chicken egg. Definitely not.\",\n\t\tLook = { Color = rgb(150, 255, 90), Shape = \"Egg\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "core_fragment",
+      "name": "Core Fragment",
+      "fields": {
+        "Id": "\"core_fragment\"",
+        "Name": "\"Core Fragment\"",
+        "Layer": "15",
+        "Rarity": "\"Common\"",
+        "SellValue": "24000000",
+        "FlavorText": "\"A piece of the planet's golden heart.\"",
+        "Look": "{ Color = rgb(255, 190, 40), Shape = \"Shard\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"core_fragment\",\n\t\tName = \"Core Fragment\",\n\t\tLayer = 15,\n\t\tRarity = \"Common\",\n\t\tSellValue = 24000000,\n\t\tFlavorText = \"A piece of the planet's golden heart.\",\n\t\tLook = { Color = rgb(255, 190, 40), Shape = \"Shard\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "molten_gold",
+      "name": "Molten Gold",
+      "fields": {
+        "Id": "\"molten_gold\"",
+        "Name": "\"Molten Gold\"",
+        "Layer": "15",
+        "Rarity": "\"Uncommon\"",
+        "SellValue": "60000000",
+        "FlavorText": "\"Liquid gold that never cools.\"",
+        "Look": "{ Color = rgb(255, 170, 0), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"molten_gold\",\n\t\tName = \"Molten Gold\",\n\t\tLayer = 15,\n\t\tRarity = \"Uncommon\",\n\t\tSellValue = 60000000,\n\t\tFlavorText = \"Liquid gold that never cools.\",\n\t\tLook = { Color = rgb(255, 170, 0), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "heart_of_the_earth",
+      "name": "Heart of the Earth",
+      "fields": {
+        "Id": "\"heart_of_the_earth\"",
+        "Name": "\"Heart of the Earth\"",
+        "Layer": "15",
+        "Rarity": "\"Legendary\"",
+        "SellValue": "2400000000",
+        "FlavorText": "\"It beats once every hour.\"",
+        "Look": "{ Color = rgb(255, 90, 60), Shape = \"Gem\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"heart_of_the_earth\",\n\t\tName = \"Heart of the Earth\",\n\t\tLayer = 15,\n\t\tRarity = \"Legendary\",\n\t\tSellValue = 2400000000,\n\t\tFlavorText = \"It beats once every hour.\",\n\t\tLook = { Color = rgb(255, 90, 60), Shape = \"Gem\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "beach_ball_of_creation",
+      "name": "Beach Ball of Creation",
+      "fields": {
+        "Id": "\"beach_ball_of_creation\"",
+        "Name": "\"Beach Ball of Creation\"",
+        "Layer": "15",
+        "Rarity": "\"Mythic\"",
+        "SellValue": "9000000000",
+        "FlavorText": "\"The FIRST beach ball. Every beach began with this.\"",
+        "Look": "{ Color = rgb(255, 255, 255), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"beach_ball_of_creation\",\n\t\tName = \"Beach Ball of Creation\",\n\t\tLayer = 15,\n\t\tRarity = \"Mythic\",\n\t\tSellValue = 9000000000,\n\t\tFlavorText = \"The FIRST beach ball. Every beach began with this.\",\n\t\tLook = { Color = rgb(255, 255, 255), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "sun_compass",
+      "name": "A.D.'s Sun Compass",
+      "fields": {
+        "Id": "\"sun_compass\"",
+        "Name": "\"A.D.'s Sun Compass\"",
+        "Layer": "1",
+        "Rarity": "\"Relic\"",
+        "SellValue": "0",
+        "ScaledValue": "1800",
+        "FlavorText": "\"Signed 'A.D.' on the back. The needle doesn't point north. It points DOWN.\"",
+        "Look": "{ Color = rgb(255, 215, 90), Shape = \"Coin\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"sun_compass\",\n\t\tName = \"A.D.'s Sun Compass\",\n\t\tLayer = 1,\n\t\tRarity = \"Relic\",\n\t\tSellValue = 0,\n\t\tScaledValue = 1800,\n\t\tFlavorText = \"Signed 'A.D.' on the back. The needle doesn't point north. It points DOWN.\",\n\t\tLook = { Color = rgb(255, 215, 90), Shape = \"Coin\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    },
+    {
+      "id": "tide_heart",
+      "name": "Heart of the Tide",
+      "fields": {
+        "Id": "\"tide_heart\"",
+        "Name": "\"Heart of the Tide\"",
+        "Layer": "3",
+        "Rarity": "\"Relic\"",
+        "SellValue": "0",
+        "ScaledValue": "2400",
+        "FlavorText": "\"A shell that beats like a heart. Hold it to your ear: the Core is calling.\"",
+        "Look": "{ Color = rgb(120, 255, 230), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true }"
+      },
+      "source": "{\n\t\tId = \"tide_heart\",\n\t\tName = \"Heart of the Tide\",\n\t\tLayer = 3,\n\t\tRarity = \"Relic\",\n\t\tSellValue = 0,\n\t\tScaledValue = 2400,\n\t\tFlavorText = \"A shell that beats like a heart. Hold it to your ear: the Core is calling.\",\n\t\tLook = { Color = rgb(120, 255, 230), Shape = \"Orb\", Material = Enum.Material.Neon, Glow = true },\n\t}"
+    }
+  ]
+}

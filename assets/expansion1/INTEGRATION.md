@@ -123,7 +123,12 @@ Visually checked: portraits at 64 and 120, action icons at 32 and 120 against na
 and offline model silhouettes. At 32 the main icon silhouettes read; internal foam/pencil
 details are intentionally secondary. At 64 portrait faces read; names stay outside art.
 
-Pending Studio: true model extents/contact, held R6/R15/custom-avatar grip and moving scoop,
+Studio review completed: construction, true vault extents, quarter anchor stages,
+replica collision flags and basic R6/R15 hand-weld equip. NPCs, vault and held R15 tool
+were visually inspected in actual lighting. See verification/STUDIO_REVIEW.md.
+Ball panel seams need polish for closeups.
+
+Pending Studio: moving/custom-avatar grip and scoop,
 NPC gestures, lid/anchor occlusion from approach, ball route clearance and small bounce,
 stand/replica placement at 2-stud grid, effects in actual lighting, streaming and cleanup.
 Pending gameplay: opt-in, solo and late-helper flows, authoritative objectives/yield/reward

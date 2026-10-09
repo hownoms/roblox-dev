@@ -10,18 +10,23 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
 - **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 17**
   ("Second-minute fixes - source 375625c"). All 157 published scripts were verified byte-identical
   to the merged source by opening v17 from Version History. Later commits are docs only.
-- **Store page:** new icon and three illustrated thumbnails (Experience Detail Page list) from
-  `marketing/publish-kit-2026-10-08/`. Roblox moderation result not confirmed. The Creator Hub
-  name now reads **Dig to the Core!**.
+- **Store page:** revised bacon-hair artwork from `marketing/publish-kit-bacon-v3/` uploaded.
+  Icon is now visibly approved/displayed; main digging thumbnail is Active on Home. Revised
+  digging, rare-find and depth images lead the detail-page gallery; prior images remain afterward.
+  Live name is **Dig to the Core!**, with a saved 591-character discovery-led description and
+  genre **Simulation → Incremental Simulator**. Evidence and exact description are in that kit.
 - **Access:** Limited. **Playtesters on, Friends off.** Audience reach is "Ages 16+ and trusted
-  friends". **Max Players is 50** (the intended value is 16). Neither was changed by the
-  automation; both are owner steps (see below).
+  friends". **Max Players is 16**, saved and rechecked under the owner's publishing-cleanup
+  authorization. Account publishing eligibility lists Identity verification and 2-step
+  verification as Start; camera age check is Done. Broader reach remains an owner step.
 - **Code:** feature-complete through v3 (Discovery) plus the v17 second-minute fixes. See
   [CHANGELOG.md](CHANGELOG.md).
 - **First-expansion visual kit:** local Mara/Pip concepts and portraits, Broadwave, three
   Spring Vault stages, controlled beach ball, trophy display and matching icons are in
   [assets/expansion1](../assets/expansion1/README.md). Strict/headless construction and Rojo
-  builds verified; Studio contact/movement/device review, image uploads and gameplay/reward
+  builds verified. Basic Studio construction, vault extents, anchor stages and R6/R15 equip
+  passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
+  Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
 - **Validation (latest):** client 1,413, server 2,195, Studio-mode 2,162, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
@@ -45,7 +50,9 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 
 1. **Let your friend in:** Creator Hub → Dig to the Core! → Configure → Settings → Audience →
    keep **Limited**, tick **Friends** → Save. Alternatively add them as a playtester.
-2. **Optional: Max Players 16:** Places → start place → Access → Maximum Visitor Count 16 → Save.
+2. **All-ages reach:** finish government-ID verification and 2-step verification, then review
+   the subscription/publishing-fee route and Roblox game evaluation. No payment or security
+   change was performed. Public launch remains pending readiness checks and the owner's decision.
 
 ## Open
 

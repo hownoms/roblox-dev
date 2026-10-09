@@ -21,7 +21,8 @@ Local art production and headless/build checks, not ordinary gameplay evidence.
 | Geometry and trophy/stand scale previews | Visually inspected; offline renderer, not Studio |
 | Full repository formatting gate | Not clean: pre-existing checkout-wide line-ending/style differences |
 | Default branch fetch | Initial sandbox attempt failed; authorized fetch before sharing passed, default at 7589ff6 |
-| Studio scale, avatar contact, moving use and actual lighting | Pending; Studio was not running |
+| Studio construction, vault extents, anchor stages, lighting and basic R6/R15 equip | Pass; see STUDIO_REVIEW.md for evidence and limits |
+| Moving scoop/custom-avatar contact, ball route and effect cleanup | Pending integrated gameplay review |
 | Crowded event, real phone/controller, streaming and cleanup | Pending |
 | Server objectives, yield, protected geometry and reward persistence | Integration pending; visual kit only |
 | Roblox uploads / publication | None |

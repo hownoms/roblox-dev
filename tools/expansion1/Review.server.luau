@@ -10,6 +10,8 @@ floor.Size = Vector3.new(130, 1, 90)
 floor.Position = Vector3.new(30, -0.5, 15)
 floor.Color = Kit.Palette.Sand
 floor.Anchored = true
+floor.TopSurface = Enum.SurfaceType.Smooth
+floor.BottomSurface = Enum.SurfaceType.Smooth
 floor.Parent = group
 local spawn = Instance.new("SpawnLocation")
 spawn.Size = Vector3.new(6, 1, 6)
@@ -17,21 +19,22 @@ spawn.Position = Vector3.new(0, 0.5, -16)
 spawn.Anchored = true
 spawn.Parent = group
 
-local function show(m: Model, x: number, z: number)
-	m:PivotTo(CFrame.new(x, 0, z))
+local function show(m: Model, x: number, z: number, y: number?)
+	m:PivotTo(CFrame.new(x, y or 0, z))
 	m.Parent = group
 	assert(m.PrimaryPart, m.Name .. " lacks a pivot")
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(240, 48)
-	gui.StudsOffset = Vector3.new(0, 10, 0)
-	gui.MaxDistance = 100
+	gui.Size = UDim2.fromOffset(180, 32)
+	gui.StudsOffset = Vector3.new(0, 6, 0)
+	gui.MaxDistance = 20
 	gui.Parent = m.PrimaryPart
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundColor3 = Kit.Palette.Navy
 	label.TextColor3 = Kit.Palette.Cream
 	label.Text = m.Name
-	label.TextSize = 16
+	label.TextSize = 14
+	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.Parent = gui
 	print("EXPANSION ASSET", m.Name, m:GetExtentsSize())
 end
@@ -40,7 +43,8 @@ for i, pose in { "Idle", "Point", "Celebrate" } do
 	show(Kit.NPC("npc_mara", pose), (i - 1) * 8, 0)
 	show(Kit.NPC("npc_pip", pose), (i - 1) * 8, 12)
 end
-show(Kit.Broadwave(), 28, 0)
+-- Held-tool space is centered on the grip, rather than on the ground.
+show(Kit.Broadwave(), 28, 0, 2)
 for i, stage in { "Covered", "Partial", "Opened" } do
 	local m = Kit.SpringVault(stage)
 	local size = m:GetExtentsSize()

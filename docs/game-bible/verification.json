@@ -1,0 +1,17 @@
+{
+  "baseline_source_files": 27,
+  "baseline_named_records": 254,
+  "target_counts": {
+    "tool": 10,
+    "gadget": 4,
+    "mount": 8,
+    "npc": 13,
+    "event": 12,
+    "festival": 6,
+    "q": 14
+  },
+  "chapters": 8,
+  "authored_design_words": 16521,
+  "complete_book_bytes": 376324,
+  "checks": "PASS: source hashes, complete named catalogs, target ID references, counts and chapter navigation"
+}

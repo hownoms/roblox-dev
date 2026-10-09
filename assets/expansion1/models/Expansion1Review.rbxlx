@@ -1,33 +1,1158 @@
-<roblox version="4">
-  <Item class="Lighting" referent="0">
-    <Properties>
-      <string name="Name">Lighting</string>
-      <Color3 name="Ambient">
-        <R>0.4</R>
-        <G>0.4</G>
-        <B>0.4</B>
-      </Color3>
-      <float name="Brightness">2</float>
-      <float name="ClockTime">14</float>
-      <Color3 name="OutdoorAmbient">
-        <R>0.6</R>
-        <G>0.6</G>
-        <B>0.6</B>
-      </Color3>
-    </Properties>
-  </Item>
-  <Item class="ReplicatedStorage" referent="1">
-    <Properties>
-      <string name="Name">ReplicatedStorage</string>
-    </Properties>
-    <Item class="Folder" referent="2">
-      <Properties>
-        <string name="Name">Shared</string>
-      </Properties>
-      <Item class="ModuleScript" referent="3">
-        <Properties>
-          <string name="Name">Config</string>
-          <string name="Source"><![CDATA[--!strict
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Workspace" referent="57">
+		<Properties>
+			<float name="AirDensity">0.00120000006</float>
+			<float name="AirTurbulenceIntensity">0</float>
+			<bool name="AllowThirdPartySales">false</bool>
+			<token name="AuthorityMode">1</token>
+			<token name="AvatarUnificationMode">0</token>
+			<token name="ClientAnimatorThrottling">0</token>
+			<Ref name="CurrentCamera">RBX1064DBCE71304774A55D360B6A945F43</Ref>
+			<double name="DistributedGameTime">0</double>
+			<token name="EnableSLIMAvatars">0</token>
+			<token name="ExpandedTerrain">0</token>
+			<bool name="ExplicitAutoJoints">true</bool>
+			<bool name="FallHeightEnabled">true</bool>
+			<float name="FallenPartsDestroyHeight">-500</float>
+			<token name="FluidForces">0</token>
+			<Vector3 name="GlobalWind">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+			</Vector3>
+			<float name="Gravity">196.199997</float>
+			<token name="IKControlConstraintSupport">0</token>
+			<token name="ImprovedAnimationConstraint">0</token>
+			<token name="ImprovedPhysicsReplication">0</token>
+			<token name="LayeredClothingCacheOptimizations">0</token>
+			<token name="LuauTypeCheckMode">0</token>
+			<token name="MapTVRemoteToGamepadKeycodes">0</token>
+			<token name="MeshPartHeadsAndAccessories">0</token>
+			<token name="MeshStreamingAndImprovedLods">0</token>
+			<token name="ModelStreamingBehavior">0</token>
+			<token name="NextGenerationReplication">0</token>
+			<token name="PathfindingUseImprovedSearch">0</token>
+			<token name="PhysicsSteppingMethod">0</token>
+			<token name="PlayerCharacterDestroyBehavior">0</token>
+			<token name="PlayerScriptsUseInputActionSystem">0</token>
+			<token name="PredictiveStreamingMode">0</token>
+			<token name="PrimalPhysicsSolver">0</token>
+			<token name="RejectCharacterDeletions">0</token>
+			<token name="RenderingCacheOptimizations">0</token>
+			<token name="ReplicateInstanceDestroySetting">0</token>
+			<token name="ReplicationFrequency">0</token>
+			<token name="ReplicationThroughput">0</token>
+			<token name="Retargeting">0</token>
+			<token name="SandboxedInstanceMode">0</token>
+			<token name="SignalBehavior2">0</token>
+			<token name="StreamOutBehavior">0</token>
+			<bool name="StreamingAdaptiveRadius">false</bool>
+			<bool name="StreamingEnabled">false</bool>
+			<token name="StreamingIntegrityMode">0</token>
+			<int name="StreamingMinRadius">64</int>
+			<int name="StreamingTargetRadius">1024</int>
+			<bool name="TerrainWeldsFixed">true</bool>
+			<token name="TouchEventsUseCollisionGroups">0</token>
+			<bool name="TouchesUseCollisionGroups">false</bool>
+			<token name="UseFixedSimulation">0</token>
+			<token name="UseInputSink">0</token>
+			<token name="UseNewLuauTypeSolver">1</token>
+			<token name="ValidateEnabledProximityPrompt">0</token>
+			<bool name="AutoSimulate">true</bool>
+			<BinaryString name="CollisionGroupData">AQEABP////8HRGVmYXVsdA==</BinaryString>
+			<Vector3 name="GravityDirection">
+				<X>0</X>
+				<Y>-1</Y>
+				<Z>0</Z>
+			</Vector3>
+			<float name="SimulationRate">1</float>
+			<float name="Wind">0</float>
+			<Vector3 name="WindDirection">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+			</Vector3>
+			<token name="LevelOfDetail">0</token>
+			<CoordinateFrame name="ModelMeshCFrame">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+				<R00>1</R00>
+				<R01>0</R01>
+				<R02>0</R02>
+				<R10>0</R10>
+				<R11>1</R11>
+				<R12>0</R12>
+				<R20>0</R20>
+				<R21>0</R21>
+				<R22>1</R22>
+			</CoordinateFrame>
+			<SharedString name="ModelMeshData">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<Vector3 name="ModelMeshSize">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+			</Vector3>
+			<token name="ModelStreamingMode">0</token>
+			<bool name="NeedsPivotMigration">false</bool>
+			<Ref name="PrimaryPart">null</Ref>
+			<float name="ScaleFactor">1</float>
+			<SharedString name="SlimHash">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<OptionalCoordinateFrame name="WorldPivotData"></OptionalCoordinateFrame>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Workspace</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000002</UniqueId>
+		</Properties>
+		<Item class="Camera" referent="RBX1064DBCE71304774A55D360B6A945F43">
+			<Properties>
+				<CoordinateFrame name="CFrame">
+					<X>0</X>
+					<Y>20</Y>
+					<Z>20</Z>
+					<R00>1</R00>
+					<R01>0</R01>
+					<R02>-0</R02>
+					<R10>-0</R10>
+					<R11>0.780868828</R11>
+					<R12>0.624695063</R12>
+					<R20>0</R20>
+					<R21>-0.624695063</R21>
+					<R22>0.780868828</R22>
+				</CoordinateFrame>
+				<Ref name="CameraSubject">null</Ref>
+				<token name="CameraType">0</token>
+				<float name="FieldOfView">70</float>
+				<token name="FieldOfViewMode">0</token>
+				<CoordinateFrame name="Focus">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>-5</Z>
+					<R00>1</R00>
+					<R01>0</R01>
+					<R02>0</R02>
+					<R10>0</R10>
+					<R11>1</R11>
+					<R12>0</R12>
+					<R20>0</R20>
+					<R21>0</R21>
+					<R22>1</R22>
+				</CoordinateFrame>
+				<bool name="HeadLocked">true</bool>
+				<float name="HeadScale">1</float>
+				<token name="OrthographicMode">0</token>
+				<float name="OrthographicSize">300</float>
+				<token name="ProjectionType">0</token>
+				<bool name="VRTiltAndRollEnabled">false</bool>
+				<float name="ViewStretch">1</float>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">Camera</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003d8</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="Terrain" referent="RBXC8292409081D47969B8EA982DEEB6E10">
+			<Properties>
+				<token name="AcquisitionMethod">0</token>
+				<bool name="Decoration">false</bool>
+				<float name="GrassLength">0.699999988</float>
+				<BinaryString name="MaterialColors"><![CDATA[AAAAAAAAan8/P39rf2Y/ilY+j35fi21PZmxvZbDqw8faiVpHOi4kHh4lZlw76JxKc3trhHta
+gcLgc4RKxr21zq2UlJSM]]></BinaryString>
+				<SharedString name="Materials">leDEa27wHRPaBssaK0OoqQ==</SharedString>
+				<BinaryString name="PhysicsGrid">AgMAAAAAAAAAAAAAAAA=</BinaryString>
+				<BinaryString name="SmoothGrid">AQU=</BinaryString>
+				<bool name="SmoothVoxelsUpgraded">false</bool>
+				<AssetContentMap name="VoxelGridAssetContentMap">[]</AssetContentMap>
+				<Color3 name="WaterColor">
+					<R>0.0500000007</R>
+					<G>0.330000013</G>
+					<B>0.360000014</B>
+				</Color3>
+				<float name="WaterReflectance">1</float>
+				<float name="WaterTransparency">0.300000012</float>
+				<float name="WaterWaveSize">0.150000006</float>
+				<float name="WaterWaveSpeed">10</float>
+				<bool name="Anchored">true</bool>
+				<bool name="AudioCanCollide">true</bool>
+				<float name="BackParamA">-0.5</float>
+				<float name="BackParamB">0.5</float>
+				<token name="BackSurface">0</token>
+				<token name="BackSurfaceInput">0</token>
+				<float name="BottomParamA">-0.5</float>
+				<float name="BottomParamB">0.5</float>
+				<token name="BottomSurface">4</token>
+				<token name="BottomSurfaceInput">0</token>
+				<CoordinateFrame name="CFrame">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+					<R00>1</R00>
+					<R01>0</R01>
+					<R02>0</R02>
+					<R10>0</R10>
+					<R11>1</R11>
+					<R12>0</R12>
+					<R20>0</R20>
+					<R21>0</R21>
+					<R22>1</R22>
+				</CoordinateFrame>
+				<bool name="CanCollide">true</bool>
+				<bool name="CanQuery">true</bool>
+				<bool name="CanTouch">true</bool>
+				<bool name="CastShadow">true</bool>
+				<string name="CollisionGroup">Default</string>
+				<int name="CollisionGroupId">0</int>
+				<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+				<PhysicalProperties name="CustomPhysicalProperties">
+					<CustomPhysics>false</CustomPhysics>
+				</PhysicalProperties>
+				<bool name="EnableFluidForces">true</bool>
+				<float name="FrontParamA">-0.5</float>
+				<float name="FrontParamB">0.5</float>
+				<token name="FrontSurface">0</token>
+				<token name="FrontSurfaceInput">0</token>
+				<float name="LeftParamA">-0.5</float>
+				<float name="LeftParamB">0.5</float>
+				<token name="LeftSurface">0</token>
+				<token name="LeftSurfaceInput">0</token>
+				<bool name="Locked">true</bool>
+				<bool name="Massless">false</bool>
+				<token name="Material">256</token>
+				<string name="MaterialVariantSerialized"></string>
+				<CoordinateFrame name="PivotOffset">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+					<R00>1</R00>
+					<R01>0</R01>
+					<R02>0</R02>
+					<R10>0</R10>
+					<R11>1</R11>
+					<R12>0</R12>
+					<R20>0</R20>
+					<R21>0</R21>
+					<R22>1</R22>
+				</CoordinateFrame>
+				<float name="Reflectance">0</float>
+				<float name="RightParamA">-0.5</float>
+				<float name="RightParamB">0.5</float>
+				<token name="RightSurface">0</token>
+				<token name="RightSurfaceInput">0</token>
+				<int name="RootPriority">0</int>
+				<Vector3 name="RotVelocity">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+				</Vector3>
+				<float name="TopParamA">-0.5</float>
+				<float name="TopParamB">0.5</float>
+				<token name="TopSurface">3</token>
+				<token name="TopSurfaceInput">0</token>
+				<float name="Transparency">0</float>
+				<Vector3 name="Velocity">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+				</Vector3>
+				<Vector3 name="size">
+					<X>2044</X>
+					<Y>252</Y>
+					<Z>2044</Z>
+				</Vector3>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">Terrain</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000411</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="TimerService" referent="RBXD6AF190767A04A06B56AD187EAF26A06">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">TimerService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000364</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="CollectionService" referent="RBX275C3E7C20AD4E2093131118CFF86035">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">CollectionService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000365</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="SoundService" referent="RBX4733AD85AB424FA7A0833FA4FE92B348">
+		<Properties>
+			<bool name="AcousticSimulationEnabled">false</bool>
+			<token name="AmbientReverb">0</token>
+			<token name="AudioApiByDefault">0</token>
+			<token name="CharacterSoundsUseNewApi">0</token>
+			<token name="DefaultListenerLocation">0</token>
+			<bool name="DiffractionEnabled">true</bool>
+			<float name="DistanceFactor">3.32999992</float>
+			<float name="DopplerScale">1</float>
+			<bool name="IsNewExpForAudioApiByDefault">false</bool>
+			<CoordinateFrame name="ListenerCFrame">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+				<R00>1</R00>
+				<R01>0</R01>
+				<R02>0</R02>
+				<R10>0</R10>
+				<R11>1</R11>
+				<R12>0</R12>
+				<R20>0</R20>
+				<R21>0</R21>
+				<R22>1</R22>
+			</CoordinateFrame>
+			<Ref name="ListenerObject">null</Ref>
+			<token name="ListenerType">0</token>
+			<bool name="OcclusionEnabled">true</bool>
+			<bool name="RespectFilteringEnabled">false</bool>
+			<bool name="ReverbEnabled">true</bool>
+			<float name="RolloffScale">1</float>
+			<token name="VolumetricAudio">1</token>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">SoundService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000366</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="VideoCaptureService" referent="RBXA08F9CA2BBA34E44BEA5EFBB580C1401">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">VideoCaptureService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000372</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="NonReplicatedCSGDictionaryService" referent="RBXA51BE3EA3A3146DFABC7FEBEC1997004">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">NonReplicatedCSGDictionaryService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000373</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="CSGDictionaryService" referent="RBX29C38DF17B7944308CFCC63B7AAF625B">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">CSGDictionaryService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000374</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Chat" referent="RBX284EF9C76BFD4875AF26C2379CA9A9AC">
+		<Properties>
+			<bool name="BubbleChatEnabled">false</bool>
+			<bool name="IsAutoMigrated">false</bool>
+			<bool name="LoadDefaultChat">true</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Chat</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000037a</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Players" referent="RBXC77A4FFACECD4B5D96489F22F43933BB">
+		<Properties>
+			<bool name="BanningEnabled">true</bool>
+			<bool name="CharacterAutoLoads">true</bool>
+			<int name="MaxPlayersInternal">12</int>
+			<int name="PreferredPlayersInternal">0</int>
+			<float name="RespawnTime">5</float>
+			<bool name="UseStrafingAnimations">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Players</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000037c</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ReplicatedFirst" referent="RBX0C604248FF3E4F519AFF757D60D4EEF0">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ReplicatedFirst</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000037f</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="TweenService" referent="RBX8EB5F70D9F7E4119B2621ADA723938C4">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">TweenService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000381</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="MaterialService" referent="RBXD0EE5AEF1F054682A635D1DE6D76CC92">
+		<Properties>
+			<string name="AsphaltName">Asphalt</string>
+			<string name="BasaltName">Basalt</string>
+			<string name="BrickName">Brick</string>
+			<string name="CardboardName">Cardboard</string>
+			<string name="CarpetName">Carpet</string>
+			<string name="CeramicTilesName">CeramicTiles</string>
+			<string name="ClayRoofTilesName">ClayRoofTiles</string>
+			<string name="CobblestoneName">Cobblestone</string>
+			<string name="ConcreteName">Concrete</string>
+			<string name="CorrodedMetalName">CorrodedMetal</string>
+			<string name="CrackedLavaName">CrackedLava</string>
+			<string name="DiamondPlateName">DiamondPlate</string>
+			<string name="FabricName">Fabric</string>
+			<string name="FoilName">Foil</string>
+			<string name="GlacierName">Glacier</string>
+			<string name="GraniteName">Granite</string>
+			<string name="GrassName">Grass</string>
+			<string name="GroundName">Ground</string>
+			<string name="IceName">Ice</string>
+			<string name="LeafyGrassName">LeafyGrass</string>
+			<string name="LeatherName">Leather</string>
+			<string name="LimestoneName">Limestone</string>
+			<string name="MarbleName">Marble</string>
+			<string name="MetalName">Metal</string>
+			<string name="MudName">Mud</string>
+			<string name="PavementName">Pavement</string>
+			<string name="PebbleName">Pebble</string>
+			<string name="PlasterName">Plaster</string>
+			<string name="PlasticName">Plastic</string>
+			<string name="RockName">Rock</string>
+			<string name="RoofShinglesName">RoofShingles</string>
+			<string name="RubberName">Rubber</string>
+			<string name="SaltName">Salt</string>
+			<string name="SandName">Sand</string>
+			<string name="SandstoneName">Sandstone</string>
+			<string name="SlateName">Slate</string>
+			<string name="SmoothPlasticName">SmoothPlastic</string>
+			<string name="SnowName">Snow</string>
+			<bool name="Use2022MaterialsXml">false</bool>
+			<string name="WoodName">Wood</string>
+			<string name="WoodPlanksName">WoodPlanks</string>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">MaterialService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000382</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="TextChatService" referent="RBXFD6D13E6576D49E895E82DC290FA4C8E">
+		<Properties>
+			<bool name="ChatTranslationFTUXShown">true</bool>
+			<bool name="ChatTranslationToggleEnabled">false</bool>
+			<token name="ChatVersion">0</token>
+			<bool name="CreateDefaultCommands">true</bool>
+			<bool name="CreateDefaultTextChannels">true</bool>
+			<bool name="HasSeenDeprecationDialog">false</bool>
+			<bool name="IsLegacyChatDisabled">false</bool>
+			<token name="PlatformIntegratedChat">0</token>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">TextChatService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000383</UniqueId>
+		</Properties>
+		<Item class="ChatWindowConfiguration" referent="RBX2FC3B51138024B97997F32CE46527D93">
+			<Properties>
+				<Color3 name="BackgroundColor3">
+					<R>0.0980392173</R>
+					<G>0.105882354</G>
+					<B>0.113725491</B>
+				</Color3>
+				<double name="BackgroundTransparency">0.2999999999999999889</double>
+				<bool name="Enabled">true</bool>
+				<Font name="FontFace">
+					<Family><url>rbxasset://fonts/families/GothamSSm.json</url></Family>
+					<Weight>500</Weight>
+					<Style>Normal</Style>
+					<CachedFaceId><url>rbxasset://fonts/Montserrat-Medium.ttf</url></CachedFaceId>
+				</Font>
+				<float name="HeightScale">1</float>
+				<token name="HorizontalAlignment">1</token>
+				<token name="TextChannelDisplayMode">0</token>
+				<Color3 name="TextColor3">
+					<R>1</R>
+					<G>1</G>
+					<B>1</B>
+				</Color3>
+				<int64 name="TextSize">14</int64>
+				<Color3 name="TextStrokeColor3">
+					<R>0</R>
+					<G>0</G>
+					<B>0</B>
+				</Color3>
+				<double name="TextStrokeTransparency">0.5</double>
+				<token name="VerticalAlignment">1</token>
+				<float name="WidthScale">1</float>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">ChatWindowConfiguration</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000414</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="ChatInputBarConfiguration" referent="RBX1F4B17D219AE4C1CA0E7B976488B5BAD">
+			<Properties>
+				<bool name="AutocompleteEnabled">true</bool>
+				<Color3 name="BackgroundColor3">
+					<R>0.0980392173</R>
+					<G>0.105882354</G>
+					<B>0.113725491</B>
+				</Color3>
+				<double name="BackgroundTransparency">0.2000000000000000111</double>
+				<bool name="Enabled">true</bool>
+				<Font name="FontFace">
+					<Family><url>rbxasset://fonts/families/GothamSSm.json</url></Family>
+					<Weight>500</Weight>
+					<Style>Normal</Style>
+					<CachedFaceId><url>rbxasset://fonts/Montserrat-Medium.ttf</url></CachedFaceId>
+				</Font>
+				<token name="KeyboardKeyCode">47</token>
+				<Color3 name="PlaceholderColor3">
+					<R>0.698039234</R>
+					<G>0.698039234</G>
+					<B>0.698039234</B>
+				</Color3>
+				<Ref name="TargetTextChannel">null</Ref>
+				<Color3 name="TextColor3">
+					<R>1</R>
+					<G>1</G>
+					<B>1</B>
+				</Color3>
+				<int64 name="TextSize">14</int64>
+				<Color3 name="TextStrokeColor3">
+					<R>0</R>
+					<G>0</G>
+					<B>0</B>
+				</Color3>
+				<double name="TextStrokeTransparency">0.5</double>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">ChatInputBarConfiguration</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000415</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="BubbleChatConfiguration" referent="RBXD5AAAD42183D4AA58D8759A0FC0F8B43">
+			<Properties>
+				<string name="AdorneeName">HumanoidRootPart</string>
+				<Color3 name="BackgroundColor3">
+					<R>0.980392158</R>
+					<G>0.980392158</G>
+					<B>0.980392158</B>
+				</Color3>
+				<double name="BackgroundTransparency">0.10000000000000000555</double>
+				<float name="BubbleDuration">15</float>
+				<float name="BubblesSpacing">6</float>
+				<bool name="Enabled">true</bool>
+				<token name="Font">18</token>
+				<Font name="FontFace">
+					<Family><url>rbxasset://fonts/families/GothamSSm.json</url></Family>
+					<Weight>500</Weight>
+					<Style>Normal</Style>
+					<CachedFaceId><url>rbxasset://fonts/Montserrat-Medium.ttf</url></CachedFaceId>
+				</Font>
+				<Vector3 name="LocalPlayerStudsOffset">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+				</Vector3>
+				<float name="MaxBubbles">3</float>
+				<float name="MaxDistance">100</float>
+				<float name="MinimizeDistance">40</float>
+				<bool name="TailVisible">true</bool>
+				<Color3 name="TextColor3">
+					<R>0.223529413</R>
+					<G>0.23137255</G>
+					<B>0.239215687</B>
+				</Color3>
+				<int64 name="TextSize">16</int64>
+				<float name="VerticalStudsOffset">0</float>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">BubbleChatConfiguration</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000416</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="ChannelTabsConfiguration" referent="RBXAA304FD08FBD4631BCE0BA573C2D3352">
+			<Properties>
+				<Color3 name="BackgroundColor3">
+					<R>0.0980392173</R>
+					<G>0.105882354</G>
+					<B>0.113725491</B>
+				</Color3>
+				<double name="BackgroundTransparency">0</double>
+				<bool name="Enabled">false</bool>
+				<Font name="FontFace">
+					<Family><url>rbxasset://fonts/families/BuilderSans.json</url></Family>
+					<Weight>700</Weight>
+					<Style>Normal</Style>
+					<CachedFaceId><url>rbxasset://fonts/BuilderSans-Bold.otf</url></CachedFaceId>
+				</Font>
+				<Color3 name="HoverBackgroundColor3">
+					<R>0.490196079</R>
+					<G>0.490196079</G>
+					<B>0.490196079</B>
+				</Color3>
+				<Color3 name="SelectedTabTextColor3">
+					<R>1</R>
+					<G>1</G>
+					<B>1</B>
+				</Color3>
+				<Color3 name="TextColor3">
+					<R>0.686274529</R>
+					<G>0.686274529</G>
+					<B>0.686274529</B>
+				</Color3>
+				<int64 name="TextSize">18</int64>
+				<Color3 name="TextStrokeColor3">
+					<R>0</R>
+					<G>0</G>
+					<B>0</B>
+				</Color3>
+				<double name="TextStrokeTransparency">1</double>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">ChannelTabsConfiguration</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000417</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="PermissionsService" referent="RBX24E8FF3DE0FC4D309D06FBED3707723D">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">PermissionsService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000385</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="PlayerEmulatorService" referent="RBX5BF9BCB8CD944DF6A28BED089827CCB2">
+		<Properties>
+			<bool name="CustomPoliciesEnabled">false</bool>
+			<string name="EmulatedCountryCode"></string>
+			<string name="EmulatedGameLocale"></string>
+			<bool name="PlayerEmulationEnabled">false</bool>
+			<bool name="PseudolocalizationEnabled">false</bool>
+			<BinaryString name="SerializedEmulatedPolicyInfo"></BinaryString>
+			<int name="TextElongationFactor">0</int>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">PlayerEmulatorService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000386</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="StudioData" referent="RBXCE1873DA473645DAA7979D4E874A033D">
+		<Properties>
+			<bool name="EnableScriptCollabByDefaultOnLoad">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">StudioData</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000389</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="StarterPlayer" referent="RBX053F0070A56C41E0B64A1A744CC77CB4">
+		<Properties>
+			<bool name="AllowCustomAnimations">true</bool>
+			<bool name="AutoJumpEnabled">true</bool>
+			<token name="AvatarJointUpgrade_SerializedRollout">0</token>
+			<float name="CameraMaxZoomDistance">400</float>
+			<float name="CameraMinZoomDistance">0.5</float>
+			<token name="CameraMode">0</token>
+			<bool name="CharacterBreakJointsOnDeath">true</bool>
+			<float name="CharacterJumpHeight">7.19999981</float>
+			<float name="CharacterJumpPower">50</float>
+			<float name="CharacterMaxSlopeAngle">89</float>
+			<bool name="CharacterUseJumpPower">true</bool>
+			<float name="CharacterWalkSpeed">16</float>
+			<bool name="ClassicDeath">true</bool>
+			<bool name="CreateDefaultPlayerModule">true</bool>
+			<token name="DevCameraOcclusionMode">0</token>
+			<token name="DevComputerCameraMovementMode">0</token>
+			<token name="DevComputerMovementMode">0</token>
+			<token name="DevTouchCameraMovementMode">0</token>
+			<token name="DevTouchMovementMode">0</token>
+			<token name="EnableDynamicHeads">0</token>
+			<bool name="EnableMouseLockOption">true</bool>
+			<token name="GameSettingsAvatar">1</token>
+			<token name="GameSettingsR15Collision">0</token>
+			<float name="HealthDisplayDistance">100</float>
+			<bool name="LoadCharacterAppearance">true</bool>
+			<token name="LoadCharacterLayeredClothing">0</token>
+			<token name="LuaCharacterController">0</token>
+			<float name="NameDisplayDistance">100</float>
+			<Ref name="PlaceAvatarRules">null</Ref>
+			<int name="PlayerModuleStatus">0</int>
+			<bool name="UserEmotesEnabled">true</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">StarterPlayer</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000038b</UniqueId>
+		</Properties>
+		<Item class="StarterPlayerScripts" referent="RBX226BDD7E66F24CEAAB53182A0AEC301F">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">StarterPlayerScripts</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000412</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="StarterCharacterScripts" referent="RBXE57408D97DE940D0AF49B3D257DE9903">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">StarterCharacterScripts</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000413</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="StarterPack" referent="RBX4981CA3124634ED197624BB5581DB9D1">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">StarterPack</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000038c</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="StarterGui" referent="RBX1DAE5FD2D75344728BF95F34B72C0C81">
+		<Properties>
+			<token name="ClipsDescendantsSupportsRotation">0</token>
+			<bool name="ResetPlayerGuiOnSpawn">true</bool>
+			<token name="RtlTextSupport">0</token>
+			<token name="ScreenOrientation">2</token>
+			<bool name="ShowDevelopmentGui">true</bool>
+			<Ref name="StudioDefaultStyleSheet">null</Ref>
+			<Ref name="StudioInsertWidgetLayerCollectorAutoLinkStyleSheet">null</Ref>
+			<token name="VirtualCursorMode">0</token>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">StarterGui</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000038d</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="LocalizationService" referent="RBX37B11C43C9034AF883042896B2BC6B1A">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">LocalizationService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000038f</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="TeleportService" referent="RBXB3BDAD88BA0F46D082B150CC18114505">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Teleport Service</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000393</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="PhysicsService" referent="RBX4F3A5B8569744D2C93E02406D334CF82">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">PhysicsService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000395</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="InsertService" referent="RBX937C2911A5BF4B34BF3DA0CF21510A6C">
+		<Properties>
+			<bool name="AllowInsertFreeModels">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">InsertService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000398</UniqueId>
+		</Properties>
+		<Item class="StringValue" referent="RBX750FD4FB107149B4AE74826BED5B8072">
+			<Properties>
+				<string name="Value">{9E63F4E1-1806-412C-8812-A9E837AA02CF}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">InsertionHash</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000011aa</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="GamePassService" referent="RBX16660E594064455A8929136A06B4850E">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">GamePassService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000399</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Debris" referent="RBX8089685502184D94B3A0C102C8AB9EF1">
+		<Properties>
+			<int name="MaxItems">1000</int>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Debris</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000039a</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="CookiesService" referent="RBX7AFA6D93B1C847DD98B853F3002EFF24">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">CookiesService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000039b</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Selection" referent="RBX7A90238E734D45B79BAFA0AC164B6288">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Selection</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000039c</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="VRService" referent="RBX119E8B36153849A88B6FE159416BD796">
+		<Properties>
+			<token name="AutomaticScaling">0</token>
+			<bool name="AvatarGestures">false</bool>
+			<token name="ControllerModels">1</token>
+			<bool name="FadeOutViewOnCollision">true</bool>
+			<token name="LaserPointer">1</token>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">VRService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003a0</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ContextActionService" referent="RBXC910AEA8CACC448CA28CA911E0AD87AC">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ContextActionService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003a1</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ScriptService" referent="RBX05FDA9F515AB4A06A217EEB0834545E6">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ScriptService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003a2</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="AssetService" referent="RBXB5E337287F31443FA82C8A7934069ADE">
+		<Properties>
+			<bool name="AllowInsertFreeAssets">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">AssetService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003a3</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="TouchInputService" referent="RBX3BCE70719DC8407A8B4FA274720660F5">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">TouchInputService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003a5</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="AvatarSettings" referent="RBXFD690B846C924C169D57EA036380C6B0">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">AvatarSettings</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ab</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Packages" referent="RBXF2E73F4CE8D24E38ADB274700B59E0BB">
+		<Properties>
+			<bool name="IsDehydrated">false</bool>
+			<int name="ShellPackagesCount">0</int>
+			<int name="SkippedInstancesCount">0</int>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Packages</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003af</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="GuidRegistryService" referent="RBXCBCD57BC5F2948BC924BAAD271393C23">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">GuidRegistryService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003b0</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="LuaWebService" referent="RBXB22E62E92CFE489B867ECFDDA4107935">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">LuaWebService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003b7</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ProcessInstancePhysicsService" referent="RBXF99968CBA0AB4954BB8EE63AE0F74662">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ProcessInstancePhysicsService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003b8</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ReplicatedStorage" referent="1">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ReplicatedStorage</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003b9</UniqueId>
+		</Properties>
+		<Item class="Folder" referent="2">
+			<Properties>
+				<Color3 name="IconTint">
+					<R>0</R>
+					<G>0</G>
+					<B>0</B>
+				</Color3>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">Shared</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003da</UniqueId>
+			</Properties>
+			<Item class="ModuleScript" referent="3">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Config — single entry point for ALL balance & presentation data.
 	ReplicatedStorage.Shared.Config (owner: Game design). Read-only at runtime: never mutate.
@@ -657,12 +1782,22 @@ do
 end
 
 return Config
-]]></string>
-        </Properties>
-        <Item class="ModuleScript" referent="4">
-          <Properties>
-            <string name="Name">Backpacks</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+					<string name="ScriptGuid">{B06D980A-A37C-45CA-A784-D68BBB44C7A9}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Config</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003db</UniqueId>
+				</Properties>
+				<Item class="ModuleScript" referent="4">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Backpacks — ordered by price. Capacity is sand carried before you must sell.
 	Effective capacity = Capacity x Config.RebirthMultiplier(rebirths) x (Mega Backpack pass ? 2 : 1).
@@ -873,13 +2008,23 @@ local Backpacks: { Types.BackpackDef } = {
 }
 
 return Backpacks
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="5">
-          <Properties>
-            <string name="Name">Badges</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{F4027544-7665-461B-A5C5-22FB2CFD7AE0}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Backpacks</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003dc</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="5">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 -- Roblox badges. Create each badge in Creator Hub (art in marketing/badges/) and paste its id.
 -- Id 0 = not configured; the server skips it.
 export type BadgeKind = "FirstDig" | "FirstPet" | "ReachLayer" | "Rebirth" | "FindRarity" | "CompleteLayer" | "DailyStreak"
@@ -926,13 +2071,23 @@ local Badges: { BadgeDef } = {
 }
 
 return Badges
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="6">
-          <Properties>
-            <string name="Name">Boosts</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{7A4CB34C-D41B-442E-8015-7F61AD066F49}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Badges</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003dd</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="6">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Boosts — timed multipliers stored in PlayerData.Boosts[boostId] = expiresUnix.
 	Buying/earning a boost you already have ADDS time (stacks duration, not multiplier).
@@ -998,13 +2153,23 @@ local Boosts: { Types.BoostDef } = {
 }
 
 return Boosts
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="7">
-          <Properties>
-            <string name="Name">Codes</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{2A139FE2-381C-43E2-8229-B469EAC5519F}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Boosts</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003de</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="7">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Codes — redeemable via Remotes.RedeemCode(code). Matched case-insensitively and with spaces
 	trimmed (Config.GetCode). One redemption per player (PlayerData.RedeemedCodes[CODE] = true).
@@ -1048,13 +2213,23 @@ local Codes: { Types.CodeDef } = {
 }
 
 return Codes
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="8">
-          <Properties>
-            <string name="Name">Consumables</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{EA5AF1E2-6988-43ED-B704-F93C39E18763}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Codes</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003df</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="8">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Consumables — drinks & snacks (owner: Survival). Bought with coins into
 	PlayerData.Consumables[id] (count), used from the HUD quick-slots (keys 1/2/3).
@@ -1159,13 +2334,23 @@ do
 end
 
 return Consumables
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="9">
-          <Properties>
-            <string name="Name">DailyRewards</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{CB09B9B8-612A-40A2-B8C1-7669DAA2672F}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Consumables</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e0</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="9">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	DailyRewards — 7-day streak. Claimable once Config.DAILY_COOLDOWN_SECONDS (20h) passed since
 	LastDailyClaim. If more than Config.DAILY_STREAK_GRACE_SECONDS (48h) passed, the streak resets to
@@ -1191,13 +2376,23 @@ local DailyRewards: { Types.DailyRewardDef } = {
 }
 
 return DailyRewards
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="10">
-          <Properties>
-            <string name="Name">Discovery</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{39C8E25A-12E9-4A96-8E1A-0C2DD1E3CFF7}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">DailyRewards</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e1</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="10">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Discovery (v3 slice) — buried finds, the detector, the excavation minigame and rarity
 	presentation. Read-only balance data; the logic lives in Shared/Util/Finds.luau (pure, used by
@@ -1408,13 +2603,23 @@ local Discovery = {
 }
 
 return Discovery
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="11">
-          <Properties>
-            <string name="Name">Eggs</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{AB12635F-A2B3-4416-A3F1-2211575FDFE9}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Discovery</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e2</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="11">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Eggs — hatch pets. Coin eggs unlock when your MaxDepth reaches the layer UnlockLayer
 	(Config.IsEggUnlocked). Weights are relative (they sum to 100 for readability).
@@ -1646,13 +2851,23 @@ local Eggs: { Types.EggDef } = {
 }
 
 return Eggs
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="12">
-          <Properties>
-            <string name="Name">Events</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{072ABCD1-1385-44AC-922A-7CA62E0643A1}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Eggs</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e3</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="12">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Events — server-wide timed events, deterministic from os.time() so every server agrees
 	without messaging: active while (os.time() + OffsetSeconds) % IntervalSeconds < DurationSeconds.
@@ -1690,13 +2905,23 @@ local Events: { Types.EventDef } = {
 }
 
 return Events
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="13">
-          <Properties>
-            <string name="Name">Heat</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{68D9A4DC-268A-4F8B-8054-3A55176BB1DA}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Events</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e4</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="13">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Heat — the soft survival meter (owner: Survival). See docs/design/Survival.md.
 
@@ -1754,13 +2979,23 @@ local Heat: Types.HeatConfig = {
 }
 
 return Heat
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="14">
-          <Properties>
-            <string name="Name">IconAtlas</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{B991FFB5-D832-4F1F-AA1F-55C7F8F8975E}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Heat</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e5</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="14">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	IconAtlas — GENERATED by tools/icons/generate_icons.py (re-run it after changing icons; the
 	generator keeps the ASSET_ID below). Source art: assets/icons/atlas.png, 1024x1024, an 8x8 grid
@@ -1978,13 +3213,23 @@ return {
 	Resolve = Resolve,
 	GroupOffset = GroupOffset,
 }
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="15">
-          <Properties>
-            <string name="Name">Layers</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{C9515409-91D2-48B5-9C41-9FCC066D75C6}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">IconAtlas</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e6</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="15">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Layers — the hole, top to bottom. Ordered array; index 1 is the surface.
 	Depths are studs below the beach surface. Total depth = 1000 studs ("1,000 m to the Core",
@@ -2301,13 +3546,23 @@ local Layers: { Types.LayerDef } = {
 }
 
 return Layers
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="16">
-          <Properties>
-            <string name="Name">Monetization</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{D5A27B63-2397-4227-AD2B-1DA813D1282D}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Layers</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e7</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="16">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Monetization — game passes, developer products, Premium perks.
 
@@ -2488,13 +3743,23 @@ local Monetization: Types.MonetizationConfig = {
 }
 
 return Monetization
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="17">
-          <Properties>
-            <string name="Name">Pets</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{72BC70F9-C150-405D-89F5-492A6B0DC38E}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Monetization</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e8</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="17">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Pets — follow you and multiply sand. Bonuses combine ADDITIVELY:
 	total = 1 + sum(Multiplier - 1) over equipped pets (Config.PetMultiplier).
@@ -3342,13 +4607,23 @@ local Pets: { Types.PetDef } = {
 }
 
 return Pets
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="18">
-          <Properties>
-            <string name="Name">Quests</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{0752533C-BF6F-4BF2-8C92-D8506A88BF68}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Pets</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003e9</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="18">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Quests — Daily quests reset at 00:00 UTC (QuestProgress.Day != today -> reset progress/claim).
 	Once quests are milestones (claim once, ever).
@@ -3477,13 +4752,23 @@ local Quests: { Types.QuestDef } = {
 }
 
 return Quests
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="19">
-          <Properties>
-            <string name="Name">Rarities</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{40804E6A-B09A-4982-8CEA-1016A5AF69EF}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Quests</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ea</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="19">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Rarities — display data for treasure & pet rarities. Ordered array (Order 1..7; 7 = Relic, v3 finds only) plus the
 	lookup helper Config.GetRarity(name). Gradient is meant for a UIGradient on rarity cards.
@@ -3548,13 +4833,23 @@ local Rarities: { Types.RarityDef } = {
 }
 
 return Rarities
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="20">
-          <Properties>
-            <string name="Name">RebirthPerks</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{785072C5-B2AA-4ADA-9A27-65AE7DED45BB}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Rarities</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003eb</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="20">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	RebirthPerks — permanent upgrades bought with Rebirth Tokens (docs/design/Rebirth.md).
 
@@ -3814,13 +5109,23 @@ function RebirthPerks.Spent(perks: { [string]: number }?): number
 end
 
 return RebirthPerks
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="21">
-          <Properties>
-            <string name="Name">Rebirths</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{40A2E59D-931C-41B9-BDB8-0DC164B347D7}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">RebirthPerks</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ec</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="21">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Rebirths — reset for a permanent multiplier.
 
@@ -3900,13 +5205,23 @@ local Rebirths: Types.RebirthConfig = {
 }
 
 return Rebirths
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="22">
-          <Properties>
-            <string name="Name">Ride</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{34AD5E56-9866-40D1-B41A-2716A3F9CF57}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Rebirths</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ed</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="22">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Ride — tuning for the ride-on excavator (v2.1, Ride agent). A player who owns a pet with
 	PetDef.Rideable = true can press Ride (V / DPadUp / the Ride button) to spawn a full-size
@@ -3961,13 +5276,23 @@ local Ride = {
 }
 
 return Ride
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="23">
-          <Properties>
-            <string name="Name">Shades</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{B6DD4615-CCDF-4A88-89D6-5FEF30D30110}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Ride</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ee</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="23">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Shades — placeable shade items (owner: Survival), ordered by price. Bought once with coins
 	(PlayerData.OwnedShades), placed on the beach sand, cools ANYONE standing under it.
@@ -4059,13 +5384,23 @@ local Shades: { Types.ShadeDef } = {
 }
 
 return Shades
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="24">
-          <Properties>
-            <string name="Name">Shovels</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{2D0BFA00-13AB-43ED-B8FE-A520B7F8BFA5}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Shades</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ef</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="24">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Shovels — ordered by price. Shovel N+1 always unlocks the next layer (Power == that layer's
 	Hardness), so depth == progress. The starter Hand Spade (Power 2) digs Dry + Wet Sand.
@@ -4341,13 +5676,23 @@ local Shovels: { Types.ShovelDef } = {
 }
 
 return Shovels
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="25">
-          <Properties>
-            <string name="Name">Social</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{C8246606-9922-4AF8-AA85-73A6ACE7AD6F}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Shovels</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f0</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="25">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Social — tuning for status & social features (v2.2, Status & Social agent):
 	nameplates, rare-find announcements, leaderboard scopes and the server dig goal.
@@ -4412,13 +5757,23 @@ local Social: SocialConfig = {
 }
 
 return Social
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="26">
-          <Properties>
-            <string name="Name">Sounds</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{4EC95318-8256-4709-BF46-10DF7B0B1378}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Social</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f1</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="26">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Sounds — SOUND_IDS. Only `rbxasset://` built-ins (shipped with every Roblox client) are used;
 	"" means "not set yet": skip playing it. To upgrade, upload or pick licensed audio from the
@@ -4467,13 +5822,23 @@ local Sounds: { [string]: Types.SoundDef } = {
 }
 
 return Sounds
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="27">
-          <Properties>
-            <string name="Name">Theme</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{97344C38-3954-44F6-BD56-45927DB00C75}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Sounds</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f2</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="27">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Theme — v3 "chunky simulator" palette in beach colours (docs/UI_STYLE.md, binding).
 	- Outlines everywhere: Stroke (#1b1b24) 3-4 px on panels/buttons, 2-3 px on text.
@@ -4537,13 +5902,23 @@ local Theme: Types.ThemeDef = {
 }
 
 return Theme
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="28">
-          <Properties>
-            <string name="Name">Titles</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{3C95A1BB-A52E-42C3-B718-85C8AA66F09C}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Theme</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f3</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="28">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Titles — overhead nameplate title earned by the deepest layer a player has ever reached
 	(PlayerData.MaxDepth, kept through rebirths). Index i = Config.Layers[i]; one title per layer.
@@ -4578,13 +5953,23 @@ local Titles: { TitleDef } = {
 }
 
 return Titles
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="29">
-          <Properties>
-            <string name="Name">Treasures</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{4380DA49-29C4-4A9A-8E3F-5BA32568347F}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Titles</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f4</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="29">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Treasures — found while digging. Each belongs to one layer (Layer = index in Layers.luau)
 	and appears in that layer's LootTable. SellValue ~= layerBase x rarityFactor where
@@ -5082,14 +6467,24 @@ local Treasures: { Types.TreasureDef } = {
 }
 
 return Treasures
-]]></string>
-          </Properties>
-        </Item>
-      </Item>
-      <Item class="ModuleScript" referent="30">
-        <Properties>
-          <string name="Name">Models</string>
-          <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{60E56BFC-5E3A-48BF-8A2B-330B1C00F57E}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Treasures</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f5</UniqueId>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="ModuleScript" referent="30">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Models — procedural low-poly model builders (no mesh / texture asset ids).
 	Safe to require on server and client (no services). Every call returns a FRESH, unparented
@@ -5174,12 +6569,22 @@ function Models.RideVehicle(petId: string): Model
 end
 
 return Models
-]]></string>
-        </Properties>
-        <Item class="ModuleScript" referent="31">
-          <Properties>
-            <string name="Name">Backpacks</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+					<string name="ScriptGuid">{A0707D3A-B5DA-4AD6-9786-0F2B10DB0BA8}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Models</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f6</UniqueId>
+				</Properties>
+				<Item class="ModuleScript" referent="31">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Backpacks — worn on the character's back.
 	PrimaryPart = invisible "Root" at the centre of the pack's CONTACT face (the face touching
@@ -5415,13 +6820,23 @@ function Backpacks.FromLook(name: string, look: Types.BackpackLook): Model
 end
 
 return Backpacks
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="32">
-          <Properties>
-            <string name="Name">Build</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{623598F9-8EFE-43EC-9876-515E861D66BB}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Backpacks</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f7</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="32">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Build — shared procedural-geometry helpers for every model builder.
 	Pure Instance construction: no services, safe on server and client.
@@ -5919,13 +7334,23 @@ function Build.count(model: Model): number
 end
 
 return Build
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="33">
-          <Properties>
-            <string name="Name">Consumables</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{5B2AC87D-F310-421B-B354-CFE4B49BDCE1}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Build</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f8</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="33">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Consumables — drinks & snacks (Config.Consumables), ~1.5 studs tall, chunky cartoon style.
 	PrimaryPart = invisible "Root" at the VISUAL CENTRE (like treasures) so ViewportFrames and
@@ -6067,13 +7492,23 @@ function ConsumableModels.Build(id: string): Model
 end
 
 return ConsumableModels
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="34">
-          <Properties>
-            <string name="Name">Diggers</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{BFE36C59-5C78-4FDB-A140-A910658260E8}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Consumables</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003f9</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="34">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Diggers — chunky cartoon construction vehicles from primitives (no asset ids), one builder per
 	vehicle Kind. Roughly 3-6 studs long at scale 1.
@@ -6650,13 +8085,23 @@ function Diggers.Kinds(): { string }
 end
 
 return Diggers
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="35">
-          <Properties>
-            <string name="Name">Eggs</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{FEC515E8-7BC0-445A-A18B-B056E35DD1C2}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Diggers</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003fa</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="35">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Eggs — ~3 studs tall, PrimaryPart = invisible "Root" at the bottom-centre, front -Z.
 	Pattern (spots or zig-zag band) is picked deterministically from the egg id.
@@ -6893,13 +8338,23 @@ function Eggs.FromLook(name: string, look: Types.EggLook): Model
 end
 
 return Eggs
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="36">
-          <Properties>
-            <string name="Name">Expansion1</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{4C1679B2-06C3-427B-9B84-F9A2DA796467}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Eggs</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003fb</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="36">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 -- First-slice visual factories. No services, rewards, terrain edits or external asset IDs.
 -- Bottom pivots for scenery; -Z front. Tools retain the existing Handle-space contract.
 local Build = require(script.Parent.Build)
@@ -7257,13 +8712,23 @@ function Kit.BallEffect(reducedMotion: boolean?): Model
 end
 
 return Kit
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="37">
-          <Properties>
-            <string name="Name">Pets</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{22268186-F113-4172-B6EB-20B4CD9D003B}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Expansion1</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003fc</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="37">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Pets — cute low-poly creatures, one builder per Types.PetShape.
 	Built at unit scale (~2-2.5 studs) then scaled by Look.Size about the bottom-centre.
@@ -7708,13 +9173,23 @@ function Pets.FromLook(name: string, look: Types.PetLook, rarity: Types.Rarity?)
 end
 
 return Pets
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="38">
-          <Properties>
-            <string name="Name">Props</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{50086914-3EDA-456F-B552-A635C45BC370}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Pets</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003fd</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="38">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Props — beach scenery at real scale (avatar ~5 studs tall).
 	PrimaryPart = invisible "Root" at the bottom-centre (pivot). FRONT faces -Z (towers look
@@ -8267,13 +9742,23 @@ function Props.List(): { string }
 end
 
 return Props
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="39">
-          <Properties>
-            <string name="Name">Rides</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{0AAFAC89-EFBB-4935-A791-6B44A911C494}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Props</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003fe</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="39">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Rides — the full-size ride-on vehicle for rideable pets (v2.1, Ride agent). Built from
 	primitives only (Build.luau style, no asset ids). Currently every rideable pet is drawn as a
@@ -8548,13 +10033,23 @@ function Rides.Build(petId: string): Model
 end
 
 return Rides
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="40">
-          <Properties>
-            <string name="Name">Shades</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{4C6BAB5C-FAA1-4922-A483-F6B7E85A0096}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Rides</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ff</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="40">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Shades — placeable shade items (Config.Shades), chunky low-poly cartoon style.
 	PrimaryPart = invisible "Root" at the bottom-centre (the ground point under the pole).
@@ -8923,13 +10418,23 @@ function ShadesModels.Build(id: string): Model
 end
 
 return ShadesModels
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="41">
-          <Properties>
-            <string name="Name">Shovels</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{342D4820-F3DA-42C2-910A-AD6690EDDD59}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Shades</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000400</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="41">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Shovels — held tools. Built in "tool space": origin at the top end of the shaft (the end
 	away from the head), shaft along +Y towards the head, blade plane = XY. The blade's cupped
@@ -9245,13 +10750,23 @@ function Shovels.FromLook(name: string, look: Types.ShovelLook): Model
 end
 
 return Shovels
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="42">
-          <Properties>
-            <string name="Name">Treasures</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{6F41CDA4-E798-4EA6-A687-CC9F1FC666A2}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Shovels</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000401</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="42">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Treasures — ~1.5 stud trinkets for reveal pop-ups and ViewportFrames.
 	PrimaryPart = invisible "Root" at the visual centre (pivot), front -Z, each shape given a
@@ -9808,14 +11323,24 @@ function Treasures.FromLook(name: string, look: Types.TreasureLook, rarity: Type
 end
 
 return Treasures
-]]></string>
-          </Properties>
-        </Item>
-      </Item>
-      <Item class="ModuleScript" referent="43">
-        <Properties>
-          <string name="Name">Remotes</string>
-          <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{251A1141-2339-4DB4-9CF7-8EBA4B077DFF}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Treasures</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000402</UniqueId>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="ModuleScript" referent="43">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[--!strict
 -- Single source of truth for network endpoints. The server creates them on first access;
 -- clients wait for them. Names must match docs/ARCHITECTURE.md.
 local RunService = game:GetService("RunService")
@@ -9940,13 +11465,23 @@ function Remotes.CreateAll()
 end
 
 return Remotes
-]]></string>
-        </Properties>
-      </Item>
-      <Item class="ModuleScript" referent="44">
-        <Properties>
-          <string name="Name">Types</string>
-          <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+					<string name="ScriptGuid">{E8091990-2F7C-483D-A6F9-9B26412979C8}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Remotes</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000403</UniqueId>
+				</Properties>
+			</Item>
+			<Item class="ModuleScript" referent="44">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Types — shared exported Luau types for Dig the Beach.
 	Owner: Game design. Other areas code against these; do not change field names without
@@ -10556,17 +12091,40 @@ export type DigResult = {
 }
 
 return {}
-]]></string>
-        </Properties>
-      </Item>
-      <Item class="Folder" referent="45">
-        <Properties>
-          <string name="Name">Util</string>
-        </Properties>
-        <Item class="ModuleScript" referent="46">
-          <Properties>
-            <string name="Name">Finds</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+					<string name="ScriptGuid">{419ADACE-5298-4C97-975E-9945525699E2}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Types</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000404</UniqueId>
+				</Properties>
+			</Item>
+			<Item class="Folder" referent="45">
+				<Properties>
+					<Color3 name="IconTint">
+						<R>0</R>
+						<G>0</G>
+						<B>0</B>
+					</Color3>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Util</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000405</UniqueId>
+				</Properties>
+				<Item class="ModuleScript" referent="46">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Finds (v3 discovery slice) — pure functions shared by the server (authoritative) and the client
 	(Index odds, reveal presentation, detector UI). Numbers live in Config.Discovery; the design
@@ -10938,13 +12496,23 @@ function Finds.BeepInterval(band: number): number
 end
 
 return Finds
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="47">
-          <Properties>
-            <string name="Name">Format</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{E290CD24-DFCD-4C02-81DA-6D1D64061661}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Finds</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000406</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="47">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 -- Number/time formatting shared by UI, leaderboards and notifications.
 local Format = {}
 
@@ -11012,13 +12580,23 @@ function Format.Depth(studs: number): string
 end
 
 return Format
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="48">
-          <Properties>
-            <string name="Name">RateLimiter</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{7B2EC26C-612D-4F96-B785-6C807FB169EF}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Format</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000407</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="48">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	RateLimiter — token bucket per key (usually a Player). Pure: the clock is injectable so it
 	can be unit-tested outside Roblox.
@@ -11069,13 +12647,23 @@ function RateLimiter.new(capacity: number, windowSeconds: number, clock: (() -> 
 end
 
 return RateLimiter
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="49">
-          <Properties>
-            <string name="Name">RideMath</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{95B998B4-68B4-42C3-A780-AFE02A66879E}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">RateLimiter</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000408</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="49">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	RideMath — ride-on vehicle geometry shared by RideService (server) and RideController
 	(client) so both agree on the allowed area and the ground height (Config.Ride).
@@ -11151,13 +12739,23 @@ function RideMath.GroundY(pivot: CFrame): number
 end
 
 return RideMath
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="50">
-          <Properties>
-            <string name="Name">Signal</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{BB50BC44-30D7-4B9D-A920-4B3FFB282745}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">RideMath</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000409</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="50">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Signal — tiny typed event object (no Instances, works on server and client).
 
@@ -11251,13 +12849,23 @@ function Signal.new<T...>(): Signal<T...>
 end
 
 return Signal
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="51">
-          <Properties>
-            <string name="Name">Stats</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{C7436972-4C17-46EC-A563-77A7209E775E}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Signal</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040a</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="51">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Stats — the ONE place the multiplier stack is computed. Pure functions of a Context, used by
 	the server (authoritative) and safe for the client to mirror for UI ("x12.5 sand", odds...).
@@ -11668,13 +13276,23 @@ function Stats.GetSellValue(ctx: Context): number
 end
 
 return Stats
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="52">
-          <Properties>
-            <string name="Name">TableUtil</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{7F953101-A67A-40C1-AA90-4BA9106AFB66}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Stats</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040b</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="52">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	TableUtil — pure table helpers used by persistence.
 ]]
@@ -11720,13 +13338,23 @@ function TableUtil.Count(t: { [any]: any }): number
 end
 
 return TableUtil
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="53">
-          <Properties>
-            <string name="Name">Week</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{E79F3359-A67F-42B7-B8D1-BEBEA0940AC6}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">TableUtil</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040c</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="53">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Week — ISO-8601 week numbers (UTC) for weekly leaderboards. Weeks start on Monday; week 1 is
 	the week holding the year's first Thursday, so 29 Dec .. 3 Jan can belong to either year.
@@ -11762,13 +13390,23 @@ function Week.SecondsLeft(unix: number): number
 end
 
 return Week
-]]></string>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="54">
-          <Properties>
-            <string name="Name">Weighted</string>
-            <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{78FA5B16-714A-4759-A104-88340545BD36}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Week</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040d</UniqueId>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="54">
+					<Properties>
+						<Content name="LinkedSource"><null></null></Content>
+						<ProtectedString name="Source"><![CDATA[--!strict
 --[[
 	Weighted — pure weighted random selection (loot tables, eggs).
 	`roll` is a number in [0, 1) supplied by the caller (Random:NextNumber()), which keeps this
@@ -11826,21 +13464,38 @@ function Weighted.Odds<T>(entries: { T }, weightOf: (T) -> number): { number }
 end
 
 return Weighted
-]]></string>
-          </Properties>
-        </Item>
-      </Item>
-    </Item>
-  </Item>
-  <Item class="ServerScriptService" referent="55">
-    <Properties>
-      <string name="Name">ServerScriptService</string>
-    </Properties>
-    <Item class="Script" referent="56">
-      <Properties>
-        <string name="Name">ExpansionReview</string>
-        <token name="RunContext">0</token>
-        <string name="Source"><![CDATA[--!strict
+]]></ProtectedString>
+						<string name="ScriptGuid">{BC1FD87B-8D23-472F-B51F-426A23633568}</string>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+						<string name="Name">Weighted</string>
+						<BinaryString name="SerializedOverrides"></BinaryString>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040e</UniqueId>
+					</Properties>
+				</Item>
+			</Item>
+		</Item>
+	</Item>
+	<Item class="ServerScriptService" referent="55">
+		<Properties>
+			<bool name="LoadStringEnabled">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ServerScriptService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003ba</UniqueId>
+		</Properties>
+		<Item class="Script" referent="56">
+			<Properties>
+				<ProtectedString name="Source"><![CDATA[--!strict
 -- Isolated review only. Never loads production services or saves.
 local Kit = require(game:GetService("ReplicatedStorage").Shared.Models.Expansion1)
 local group = Instance.new("Folder")
@@ -11852,6 +13507,8 @@ floor.Size = Vector3.new(130, 1, 90)
 floor.Position = Vector3.new(30, -0.5, 15)
 floor.Color = Kit.Palette.Sand
 floor.Anchored = true
+floor.TopSurface = Enum.SurfaceType.Smooth
+floor.BottomSurface = Enum.SurfaceType.Smooth
 floor.Parent = group
 local spawn = Instance.new("SpawnLocation")
 spawn.Size = Vector3.new(6, 1, 6)
@@ -11859,21 +13516,22 @@ spawn.Position = Vector3.new(0, 0.5, -16)
 spawn.Anchored = true
 spawn.Parent = group
 
-local function show(m: Model, x: number, z: number)
-	m:PivotTo(CFrame.new(x, 0, z))
+local function show(m: Model, x: number, z: number, y: number?)
+	m:PivotTo(CFrame.new(x, y or 0, z))
 	m.Parent = group
 	assert(m.PrimaryPart, m.Name .. " lacks a pivot")
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(240, 48)
-	gui.StudsOffset = Vector3.new(0, 10, 0)
-	gui.MaxDistance = 100
+	gui.Size = UDim2.fromOffset(180, 32)
+	gui.StudsOffset = Vector3.new(0, 6, 0)
+	gui.MaxDistance = 20
 	gui.Parent = m.PrimaryPart
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundColor3 = Kit.Palette.Navy
 	label.TextColor3 = Kit.Palette.Cream
 	label.Text = m.Name
-	label.TextSize = 16
+	label.TextSize = 14
+	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.Parent = gui
 	print("EXPANSION ASSET", m.Name, m:GetExtentsSize())
 end
@@ -11882,7 +13540,8 @@ for i, pose in { "Idle", "Point", "Celebrate" } do
 	show(Kit.NPC("npc_mara", pose), (i - 1) * 8, 0)
 	show(Kit.NPC("npc_pip", pose), (i - 1) * 8, 12)
 end
-show(Kit.Broadwave(), 28, 0)
+-- Held-tool space is centered on the grip, rather than on the ground.
+show(Kit.Broadwave(), 28, 0, 2)
 for i, stage in { "Covered", "Partial", "Opened" } do
 	local m = Kit.SpringVault(stage)
 	local size = m:GetExtentsSize()
@@ -11916,15 +13575,222 @@ for _, d in tool:GetDescendants() do
 end
 held:Destroy()
 tool.Parent = game:GetService("StarterPack")
-]]></string>
-      </Properties>
-    </Item>
-  </Item>
-  <Item class="Workspace" referent="57">
-    <Properties>
-      <string name="Name">Workspace</string>
-      <bool name="NeedsPivotMigration">false</bool>
-      <bool name="StreamingEnabled">false</bool>
-    </Properties>
-  </Item>
+
+]]></ProtectedString>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{835A7BDE-5D88-4816-8AEB-570ACE5F6B6E}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">ExpansionReview</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000040f</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="ServerStorage" referent="RBXA4CE545A8B2E430AADC91EB2CF4615FC">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ServerStorage</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003bb</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="ServiceVisibilityService" referent="RBXEAF9DFCB7FDB4B898108066FB6E133E8">
+		<Properties>
+			<BinaryString name="HiddenServices">AAAAAA==</BinaryString>
+			<BinaryString name="VisibleServices">AAAAAA==</BinaryString>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">ServiceVisibilityService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003d0</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="VideoService" referent="RBXFB1CE4AD3E284EA4A74132B3AE03FA8F">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">VideoService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003d4</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="HttpService" referent="RBX9719D1FAE07A467999E0A53AB2E438E3">
+		<Properties>
+			<bool name="HttpEnabled">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">HttpService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003d5</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="Lighting" referent="0">
+		<Properties>
+			<Color3 name="Ambient">
+				<R>0.400000006</R>
+				<G>0.400000006</G>
+				<B>0.400000006</B>
+			</Color3>
+			<float name="Brightness">3.13338637</float>
+			<Color3 name="ColorShift_Bottom">
+				<R>0</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<Color3 name="ColorShift_Top">
+				<R>0</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<float name="EnvironmentDiffuseScale">0</float>
+			<float name="EnvironmentSpecularScale">0</float>
+			<float name="ExposureCompensation">0</float>
+			<token name="ExtendLightRangeTo120">0</token>
+			<Color3 name="FogColor">
+				<R>0.75</R>
+				<G>0.75</G>
+				<B>0.75</B>
+			</Color3>
+			<float name="FogEnd">100000</float>
+			<float name="FogStart">0</float>
+			<float name="GeographicLatitude">41.7332993</float>
+			<bool name="GlobalShadows">false</bool>
+			<token name="LightingStyle">1</token>
+			<Color3 name="OutdoorAmbient">
+				<R>0.600000024</R>
+				<G>0.600000024</G>
+				<B>0.600000024</B>
+			</Color3>
+			<bool name="Outlines">true</bool>
+			<bool name="PrioritizeLightingQuality">false</bool>
+			<float name="ShadowSoftness">0.5</float>
+			<token name="Technology">1</token>
+			<string name="TimeOfDay">14:00:00</string>
+			<BinaryString name="AttributesSerialize"><![CDATA[BQAAABQAAABSQlhfQmFja3VwQnJpZ2h0bmVzcwUAAABAHgAAAFJCWF9CYWNrdXBFeHBvc3Vy
+ZUNvbXBlbnNhdGlvbgUAAAAAIQAAAFJCWF9MaWdodGluZ0NvbXBhdGliaWxpdHlNaWdyYXRl
+ZAMBJgAAAFJCWF9MaWdodGluZ1RlY2hub2xvZ3lVbmlmaWVkTWlncmF0aW9uAwEgAAAAUkJY
+X09yaWdpbmFsVGVjaG5vbG9neU9uRmlsZUxvYWQEAgAAAA==]]></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">Lighting</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000003d9</UniqueId>
+		</Properties>
+		<Item class="ColorGradingEffect" referent="RBX924CBD288C49417087F882E9A4A82CB6">
+			<Properties>
+				<token name="TonemapperPreset">1</token>
+				<bool name="Enabled">true</bool>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">ColorGrading</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000456</UniqueId>
+			</Properties>
+		</Item>
+		<Item class="BloomEffect" referent="RBXA659E9D8B2514B46953FBF57CBE8D450">
+			<Properties>
+				<float name="Intensity">0</float>
+				<float name="Size">24</float>
+				<float name="Threshold">0.949999988</float>
+				<bool name="Enabled">true</bool>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+				<string name="Name">Bloom</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000457</UniqueId>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="LodDataService" referent="RBX43B793E5B48C4561A7085206E4AD4535">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">LodDataService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b300000463</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="SerializationService" referent="RBX50428B6C3CDF4F0DBED148B8691B513C">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">SerializationService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b3000004f5</UniqueId>
+		</Properties>
+	</Item>
+	<Item class="TestService" referent="RBXA2954BE0ACA3454C8470D60FBF2AAB03">
+		<Properties>
+			<bool name="AutoRuns">true</bool>
+			<string name="Description"></string>
+			<bool name="ExecuteWithStudioRun">false</bool>
+			<bool name="IsPhysicsEnvironmentalThrottled">true</bool>
+			<bool name="IsSleepAllowed">true</bool>
+			<int name="NumberOfPlayers">0</int>
+			<double name="SimulateSecondsLag">0</double>
+			<bool name="ThrottlePhysicsToRealtime">true</bool>
+			<double name="Timeout">10</double>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+			<string name="Name">TestService</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			<UniqueId name="UniqueId">7522c03ed1a33f830ad9e0b30000066b</UniqueId>
+		</Properties>
+	</Item>
+	<SharedStrings>
+		<SharedString md5="leDEa27wHRPaBssaK0OoqQ==">AQAAABUAAAACAAAAan8/AAUAAAAAAAADAAAAP39rIAMAAAAAAAAEAAAAf2Y/MAMAAAAAAAAF
+AAAAilY+UAMAAAAAAAAGAAAAj35fEAUAAAAAAAAHAAAAi21PEAIAAAAAAAAIAAAAZmxvgAMA
+AAAAAAAJAAAAZbDqEAYAAAAAAAAKAAAAw8faMAUAAAAAAAALAAAAiVpHkAMAAAAAAAAMAAAA
+Oi4kQAUAAAAAAAANAAAAHh4lFAMAAAAAAAAOAAAAZlw7UAUAAAAAAAAPAAAA6JxKJAMAAAAA
+AAAQAAAAc3trYAUAAAAAAAARAAAAhHtacAMAAAAAAAASAAAAgcLgAAYAAAAAAAATAAAAc4RK
+BAUAAAAAAAAUAAAAxr21cAUAAAAAAAAVAAAAzq2UNAMAAAAAAAAWAAAAlJSMRAMAAAAAAAA=</SharedString>
+		<SharedString md5="yuZpQdnvvUBOTYh1jqZ2cA=="></SharedString>
+	</SharedStrings>
 </roblox>
