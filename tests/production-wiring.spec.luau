@@ -165,6 +165,127 @@ if mode == "client" then
 	player.Character:PivotTo(CF.new(0, S + 3, 4))
 	Mock.Advance(0.5)
 	check(not Arbiter.DigBlocked(), "leaving the arena resumes digging")
+
+	-- Broadwave equip toggle (UI/BroadwaveEquip; docs/integration/licensed-broadwave.md) -------
+	local Equip = load("StarterPlayer/StarterPlayerScripts/Client/UI/BroadwaveEquip")
+	local Layout = load("StarterPlayer/StarterPlayerScripts/Client/UI/Layout")
+	local function sentSince(before)
+		return #Mock.Remote.ToServer - before
+	end
+	local function newTool(name, attrs, parent)
+		local t = Mock.Env.Instance.new("Tool")
+		t.Name = name
+		for k, v in attrs do
+			t:SetAttribute(k, v)
+		end
+		t.Parent = parent
+		return t
+	end
+	Mock.Advance(0.5)
+	check(Equip.Gui == nil and Equip.Button == nil, "equip: nothing built without a Broadwave tool")
+	check(Mock.Actions.BroadwaveEquip == nil, "equip: no key binding without a Broadwave tool")
+	check(Equip.State().Visible == false, "equip: hidden without a Broadwave tool")
+	local shovel = newTool("Shovel", { ShovelId = "starter" }, player.Backpack)
+	Mock.Advance(0.2)
+	check(Equip.Gui == nil, "equip: a shovel alone builds nothing")
+	local loanTool = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Backpack)
+	Mock.Advance(0.2)
+	local state = Equip.State()
+	check(Equip.Gui ~= nil and state.Visible, "equip: shows once the loan is in the Backpack")
+	check(state.Label == "Broadwave (loan)", "equip: loan label is 'Broadwave (loan)'")
+	check(Equip.Button.Label.Text == "Broadwave\n(loan)", "equip: loan caption")
+	check(not state.Equipped and Equip.Button.Face.BackgroundColor3 == Equip.STOWED_COLOR, "equip: stowed colour")
+	local bindingKeys = Mock.Actions.BroadwaveEquip and Mock.Actions.BroadwaveEquip.Keys or {}
+	check(
+		table.find(bindingKeys, Enum.KeyCode.Z) ~= nil and table.find(bindingKeys, Enum.KeyCode.ButtonR1) ~= nil,
+		"equip: bound to Z and ButtonR1"
+	)
+	check(
+		table.find(bindingKeys, Enum.KeyCode.Q) == nil and table.find(bindingKeys, Enum.KeyCode.ButtonL1) == nil,
+		"equip: never takes the Q / L1 charge keys"
+	)
+	local holder = Equip.Button.Holder
+	local region = Layout.Current().Broadwave
+	check(
+		holder.Position.X.Offset == region.X
+			and holder.Position.Y.Offset == region.Y
+			and holder.Size.Y.Offset == region.H,
+		"equip: placed by the Layout Broadwave region"
+	)
+	-- Keyboard Z equips the loan locally; no remote is fired.
+	local before = #Mock.Remote.ToServer
+	local key = Mock.Actions.BroadwaveEquip
+	local result =
+		key.Fn("BroadwaveEquip", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.Z))
+	Mock.Advance(0.1)
+	check(result == Enum.ContextActionResult.Sink, "equip: Z sinks")
+	check(loanTool.Parent == player.Character, "equip: Z equips the loan")
+	check(sentSince(before) == 0, "equip: equipping fires no remote")
+	check(Equip.State().Equipped and Equip.Button.Face.BackgroundColor3 == Equip.IN_HAND_COLOR, "equip: in-hand colour")
+	check(Arbiter.BroadwaveEquipped(), "equip: InputArbiter sees the Broadwave in hand (Q goes to the charge)")
+	check(DigController.TryDigAt(V.new(0, S, -30)) == false, "equip: ordinary digging pauses with a Broadwave in hand")
+	check(sentSince(before) == 0, "equip: paused dig sends nothing")
+	-- Gamepad R1 puts it away and re-equips the shovel.
+	Mock.Advance(0.3)
+	key.Fn("BroadwaveEquip", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonR1))
+	Mock.Advance(0.1)
+	check(
+		loanTool.Parent == player.Backpack and shovel.Parent == player.Character,
+		"equip: R1 puts it away, shovel back"
+	)
+	check(not Arbiter.BroadwaveEquipped() and not Equip.State().Equipped, "equip: stowed again")
+	check(sentSince(before) == 0, "equip: unequipping fires no remote")
+	-- Debounce: a double press within 0.2 s is one toggle.
+	Mock.Advance(0.3)
+	check(Equip.Toggle() == true and Equip.Toggle() == false, "equip: debounced double press")
+	Mock.Advance(0.3)
+	Equip.Toggle()
+	Mock.Advance(0.1)
+	check(shovel.Parent == player.Character, "equip: back to the shovel")
+	-- Touch / mouse: the button itself.
+	Mock.Advance(0.3)
+	Mock.FireEvent(Equip.Button.Face, "Activated")
+	Mock.Advance(0.1)
+	check(loanTool.Parent == player.Character, "equip: tapping the button equips")
+	Mock.Advance(0.3)
+	Mock.FireEvent(Equip.Button.Face, "Activated")
+	Mock.Advance(0.1)
+	check(loanTool.Parent == player.Backpack, "equip: tapping again puts it away")
+	-- Licensed tool: different label; with both, the arena prefers the loan, elsewhere the license.
+	local licensedTool = newTool("Broadwave", { ToolId = "tool_broadwave", LicensedBroadwave = true }, player.Backpack)
+	Mock.Advance(0.2)
+	check(Equip.State().Label == "Broadwave", "equip: outside the arena targets the licensed tool")
+	check(Equip.Button.Label.Text == "Broadwave", "equip: licensed caption has no loan marker")
+	player.Character:PivotTo(CF.new(-200, 973, 70))
+	Mock.Advance(0.5)
+	check(Equip.State().Label == "Broadwave (loan)", "equip: in the arena targets the loan")
+	check(Equip.Button.Label.Text == "Broadwave\n(loan)", "equip: arena caption follows the target")
+	player.Character:PivotTo(CF.new(0, S + 3, 4))
+	Mock.Advance(0.5)
+	Equip.Toggle()
+	Mock.Advance(0.1)
+	check(licensedTool.Parent == player.Character, "equip: equips the licensed tool")
+	check(Equip.State().Label == "Broadwave", "equip: an equipped tool wins over the arena preference")
+	-- Removal: loan returned, license removed -> hidden and unbound.
+	loanTool:Destroy()
+	Mock.Advance(0.2)
+	check(Equip.State().Visible, "equip: still shown while the licensed tool remains")
+	licensedTool:Destroy()
+	Mock.Advance(0.2)
+	check(Equip.State().Visible == false, "equip: hidden when the last Broadwave goes")
+	check(Mock.Actions.BroadwaveEquip == nil, "equip: key binding removed with the last Broadwave")
+	check(Mock.Actions.DigSurface ~= nil, "equip: DigSurface (Q / ButtonX) untouched")
+	-- Respawn: a fresh Backpack; the control follows the new one.
+	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	Mock.Advance(0.5)
+	check(Equip.State().Visible == false, "equip: hidden after respawn without tools")
+	local relent = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Backpack)
+	Mock.Advance(0.2)
+	check(Equip.State().Visible and Mock.Actions.BroadwaveEquip ~= nil, "equip: shows for a tool in the new Backpack")
+	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	Mock.Advance(0.5)
+	check(relent.Parent == nil, "respawn destroyed the old Backpack's tool")
+	check(Equip.State().Visible == false and Mock.Actions.BroadwaveEquip == nil, "equip: cleaned up on respawn")
 	finish()
 	return
 end
@@ -454,11 +575,13 @@ for _, d in scene:GetDescendants() do
 		end
 	end
 end
-check(spawns >= 1 and enabledSpawns == 0, "arena spawn disabled (players never spawn in the pocket)")
+-- Either the scene has no spawn (PR #33: ReviewSpawn defaults false) or AdventureBoot disabled it.
+check(enabledSpawns == 0, "no enabled arena spawn (players never spawn in the pocket; " .. spawns .. " found)")
 check(Eligibility.IsOrdinaryEnabled() == true, "on: ordinary Broadwave enabled")
 local opts = Boot.Options(Flags)
 check(opts.OnStage == Settlement.OnStage and opts.OnCompletion == Settlement.OnCompletion, "rewards wired")
 check(type(opts.OnOrdinaryBroadwave) == "function", "bridge wired")
+check(opts.ResolveTool ~= nil, "licensed-tool resolver wired (licensed-broadwave.md)")
 
 local targets = runtime.Scene.Targets
 local function at(p, pos)

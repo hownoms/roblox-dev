@@ -145,6 +145,15 @@ function DigController.TryDigAt(position: Vector3): boolean
 	if not DigController.Enabled or InputArbiter.DigBlocked() then
 		return false
 	end
+	-- A Broadwave (adventure loan or license) in hand: ordinary digging pauses instead of digging
+	-- invisibly with the stowed shovel or swapping tools under the player. The Broadwave equip
+	-- toggle (UI/BroadwaveEquip) puts it away and re-equips the shovel.
+	if InputArbiter.BroadwaveEquipped() then
+		if holdKind then
+			hint("broadwave", "Broadwave in hand. Put it away to dig with your shovel.", "Info", 4)
+		end
+		return false
+	end
 	local root = Character.GetRoot()
 	if not root or not Character.GetHumanoid() then
 		return false
@@ -304,6 +313,7 @@ end
 local function updateCursor()
 	local show = DigController.Enabled
 		and not InputArbiter.DigBlocked()
+		and not InputArbiter.BroadwaveEquipped()
 		and (UserInputService.MouseEnabled or UserInputService.GamepadEnabled)
 	local root = Character.GetRoot()
 	local result: RaycastResult? = nil
