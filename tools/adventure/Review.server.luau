@@ -1,0 +1,46 @@
+--!strict
+-- Dedicated review only. No production services, player saves or reward grants are loaded.
+local RunService = game:GetService("RunService")
+assert(RunService:IsStudio(), "Adventure review is local Studio only")
+local Service = require(script.Parent.Adventure.SpringVaultService)
+local runtime = Service.Start({
+	Origin = Vector3.new(700, 20, 0),
+	CanEnter = function(_player: Player): boolean
+		return true
+	end,
+	CanTrial = function(_player: Player): boolean
+		return true
+	end,
+})
+-- Review inspection handle is never installed in production boot.
+local probe = Instance.new("BindableFunction")
+probe.Name = "AdventureReviewProbe"
+probe.OnInvoke = function(command: string, payload: any): any
+	local player = game:GetService("Players"):GetPlayers()[1]
+	if command == "Player" and player then
+		return runtime.ReviewPlayer(player)
+	end
+	if command == "Intent" and player then
+		runtime.Handle(player, payload)
+	end
+	if command == "Destroy" then
+		runtime.Destroy()
+		return "Destroyed"
+	end
+	if command == "Completion" then
+		return runtime.LastCompletion
+	end
+	if command == "Capture" then
+		return runtime.ReviewAdapter.Contexts()
+	end
+	if command == "Scene" then
+		return { Targets = runtime.Scene.Targets, Routes = runtime.Scene.Routes, Gates = runtime.Scene.Gates }
+	end
+	local event = runtime.Event()
+	return if event then event:snapshot(os.clock()) else { Phase = "Dormant" }
+end
+probe.Parent = script.Parent
+script.Destroying:Connect(function()
+	runtime.Destroy()
+end)
+print("[SpringVault REVIEW] starter/prerequisite loans enabled; permanent rewards DISABLED")

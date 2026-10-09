@@ -1,0 +1,13 @@
+name: Spring Vault review
+on:
+  push:
+  pull_request:
+jobs:
+  adventure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install existing pinned toolchain
+        run: bash tools/setup_toolchain.sh
+      - name: Validate isolated adventure and trophy boundary
+        run: bash tools/adventure/check.sh
