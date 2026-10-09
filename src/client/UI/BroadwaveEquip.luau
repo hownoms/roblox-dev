@@ -18,6 +18,15 @@
 	    rather than digging with the stowed shovel or swapping tools under the player.
 	  * Inputs: the button (touch / mouse / gamepad selection), keyboard Z, gamepad ButtonR1.
 	    Q / L1 / the runtime touch button stay the Broadwave charge (SpringVaultClient).
+	  * One visible equip control (production-wiring.md 4, "One equip control"). The runtime
+	    (SpringVaultClient) builds its own "BroadwaveEquip" button whenever it runs. Until Codex
+	    ships the requested ExternalEquip start option, ours steps aside: it hides while
+	    AdventureController reports the runtime client running (SetRuntimeOwner) or while the
+	    runtime's button is effectively visible in PlayerGui (read-only lookup, never mutated).
+	    Z / ButtonR1 stay bound either way (keys are not a second visible control).
+	  * Loans stay in the arena: outside it an unequipped loan is never a target (no button, Z
+	    does nothing), so the loan cannot be taken out onto the sand. A loan already in hand
+	    outside the arena stays a target so it can be put away.
 	  * Layout: UI/Layout "Broadwave" region (clear of every HUD region, the Scan pill and the phone
 	    thumbstick / jump zones), own ScreenGui with the shared responsive scale.
 ]]
@@ -42,6 +51,8 @@ BroadwaveEquip.STOWED_COLOR = Style.Colors.Ocean
 BroadwaveEquip.IN_HAND_COLOR = Style.Colors.Palm
 BroadwaveEquip.Gui = nil :: ScreenGui?
 BroadwaveEquip.Button = nil :: Button.Button?
+BroadwaveEquip.RUNTIME_GUI = "SpringVaultAdventureReview" -- SpringVaultClient's ScreenGui
+BroadwaveEquip.RUNTIME_BUTTON = "BroadwaveEquip" -- its equip / stow TextButton
 
 local TOGGLE_DEBOUNCE = 0.2
 
@@ -51,9 +62,40 @@ local bound = false
 local pending = false
 local lastToggle = -math.huge
 local watched: { [Instance]: { RBXScriptConnection } } = {}
+local runtimeOwner: () -> boolean = function()
+	return false
+end
 
 local function inArena(): boolean
-	return table.find(InputArbiter.Reasons(), "AdventureArena") ~= nil
+	return InputArbiter.Has("AdventureArena")
+end
+
+-- AdventureController: true while the runtime client (and so its own equip button) is running.
+function BroadwaveEquip.SetRuntimeOwner(fn: () -> boolean)
+	runtimeOwner = fn
+end
+
+-- Read-only: is the runtime's own equip button on screen (it and every ancestor visible)?
+function BroadwaveEquip.RuntimeButtonVisible(): boolean
+	local playerGui = player:FindFirstChildOfClass("PlayerGui")
+	local gui = playerGui and playerGui:FindFirstChild(BroadwaveEquip.RUNTIME_GUI)
+	local button = gui and gui:FindFirstChild(BroadwaveEquip.RUNTIME_BUTTON, true)
+	if not button or not button:IsA("GuiObject") then
+		return false
+	end
+	local node: Instance? = button
+	while node and node ~= gui do
+		if node:IsA("GuiObject") and not node.Visible then
+			return false
+		end
+		node = node.Parent
+	end
+	return node == gui and (gui :: ScreenGui).Enabled ~= false
+end
+
+-- The runtime's control owns equip / stow right now, so ours must not show.
+function BroadwaveEquip.RuntimeOwnsControl(): boolean
+	return runtimeOwner() or BroadwaveEquip.RuntimeButtonVisible()
 end
 
 -- Every Broadwave tool the local player holds, and the equipped one (if any).
@@ -89,10 +131,14 @@ function BroadwaveEquip.Target(): (Tool?, boolean)
 	local preferLoan = inArena()
 	local fallback: Tool? = nil
 	for _, tool in list do
-		if InputArbiter.IsBroadwaveLoan(tool) == preferLoan then
+		local loan = InputArbiter.IsBroadwaveLoan(tool)
+		if loan == preferLoan then
 			return tool, false
 		end
-		fallback = fallback or tool
+		-- Outside the arena a stowed loan is never offered (it cannot be used on the sand).
+		if preferLoan or not loan then
+			fallback = fallback or tool
+		end
 	end
 	return fallback, false
 end
@@ -246,12 +292,19 @@ refresh = function()
 		bind(false)
 		return
 	end
+	bind(true)
+	if BroadwaveEquip.RuntimeOwnsControl() then
+		-- One visible control: the runtime's button is up (see the header). Built lazily later.
+		if button then
+			button:SetVisible(false)
+		end
+		return
+	end
 	button = button or build()
 	assert(button)
 	button:SetText(caption(tool))
 	button:SetColor(if equipped then BroadwaveEquip.IN_HAND_COLOR else BroadwaveEquip.STOWED_COLOR)
 	button:SetVisible(true)
-	bind(true)
 end
 
 -- Coalesces bursts (a respawn moves several children) into one refresh on the next resumption.
@@ -263,7 +316,13 @@ function BroadwaveEquip.Refresh()
 	task.defer(refresh)
 end
 
-function BroadwaveEquip.State(): { Visible: boolean, Label: string?, Equipped: boolean, Bound: boolean }
+function BroadwaveEquip.State(): {
+	Visible: boolean,
+	Label: string?,
+	Equipped: boolean,
+	Bound: boolean,
+	RuntimeOwns: boolean,
+}
 	local tool, equipped = BroadwaveEquip.Target()
 	local button = BroadwaveEquip.Button
 	return {
@@ -271,6 +330,7 @@ function BroadwaveEquip.State(): { Visible: boolean, Label: string?, Equipped: b
 		Label = if tool then BroadwaveEquip.Label(tool) else nil,
 		Equipped = equipped,
 		Bound = bound,
+		RuntimeOwns = BroadwaveEquip.RuntimeOwnsControl(),
 	}
 end
 

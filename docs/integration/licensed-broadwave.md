@@ -83,8 +83,8 @@ Production hides the Backpack CoreGui, so this control is the only way to equip 
 
 **When it exists:**
 
-- `AdventureController` starts it only after the server's `SpringVaultAdventure` remotes exist
-  and `SpringVaultClient` has started. With the flags off, nothing is required, built or bound.
+- `AdventureController` starts it only after the server's `SpringVaultAdventure` remotes exist.
+  With the flags off, nothing is required, built or bound.
 - Even when started, the GUI is not built and no key is bound until the local Backpack or
   character holds a Broadwave tool:
   - the loan (`AdventureLoan`);
@@ -102,6 +102,11 @@ Production hides the Backpack CoreGui, so this control is the only way to equip 
 - **Which tool it acts on:** the equipped Broadwave first. With both tools and none equipped, it
   picks the loan inside the arena (event and Pip trial) and the licensed tool everywhere else.
   The 0.25 s `AdventureController` tick refreshes this.
+- **Loans stay in the arena** (`claude/apf-arbitration`): outside the arena a *stowed* loan is
+  never a target. No button is shown and Z does nothing. A loan already in hand stays a target so
+  it can be put away.
+- **One visible control** (`production-wiring.md` 4.4): while the runtime client runs (arena, or
+  a Broadwave in hand), its own button is the control and ours hides. Z / R1 stay bound.
 - **Equip:** `Humanoid:EquipTool(tool)` runs locally. It replicates for the player's own tools,
   and **no remote is fired** (tested).
 - **Put away:** re-equips the shovel (the Backpack `ShovelId` tool) with `EquipTool`. With no
@@ -254,7 +259,8 @@ defaults to false. It still requires zero *enabled* arena spawns.
   sees the tool parented to the character before the charge's `ChargeBegin` arrives.
 - Respawn timing: `BroadwaveLicense` re-issues on a deferred resume after `CharacterAdded`, and the
   control picks the tool up from the new Backpack's `ChildAdded`.
-- Two equip buttons are visible with PR #33's client (request 1 below).
+- Two equip buttons with PR #33's client (request 1 below): mitigated Claude-side by the
+  one-control rule in `production-wiring.md` 4.4.
 - Populated performance and streaming of the pocket are unchanged by this slice and still not
   verified.
 
