@@ -16,6 +16,8 @@ echo "== trophy.spec (mock store) =="
 luau tests/trophy.spec.luau || status=1
 echo "== adventure-settlement.spec (mock store) =="
 luau tests/adventure-settlement.spec.luau || status=1
+echo "== adventure-outcome.spec (client card) =="
+luau tests/adventure-outcome.spec.luau || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1

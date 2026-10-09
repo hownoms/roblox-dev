@@ -96,6 +96,7 @@ local TROPHY = "landmark_spring_vault"
 local STAND = "camp_trophy_stand"
 local STORE = Config.DATASTORE_NAME
 local OUTBOX = "AdventureRewardIntents_v1"
+local TROPHY_OUTBOX = "TrophyPendingGrants_v1"
 local STAGES = { "excavation", "vault_open", "ball_return" }
 
 -- Codex shapes ------------------------------------------------------------------------------
@@ -187,8 +188,50 @@ local function outboxCount(userId)
 	local record = store and store["Pending_" .. userId]
 	return if record then count(record.Grants) else 0
 end
+local function trophyOutboxCount(userId)
+	local store = Mock.DataStores[TROPHY_OUTBOX]
+	local record = store and store["Pending_" .. userId]
+	return if record then count(record.Grants) else 0
+end
+local function trophyReceipts(data)
+	local n = 0
+	for k in data.RewardReceipts do
+		if string.sub(k, 1, 7) == "trophy:" then
+			n += 1
+		end
+	end
+	return n
+end
+-- Outcomes delivered to players in this server (Settlement.SetOutcomeSender).
+local outcomes = {}
+local function captureOutcomes()
+	Settlement.SetOutcomeSender(function(player, outcome)
+		table.insert(outcomes, { UserId = player.UserId, Outcome = deepCopy(outcome) })
+	end)
+end
+local function outcomesFor(userId, since)
+	local list = {}
+	for i = (since or 0) + 1, #outcomes do
+		if outcomes[i].UserId == userId then
+			table.insert(list, outcomes[i].Outcome)
+		end
+	end
+	return list
+end
+local function lastOutcome(userId)
+	local list = outcomesFor(userId)
+	return list[#list]
+end
+-- TrophyService.TrophyGranted fires once per newly granted trophy record.
+local trophyGrants = {}
+local function watchTrophyGrants()
+	TrophyService.TrophyGranted:Connect(function(player, trophyId)
+		trophyGrants[player.UserId] = (trophyGrants[player.UserId] or 0) + 1
+	end)
+end
+watchTrophyGrants()
 local function waitDone(report)
-	for _ = 1, 200 do
+	for _ = 1, 600 do
 		if report.Done then
 			break
 		end
@@ -372,12 +415,13 @@ step("full run totals the base reward; first clear grants everything together", 
 	check(a.Status == "Applied" and a.Coins == 42, "final pays the remaining 42")
 	check(d.Coins == 160, "total +60")
 	check(a.FirstClear == true, "first clear")
-	check(a.Trophy and a.Trophy.Status == "Granted" and a.Trophy.StandGranted == true, "trophy + stand")
 	check(a.Certification == "cert_crew" and d.Certifications.cert_crew ~= nil, "cert_crew")
 	check(a.QuestCredit == true and d.AdventureProgress.QuestCredit.q_mara.finish_event_vault ~= nil, "q_mara credit")
-	check(d.TrophyRecords[TROPHY] ~= nil and d.Cosmetics[STAND] ~= nil, "records written")
 	check(d.RewardReceipts[Rewards.FinalReceiptId("i:5", 7, 1)] ~= nil, "final receipt")
-	check(d.RewardReceipts[TrophyRules.ReceiptId("i:5", 7, 1)] ~= nil, "trophy receipt in the same mutation")
+	-- TrophyService owns trophy + stand: the adv rules must never grant them (no duplicate path)
+	check(a.Trophy == nil, "Apply reports no trophy part")
+	check(d.TrophyRecords[TROPHY] == nil and d.Cosmetics[STAND] == nil, "adv path writes no trophy or stand")
+	check(d.RewardReceipts[TrophyRules.ReceiptId("i:5", 7, 1)] == nil, "adv path writes no trophy: receipt")
 	check(d.AdventureProgress.Events.event_vault.Clears == 1, "one clear")
 	local dup = Rewards.Apply(d, final, NOW)
 	check(dup.Status == "Duplicate" and d.Coins == 160, "final replay is a duplicate")
@@ -405,7 +449,7 @@ step("repeat clear: base coins again, no second first-clear grant", function()
 	local a = Rewards.Apply(d, again, NOW)
 	check(a.Status == "Applied" and a.Coins == 60 and a.FirstClear == false, "repeat pays base, not first clear")
 	check(a.Certification == nil and a.QuestCredit == false, "no repeat cert/quest")
-	check(a.Trophy.Status == "AlreadyOwned" and a.Trophy.StandGranted == false, "trophy already owned")
+	check(a.Trophy == nil, "no trophy part on a repeat either")
 	check(deepEqual(cert, d.Certifications) and deepEqual(trophy, d.TrophyRecords), "permanent records unchanged")
 	check(d.AdventureProgress.Events.event_vault.Clears == 2, "two clears")
 end)
@@ -417,10 +461,65 @@ step("first-clear flags survive receipt pruning", function()
 	TrophyRules.PruneReceipts(d.RewardReceipts, NOW + Rewards.RECEIPT_TTL + 1)
 	check(count(d.RewardReceipts) == 0, "receipts pruned")
 	local a = Rewards.Apply(d, first, NOW + Rewards.RECEIPT_TTL + 2)
+	check(a.FirstClear == false and a.Certification == nil and a.QuestCredit == false, "no second first clear")
+end)
+step("first clear is decided from progress and cert, never from the trophy", function()
+	-- owns trophy + stand already (old trophy-only path), never cleared through the bridge
+	local d = freshSave()
+	TrophyRules.ApplyLandmarkGrant(d, {
+		TrophyId = TROPHY,
+		Source = "event_vault",
+		RegionId = "sunshine_shore",
+		ReceiptId = TrophyRules.ReceiptId("old:1", 12, 1),
+		At = NOW,
+	}, NOW)
+	local _, final = intentsFor("i:12", 12)
+	local a = Rewards.Apply(d, final, NOW)
 	check(
-		a.FirstClear == false and a.Certification == nil and a.Trophy.Status == "AlreadyOwned",
-		"no second first clear"
+		a.FirstClear == true and a.Certification == "cert_crew" and a.QuestCredit == true,
+		"cert despite owned trophy"
 	)
+	-- cert present (e.g. granted elsewhere), no clear yet: first clear counted, cert not re-granted
+	local d2 = freshSave()
+	d2.Certifications.cert_crew = { At = 1, Source = "elsewhere" }
+	local _, final2 = intentsFor("i:13", 12)
+	local b = Rewards.Apply(d2, final2, NOW)
+	check(b.FirstClear == true and b.Certification == nil, "first clear, cert kept as it was")
+	check(d2.Certifications.cert_crew.Source == "elsewhere", "existing cert untouched")
+end)
+step("Apply touches only its own keys (unrelated receipts, cosmetics, coins, possessions survive)", function()
+	local d = freshSave()
+	d.Coins = 777
+	d.OwnedShovels[Config.Shovels[2].Id] = true
+	d.Pets = { crab = { Id = "sandy_crab", Equipped = true } }
+	d.Cosmetics.hat_sunny = { Kind = "Hat" }
+	d.RewardReceipts["trophy:x:1:final:v1"] = NOW
+	d.RewardReceipts["quest:q_pip:1"] = NOW
+	d.RewardReceipts.legacy = 5
+	local before = deepCopy(d)
+	local s, final = intentsFor("i:14", 13)
+	for _, id in STAGES do
+		Rewards.Apply(d, s[id], NOW)
+	end
+	Rewards.Apply(d, final, NOW)
+	check(d.Coins == 777 + 60, "coins from elsewhere kept, +60 exactly")
+	local own = { Coins = true, RewardReceipts = true, Certifications = true, AdventureProgress = true }
+	for k, v in before do
+		if not own[k] then
+			check(deepEqual(v, d[k]), "untouched " .. k)
+		end
+	end
+	for k, v in before.RewardReceipts do
+		check(d.RewardReceipts[k] == v, "foreign receipt kept: " .. k)
+	end
+	local ours = 0
+	for k in d.RewardReceipts do
+		if before.RewardReceipts[k] == nil then
+			ours += 1
+			check(string.sub(k, 1, 4) == "adv:", "only adv: receipts added (" .. k .. ")")
+		end
+	end
+	check(ours == 4, "three stage receipts and one final receipt")
 end)
 step("migration: adds fields, keeps everything else, invents nothing, idempotent", function()
 	local d = Config.NewPlayerData()
@@ -479,6 +578,17 @@ step("stages then completion grant 60 coins, trophy, stand, cert and quest credi
 	check(DataService.Get(ann).Coins == coins0 + 60, "+60 coins live")
 	check(TrophyService.Owns(ann, TROPHY) == true and TrophyService.OwnsStand(ann) == true, "trophy service sees it")
 	check(Settlement.HasCertification(ann, "cert_crew") == true, "cert query")
+	check(report.Trophy and report.Trophy.ByUserId[5001].Status == "Granted", "trophy settled by TrophyService")
+	check(r.TrophyDurable == "Saved", "trophy part saved by the same write")
+	check(trophyGrants[5001] == 1, "exactly one trophy grant")
+	local live = DataService.Get(ann)
+	local trophyReceipt = TrophyRules.ReceiptId("srv:1", 5001, 1)
+	check(
+		live.TrophyRecords[TROPHY].ReceiptId == trophyReceipt and live.Cosmetics[STAND].ReceiptId == trophyReceipt,
+		"trophy + stand under the trophy: receipt"
+	)
+	check(trophyReceipts(live) == 1 and live.RewardReceipts[trophyReceipt] ~= nil, "one trophy: receipt")
+	check(trophyOutboxCount(5001) == 0, "nothing in the trophy outbox")
 	local saved = stored(5001)
 	check(
 		saved.Coins == coins0 + 60
@@ -507,6 +617,66 @@ step("drop-in runtime callbacks never yield", function()
 	leave(bo)
 end)
 
+section("per-player outcomes")
+captureOutcomes()
+step("solo outcomes: one per stage and one final, Accepted once saved", function()
+	local cy = join(5003, "Cy")
+	local notesBefore = #notes
+	local p = { obs(5003, 10, true, false, { "a" }) }
+	for _, id in STAGES do
+		settleStage(stage("srv:o1", id, p))
+	end
+	local final = settleFinal(completion("srv:o1", { cp(5003, 30, true, 120, { "a" }) }))
+	local list = outcomesFor(5003)
+	check(#list == 4, "four outcomes (" .. #list .. ")")
+	for i, id in STAGES do
+		local o = list[i]
+		check(
+			o
+				and o.Kind == "Stage"
+				and o.StageId == id
+				and o.InstanceId == "srv:o1"
+				and o.State == "Accepted"
+				and o.Status == "Saved"
+				and o.Coins == 6
+				and not o.Trophy,
+			"stage outcome " .. id
+		)
+	end
+	local o = list[4]
+	check(
+		o
+			and o.Kind == "Final"
+			and o.State == "Accepted"
+			and o.Status == "Saved"
+			and o.Coins == 42
+			and o.Trophy == true
+			and o.Stand == true
+			and o.Certification == "cert_crew"
+			and o.Reason == nil
+			and o.Resolved == nil,
+		"final outcome combines adv and trophy parts"
+	)
+	check(deepEqual(final.ByUserId[5003].Outcome, o), "the report carries the same outcome")
+	for _, item in list do
+		check(Mock.RemoteProblem(item, "AdventureOutcome") == nil, "outcome payload is remote-safe")
+	end
+	check(#notes == notesBefore, "no second reward text while the outcome sender is wired")
+	settleFinal(completion("srv:o1", { cp(5003, 30, true, 120, { "a" }) }))
+	local dup = lastOutcome(5003)
+	check(
+		dup.State == "Accepted"
+			and dup.Status == "Duplicate"
+			and dup.Coins == 0
+			and not dup.Trophy
+			and not dup.Stand
+			and dup.Certification == nil,
+		"replay outcome: already settled, nothing new"
+	)
+	check(trophyGrants[5003] == 1, "the replay did not grant the trophy again")
+	leave(cy)
+end)
+
 section("service: crew, late helper, disconnects")
 step("late helper gets only what they qualify for", function()
 	local cal, dee, eve, fay = join(5101, "Cal"), join(5102, "Dee"), join(5103, "Eve"), join(5104, "Fay")
@@ -533,6 +703,36 @@ step("late helper gets only what they qualify for", function()
 	check(report.ByUserId[5104].Reason == "EventIneligible", "disconnected at completion: no final")
 	check(DataService.Get(fay).Coins - base[5104] == 6, "disconnected keeps the stage grant earned before")
 	check(Settlement.HasCertification(fay, "cert_crew") == false, "no cert without the final")
+	local deeFinal = lastOutcome(5102)
+	check(
+		deeFinal.State == "Accepted" and deeFinal.Coins == 54 and deeFinal.Trophy and deeFinal.Stand,
+		"late helper told +54, trophy, stand"
+	)
+	local eveFinal = lastOutcome(5103)
+	check(
+		eveFinal.Kind == "Final"
+			and eveFinal.State == "Refused"
+			and eveFinal.Status == "Ineligible"
+			and type(eveFinal.Reason) == "string"
+			and eveFinal.Reason == report.ByUserId[5103].Reason
+			and eveFinal.Coins == 0
+			and not eveFinal.Trophy,
+		"watcher is told why there is no reward (" .. tostring(eveFinal.Reason) .. ")"
+	)
+	local eveStages = outcomesFor(5103)
+	check(
+		#eveStages == 3 and eveStages[1].Reason == "NoContribution" and eveStages[1].State == "Refused",
+		"watcher stage outcomes say no contribution"
+	)
+	local fayAll = outcomesFor(5104)
+	check(fayAll[1].State == "Accepted" and fayAll[1].Coins == 6, "Fay's first stage accepted")
+	check(fayAll[2].State == "Refused" and fayAll[2].Reason == "Disconnected", "Fay told she was disconnected")
+	check(
+		fayAll[#fayAll].Kind == "Final"
+			and fayAll[#fayAll].State == "Refused"
+			and fayAll[#fayAll].Reason == "EventIneligible",
+		"Fay's final refused with the runtime veto"
+	)
 	for _, pl in { cal, dee, eve, fay } do
 		leave(pl)
 	end
@@ -553,6 +753,59 @@ step("replays and retries are idempotent", function()
 	check(old.ByUserId[5201].Status == "Duplicate", "trophy path sees the same receipt")
 	leave(gus)
 end)
+step("trophy unavailable: adv part settles, outcome says no trophy, next clear repairs it", function()
+	local ivy = join(5203, "Ivy")
+	TrophyService.SetEnabled(false)
+	local r = settleFinal(completion("srv:t1", { cp(5203, 10, true, 60, { "a" }) }))
+	TrophyService.SetEnabled(true)
+	local o = lastOutcome(5203)
+	check(
+		r.ByUserId[5203].Status == "Saved" and r.ByUserId[5203].Certification == "cert_crew",
+		"cert_crew does not depend on the trophy grant"
+	)
+	check(
+		o.State == "Accepted" and o.Coins == 60 and not o.Trophy and not o.Stand and o.Reason == "TrophyUnavailable",
+		"outcome says no trophy"
+	)
+	check(TrophyService.Owns(ivy, TROPHY) == false, "no trophy")
+	local r2 = settleFinal(completion("srv:t2", { cp(5203, 10, true, 60, { "a" }) }))
+	local o2 = lastOutcome(5203)
+	check(
+		r2.ByUserId[5203].FirstClear == false and r2.ByUserId[5203].Certification == nil,
+		"second clear: no second first clear or cert"
+	)
+	check(
+		o2.Trophy and o2.Stand and o2.Coins == 60 and o2.Certification == nil,
+		"trophy + stand repaired on the next clear"
+	)
+	check(trophyGrants[5203] == 1 and TrophyService.Owns(ivy, TROPHY) == true, "granted once")
+	leave(ivy)
+end)
+step("a pending trophy part keeps the whole outcome pending", function()
+	-- first run settled without the trophy; its replay grants only the trophy while saves fail
+	local vic = join(5204, "Vic")
+	local c = completion("srv:t3", { cp(5204, 10, true, 60, { "a" }) })
+	TrophyService.SetEnabled(false)
+	settleFinal(c)
+	TrophyService.SetEnabled(true)
+	Settlement.RetryDelays = { 0.5, 0.5, 0.5 }
+	Mock.DataStoreFail = true
+	local r = settleFinal(c)
+	local o = lastOutcome(5204)
+	check(
+		r.ByUserId[5204].Status == "Duplicate" and r.ByUserId[5204].TrophyDurable == "Unconfirmed",
+		"adv dup, trophy unsaved"
+	)
+	check(
+		o.State == "Pending" and o.Status == "Unconfirmed" and o.Trophy,
+		"outcome is only as good as its weakest part"
+	)
+	Mock.DataStoreFail = false
+	Mock.Advance(3)
+	local resolved = lastOutcome(5204)
+	check(resolved.Resolved and resolved.State == "Accepted" and resolved.Trophy, "resolves once saved")
+	leave(vic)
+end)
 step("feature flag refuses new settlements only", function()
 	local hal = join(5202, "Hal")
 	Settlement.SetEnabled(false)
@@ -563,6 +816,7 @@ step("feature flag refuses new settlements only", function()
 end)
 
 section("durability")
+Settlement.RetryDelays = { 0.5, 0.5, 0.5 }
 step("save outage: outbox holds the grant, next load on another path dedupes", function()
 	local ida = join(5301, "Ida")
 	failStore(STORE)
@@ -570,12 +824,22 @@ step("save outage: outbox holds the grant, next load on another path dedupes", f
 	failStore(nil)
 	check(report.ByUserId[5301].Status == "Queued", "queued in the outbox when the save write fails")
 	check(outboxCount(5301) == 1, "intent stored")
+	check(
+		report.ByUserId[5301].TrophyDurable == "Queued" and trophyOutboxCount(5301) == 1,
+		"trophy grant queued in the trophy outbox"
+	)
+	local o = lastOutcome(5301)
+	check(o.State == "Accepted" and o.Status == "Queued" and o.Trophy and o.Coins == 60, "queued counts as accepted")
 	leave(ida)
 	check(stored(5301).Certifications.cert_crew ~= nil, "leave save carried it")
+	local since = #outcomes
 	ida = join(5301, "Ida")
 	Mock.Advance(1)
 	check(outboxCount(5301) == 0, "re-applied as a duplicate and acknowledged")
+	check(trophyOutboxCount(5301) == 0, "trophy intent re-applied as a duplicate and acknowledged")
 	check(DataService.Get(ida).AdventureProgress.Events.event_vault.Clears == 1, "not applied twice")
+	check(trophyGrants[5301] == 1 and trophyReceipts(DataService.Get(ida)) == 1, "trophy not granted twice")
+	check(#outcomesFor(5301, since) == 0, "duplicates produce no new outcome")
 	leave(ida)
 end)
 step("both stores down: Unconfirmed, and the leave save still carries it", function()
@@ -583,19 +847,67 @@ step("both stores down: Unconfirmed, and the leave save still carries it", funct
 	Mock.DataStoreFail = true
 	local report = settleFinal(completion("srv:7", { cp(5302, 10, true, 60, { "a" }) }))
 	check(report.ByUserId[5302].Status == "Unconfirmed", "honestly unconfirmed")
+	local o = lastOutcome(5302)
+	check(o.State == "Pending" and o.Status == "Unconfirmed", "unconfirmed is never shown as accepted")
 	Mock.DataStoreFail = false
 	leave(jay)
 	check(stored(5302) and stored(5302).TrophyRecords[TROPHY] ~= nil, "written by the leave save")
 end)
+step("unconfirmed is retried while they stay, then resolves to accepted", function()
+	local kim = join(5307, "Kim")
+	Mock.DataStoreFail = true
+	settleFinal(completion("srv:7b", { cp(5307, 10, true, 60, { "a" }) }))
+	local first = lastOutcome(5307)
+	check(first.State == "Pending" and first.Status == "Unconfirmed", "pending first")
+	Mock.DataStoreFail = false
+	Mock.Advance(3)
+	local list = outcomesFor(5307)
+	local resolved = list[#list]
+	check(#list == 2, "exactly one follow-up outcome (" .. #list .. ")")
+	check(
+		resolved.Resolved == true
+			and resolved.State == "Accepted"
+			and resolved.Status == "Saved"
+			and resolved.Coins == 60
+			and resolved.Trophy
+			and resolved.Certification == "cert_crew",
+		"resolved outcome once the retry saved"
+	)
+	check(stored(5307).TrophyRecords[TROPHY] ~= nil and stored(5307).Certifications.cert_crew ~= nil, "durable now")
+	leave(kim)
+end)
 step("eligible but not loaded here: durable outbox, applied on next load", function()
 	local report = settleFinal(completion("srv:8", { cp(5303, 10, true, 60, { "a" }) }))
 	check(report.ByUserId[5303].Status == "PendingRejoin" and outboxCount(5303) == 1, "pending rejoin")
+	check(
+		report.ByUserId[5303].TrophyDurable == "PendingRejoin" and trophyOutboxCount(5303) == 1,
+		"trophy intent in its own outbox"
+	)
+	local o = report.ByUserId[5303].Outcome
+	check(
+		o.State == "Pending" and o.Status == "PendingRejoin" and o.Coins == 0,
+		"pending rejoin is not shown as accepted"
+	)
+	check(#outcomesFor(5303) == 0, "nobody to tell on this server")
 	failStore(OUTBOX)
 	local r2 = settleFinal(completion("srv:9", { cp(5304, 10, true, 60, { "a" }) }))
 	failStore(nil)
 	check(
 		r2.ByUserId[5304].Status == "Refused" and r2.ByUserId[5304].Reason == "PendingWriteFailed",
 		"write failure reported"
+	)
+	check(
+		r2.ByUserId[5304].Outcome.State == "Refused" and r2.ByUserId[5304].Outcome.Reason == "PendingWriteFailed",
+		"refused outcome with the reason"
+	)
+	failStore(TROPHY_OUTBOX)
+	local r3 = settleFinal(completion("srv:9b", { cp(5308, 10, true, 60, { "a" }) }))
+	failStore(nil)
+	check(
+		r3.ByUserId[5308].Status == "PendingRejoin"
+			and r3.ByUserId[5308].Outcome.State == "Pending"
+			and r3.ByUserId[5308].Outcome.Reason == "TrophyPendingWriteFailed",
+		"a trophy-only write failure is reported, not hidden"
 	)
 	local retry = settleFinal(completion("srv:9", { cp(5304, 10, true, 60, { "a" }) }))
 	check(retry.ByUserId[5304].Status == "PendingRejoin", "retry succeeds")
@@ -622,6 +934,36 @@ step("shutdown right after completion keeps the grant", function()
 	check(saved and saved.Certifications.cert_crew ~= nil, "cert too")
 	check(Settlement.InFlight() == 0, "no writes left in flight")
 end)
+step("shutdown mid-flight: BindToClose waits until both outbox writes land", function()
+	-- slow outbox stores: each write takes 3 s
+	Mock.BeforeDataStoreUpdate = function(storeName)
+		if storeName == OUTBOX or storeName == TROPHY_OUTBOX then
+			Mock.Env.task.wait(3)
+		end
+	end
+	local report = noYield(Settlement.SettleCompletion, completion("srv:14", { cp(5501, 10, true, 60, { "a" }) }))
+	check(report.ByUserId[5501].Status == "Refused" and not report.Done, "in flight: provisional, not done")
+	check(Settlement.InFlight() > 0, "writes in flight")
+	local total, finished = #Mock.BindToClose, 0
+	for _, fn in Mock.BindToClose do
+		Mock.Env.task.spawn(function()
+			fn()
+			finished += 1
+		end)
+	end
+	Mock.Advance(2)
+	check(finished < total, "BindToClose is still holding the server open")
+	for _ = 1, 100 do
+		if finished == total then
+			break
+		end
+		Mock.Advance(0.25)
+	end
+	Mock.BeforeDataStoreUpdate = nil
+	check(finished == total and report.Done and Settlement.InFlight() == 0, "close finished after the writes")
+	check(report.ByUserId[5501].Status == "PendingRejoin", "pending rejoin once durable")
+	check(outboxCount(5501) == 1 and trophyOutboxCount(5501) == 1, "both intents durable before shutdown")
+end)
 check(#Mock.Errors == 0, "server A: no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))
@@ -641,6 +983,8 @@ step("saved grants survive the old server and rejoin elsewhere", function()
 	-- silently (no PlayerRemoving, so nothing on A gets to save).
 	mia.Parent = nil
 	loadServer()
+	captureOutcomes()
+	watchTrophyGrants()
 	-- The dead server's session lock is still in the record; mimic its expiry.
 	Mock.DataStores[STORE]["Player_5401"].Lock = nil
 	mia = join(5401, "Mia")
@@ -661,7 +1005,42 @@ step("pending intents from server A are applied on server B", function()
 		"applied on B"
 	)
 	check(outboxCount(5303) == 0 and stored(5303).Certifications.cert_crew ~= nil, "saved and acknowledged on B")
+	check(trophyOutboxCount(5303) == 0 and stored(5303).TrophyRecords[TROPHY] ~= nil, "trophy intent too")
+	local list = outcomesFor(5303)
+	check(#list == 1, "one resolved outcome on B (" .. #list .. ")")
+	local o = list[1]
+	check(
+		o
+			and o.Resolved == true
+			and o.State == "Accepted"
+			and o.Kind == "Final"
+			and o.InstanceId == "srv:8"
+			and o.Coins == 60
+			and o.Trophy
+			and o.Stand
+			and o.Certification == "cert_crew",
+		"rejoin outcome tells them what the drain granted"
+	)
 	leave(ned)
+end)
+step("intents queued during shutdown apply exactly once on B", function()
+	Mock.DataStores[STORE]["Player_5501"] = nil
+	local start = Config.NewPlayerData().Coins
+	local pia = join(5501, "Pia")
+	Mock.Advance(1)
+	check(DataService.Get(pia).Coins == start + 60, "+60 once")
+	check(TrophyService.Owns(pia, TROPHY) == true and TrophyService.OwnsStand(pia) == true, "trophy + stand")
+	check(trophyGrants[5501] == 1, "one trophy grant")
+	check(outboxCount(5501) == 0 and trophyOutboxCount(5501) == 0, "both acknowledged after the save")
+	check(stored(5501).Coins == start + 60 and stored(5501).TrophyRecords[TROPHY] ~= nil, "save written before ack")
+	check(#outcomesFor(5501) == 1 and lastOutcome(5501).InstanceId == "srv:14", "told once")
+	leave(pia)
+	pia = join(5501, "Pia")
+	Mock.Advance(1)
+	check(DataService.Get(pia).Coins == start + 60, "rejoin pays nothing more")
+	check(DataService.Get(pia).AdventureProgress.Events.event_vault.Clears == 1, "one clear")
+	check(#outcomesFor(5501) == 1, "no second outcome")
+	leave(pia)
 end)
 step("crash between save and acknowledgement re-applies once", function()
 	local _, final = intentsFor("srv:13", 5402)
@@ -669,7 +1048,16 @@ step("crash between save and acknowledgement re-applies once", function()
 	local d = Config.NewPlayerData()
 	TrophyRules.Migrate(d, NOW)
 	Rewards.Migrate(d, NOW)
-	Rewards.Apply(d, final, NOW) -- the save was written, the ack never happened
+	local grant = {
+		TrophyId = TROPHY,
+		Source = "event_vault",
+		RegionId = "sunshine_shore",
+		ReceiptId = TrophyRules.ReceiptId("srv:13", 5402, 1),
+		At = NOW,
+	}
+	check(inThread(TrophyService.QueueGrant, 5402, grant) == true, "trophy intent queued")
+	Rewards.Apply(d, final, NOW) -- the save was written, the acks never happened
+	TrophyRules.ApplyLandmarkGrant(d, grant, NOW)
 	Mock.DataStores[STORE]["Player_5402"] = { Data = d, SavedAt = NOW }
 	local coins = d.Coins
 	local ola = join(5402, "Ola")
@@ -677,7 +1065,47 @@ step("crash between save and acknowledgement re-applies once", function()
 	check(DataService.Get(ola).Coins == coins, "not paid twice")
 	check(DataService.Get(ola).AdventureProgress.Events.event_vault.Clears == 1, "one clear")
 	check(outboxCount(5402) == 0, "acknowledged now")
+	check(trophyOutboxCount(5402) == 0, "trophy intent acknowledged now")
+	check(trophyGrants[5402] == nil and trophyReceipts(DataService.Get(ola)) == 1, "trophy not granted again")
+	check(#outcomesFor(5402) == 0, "duplicates produce no outcome")
 	leave(ola)
+end)
+step("a drain whose save fails acknowledges nothing; the next load does", function()
+	local _, final = intentsFor("srv:15", 5403)
+	queue(5403, final)
+	local grant = {
+		TrophyId = TROPHY,
+		Source = "event_vault",
+		RegionId = "sunshine_shore",
+		ReceiptId = TrophyRules.ReceiptId("srv:15", 5403, 1),
+		At = NOW,
+	}
+	inThread(TrophyService.QueueGrant, 5403, grant)
+	Mock.DataStores[STORE]["Player_5403"] = nil
+	-- the load works; the drain's outbox reads are slowed so the save outage can start first
+	local blockSave = false
+	Mock.BeforeDataStoreUpdate = function(storeName, key)
+		if (storeName == OUTBOX or storeName == TROPHY_OUTBOX) and key == "Pending_5403" and not blockSave then
+			Mock.Env.task.wait(2)
+		elseif storeName == STORE and key == "Player_5403" and blockSave then
+			error("502: mock save outage")
+		end
+	end
+	local start = Config.NewPlayerData().Coins
+	local una = join(5403, "Una")
+	blockSave = true
+	Mock.Advance(60)
+	check(DataService.Get(una).Coins == start + 60, "applied live")
+	check(outboxCount(5403) == 1 and trophyOutboxCount(5403) == 1, "nothing acknowledged without a save")
+	check(#outcomesFor(5403) == 0, "not told it is saved while it is not")
+	Mock.BeforeDataStoreUpdate = nil
+	leave(una)
+	una = join(5403, "Una")
+	Mock.Advance(1)
+	check(DataService.Get(una).Coins == start + 60, "the leave save carried it; not paid twice")
+	check(trophyReceipts(DataService.Get(una)) == 1, "one trophy receipt")
+	check(outboxCount(5403) == 0 and trophyOutboxCount(5403) == 0, "acknowledged on the next load")
+	leave(una)
 end)
 check(#Mock.Errors == 0, "server B: no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do

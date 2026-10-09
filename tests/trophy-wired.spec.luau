@@ -146,14 +146,44 @@ check(accepted == true, "bridge accepted the completion through Main's boot")
 check(DataService.Get(crew).Coins == coins0 + 60, "+60 coins")
 check(TrophyService.Owns(crew, TROPHY) == true and TrophyService.OwnsStand(crew) == true, "trophy + stand")
 check(Settlement.HasCertification(crew, "cert_crew") == true, "cert_crew")
-local notified = 0
+local notified, outcomes = 0, {}
 for i = since + 1, #Mock.Remote.ToClient do
 	local e = Mock.Remote.ToClient[i]
 	if e.Player == crew and e.Name == "Notify" and e.Args[1] == "Reward" then
 		notified += 1
+	elseif e.Player == crew and e.Name == "AdventureOutcome" then
+		table.insert(outcomes, e.Args[1])
 	end
 end
-check(notified == 2, "stage and final reward notifications reach the client (" .. notified .. ")")
+if table.find(Remotes.Events, "AdventureOutcome") then
+	-- docs/integration/settlement-outcomes.patch applied: one outcome per stage/final, no text
+	check(#outcomes == 2, "stage and final outcomes reach the client (" .. #outcomes .. ")")
+	check(notified == 0, "no duplicate reward text while outcomes are wired (" .. notified .. ")")
+	local stageOutcome, final = outcomes[1], outcomes[2]
+	check(
+		stageOutcome
+			and stageOutcome.Kind == "Stage"
+			and stageOutcome.StageId == "excavation"
+			and stageOutcome.State == "Accepted"
+			and stageOutcome.Coins == 6,
+		"stage outcome accepted"
+	)
+	check(
+		final
+			and final.Kind == "Final"
+			and final.State == "Accepted"
+			and final.Status == "Saved"
+			and final.Coins == 54
+			and final.Trophy == true
+			and final.Stand == true
+			and final.Certification == "cert_crew"
+			and final.InstanceId == "wired-guid:2",
+		"final outcome: +54, trophy, stand, cert"
+	)
+	check(#Mock.Remote.Problems == 0, "outcome payloads are remote-safe")
+else
+	check(notified == 2, "stage and final reward notifications reach the client (" .. notified .. ")")
+end
 local crewSaved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
 check(crewSaved.Certifications.cert_crew ~= nil and crewSaved.TrophyRecords[TROPHY] ~= nil, "saved immediately")
 

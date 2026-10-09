@@ -12,9 +12,11 @@
 	Reward ids are EventInstanceId + UserId + Stage/Final + RewardVersion.
 
 	The first eligible completion also grants, in the SAME save mutation as the coins and the
-	receipt: the landmark trophy and Mara's camp_trophy_stand (Trophies.Rules.ApplyLandmarkGrant,
-	under its own "trophy:" receipt), the event's certification and its story-quest credit.
-	Those are permanent flags, so pruning a receipt can never re-grant them.
+	receipt, the event's certification and its story-quest credit. First clear is decided from
+	AdventureProgress (FirstClearAt) and certification presence only; both are permanent flags,
+	so pruning a receipt can never re-grant them. The landmark trophy and Mara's stand are NOT
+	granted here: TrophyService settles them from the same completion context under its own
+	"trophy:" receipt and outbox (AdventureSettlement runs both in the same frame).
 
 	Persisted fields (top-level PlayerData keys named by bible ch.04 "Persistence"):
 		Certifications    { [certId] = { At, Source, ReceiptId } }
@@ -68,7 +70,6 @@ export type Applied = {
 	FirstClear: boolean,
 	Certification: string?, -- newly granted certification
 	QuestCredit: boolean,
-	Trophy: { Status: string, Reason: string?, Record: { [string]: any }?, StandGranted: boolean }?,
 }
 
 local Rewards = {}
@@ -415,9 +416,9 @@ end
 	Rewards.Migrate. Pure and synchronous; the caller runs it inside one save mutation.
 	Stage: +stage coins, unless the run's final grant was already settled (then 0: the final
 	already paid the full total). Final: +(base - stage coins already received for this run,
-	never below 0), a clear, and on the first eligible completion the trophy, stand,
-	certification and quest credit together. Missing first-clear entitlements are repaired on
-	later completions (the trophy grant also adds a missing stand).
+	never below 0), a clear, and on the first eligible completion the certification and quest
+	credit together. A missing certification or quest credit is repaired on a later completion.
+	Touches only Coins, RewardReceipts ("adv:" keys), Certifications and AdventureProgress.
 ]]
 function Rewards.Apply(data: { [string]: any }, intent: Intent, now: number): Applied
 	local receipts = data.RewardReceipts :: { [string]: any }
@@ -465,16 +466,6 @@ function Rewards.Apply(data: { [string]: any }, intent: Intent, now: number): Ap
 			quest[def.QuestObjective] = { At = intent.At, ReceiptId = receiptId }
 			applied.QuestCredit = true
 		end
-
-		local trophy = TrophyCatalog.Get(def.LandmarkId) :: TrophyCatalog.TrophyDef
-		local status, reason, newRecord, stand = TrophyRules.ApplyLandmarkGrant(data, {
-			TrophyId = trophy.Id,
-			Source = intent.EventId,
-			RegionId = trophy.RegionId,
-			ReceiptId = TrophyRules.ReceiptId(intent.InstanceId, intent.UserId, intent.RewardVersion),
-			At = intent.At,
-		}, now)
-		applied.Trophy = { Status = status, Reason = reason, Record = newRecord :: any, StandGranted = stand }
 	end
 	if applied.Coins > 0 then
 		data.Coins = (if type(data.Coins) == "number" then data.Coins else 0) + applied.Coins

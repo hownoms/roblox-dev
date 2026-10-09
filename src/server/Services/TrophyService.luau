@@ -26,7 +26,9 @@
 
 	Eligible players whose data is not loaded on this server are written to the durable outbox
 	(TrophyPendingStore) BEFORE "PendingRejoin" is reported, and applied on their next load on
-	any server. Settlement yields only for those outbox writes.
+	any server. Settlement yields only for those outbox writes. PrepareCompletionContext is the
+	non-yielding form (the caller runs the outbox writes in its own threads); the adventure
+	bridge (AdventureSettlement) settles trophy + stand through it, never by itself.
 
 	Ownership queries: Owns, OwnsStand, GetTrophies, GetCampLayout, GetTrophySlots.
 	Camp: PlaceTrophy(player, request), RemovePlacement(player, placementId). Production display
@@ -62,6 +64,9 @@ export type PlayerResult = {
 	Status: GrantStatus,
 	Reason: string?,
 	StandGranted: boolean?, -- true when this settlement added Mara's trophy stand
+	-- set when this settlement changed a live save here (trophy and/or stand); a caller that
+	-- writes the save itself passes it to QueueGrant if that write fails
+	Grant: Grant?,
 }
 
 export type SettlementReport = {
@@ -74,12 +79,19 @@ export type SettlementReport = {
 	ByUserId: { [number]: PlayerResult },
 }
 
-type Grant = {
+export type Grant = {
 	TrophyId: string,
 	Source: string,
 	RegionId: string,
 	ReceiptId: string,
 	At: number,
+}
+
+export type DrainedGrant = {
+	ReceiptId: string,
+	TrophyId: string,
+	Status: GrantStatus, -- Granted / AlreadyOwned / Duplicate
+	StandGranted: boolean,
 }
 
 local TrophyService = {}
@@ -162,8 +174,12 @@ end
 
 -- Grants --------------------------------------------------------------------------------------
 
--- Applies one grant (trophy + stand) to a loaded player's save. Synchronous; never yields.
-local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?, boolean)
+--[[
+	Applies one grant (trophy + stand) to a loaded player's save. Synchronous; never yields.
+	requestSave = false when the caller writes the save itself (DrainPending, or a caller that
+	passed CallerSaves).
+]]
+local function applyGrant(player: Player, grant: Grant, requestSave: boolean?): (GrantStatus, string?, boolean)
 	local status: GrantStatus = "Refused"
 	local reason: string? = nil
 	local record: { [string]: any }? = nil
@@ -175,7 +191,7 @@ local function applyGrant(player: Player, grant: Grant): (GrantStatus, string?, 
 	if not ok then
 		return "Refused", "NotLoaded", false
 	end
-	if record or standGranted then
+	if (record or standGranted) and requestSave ~= false then
 		TrophyData.RequestSave(player)
 	end
 	TrophyService.AfterGrantApplied(player, grant.TrophyId, record, standGranted)
@@ -185,7 +201,7 @@ end
 --[[
 	Display refresh + TrophyGranted signal after a grant was applied to the live save, either
 	here or by another server-side settlement that ran Rules.ApplyLandmarkGrant inside its own
-	save mutation (AdventureSettlement grants trophy, stand and progression together).
+	save mutation.
 ]]
 function TrophyService.AfterGrantApplied(
 	player: Player,
@@ -201,35 +217,89 @@ function TrophyService.AfterGrantApplied(
 	end
 end
 
--- Applies the player's durable pending grants, saves, then acknowledges them. Yields.
-local function drainPending(player: Player)
+--[[
+	Applies the player's durable pending grants, saves, then acknowledges them. Yields.
+	Returns what was applied and acknowledged (Duplicate entries included), or nil when nothing
+	was acknowledged: a drain already running for this user here, the store unavailable or
+	unreadable, nothing pending, not loaded, or the save failed (then everything stays queued
+	and the next load re-applies it as a Duplicate).
+]]
+function TrophyService.DrainPending(player: Player): { DrainedGrant }?
 	local userId = player.UserId
 	if draining[userId] or not Pending.IsAvailable() then
-		return
+		return nil
 	end
 	draining[userId] = true
+	local result: { DrainedGrant }? = nil
 	local grants = Pending.Read(userId)
 	if grants and next(grants) ~= nil and TrophyData.Get(player) ~= nil then
-		local applied: { string } = {}
+		local applied: { DrainedGrant } = {}
+		local ids: { string } = {}
 		for receiptId, g in grants do
-			local status = applyGrant(player, {
+			local status, _, stand = applyGrant(player, {
 				TrophyId = g.TrophyId,
 				Source = g.Source,
 				RegionId = g.RegionId,
 				ReceiptId = receiptId,
 				At = g.At,
-			})
+			}, false)
 			if status ~= "Refused" then
-				table.insert(applied, receiptId)
+				table.insert(ids, receiptId)
+				local drained: DrainedGrant = {
+					ReceiptId = receiptId,
+					TrophyId = g.TrophyId,
+					Status = status :: GrantStatus,
+					StandGranted = stand,
+				}
+				table.insert(applied, drained)
 			end
 		end
 		-- Acknowledge only once the save holding them is written; otherwise the next load
 		-- re-applies them as Duplicates and acknowledges then.
-		if #applied > 0 and DataService.SaveAsync(player) then
-			Pending.Ack(userId, applied)
+		if #ids > 0 and DataService.SaveAsync(player) then
+			Pending.Ack(userId, ids)
+			result = applied
 		end
 	end
 	draining[userId] = nil
+	return result
+end
+
+local drainHandler: ((Player, string) -> ())? = nil
+
+-- Starts the automatic drain for a loaded player (in its own thread). why: "Load" (the save
+-- just loaded here) or "Queued" (a pending grant just landed for a player loaded here).
+local function startDrain(player: Player, why: string)
+	if drainHandler then
+		task.spawn(drainHandler :: (Player, string) -> (), player, why)
+	else
+		task.spawn(TrophyService.DrainPending, player)
+	end
+end
+
+--[[
+	Hands every automatic drain to fn(player, why) instead, why = "Load" (on load) or "Queued"
+	(an offline grant just landed for a player who loaded meanwhile). AdventureSettlement sets
+	this so one drain covers both outboxes and reports one combined outcome; fn must make sure
+	DrainPending runs. nil restores the default.
+]]
+function TrophyService.SetDrainHandler(fn: ((Player, string) -> ())?)
+	drainHandler = fn
+end
+
+--[[
+	Durably queues a grant that a settlement applied to a live save whose save write then
+	failed (PlayerResult.Grant). The player's next load on any server re-applies it (a Duplicate
+	if the live save reached the store after all) and acknowledges it. Yields.
+	Returns (true) or (false, "PendingFull" | "PendingWriteFailed").
+]]
+function TrophyService.QueueGrant(userId: number, grant: Grant): (boolean, string?)
+	return Pending.Add(userId, grant.ReceiptId, {
+		TrophyId = grant.TrophyId,
+		Source = grant.Source,
+		RegionId = grant.RegionId,
+		At = grant.At,
+	})
 end
 
 local function fail(err: string, result: any?): SettlementReport
@@ -245,55 +315,65 @@ local function fail(err: string, result: any?): SettlementReport
 	}
 end
 
+export type SettleOptions = {
+	-- The caller writes the player's save right after this call (and calls QueueGrant if that
+	-- write fails), so applied grants do not request their own immediate save.
+	CallerSaves: boolean?,
+}
+
+-- Outbox writes owed by a settlement, by user id. Each one yields; run it in its own thread.
+export type OutboxWrites = { [number]: () -> () }
+
 --[[
-	Settles the permanent trophy (and Mara's stand) for a validated, completed adventure.
-	Server-only; call after the event has frozen scoring and snapshotted contributions. Safe to
-	call again with the same arguments (retry): already-applied grants report "Duplicate".
-	Loaded players are settled synchronously first; it then yields only to durably queue
-	eligible players whose data is not loaded here.
+	Validates and settles synchronously: loaded eligible players get the grant in their live
+	save now. Never yields. Eligible players not loaded here are reported Refused /
+	PendingWriteFailed (provisional) and get an entry in the returned writes; running it writes
+	the durable outbox intent and only then flips the entry to PendingRejoin.
 ]]
-function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
+local function prepare(result: any, options: SettleOptions?): (SettlementReport, OutboxWrites)
+	local writes: OutboxWrites = {}
 	if not enabled then
-		return fail("Disabled", result)
+		return fail("Disabled", result), writes
 	end
 	if type(result) ~= "table" then
-		return fail("Malformed", result)
+		return fail("Malformed", result), writes
 	end
 	local eventId = result.EventId
 	if type(eventId) ~= "string" or Catalog.EventLandmarks[eventId] == nil then
-		return fail("UnknownEvent", result)
+		return fail("UnknownEvent", result), writes
 	end
 	local landmarkId = result.LandmarkId
 	local def = Catalog.Get(landmarkId)
 	if Catalog.EventLandmarks[eventId] ~= landmarkId or not def or not def.Sources[eventId] then
-		return fail("LandmarkMismatch", result)
+		return fail("LandmarkMismatch", result), writes
 	end
 	local trophyDef = def :: Catalog.TrophyDef
 	local instanceId = result.InstanceId
 	if type(instanceId) ~= "string" or #instanceId == 0 or #instanceId > Rules.MAX_INSTANCE_ID_LENGTH then
-		return fail("BadInstanceId", result)
+		return fail("BadInstanceId", result), writes
 	end
 	if result.Outcome ~= "Completed" then
 		-- failure / abandon keeps stage grants (event owner) and grants no completion trophy
-		return fail("NotCompleted", result)
+		return fail("NotCompleted", result), writes
 	end
 	local rewardVersion = if result.RewardVersion == nil then 1 else result.RewardVersion
 	if type(rewardVersion) ~= "number" or rewardVersion % 1 ~= 0 or rewardVersion < 1 or rewardVersion > 1000 then
-		return fail("BadRewardVersion", result)
+		return fail("BadRewardVersion", result), writes
 	end
 	local participants = result.Participants
 	if type(participants) ~= "table" or #participants < 1 or #participants > Rules.MAX_PARTICIPANTS then
-		return fail("BadParticipants", result)
+		return fail("BadParticipants", result), writes
 	end
 	local seen: { [number]: boolean } = {}
 	for i = 1, #participants do
 		local p = participants[i]
 		if not Rules.IsParticipant(p) or seen[p.UserId] then
-			return fail("BadParticipants", result)
+			return fail("BadParticipants", result), writes
 		end
 		seen[p.UserId] = true
 	end
 
+	local callerSaves = options ~= nil and options.CallerSaves == true
 	local report: SettlementReport = {
 		Ok = true,
 		EventId = eventId,
@@ -303,7 +383,6 @@ function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
 		ByUserId = {},
 	}
 	local now = os.time()
-	local offline: { { Entry: PlayerResult, Grant: Grant } } = {}
 	for i = 1, #participants do
 		local p = participants[i] :: Rules.Participant
 		local entry: PlayerResult
@@ -320,60 +399,70 @@ function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
 			}
 			local player = Players:GetPlayerByUserId(p.UserId)
 			if player and TrophyData.Get(player) ~= nil then
-				local status: GrantStatus, reason: string?, stand: boolean = applyGrant(player, grant)
+				local status: GrantStatus, reason: string?, stand: boolean = applyGrant(player, grant, not callerSaves)
 				entry = { UserId = p.UserId, Status = status, Reason = reason, StandGranted = stand }
+				if status == "Granted" or stand then
+					entry.Grant = grant -- the live save changed; QueueGrant makes it durable on a failed save
+				end
 			else
-				-- provisional until the durable write below succeeds
+				-- provisional until the durable write succeeds
 				entry = { UserId = p.UserId, Status = "Refused", Reason = "PendingWriteFailed" }
-				table.insert(offline, { Entry = entry, Grant = grant })
+				local offlineEntry = entry
+				writes[p.UserId] = function()
+					local ok, reason = TrophyService.QueueGrant(offlineEntry.UserId, grant)
+					if ok then
+						offlineEntry.Status, offlineEntry.Reason = "PendingRejoin", nil
+						-- they may have finished loading here while the write was in flight
+						local loaded = Players:GetPlayerByUserId(offlineEntry.UserId)
+						if loaded and TrophyData.Get(loaded) ~= nil then
+							startDrain(loaded, "Queued")
+						end
+					else
+						offlineEntry.Reason = reason
+					end
+				end
 			end
 		end
 		table.insert(report.Results, entry)
 		report.ByUserId[p.UserId] = entry
 	end
-	-- Durable outbox writes (these yield) happen after every loaded player is settled.
-	for _, item in offline do
-		local entry, grant = item.Entry, item.Grant
-		local ok, reason = Pending.Add(entry.UserId, grant.ReceiptId, {
-			TrophyId = grant.TrophyId,
-			Source = grant.Source,
-			RegionId = grant.RegionId,
-			At = grant.At,
-		})
-		if ok then
-			entry.Status, entry.Reason = "PendingRejoin", nil
-			-- they may have finished loading here while the write was in flight
-			local player = Players:GetPlayerByUserId(entry.UserId)
-			if player and TrophyData.Get(player) ~= nil then
-				task.spawn(drainPending, player)
-			end
-		else
-			entry.Reason = reason
+	return report, writes
+end
+
+-- Runs a settlement's outbox writes inline, in participant order (yields).
+local function runWrites(report: SettlementReport, writes: OutboxWrites)
+	for _, entry in report.Results do
+		local write = writes[entry.UserId]
+		if write then
+			write()
 		end
 	end
-	return report
 end
 
 --[[
-	Maps the adventure runtime's CompletionContext (codex/spring-vault-adventure,
-	SpringVaultState.completionContext) onto SettleAdventureCompletion:
-		EventInstanceId -> InstanceId, Success -> Outcome, and per participant
-		ObjectiveIds (objectives they were present for) -> PresentForObjective,
-		ObjectiveCompletions = #ObjectiveIds when they earned points (a solo player who earned
-		points did the work), else 0.
-	The context's own Eligible flag must ALSO be true (both rules must agree; it additionally
-	requires being connected and present at completion, so disconnected players are never
-	granted the final trophy). Anything unexpected is rejected by the normal validation.
+	Settles the permanent trophy (and Mara's stand) for a validated, completed adventure.
+	Server-only; call after the event has frozen scoring and snapshotted contributions. Safe to
+	call again with the same arguments (retry): already-applied grants report "Duplicate".
+	Loaded players are settled synchronously first; it then yields only to durably queue
+	eligible players whose data is not loaded here.
 ]]
-function TrophyService.SettleCompletionContext(context: any): SettlementReport
+function TrophyService.SettleAdventureCompletion(result: any): SettlementReport
+	local report, writes = prepare(result, nil)
+	runWrites(report, writes)
+	return report
+end
+
+-- Maps the runtime's CompletionContext onto a SettleAdventureCompletion request. Returns
+-- (request, vetoed) or (nil, error).
+local function fromContext(context: any): (any, any)
 	if type(context) ~= "table" or type(context.Participants) ~= "table" then
-		return fail("Malformed", context)
+		return nil, "Malformed"
 	end
 	local participants = {}
 	local vetoed: { [number]: boolean } = {}
 	for i, p in context.Participants do
 		if type(i) ~= "number" or type(p) ~= "table" or type(p.ObjectiveIds) ~= "table" then
-			return fail("BadParticipants", context)
+			return nil, "BadParticipants"
 		end
 		local witnessed = #p.ObjectiveIds
 		participants[i] = {
@@ -394,19 +483,57 @@ function TrophyService.SettleCompletionContext(context: any): SettlementReport
 			p.Points, p.ActiveSeconds, p.ObjectiveCompletions, p.PresentForObjective = 0, 0, 0, false
 		end
 	end
-	local report = TrophyService.SettleAdventureCompletion({
+	return {
 		EventId = context.EventId,
 		LandmarkId = context.LandmarkId,
 		InstanceId = context.EventInstanceId,
 		Outcome = if context.Success == true then "Completed" else "Failed",
 		RewardVersion = 1,
 		Participants = participants,
-	})
+	},
+		vetoed
+end
+
+local function labelVetoed(report: SettlementReport, vetoed: { [number]: boolean })
 	for _, entry in report.Results do
 		if vetoed[entry.UserId] then
 			entry.Reason = "EventIneligible"
 		end
 	end
+end
+
+--[[
+	Non-yielding form of SettleCompletionContext, for callers inside the adventure runtime's
+	Heartbeat loop (AdventureSettlement). Applies trophy + stand to every loaded eligible
+	player synchronously and returns (report, writes): writes[userId] durably queues that
+	not-loaded player's grant and must be run by the caller in its own thread (it yields); until
+	then the entry reads Refused / PendingWriteFailed. options.CallerSaves: see SettleOptions.
+]]
+function TrophyService.PrepareCompletionContext(context: any, options: SettleOptions?): (SettlementReport, OutboxWrites)
+	local request, vetoedOrError = fromContext(context)
+	if request == nil then
+		return fail(vetoedOrError :: string, context), {}
+	end
+	local report, writes = prepare(request, options)
+	labelVetoed(report, vetoedOrError)
+	return report, writes
+end
+
+--[[
+	Maps the adventure runtime's CompletionContext (codex/spring-vault-adventure,
+	SpringVaultState.completionContext) onto SettleAdventureCompletion:
+		EventInstanceId -> InstanceId, Success -> Outcome, and per participant
+		ObjectiveIds (objectives they were present for) -> PresentForObjective,
+		ObjectiveCompletions = #ObjectiveIds when they earned points (a solo player who earned
+		points did the work), else 0.
+	The context's own Eligible flag must ALSO be true (both rules must agree; it additionally
+	requires being connected and present at completion, so disconnected players are never
+	granted the final trophy). Anything unexpected is rejected by the normal validation.
+	Yields only for outbox writes (players not loaded here); see PrepareCompletionContext.
+]]
+function TrophyService.SettleCompletionContext(context: any): SettlementReport
+	local report, writes = TrophyService.PrepareCompletionContext(context)
+	runWrites(report, writes)
 	return report
 end
 
@@ -625,7 +752,7 @@ local function onLoaded(player: Player)
 		return
 	end
 	refreshDisplay(player)
-	task.spawn(drainPending, player)
+	startDrain(player, "Load")
 end
 
 function TrophyService.Init()

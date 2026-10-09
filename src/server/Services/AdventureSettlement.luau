@@ -12,19 +12,27 @@
 	Both are called from the runtime's Heartbeat loop, so neither yields: rewards are applied to
 	loaded saves synchronously and the durable writes run in their own threads.
 
-	Rules (Rewards.AdventureRewards, bible ch.04): each completed major stage grants its share
-	to contributors at that moment; a successful completion grants the remainder to eligible
-	players, and the first eligible completion grants the trophy, Mara's stand, cert_crew and the
-	q_mara credit in the same save mutation. Receipts ("adv:" namespace) make every settlement
-	idempotent: a replayed stage/final, a retry or a drained outbox intent is a Duplicate.
+	Two owners, one completion (owner decision: reuse TrophyService, never duplicate its grants):
+	  * this bridge ("adv:" receipts, outbox AdventureRewardIntents_v1): fixed stage/final coins
+	    with stage reconciliation, the clear count, cert_crew and the q_mara finish_event_vault
+	    credit (Rewards.AdventureRewards). First clear is decided from AdventureProgress and
+	    certification presence, never from the trophy.
+	  * TrophyService ("trophy:" receipts, outbox TrophyPendingGrants_v1): the landmark trophy
+	    and Mara's stand, through TrophyService.PrepareCompletionContext (its non-yielding
+	    settlement) on the same frozen context, in the same frame as the adv mutation.
+	One DataService.SaveAsync then makes both durable; if it fails each part goes to its own
+	outbox. Every grant is idempotent by its own receipt plus permanent ownership flags.
 
-	Durability. A grant is reported Saved only once the player's save holding it has been written
-	(DataService.SaveAsync), or Queued once its intent is in the durable outbox
-	(AdventureRewardIntents_v1). An eligible player whose save is not loaded here gets the intent
-	in the outbox (PendingRejoin), applied on their next load on any server. Outbox intents are
-	acknowledged only after the save that applied them succeeded. On shutdown, DataService's
-	BindToClose writes every live save (which already holds applied grants) and this service
-	waits for in-flight outbox writes.
+	Durability. A grant is reported Saved only once the player's save holding it has been written,
+	or Queued once its intent is in the durable outbox. An eligible player whose save is not
+	loaded here gets both intents in the outboxes (PendingRejoin), applied on their next load on
+	any server by Drain, which acknowledges only after the save that applied them succeeded. On
+	shutdown, DataService's BindToClose writes every live save (which already holds applied
+	grants) and this service waits for in-flight outbox writes.
+
+	Outcomes. Each participant gets ONE truthful outcome per stage/final (SetOutcomeSender, see
+	Outcome below), sent once the durable writes resolved, and a second "Resolved" outcome when
+	a Pending one later becomes Accepted (a delayed save retry here, or the drain on rejoin).
 ]]
 
 local Players = game:GetService("Players")
@@ -36,18 +44,37 @@ local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local DurableOutbox = require(script.Parent.DurableOutbox)
-local TrophyData = require(script.Parent.TrophyData)
 local TrophyService = require(script.Parent.TrophyService)
 
 export type Status =
 	"Applied" -- in the live save; the durable write is in flight
 	| "Saved" -- in the live save, and that save has been written
 	| "Queued" -- in the live save; the save write failed but the intent is in the durable outbox
-	| "Unconfirmed" -- in the live save only; both writes failed (the next autosave/leave save carries it)
+	| "Unconfirmed" -- in the live save only; both writes failed (retried; the next autosave/leave save carries it)
 	| "Duplicate" -- this receipt was already settled; nothing changed
 	| "PendingRejoin" -- eligible, not loaded here; durably queued for their next load anywhere
 	| "Ineligible" -- Reason says why
 	| "Refused" -- not loaded here and not stored (Reason: PendingFull / PendingWriteFailed)
+
+-- What a participant is told. State is the only thing a client may treat as "you got it".
+export type OutcomeState = "Accepted" | "Pending" | "Refused"
+
+export type Outcome = {
+	InstanceId: string,
+	Kind: "Stage" | "Final",
+	StageId: string?,
+	State: OutcomeState, -- Accepted: durable (Saved / Queued / Duplicate). Pending: not yet
+	-- durable or not yet applied (Applied / Unconfirmed / PendingRejoin). Refused: nothing granted.
+	Status: string, -- the weakest component Status (see Status above)
+	-- What is known to be granted. For PendingRejoin these stay 0/false: the amounts depend on
+	-- the save they apply to, and the drain on rejoin reports them in a Resolved outcome.
+	Coins: number,
+	Trophy: boolean, -- the landmark trophy was newly granted
+	Stand: boolean, -- Mara's trophy stand was newly granted
+	Certification: string?, -- newly granted certification id
+	Reason: string?, -- why Refused / Ineligible, or "Trophy<reason>" when only the trophy part failed
+	Resolved: boolean?, -- true: resolves an earlier Pending outcome (retry here or drain on rejoin)
+}
 
 export type PlayerResult = {
 	UserId: number,
@@ -58,6 +85,10 @@ export type PlayerResult = {
 	TrophyGranted: boolean?,
 	StandGranted: boolean?,
 	Certification: string?,
+	TrophyStatus: string?, -- Final: TrophyService's status (Granted / AlreadyOwned / Duplicate / ...)
+	TrophyDurable: Status?, -- Final: durability of the trophy/stand change, when there was one
+	TrophyReason: string?, -- Final: why TrophyService refused the trophy part
+	Outcome: Outcome?, -- the last outcome computed for this player (sent if they are in the server)
 }
 
 export type Report = {
@@ -68,15 +99,13 @@ export type Report = {
 	StageId: string?,
 	Results: { PlayerResult },
 	ByUserId: { [number]: PlayerResult },
+	Trophy: TrophyService.SettlementReport?, -- Final: TrophyService's own report
 	Done: boolean, -- every durable write has resolved
 }
 
 local KEYS = {
 	"Coins",
-	"TrophyRecords",
-	"CampLayout",
 	"RewardReceipts",
-	"Cosmetics",
 	"Certifications",
 	"AdventureProgress",
 }
@@ -87,20 +116,50 @@ local STAGE_TEXT: { [string]: string } = {
 	ball_return = "bringing the beach ball home",
 }
 
+-- Weakest first: a combined outcome is only as good as its weakest part.
+local RANK: { [string]: number } = {
+	Refused = 0,
+	Ineligible = 0,
+	Unconfirmed = 1,
+	PendingRejoin = 2,
+	Applied = 3,
+	Queued = 4,
+	Saved = 5,
+	Duplicate = 6,
+}
+local STATE: { [string]: OutcomeState } = {
+	Refused = "Refused",
+	Ineligible = "Refused",
+	Unconfirmed = "Pending",
+	PendingRejoin = "Pending",
+	Applied = "Pending",
+	Queued = "Accepted",
+	Saved = "Accepted",
+	Duplicate = "Accepted",
+}
+
 local AdventureSettlement = {}
 
 -- (report) once every durable write of a settlement has resolved
 AdventureSettlement.Settled = Signal.new() :: Signal.Signal<Report>
 -- (player, result, kind) when a grant reached a live save (UI / analytics / quest hooks)
 AdventureSettlement.Granted = Signal.new() :: Signal.Signal<Player, PlayerResult, string>
+-- (player, outcome) whenever an outcome is produced for a player in this server
+AdventureSettlement.OutcomeSent = Signal.new() :: Signal.Signal<Player, Outcome>
 
 local outbox = DurableOutbox.new("AdventureRewardIntents_v1", 16, Rewards.IsIntent)
 AdventureSettlement.Outbox = outbox
 
+-- Seconds between save retries for an Unconfirmed grant (then it rides the next autosave /
+-- leave save). Tests shorten these.
+AdventureSettlement.RetryDelays = { 5, 15, 30 }
+
 local enabled = true
 local notifier: ((Player, string) -> ())? = nil
+local outcomeSender: ((Player, Outcome) -> ())? = nil
 local inflight = 0
 local draining: { [number]: boolean } = {}
+local drainAgain: { [number]: boolean } = {}
 local migrated: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
 local function notify(player: Player, text: string)
@@ -112,9 +171,9 @@ local function notify(player: Player, text: string)
 	end
 end
 
--- The live save with trophy and adventure fields guaranteed, or nil if not loaded.
+-- The live save with adventure fields guaranteed, or nil if not loaded.
 local function getData(player: Player): { [string]: any }?
-	local data = TrophyData.Get(player) -- runs the trophy migration once per save table
+	local data = DataService.Get(player) :: any
 	if data == nil then
 		return nil
 	end
@@ -138,45 +197,83 @@ local function applyLive(player: Player, intent: Rewards.Intent): Rewards.Applie
 		applied = Rewards.Apply(d :: any, intent, os.time())
 	end)
 	local result = applied :: Rewards.Applied
-	if result.Status == "Applied" then
-		local trophy = result.Trophy
-		if trophy and (trophy.Record ~= nil or trophy.StandGranted) then
-			local def = Rewards.Events[intent.EventId]
-			TrophyService.AfterGrantApplied(player, def.LandmarkId, trophy.Record, trophy.StandGranted)
-		end
-		if result.Coins > 0 then
-			Analytics.Source(
-				player,
-				"Coins",
-				result.Coins,
-				(data :: any).Coins,
-				Enum.AnalyticsEconomyTransactionType.Gameplay,
-				string.format("Adventure:%s:%s", intent.EventId, intent.StageId or "final")
-			)
-		end
+	if result.Status == "Applied" and result.Coins > 0 then
+		Analytics.Source(
+			player,
+			"Coins",
+			result.Coins,
+			(data :: any).Coins,
+			Enum.AnalyticsEconomyTransactionType.Gameplay,
+			string.format("Adventure:%s:%s", intent.EventId, intent.StageId or "final")
+		)
 	end
 	return result
 end
 
-local function describe(result: PlayerResult, kind: string, stageId: string?): string?
-	local parts: { string } = {}
-	if result.Coins and result.Coins > 0 then
-		table.insert(parts, string.format("+%d Coins", result.Coins))
+-- Outcomes ------------------------------------------------------------------------------------
+
+local function weakest(a: string, b: string?): string
+	if b == nil or RANK[a] <= RANK[b] then
+		return a
 	end
-	if kind == "Stage" then
+	return b
+end
+
+-- One combined, truthful outcome for a participant (adv part + trophy part).
+local function outcomeFor(report: Report, entry: PlayerResult): Outcome
+	local outcome: Outcome = {
+		InstanceId = report.InstanceId or "",
+		Kind = report.Kind,
+		StageId = report.StageId,
+		State = "Refused",
+		Status = entry.Status,
+		Coins = 0,
+		Trophy = false,
+		Stand = false,
+	}
+	if entry.Status == "Ineligible" or entry.Status == "Refused" then
+		outcome.Reason = entry.Reason
+		return outcome
+	end
+	-- a failed trophy part does not take back the accepted coins/cert; it is named in Reason
+	local trophyOk = entry.TrophyDurable ~= nil and entry.TrophyDurable ~= "Refused"
+	local status = weakest(entry.Status, if trophyOk then entry.TrophyDurable else nil)
+	outcome.Status = status
+	outcome.State = STATE[status]
+	outcome.Coins = if entry.Status == "PendingRejoin" then 0 else entry.Coins or 0
+	outcome.Certification = entry.Certification
+	outcome.Trophy = trophyOk and entry.TrophyGranted == true
+	outcome.Stand = trophyOk and entry.StandGranted == true
+	if report.Kind == "Final" and (entry.TrophyDurable == "Refused" or entry.TrophyStatus == "Refused") then
+		outcome.Reason = "Trophy" .. tostring(entry.TrophyReason or "Refused")
+	elseif report.Kind == "Final" and entry.TrophyStatus == "Unavailable" then
+		outcome.Reason = "TrophyUnavailable"
+	end
+	return outcome
+end
+
+local function describe(outcome: Outcome): string?
+	if outcome.State ~= "Accepted" then
+		return nil
+	end
+	local parts: { string } = {}
+	if outcome.Coins > 0 then
+		table.insert(parts, string.format("+%d Coins", outcome.Coins))
+	end
+	if outcome.Kind == "Stage" then
 		if #parts == 0 then
 			return nil
 		end
-		return parts[1] .. " for " .. (STAGE_TEXT[stageId or ""] or "that stage") .. "!"
+		return parts[1] .. " for " .. (STAGE_TEXT[outcome.StageId or ""] or "that stage") .. "!"
 	end
 	local unlocks: { string } = {}
-	if result.TrophyGranted then
+	if outcome.Trophy then
 		table.insert(unlocks, "the Spring Vault trophy")
 	end
-	if result.StandGranted then
+	if outcome.Stand then
 		table.insert(unlocks, "Mara's trophy stand")
 	end
-	if result.Certification then
+	if outcome.Certification then
 		table.insert(unlocks, "Crew certification")
 	end
 	if #unlocks > 0 then
@@ -185,39 +282,99 @@ local function describe(result: PlayerResult, kind: string, stageId: string?): s
 	if #parts == 0 then
 		return nil
 	end
-	return table.concat(parts, " · ") .. "!"
+	local text = table.concat(parts, " · ") .. "!"
+	return if outcome.Resolved then text .. " (from your last adventure)" else text
 end
 
-local function toResult(userId: number, applied: Rewards.Applied): PlayerResult
-	local trophy = applied.Trophy
-	return {
-		UserId = userId,
-		Status = if applied.Status == "Duplicate" then "Duplicate" else "Applied",
-		Coins = applied.Coins,
-		FirstClear = applied.FirstClear,
-		TrophyGranted = trophy ~= nil and trophy.Status == "Granted",
-		StandGranted = trophy ~= nil and trophy.StandGranted,
-		Certification = applied.Certification,
-	}
-end
-
--- Durable write for one live-applied result: save first, else the outbox. Yields.
-local function confirmLive(player: Player, receiptId: string, intent: Rewards.Intent, entry: PlayerResult)
-	if DataService.SaveAsync(player) then
-		entry.Status = "Saved"
+-- Delivers an outcome to the player if they are in this server: the outcome remote when wired,
+-- otherwise the legacy reward text (accepted grants only).
+local function deliver(userId: number, outcome: Outcome)
+	local player = Players:GetPlayerByUserId(userId)
+	if not player or not player.Parent then
+		return
+	end
+	AdventureSettlement.OutcomeSent:Fire(player, outcome)
+	if outcomeSender then
+		local ok, err = pcall(outcomeSender :: any, player, outcome)
+		if not ok then
+			warn("[AdventureSettlement] outcome send failed: " .. tostring(err))
+		end
 	else
-		local ok = outbox.Add(intent.UserId, receiptId, intent :: any)
-		if ok then
-			entry.Status = "Queued"
-		else
-			entry.Status = "Unconfirmed"
-			warn(
-				string.format(
-					"[AdventureSettlement] %s not yet durable for %d (save and outbox failed)",
-					receiptId,
-					intent.UserId
-				)
+		local text = describe(outcome)
+		if text then
+			notify(player, text)
+		end
+	end
+end
+
+local function publish(report: Report, entry: PlayerResult, resolved: boolean?)
+	local outcome = outcomeFor(report, entry)
+	if resolved then
+		outcome.Resolved = true
+	end
+	entry.Outcome = outcome
+	deliver(entry.UserId, outcome)
+end
+
+-- Durable writes ----------------------------------------------------------------------------
+
+-- Outbox fallback for parts that are only in the live save. Yields.
+local function queueParts(userId: number, intent: Rewards.Intent?, entry: PlayerResult, grant: any?)
+	if intent and (entry.Status == "Applied" or entry.Status == "Unconfirmed") then
+		local receiptId = Rewards.ReceiptFor(intent)
+		entry.Status = if outbox.Add(userId, receiptId, intent :: any) then "Queued" else "Unconfirmed"
+	end
+	if grant and (entry.TrophyDurable == "Applied" or entry.TrophyDurable == "Unconfirmed") then
+		entry.TrophyDurable = if TrophyService.QueueGrant(userId, grant) then "Queued" else "Unconfirmed"
+	end
+end
+
+-- Durable write for one live-applied result: one save for both parts, else each outbox. Yields.
+local function confirmLive(player: Player, intent: Rewards.Intent?, entry: PlayerResult, grant: any?)
+	if DataService.SaveAsync(player) then
+		if entry.Status == "Applied" then
+			entry.Status = "Saved"
+		end
+		if entry.TrophyDurable == "Applied" then
+			entry.TrophyDurable = "Saved"
+		end
+		return
+	end
+	queueParts(player.UserId, intent, entry, grant)
+	if entry.Status == "Unconfirmed" or entry.TrophyDurable == "Unconfirmed" then
+		warn(
+			string.format(
+				"[AdventureSettlement] %s not yet durable for %d (save and outbox failed)",
+				if intent then Rewards.ReceiptFor(intent) else "trophy grant",
+				player.UserId
 			)
+		)
+	end
+end
+
+-- Keeps trying an Unconfirmed grant while the player is here; tells them once it is durable.
+local function retryUnconfirmed(
+	player: Player,
+	report: Report,
+	intent: Rewards.Intent?,
+	entry: PlayerResult,
+	grant: any?
+)
+	for _, delay in AdventureSettlement.RetryDelays do
+		task.wait(delay)
+		if not player.Parent or not DataService.IsLoaded(player) then
+			return -- left: the leave save (or the outbox) is all that is left to carry it
+		end
+		if entry.Status == "Unconfirmed" then
+			entry.Status = "Applied"
+		end
+		if entry.TrophyDurable == "Unconfirmed" then
+			entry.TrophyDurable = "Applied"
+		end
+		confirmLive(player, intent, entry, grant)
+		if entry.Status ~= "Unconfirmed" and entry.TrophyDurable ~= "Unconfirmed" then
+			publish(report, entry, true)
+			return
 		end
 	end
 end
@@ -228,11 +385,6 @@ local function queueOffline(intent: Rewards.Intent, entry: PlayerResult)
 	local ok, reason = outbox.Add(intent.UserId, receiptId, intent :: any)
 	if ok then
 		entry.Status, entry.Reason = "PendingRejoin", nil
-		-- they may have finished loading here while the write was in flight
-		local player = Players:GetPlayerByUserId(intent.UserId)
-		if player and getData(player) ~= nil then
-			task.spawn(AdventureSettlement.Drain, player)
-		end
 	else
 		entry.Status, entry.Reason = "Refused", reason
 		warn(
@@ -240,6 +392,35 @@ local function queueOffline(intent: Rewards.Intent, entry: PlayerResult)
 		)
 	end
 end
+
+local function toResult(userId: number, applied: Rewards.Applied): PlayerResult
+	return {
+		UserId = userId,
+		Status = if applied.Status == "Duplicate" then "Duplicate" else "Applied",
+		Coins = applied.Coins,
+		FirstClear = applied.FirstClear,
+		Certification = applied.Certification,
+	}
+end
+
+-- Copies TrophyService's result for this player onto the combined entry.
+local function attachTrophy(entry: PlayerResult, trophyEntry: TrophyService.PlayerResult?, available: boolean)
+	if not available then
+		entry.TrophyStatus = "Unavailable"
+		return
+	end
+	if not trophyEntry then
+		return
+	end
+	entry.TrophyStatus = trophyEntry.Status
+	entry.TrophyGranted = trophyEntry.Status == "Granted"
+	entry.StandGranted = trophyEntry.StandGranted == true
+	if trophyEntry.Status == "Refused" then
+		entry.TrophyReason = trophyEntry.Reason
+	end
+end
+
+local requestDrain: (Player, boolean) -> ()
 
 local function settle(kind: "Stage" | "Final", context: any, decisions: { Rewards.Decision }?, err: string?): Report
 	local report: Report = {
@@ -262,41 +443,94 @@ local function settle(kind: "Stage" | "Final", context: any, decisions: { Reward
 		return report
 	end
 	-- 1. Synchronous: apply to every loaded save (no yields, so a save snapshot never sees half).
+	-- The trophy + stand go through TrophyService's own settlement, in this same frame.
+	local trophyReport: TrophyService.SettlementReport? = nil
+	local trophyWrites: TrophyService.OutboxWrites = {}
+	if kind == "Final" then
+		local r, w = TrophyService.PrepareCompletionContext(context, { CallerSaves = true })
+		trophyReport, trophyWrites = r, w
+		report.Trophy = r
+		if not r.Ok then
+			warn("[AdventureSettlement] trophy settlement refused: " .. tostring(r.Error))
+		end
+	end
+	local trophyAvailable = trophyReport ~= nil and trophyReport.Ok
 	local work: { () -> () } = {}
 	for _, decision in decisions do
 		local entry: PlayerResult
 		local intent = decision.Intent
+		local userId = decision.UserId
+		local trophyEntry = if trophyReport then trophyReport.ByUserId[userId] else nil
 		if not intent then
-			entry = { UserId = decision.UserId, Status = "Ineligible", Reason = decision.Reason }
+			entry = { UserId = userId, Status = "Ineligible", Reason = decision.Reason }
+			if trophyEntry and trophyEntry.Status ~= "Ineligible" then
+				-- both rules are the same; this would be a bug, so say it loudly
+				warn(string.format("[AdventureSettlement] eligibility mismatch for %d", userId))
+			end
+			table.insert(work, function()
+				publish(report, entry)
+			end)
 		else
-			local player = Players:GetPlayerByUserId(decision.UserId)
+			local player = Players:GetPlayerByUserId(userId)
 			local applied = if player then applyLive(player, intent) else nil
 			if player and applied then
-				entry = toResult(decision.UserId, applied)
-				if entry.Status == "Applied" then
-					local livePlayer, receiptId, liveEntry = player, Rewards.ReceiptFor(intent), entry
-					AdventureSettlement.Granted:Fire(player, entry, kind)
-					table.insert(work, function()
-						confirmLive(livePlayer, receiptId, intent, liveEntry)
-						local text = describe(liveEntry, kind, intent.StageId)
-						if text then
-							notify(livePlayer, text)
-						end
-					end)
+				entry = toResult(userId, applied)
+				if kind == "Final" then
+					attachTrophy(entry, trophyEntry, trophyAvailable)
 				end
+				local grant = if trophyEntry then trophyEntry.Grant else nil
+				if grant then
+					entry.TrophyDurable = "Applied"
+				elseif trophyEntry and trophyEntry.Status == "Duplicate" then
+					entry.TrophyDurable = "Duplicate"
+				end
+				if entry.Status == "Applied" then
+					AdventureSettlement.Granted:Fire(player, entry, kind)
+				end
+				local livePlayer, liveEntry = player, entry
+				local liveIntent = if entry.Status == "Applied" then intent else nil
+				table.insert(work, function()
+					if liveIntent or grant then
+						confirmLive(livePlayer, liveIntent, liveEntry, grant)
+					end
+					publish(report, liveEntry)
+					if liveEntry.Status == "Unconfirmed" or liveEntry.TrophyDurable == "Unconfirmed" then
+						task.spawn(retryUnconfirmed, livePlayer, report, liveIntent, liveEntry, grant)
+					end
+				end)
 			else
-				-- provisional until the durable write below succeeds
-				entry = { UserId = decision.UserId, Status = "Refused", Reason = "PendingWriteFailed" }
+				-- provisional until the durable writes below succeed
+				entry = { UserId = userId, Status = "Refused", Reason = "PendingWriteFailed" }
 				local offlineEntry = entry
+				local trophyWrite = trophyWrites[userId]
 				table.insert(work, function()
 					queueOffline(intent, offlineEntry)
+					if kind == "Final" then
+						if trophyWrite then
+							trophyWrite()
+						end
+						attachTrophy(offlineEntry, trophyEntry, trophyAvailable)
+						if trophyWrite and trophyEntry then
+							-- what it grants is only known when it is applied (drain on rejoin)
+							offlineEntry.TrophyGranted, offlineEntry.StandGranted = false, false
+							offlineEntry.TrophyDurable = if trophyEntry.Status == "PendingRejoin"
+								then "PendingRejoin"
+								else "Refused"
+						end
+					end
+					publish(report, offlineEntry)
+					-- they may have finished loading here while the writes were in flight
+					local loaded = Players:GetPlayerByUserId(userId)
+					if loaded and getData(loaded) ~= nil and offlineEntry.Status == "PendingRejoin" then
+						requestDrain(loaded, true)
+					end
 				end)
 			end
 		end
 		table.insert(report.Results, entry)
 		report.ByUserId[entry.UserId] = entry
 	end
-	-- 2. Asynchronous: durable writes, then the Settled signal.
+	-- 2. Asynchronous: durable writes and outcomes, then the Settled signal.
 	if #work == 0 then
 		report.Done = true
 		AdventureSettlement.Settled:Fire(report)
@@ -357,7 +591,7 @@ end
 
 -- Drop-in for SpringVaultService.Start({ OnCompletion = ... }): returns (accepted, message).
 -- The runtime broadcasts the message to everyone, so it stays generic; each participant gets
--- their own reward notification once it is durable.
+-- their own outcome once it is durable.
 function AdventureSettlement.OnCompletion(context: any): (boolean, string)
 	local report = AdventureSettlement.SettleCompletion(context)
 	if not report.Ok then
@@ -367,48 +601,143 @@ function AdventureSettlement.OnCompletion(context: any): (boolean, string)
 	return true, "Adventure complete! Rewards are on their way."
 end
 
---[[
-	Applies the player's durable intents to their live save, saves, then acknowledges. Yields.
-	Runs on every load (any server), and after an offline intent lands for a player who loaded
-	meanwhile.
-]]
-function AdventureSettlement.Drain(player: Player)
+-- Drain ---------------------------------------------------------------------------------------
+
+type Drained = { Intent: Rewards.Intent, Applied: Rewards.Applied }
+
+-- Applies this bridge's durable intents, saves, then acknowledges. Yields. Returns what was
+-- applied and acknowledged, or nil.
+local function drainIntents(player: Player): { Drained }?
 	local userId = player.UserId
-	if draining[userId] or not outbox.IsAvailable() then
+	local stored = outbox.Read(userId)
+	if not stored or next(stored) == nil or getData(player) == nil then
+		return nil
+	end
+	local intents: { Rewards.Intent } = {}
+	for _, intent in stored do
+		table.insert(intents, intent :: any)
+	end
+	Rewards.SortIntents(intents)
+	local done: { Drained } = {}
+	local ids: { string } = {}
+	for _, intent in intents do
+		local applied = applyLive(player, intent)
+		if not applied then
+			break -- left mid-drain; the rest stay queued
+		end
+		table.insert(ids, Rewards.ReceiptFor(intent))
+		table.insert(done, { Intent = intent, Applied = applied })
+		if applied.Status == "Applied" then
+			AdventureSettlement.Granted:Fire(player, toResult(userId, applied), intent.Kind)
+		end
+	end
+	-- Acknowledge only once the save holding them is written; otherwise the next load
+	-- re-applies them as Duplicates and acknowledges then.
+	if #ids > 0 and DataService.SaveAsync(player) then
+		outbox.Ack(userId, ids)
+		return done
+	end
+	return nil
+end
+
+-- "trophy:<InstanceId>:<UserId>:final:v<n>" -> InstanceId (InstanceIds may contain ':').
+local function instanceOfTrophyReceipt(receiptId: string): string?
+	return string.match(receiptId, "^trophy:(.+):%d+:final:v%d+$")
+end
+
+-- One Resolved outcome per run for what a drain newly granted (Duplicates were told before).
+local function publishDrained(player: Player, intents: { Drained }?, trophies: { TrophyService.DrainedGrant }?)
+	local runs: { [string]: Outcome } = {}
+	local order: { string } = {}
+	local function run(instanceId: string): Outcome
+		local outcome = runs[instanceId]
+		if not outcome then
+			outcome = {
+				InstanceId = instanceId,
+				Kind = "Stage",
+				State = "Accepted",
+				Status = "Saved",
+				Coins = 0,
+				Trophy = false,
+				Stand = false,
+				Resolved = true,
+			}
+			runs[instanceId] = outcome
+			table.insert(order, instanceId)
+		end
+		return outcome
+	end
+	local stages: { [string]: { string } } = {}
+	for _, item in intents or ({} :: { Drained }) do
+		if item.Applied.Status == "Applied" then
+			local outcome = run(item.Intent.InstanceId)
+			outcome.Coins += item.Applied.Coins
+			if item.Intent.Kind == "Final" then
+				outcome.Kind = "Final"
+				outcome.Certification = item.Applied.Certification or outcome.Certification
+			else
+				stages[item.Intent.InstanceId] = stages[item.Intent.InstanceId] or {}
+				table.insert(stages[item.Intent.InstanceId], item.Intent.StageId :: string)
+			end
+		end
+	end
+	for _, grant in trophies or ({} :: { TrophyService.DrainedGrant }) do
+		local instanceId = instanceOfTrophyReceipt(grant.ReceiptId)
+		if instanceId and (grant.Status == "Granted" or grant.StandGranted) then
+			local outcome = run(instanceId)
+			outcome.Kind = "Final"
+			outcome.Trophy = outcome.Trophy or grant.Status == "Granted"
+			outcome.Stand = outcome.Stand or grant.StandGranted
+		end
+	end
+	for _, instanceId in order do
+		local outcome = runs[instanceId]
+		local stageIds = stages[instanceId]
+		if outcome.Kind == "Stage" and stageIds and #stageIds == 1 then
+			outcome.StageId = stageIds[1]
+		end
+		deliver(player.UserId, outcome)
+	end
+end
+
+local function drainLoop(player: Player)
+	local userId = player.UserId
+	repeat
+		drainAgain[userId] = nil
+		local trophies = TrophyService.DrainPending(player)
+		local intents = if outbox.IsAvailable() then drainIntents(player) else nil
+		publishDrained(player, intents, trophies)
+	until not drainAgain[userId] or not player.Parent
+	drainAgain[userId] = nil
+end
+
+-- again = true when new intents may have landed since a drain that is already running started.
+requestDrain = function(player: Player, again: boolean)
+	local userId = player.UserId
+	if draining[userId] then
+		if again then
+			drainAgain[userId] = true
+		end
 		return
 	end
 	draining[userId] = true
-	local stored = outbox.Read(userId)
-	if stored and next(stored) ~= nil and getData(player) ~= nil then
-		local intents: { Rewards.Intent } = {}
-		for _, intent in stored do
-			table.insert(intents, intent :: any)
-		end
-		Rewards.SortIntents(intents)
-		local appliedIds: { string } = {}
-		local coins = 0
-		for _, intent in intents do
-			local applied = applyLive(player, intent)
-			if not applied then
-				break -- left mid-drain; the rest stay queued
-			end
-			table.insert(appliedIds, Rewards.ReceiptFor(intent))
-			if applied.Status == "Applied" then
-				coins += applied.Coins
-				AdventureSettlement.Granted:Fire(player, toResult(userId, applied), intent.Kind)
-			end
-		end
-		-- Acknowledge only once the save holding them is written; otherwise the next load
-		-- re-applies them as Duplicates and acknowledges then.
-		if #appliedIds > 0 and DataService.SaveAsync(player) then
-			outbox.Ack(userId, appliedIds)
-			if coins > 0 then
-				notify(player, string.format("+%d Coins from your last adventure!", coins))
-			end
-		end
-	end
+	local ok, err = pcall(drainLoop, player)
 	draining[userId] = nil
+	if not ok then
+		warn("[AdventureSettlement] drain failed: " .. tostring(err))
+	end
 end
+
+--[[
+	Applies the player's durable intents from BOTH outboxes (this bridge's and TrophyService's)
+	to their live save, saves, then acknowledges, and tells them what it granted. Yields. Runs on
+	every load (any server), and after an offline intent lands for a player who loaded meanwhile.
+]]
+function AdventureSettlement.Drain(player: Player)
+	requestDrain(player, true)
+end
+
+-- Queries --------------------------------------------------------------------------------------
 
 -- Durable intents for a user (receiptId -> intent). Yields; nil if unreadable.
 function AdventureSettlement.GetPending(userId: number): { [string]: any }?
@@ -443,27 +772,46 @@ function AdventureSettlement.SetEnabled(on: boolean)
 	enabled = on
 end
 
--- fn(player, text): per-player reward message (Main wires Net.Notify(player, "Reward", text)).
+-- fn(player, text): legacy per-player reward text, used only while no outcome sender is set
+-- (Main wired it to Net.Notify(player, "Reward", text)).
 function AdventureSettlement.SetNotifier(fn: ((Player, string) -> ())?)
 	notifier = fn
+end
+
+--[[
+	fn(player, outcome): per-player outcome (Outcome above) for the AdventureOutcome remote:
+	Main wires Net.FireClient("AdventureOutcome", player, outcome). While set, it replaces the
+	reward text from SetNotifier, so a player never gets both.
+]]
+function AdventureSettlement.SetOutcomeSender(fn: ((Player, Outcome) -> ())?)
+	outcomeSender = fn
 end
 
 -- Lifecycle -----------------------------------------------------------------------------------
 
 local SHUTDOWN_WAIT = 20
 
+local function onLoaded(player: Player)
+	if getData(player) ~= nil then
+		task.spawn(requestDrain, player, false)
+	end
+end
+
 function AdventureSettlement.Init()
 	outbox.Init()
-	DataService.PlayerLoaded:Connect(function(player: Player)
-		if getData(player) ~= nil then
-			task.spawn(AdventureSettlement.Drain, player)
+	-- One drain covers both outboxes. TrophyService's own load trigger is ignored here because
+	-- PlayerLoaded below already drains; its "an offline grant just landed" trigger re-drains.
+	TrophyService.SetDrainHandler(function(player: Player, why: string?)
+		if why ~= "Load" then
+			requestDrain(player, true)
 		end
 	end)
+	DataService.PlayerLoaded:Connect(onLoaded)
 end
 
 function AdventureSettlement.Start()
 	-- DataService's BindToClose writes every live save (they already hold applied grants);
-	-- this one keeps the server up until offline intents reach the outbox.
+	-- this one keeps the server up until offline intents reach the outboxes.
 	game:BindToClose(function()
 		local deadline = os.clock() + SHUTDOWN_WAIT
 		while inflight > 0 and os.clock() < deadline do
@@ -474,8 +822,8 @@ end
 
 function AdventureSettlement.OnPlayerAdded(player: Player)
 	-- PlayerLoaded covers the normal async load; this covers a service started late.
-	if DataService.IsLoaded(player) and getData(player) ~= nil then
-		task.spawn(AdventureSettlement.Drain, player)
+	if DataService.IsLoaded(player) then
+		onLoaded(player)
 	end
 end
 

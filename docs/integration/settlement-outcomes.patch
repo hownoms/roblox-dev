@@ -1,0 +1,51 @@
+diff --git a/src/client/Main.client.luau b/src/client/Main.client.luau
+index cf1ee35..cc1b3e5 100644
+--- a/src/client/Main.client.luau
++++ b/src/client/Main.client.luau
+@@ -51,6 +51,7 @@ local HUD = require(UI:WaitForChild("HUD"))
+ local HatchAnimation = require(UI:WaitForChild("HatchAnimation"))
+ local TreasurePopup = require(UI:WaitForChild("TreasurePopup"))
+ local OfflinePopup = require(UI:WaitForChild("OfflinePopup")) -- v2.2 offline pet earnings
++local AdventureOutcome = require(UI:WaitForChild("AdventureOutcome")) -- expansion: adventure reward outcomes
+ 
+ local ShopPanel = require(Panels:WaitForChild("ShopPanel"))
+ local EggPanel = require(Panels:WaitForChild("EggPanel"))
+@@ -119,6 +120,7 @@ start("SurvivalHUD", SurvivalHUD.Init)
+ start("HatchAnimation", HatchAnimation.Init)
+ start("TreasurePopup", TreasurePopup.Init)
+ start("OfflinePopup", OfflinePopup.Init)
++start("AdventureOutcome", AdventureOutcome.Init)
+ start("Announcements", Announcements.Init)
+ start("SocialHUD", SocialHUD.Init)
+ start("DetectorHUD", DetectorHUD.Init)
+diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
+index 09e87cc..298f3b3 100644
+--- a/src/server/Main.server.luau
++++ b/src/server/Main.server.luau
+@@ -129,6 +129,10 @@ run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
+ AdventureSettlement.SetNotifier(function(player: Player, text: string)
+ 	Net.Notify(player, "Reward", text)
+ end)
++-- per-player settlement outcomes (replaces the reward text above while wired)
++AdventureSettlement.SetOutcomeSender(function(player: Player, outcome)
++	Net.FireClient("AdventureOutcome", player, outcome)
++end)
+ 
+ for _, entry in ordered do
+ 	local start = entry.Module.Start
+diff --git a/src/shared/Remotes.luau b/src/shared/Remotes.luau
+index 17205ea..f779196 100644
+--- a/src/shared/Remotes.luau
++++ b/src/shared/Remotes.luau
+@@ -66,6 +66,11 @@ Remotes.Events = table.freeze({
+ 	"DetectorPing",
+ 	"ExcavationStart",
+ 	"FindRevealed",
++	-- expansion adventure settlement (AdventureSettlement), server -> owner: (outcome:
++	-- { InstanceId, Kind, StageId?, State = "Accepted" | "Pending" | "Refused", Status, Coins,
++	-- Trophy, Stand, Certification?, Reason?, Resolved? }) one per stage/final, plus a Resolved
++	-- follow-up when a Pending outcome later becomes Accepted
++	"AdventureOutcome",
+ })
+ 
+ Remotes.Functions = table.freeze({
