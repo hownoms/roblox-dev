@@ -61,7 +61,7 @@ refuse entry/trials. Review boot is the only place that bypasses prerequisites.
 `OnStage(context)` receives the same attempt/content identifiers, StageId, completed objectives
 and cumulative per-user contribution/witness facts once per major stage. It is an observation
 boundary, not a grant. The reward owner must derive and persist each stage intent. Callback
-failures are isolated; the runtime does not claim or implement durable retries. Failure snapshots
+failures are isolated; the runtime does not claim or implement durable retries. OnFailure receives a frozen failure snapshot before cleanup; failure snapshots
 are retained server-side for review, not persisted progress. A production reward adapter must
 prepare durable intents before acknowledging accepted settlement; handoff errors remain visible.
 
@@ -77,7 +77,7 @@ trophies. Resolving shows the adventure ending; it does not assert Rewarded or f
 1. Review `docs/trophy-integration.patch` with this boundary. Wire TrophyService's lifecycle
    and camp remotes only through that separately reviewed integration; no hidden boot edits here.
 2. Under server-owned, default-off MiniVault/ToolAbilities flags, explicitly start this runtime
-   with a protected pocket outside ordinary dig bounds and production eligibility callbacks.
+   with a protected pocket 8-12 studs below the beach, outside ordinary dig bounds, and production eligibility callbacks.
    Use authoritative first sale + scanner deposit / cert_rookie evidence; returning players get
    optional catch-up. CanTrial must check q_pip's first ordinary shovel purchase. Do not infer
    story completion from money/depth or write persistent flags in this adventure.

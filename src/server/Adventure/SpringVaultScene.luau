@@ -27,7 +27,22 @@ local function prompt(part: BasePart, action: string, id: string, label: string)
 	local p = Instance.new("ProximityPrompt")
 	p.Name = "AdventurePrompt"
 	p.ActionText = label
-	p.ObjectText = id
+	local names: { [string]: string } = {
+		npc_mara = "Mara",
+		npc_pip = "Pip",
+		vault_latch = "Spring Vault",
+		ball = "Spring Ball",
+		ball_reset = "Safe Checkpoint",
+		route_left = "Left Channel",
+		route_right = "Right Channel",
+		adventure_exit = "Return",
+	}
+	p.ObjectText = names[id]
+		or (
+			if string.find(id, "vault_anchor_")
+				then ({ "Triangle Anchor", "Square Anchor", "Circle Anchor" })[tonumber(string.sub(id, -1)) or 1]
+				else "Practice Target"
+		)
 	p.MaxActivationDistance = if action == "Talk" then 10 else 12
 	p.RequiresLineOfSight = false
 	p.HoldDuration = 0

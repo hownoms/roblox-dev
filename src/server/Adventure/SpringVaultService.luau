@@ -85,6 +85,7 @@ function Service.Start(options: Options?)
 	local route = "Left"
 	local ballResetAt: number? = nil
 	local completionSent = false
+	local completionPending = false
 	local stagesSent: { [string]: boolean } = {}
 
 	local stopped = false
@@ -741,6 +742,7 @@ function Service.Start(options: Options?)
 				end
 				if event.Phase == "Resolving" and not completionSent then
 					completionSent = true
+					completionPending = true
 					local context = event:completionContext(now)
 					if context then
 						context.ContentVersion = Config.ContentVersion
@@ -759,12 +761,27 @@ function Service.Start(options: Options?)
 						self.LastCompletion = context
 						self.Settled = accepted
 					end
+					completionPending = false
 				end
-				if event.Phase == "Resolving" and event.CompletedAt and now - event.CompletedAt >= 12 then
+				if
+					event.Phase == "Resolving"
+					and event.CompletedAt
+					and now - event.CompletedAt >= 12
+					and not completionPending
+				then
 					event:cleanup(now)
 				end
 				if event.Phase == "Cleanup" then
 					self.LastFailure = if event.FailureReason then observations(nil, event.FailureReason) else nil
+					if self.LastFailure and opts.OnFailure then
+						local ok, err = pcall(function()
+							(opts.OnFailure :: (any) -> ())(self.LastFailure)
+							return true
+						end)
+						if not ok then
+							warn("[SpringVault] failure boundary failed", err)
+						end
+					end
 					resetEvent()
 				end
 			end

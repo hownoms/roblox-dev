@@ -113,6 +113,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local objective = label("Talk to Mara, then try Pip's Broadwave.", 106, 54)
 	local function button(text: string, x: number, y: number, callback: () -> ()): TextButton
 		local item = Instance.new("TextButton")
+		item.Name = string.gsub(text, "[^%w]", "")
 		item.Size = UDim2.fromOffset(98, 48)
 		item.Position = UDim2.fromOffset(x, y)
 		item.BackgroundColor3 = Color3.fromRGB(255, 244, 216)
