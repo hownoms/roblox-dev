@@ -11,8 +11,8 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
-## Unreleased: surface map art overhaul (branch `claude/map-overhaul`)
-**Not published. Built by five parallel agents to `docs/MAP_ART_DIRECTION.md`, then reviewed in Studio Play via the Studio MCP (spawn, hub, boardwalk, coast, carnival, lighthouse, headlands, Golden Hour).**
+## Unreleased: surface map art overhaul (merged, not published)
+**Not published. Built by five parallel agents to `docs/MAP_ART_DIRECTION.md`, then reviewed in Studio Play via the Studio MCP (spawn, hub, boardwalk, coast, carnival, lighthouse, headlands, Golden Hour). Record: `docs/MAP_OVERHAUL_2026-10-08.md`.**
 - **Why:** the owner said the map felt copy-pasted, empty, minimal and unexciting. Root cause #1: `Util.Prop` never passed a variant, so all 64 palms, 16 umbrellas, 4 towers and 6 stalls were the same model. Palms were 11 studs tall next to a 5-stud avatar, lamps never lit, and the terrain stopped at a hard edge.
 - **Skyline (`Vistas`, `Headlands`, `Skyline`, `Terrain`, `Lighting`):** terrain headlands close both ends of the beach, with a west sea arch and sea stacks. A 67-stud lighthouse on the east point has a spinning beam, a night lantern and a keeper's cottage. The ocean now extends to the horizon, with five islands, a smoking volcano and hills behind the dunes. Gulls, two horizon sailboats and a banner plane fly overhead. Clouds and a new tropical lighting pass (Golden Hour retuned). Headlands are duplicated as Persistent part blobs, because terrain past the 320-stud streaming radius never reaches the client.
 - **Boardwalk and pier (`Boardwalk`, `Promenade`, `PromenadeKit`, `PierCarnival`):** a varied plank deck with trim and railing. 27 vintage lamps in three styles at an irregular rhythm, glowing at night. String lights and bunting over the hub stretch, a "SUNNY SANDS BEACH" welcome arch, carts, signposts, benches, planters and showers. A wider pier with viewing bulges leads to a carnival deck (x -40..40, z -178..-230) with a 48-stud Ferris wheel in line with the spawn view, a carousel, a ticket booth and a strength tester. The title is now a marquee sign.
