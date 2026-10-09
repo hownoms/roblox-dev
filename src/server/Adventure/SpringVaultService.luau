@@ -311,24 +311,58 @@ function Service.Start(options: Options?)
 		local equipped = equippedAbilityTool(player)
 		data.licensedEquipped = equipped ~= nil and equipped ~= tools[player]
 		data.message = message
-		data.objective = if not event
-			then "Talk to Mara to join, or Pip for an optional trial."
-			elseif event.Phase == "Inviting" then "Start after five seconds. Ready confirms loading."
-			elseif event.Phase == "Preparing" then "Press Ready when the arena is visible."
-			elseif event.Stage == "anchors" then "Clear triangle, square and circle anchors: " .. string.format(
-				"%.0f/%.0f  -  %.0f/%.0f  -  %.0f/%.0f",
-				event.Anchors.vault_anchor_1.Work,
-				event.Anchors.vault_anchor_1.Required,
-				event.Anchors.vault_anchor_2.Work,
-				event.Anchors.vault_anchor_2.Required,
-				event.Anchors.vault_anchor_3.Work,
-				event.Anchors.vault_anchor_3.Required
-			)
-			elseif event.Stage == "vault" then "Open the latch. Choose a left or right route."
-			elseif event.Stage == "ball" then "Guide ball: attach nearby, then walk along the channel. Gates "
-				.. event.GateIndex
-				.. "/3"
-			else "Adventure complete. REVIEW ONLY: no permanent rewards granted."
+		data.route = route
+		data.routeSelectable = data.joined
+			and event ~= nil
+			and event.Phase == "Active"
+			and data.ready
+			and (event.Stage == "vault" or event.Stage == "ball")
+			and waypoint == 2
+		data.startWaitSeconds = if event and event.Phase == "Inviting"
+			then math.max(0, math.ceil(Config.EarliestStartSeconds - (os.clock() - event.CreatedAt)))
+			else 0
+		data.canStart = data.joined
+			and event ~= nil
+			and event.Phase == "Inviting"
+			and event.StarterUserId == player.UserId
+			and data.startWaitSeconds == 0
+		data.canReady = data.joined
+			and not data.ready
+			and event ~= nil
+			and (event.Phase == "Preparing" or event.Phase == "Active")
+		data.trialActive = trial[player] ~= nil
+		data.trialWave = trial[player] ~= nil and trial[player].Wave == true
+		data.trialTargets = if trial[player] then table.clone(trial[player].Targets) else {}
+		data.objective = "Talk to Mara to join, or Pip to try Broadwave."
+		if event and data.joined then
+			if event.Phase == "Inviting" then
+				data.objective = if event.StarterUserId ~= player.UserId
+					then "Waiting for the host to start."
+					elseif data.startWaitSeconds > 0 then "Start available in " .. data.startWaitSeconds .. "s."
+					else "Start the adventure when you are ready."
+			elseif data.canReady then
+				data.objective = "Arena visible? Press Ready to begin helping."
+			elseif event.Stage == "anchors" then
+				for index, shape in { "Triangle", "Square", "Circle" } do
+					local anchor = event.Anchors[Config.AnchorIds[index]]
+					if not anchor.Completed then
+						data.objective = shape .. " anchor: " .. anchor.Work .. "/" .. anchor.Required .. " scoops."
+						break
+					end
+				end
+			elseif event.Stage == "vault" then
+				data.objective = "Anchors clear. Open the vault latch."
+			elseif event.Stage == "ball" then
+				data.objective = route
+					.. " route • "
+					.. (if data.hauling then "Walk along the channel" else "Attach near the ball")
+					.. " • gate "
+					.. math.min(event.GateIndex + 1, 3)
+					.. "/3."
+			else
+				data.objective = "Adventure complete. Review only; no permanent rewards."
+			end
+		end
 		data.objectives = {
 			"Optional: talk to Mara to join Spring Surprise (about 4 minutes).",
 			"Pip lends Broadwave: hold Ability for 0.8 seconds, release toward the marked patch; clear 3 practice targets.",
@@ -338,9 +372,11 @@ function Service.Start(options: Options?)
 		if not data.joined then
 			data.objective = if trial[player]
 				then (if not trial[player].Wave
-					then "Equip the loan. Hold Broadwave 0.8s toward the marked patch."
-					elseif trial[player].Cleared < 3 then "Clear practice targets: " .. trial[player].Cleared .. "/3"
-					else "Pip trial complete. Loan only; no permanent rewards.")
+					then "Equip Broadwave. Face the marked patch; hold Ability 0.8s, then release."
+					elseif trial[player].Cleared < 3 then "Wave landed. Scoop practice targets: "
+						.. trial[player].Cleared
+						.. "/3."
+					else "Trial complete. Talk to Mara to join the rescue.")
 				else "Optional: talk to Mara to join, or Pip to try Broadwave."
 		end
 		snapshot:FireClient(player, data)
@@ -407,15 +443,9 @@ function Service.Start(options: Options?)
 				end
 				trial[player] = trial[player] or { Wave = false, Cleared = 0, Targets = {} }
 				loan(player)
-				send(
-					player,
-					"Pip: Small shovel. Ridiculously big plans! Try the marked patch, then clear its three practice targets."
-				)
+				send(player, "Pip: Try a Broadwave on the dark patch, then scoop three targets.")
 			else
-				send(
-					player,
-					"Mara: Giant chest found! Optional rescue, about four minutes. Join when ready. Review build grants no permanent rewards."
-				)
+				send(player, "Mara: Help uncover the giant chest? Join for a four-minute rescue.")
 			end
 			return
 		end
@@ -639,6 +669,7 @@ function Service.Start(options: Options?)
 		end
 		local now = os.clock()
 		local ok, reason = false, "Unavailable"
+		local feedback: string? = nil
 		if action == "Start" then
 			ok, reason = event:start(player.UserId, now)
 		elseif action == "Ready" then
@@ -662,6 +693,7 @@ function Service.Start(options: Options?)
 				scene.SpawnBall()
 				ballPosition = scene.BallStart
 				checkpoint = ballPosition
+				feedback = "Vault open. " .. route .. " route selected; attach near the ball."
 			end
 		elseif action == "PushBall" then
 			if not near(player, ballPosition, 8) then
@@ -672,6 +704,9 @@ function Service.Start(options: Options?)
 				lastPositions[player] = (root(player) :: BasePart).Position
 				lastMovementAt[player] = now
 				movementBanks[player.UserId] = nil
+				feedback = if member.Attached
+					then "Attached. Walk along the " .. string.lower(route) .. " channel."
+					else "Detached from the ball."
 			end
 		elseif action == "ResetBall" then
 			if not near(player, scene.Targets.ball_reset, 10) then
@@ -682,7 +717,7 @@ function Service.Start(options: Options?)
 			end
 			-- Repeated requests cannot postpone recovery indefinitely.
 			ballResetAt = ballResetAt or now + 3
-			send(player, "Ball recovery requested. Returning to the last gate in three seconds.")
+			feedback = "Ball recovery requested. Returning to the last gate in three seconds."
 			ok = true
 		elseif action == "RouteLeft" or action == "RouteRight" then
 			if
@@ -695,17 +730,21 @@ function Service.Start(options: Options?)
 				return
 			end
 			route = if action == "RouteLeft" then "Left" else "Right"
+			feedback = route .. " route selected. Attach to the ball, then walk along that channel."
 			ok = true
 		else
 			return
 		end
 		if not ok then
-			send(player, reason)
+			feedback = reason
 		end
 		for id, anchor in event.Anchors do
 			scene.SetAnchorProgress(id, anchor.Work / anchor.Required)
 		end
 		broadcast()
+		if feedback then
+			send(player, feedback)
+		end
 	end
 	table.insert(
 		connections,

@@ -1,0 +1,39 @@
+{
+  "base": "7df3a73",
+  "studio": "Expansion1Review_AutoRecovery_0.rbxl",
+  "studioId": "e3d4e012-25f9-4e84-8fdb-0e7db440444a",
+  "gate": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":45,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":69.50594900001306,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"ca845958-db25-4160-9494-079fca2f2858:3\"}"
+      }
+    ],
+    "isError": false
+  },
+  "scope": "Assisted local single-client presentation regression, no two-client recovery or trial aiming repeated.",
+  "finalControls": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"EquipText\":\"Equip Broadwave\",\"R15\":\"R15\",\"Puffs\":\"Puffs: on\",\"Card\":\"330, 192\",\"Equipped\":false,\"Motion\":\"Motion: on\"}"
+      }
+    ],
+    "isError": false
+  },
+  "finalMouseFlow": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Event\":{\"Phase\":\"Dormant\"},\"Trace\":{\"1\":{\"At\":3991.870627199998,\"UserId\":72220195,\"Action\":\"Sync\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "notes": [
+    "Final options mouse clicks did set Motion:low and Puffs:off; earlier left-aligned options attempts did not.",
+    "Final centered Join/Start/Ready mouse probe produced no delivery beyond Sync; not counted as UI flow acceptance. Assisted client requests with current authoritative attempt ID produced accepted anchor/latch/route/attachment/gate progression.",
+    "An earlier manual request omitted eventInstanceId and was correctly refused. Attempts expired during observation; no progression claimed for those.",
+    "Final client and server sources synchronized in Edit; Play stopped. Last GUI cleanup change validated in mock and synchronized."
+  ]
+}

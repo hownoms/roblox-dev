@@ -23,6 +23,15 @@ end
 local function request(runtime, p, action)
 	runtime.Handle(p, { action = action, eventInstanceId = runtime.Event() and runtime.Event().EventInstanceId or "" })
 end
+local function latest(p)
+	for i = #Mock.Remote.ToClient, 1, -1 do
+		local delivery = Mock.Remote.ToClient[i]
+		if delivery.Player == p and delivery.Name == "Snapshot" then
+			return delivery.Args[1]
+		end
+	end
+	error("missing player snapshot")
+end
 local runtime = Service.Start({
 	CanEnter = function()
 		return true
@@ -31,12 +40,20 @@ local runtime = Service.Start({
 local starter, helper = player(9101), player(9102)
 position(starter, runtime.Scene.Targets.npc_mara)
 request(runtime, starter, "Join")
+check(
+	not latest(starter).canStart and latest(starter).startWaitSeconds == 5,
+	"invitation exposes server wait before Start"
+)
 Mock.Advance(5.1)
+Mock.Advance(1.1)
+check(latest(starter).canStart, "starter can Start after server wait")
 request(runtime, starter, "Start")
+check(latest(starter).canReady and not latest(starter).canStart, "Ready replaces Start during preparation")
 request(runtime, starter, "Ready")
 Mock.Advance(0.1)
 local event = runtime.Event()
 check(event.Phase == "Active", "runtime reaches Active")
+check(latest(starter).objective == "Triangle anchor: 0/6 scoops.", "first objective names shape and remaining work")
 position(helper, runtime.Scene.Targets.npc_mara)
 request(runtime, helper, "Join")
 request(runtime, helper, "Ready")
@@ -59,6 +76,14 @@ Mock.Advance(now - Mock.Now())
 position(starter, runtime.Scene.Targets.vault_latch)
 request(runtime, starter, "OpenVault")
 check(event.Stage == "ball", "actual service opens ball stage")
+check(latest(starter).route == "Left" and latest(starter).routeSelectable, "default route is explicit before moving")
+check(string.find(latest(starter).message, "Vault open", 1, true), "latch confirmation survives following broadcast")
+request(runtime, starter, "RouteRight")
+check(
+	latest(starter).route == "Right" and string.find(latest(starter).message, "Right route selected", 1, true),
+	"route confirmation and snapshot agree"
+)
+request(runtime, starter, "RouteLeft")
 local ball = runtime.Scene.Model:FindFirstChild("landmark_spring_vault_ball")
 check(
 	ball and ball:GetAttribute("BallGeometryMode") == "PrimitiveFallback",
@@ -79,6 +104,11 @@ for _, item in ball:GetDescendants() do
 end
 position(starter, runtime.Scene.BallStart)
 request(runtime, starter, "PushBall")
+check(
+	latest(starter).hauling and string.find(latest(starter).objective, "Walk along the channel", 1, true),
+	"attached objective asks player to walk instead of reattach"
+)
+check(string.find(latest(starter).message, "Attached", 1, true), "attachment confirmation survives broadcast")
 local path = runtime.Scene.Routes.Left
 local targetIndex = 2
 for _ = 1, 900 do

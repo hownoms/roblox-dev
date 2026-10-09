@@ -15,6 +15,9 @@ local function protect(instance: Instance)
 	for _, child in instance:GetDescendants() do
 		if child:IsA("BasePart") then
 			child.Anchored = true
+			if not child.CanCollide and child.Name ~= "ContactSphere" then
+				child.CanQuery = false
+			end
 			child:SetAttribute("ProtectedGeometry", true)
 			CollectionService:AddTag(child, "ProtectedGeometry")
 		end
@@ -26,6 +29,7 @@ local function prompt(part: BasePart, action: string, id: string, label: string)
 	part:SetAttribute("TargetId", id)
 	local p = Instance.new("ProximityPrompt")
 	p.Name = "AdventurePrompt"
+	p.Enabled = false
 	p.ActionText = label
 	local names: { [string]: string } = {
 		npc_mara = "Mara",
@@ -71,6 +75,7 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 		p.Anchored = true
 		p.CanCollide = solid == true
 		p.CanTouch = false
+		p.CanQuery = solid == true
 		p.Parent = model
 		protect(p)
 		return p
@@ -81,7 +86,8 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 		local spawn = Instance.new("SpawnLocation")
 		spawn.Name = "AdventureReviewSpawn"
 		spawn.Size = V(6, 1, 6)
-		spawn.Position = point(0, 0.5, 20)
+		-- Arrive within Mara's talking range and face into the adventure.
+		spawn.CFrame = CFrame.lookAt(point(-12, 0.5, 19), point(0, 0.5, -4))
 		spawn.Anchored = true
 		spawn.CanCollide = true
 		spawn.CanTouch = false
@@ -107,9 +113,24 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 	local npcOffsets: { [string]: Vector3 } = { npc_mara = V(-20, 0, 15), npc_pip = V(20, 0, 15) }
 	for id, offset in npcOffsets do
 		local npc = Kit.NPC(id, "Point")
-		npc:PivotTo(CFrame.new(base + offset))
+		npc:PivotTo(CFrame.new(base + offset) * CFrame.Angles(0, math.pi, 0))
 		npc.Parent = model
 		protect(npc)
+		local nameplate = Instance.new("BillboardGui")
+		nameplate.Name = "AdventureHostLabel"
+		nameplate.Size = UDim2.fromOffset(140, 44)
+		nameplate.StudsOffset = V(0, 6.5, 0)
+		nameplate.MaxDistance = 35
+		nameplate.AlwaysOnTop = false
+		nameplate.Parent = npc.PrimaryPart
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.fromScale(1, 1)
+		title.BackgroundColor3 = Kit.Palette.Navy
+		title.BackgroundTransparency = 0.15
+		title.TextColor3 = Kit.Palette.Cream
+		title.TextSize = 14
+		title.Text = if id == "npc_mara" then "Mara · Join rescue" else "Pip · Try Broadwave"
+		title.Parent = nameplate
 		npcs[id] = npc
 		targets[id] = base + offset
 		prompt(
@@ -136,8 +157,10 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 		prompt(p, "Excavate", id, "Practice scoop")
 	end
 	local vaultPosition = point(0, 0, -4)
+	-- The kit's front is -Z; face its latch and shapes toward lobby arrivals.
+	local vaultFrame = CFrame.new(vaultPosition) * CFrame.Angles(0, math.pi, 0)
 	local vault = Kit.SpringVault("Covered")
-	vault:PivotTo(CFrame.new(vaultPosition))
+	vault:PivotTo(vaultFrame)
 	vault.Parent = model
 	protect(vault)
 	local anchors: { [string]: Model } = {}
@@ -154,9 +177,25 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 	prompt(latch, "OpenVault", "vault_latch", "Open Spring Vault")
 	for _, side in { "Left", "Right" } do
 		local id = "route_" .. string.lower(side)
-		local choice = part(id, V(3, 0.3, 3), point(if side == "Left" then -10 else 10, 0.15, -10), Kit.Palette.Cream)
+		local direction = if side == "Left" then -1 else 1
+		local color = if side == "Left" then Kit.Palette.Blue else Kit.Palette.Coral
+		local choice = part(id, V(3, 0.15, 3), point(direction * 10, 0.08, -10), color)
 		targets[id] = choice.Position
 		prompt(choice, "Route" .. side, id, "Choose " .. string.lower(side) .. " channel")
+		-- A flat chevron and sparse lane dashes show where each choice leads.
+		-- These are presentation only: no collider or change to validated routes.
+		for _, arm in { -1, 1 } do
+			local arrow = part(
+				"RouteArrow" .. side,
+				V(0.2, 0.05, 1.2),
+				point(direction * 10 + arm * 0.38, 0.18, -10),
+				Kit.Palette.Navy
+			)
+			arrow.CFrame *= CFrame.Angles(0, arm * math.pi / 4, 0)
+		end
+		for _, z in { -23, -29, -42, -48, -54, -66, -72, -78, -90 } do
+			part("RouteDash" .. side, V(0.3, 0.05, 2), point(direction * 8, 0.04, z), color)
+		end
 	end
 	local ballStart = point(0, 3.8, -17)
 	local gates = {}
@@ -179,8 +218,8 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 		end
 		local gui = Instance.new("BillboardGui")
 		gui.Size = UDim2.fromOffset(100, 45)
-		gui.AlwaysOnTop = true
-		gui.MaxDistance = 100
+		gui.AlwaysOnTop = false
+		gui.MaxDistance = 40
 		gui.Parent = marker
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
@@ -231,7 +270,7 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 	end
 	function api.OpenVault()
 		local replacement = Kit.SpringVault("Opened")
-		replacement:PivotTo(CFrame.new(vaultPosition))
+		replacement:PivotTo(vaultFrame)
 		replacement.Parent = model
 		protect(replacement)
 		vault:Destroy()
