@@ -170,6 +170,18 @@ function Scene.Build(parent: Instance, origin: Vector3?, reviewSpawn: boolean?)
 		anchors[id] = anchor
 		local anchorBase = anchor:FindFirstChild("AnchorBase") :: BasePart
 		targets[id] = anchorBase.Position
+		-- The kit's top markers sit above eye level. Repeat the actual shape on
+		-- the arrival-facing rail so players can identify work from the ground.
+		local shapePosition = anchorBase.Position + V(0, 0.45, 0.8)
+		local shapeFrame = CFrame.new(shapePosition)
+		if i == 1 then
+			Build.tri(anchor, "ArrivalTriangle", shapeFrame, 0.75, 0.75, 0.1, Kit.Palette.Cream)
+		elseif i == 2 then
+			Build.part(anchor, "ArrivalSquare", V(0.7, 0.7, 0.1), shapeFrame, Kit.Palette.Cream)
+		else
+			Build.ellipsoid(anchor, "ArrivalCircle", V(0.75, 0.75, 0.1), shapeFrame, Kit.Palette.Cream)
+		end
+		protect(anchor)
 		prompt(anchorBase, "Excavate", id, "Clear anchor " .. i)
 	end
 	local latch = vault:FindFirstChild("Latch") :: BasePart

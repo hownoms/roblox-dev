@@ -1,0 +1,45 @@
+{
+  "baselineMouse": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"event\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":0,\"Attached\":false,\"Ready\":false}},\"RemainingSeconds\":0,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_2\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_1\":{\"Work\":0,\"Required\":6,\"Completed\":false}},\"Phase\":\"Preparing\",\"Stage\":\"anchors\",\"EventInstanceId\":\"80609e4e-76e5-4f99-bc5a-798712915451:1\"},\"trace\":{\"1\":{\"At\":155.49048619999668,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":209.74401070000023,\"UserId\":72220195,\"Action\":\"Start\"},\"2\":{\"At\":197.22759580001003,\"UserId\":72220195,\"Action\":\"Join\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "afterMouse": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"event\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":0,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":236.3674673999776,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_2\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_1\":{\"Work\":0,\"Required\":6,\"Completed\":false}},\"Phase\":\"Active\",\"Stage\":\"anchors\",\"EventInstanceId\":\"a7bb430f-5a97-450c-9fbc-26d695fe3e43:1\"},\"trace\":{\"1\":{\"At\":308.86307099999979,\"UserId\":72220195,\"Action\":\"Sync\"},\"4\":{\"At\":334.69027309998639,\"UserId\":72220195,\"Action\":\"Ready\"},\"3\":{\"At\":334.63907659999679,\"UserId\":72220195,\"Action\":\"Start\"},\"2\":{\"At\":322.5893904000113,\"UserId\":72220195,\"Action\":\"Join\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "complete": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"trace\":{\"26\":{\"At\":508.01497680001196,\"UserId\":72220195,\"Action\":\"PushBall\"},\"25\":{\"At\":444.63435979999488,\"UserId\":72220195,\"Action\":\"PushBall\"},\"24\":{\"At\":423.26937799999726,\"UserId\":72220195,\"Action\":\"RouteRight\"},\"23\":{\"At\":411.03627099998996,\"UserId\":72220195,\"Action\":\"OpenVault\"},\"22\":{\"At\":407.0863196999999,\"UserId\":72220195,\"Action\":\"Excavate\"},\"21\":{\"At\":405.91940949999846,\"UserId\":72220195,\"Action\":\"Excavate\"},\"20\":{\"At\":404.73599419998939,\"UserId\":72220195,\"Action\":\"Excavate\"},\"19\":{\"At\":403.56981330001147,\"UserId\":72220195,\"Action\":\"Excavate\"},\"18\":{\"At\":402.38611990000939,\"UserId\":72220195,\"Action\":\"Excavate\"},\"9\":{\"At\":376.4032690000022,\"UserId\":72220195,\"Action\":\"Excavate\"},\"1\":{\"At\":308.86307099999979,\"UserId\":72220195,\"Action\":\"Sync\"},\"15\":{\"At\":398.86932160001018,\"UserId\":72220195,\"Action\":\"Excavate\"},\"3\":{\"At\":334.63907659999679,\"UserId\":72220195,\"Action\":\"Start\"},\"2\":{\"At\":322.5893904000113,\"UserId\":72220195,\"Action\":\"Join\"},\"5\":{\"At\":371.7207160000107,\"UserId\":72220195,\"Action\":\"Excavate\"},\"4\":{\"At\":334.69027309998639,\"UserId\":72220195,\"Action\":\"Ready\"},\"7\":{\"At\":374.0546449999965,\"UserId\":72220195,\"Action\":\"Excavate\"},\"6\":{\"At\":372.8708067999978,\"UserId\":72220195,\"Action\":\"Excavate\"},\"14\":{\"At\":397.7192439000064,\"UserId\":72220195,\"Action\":\"Excavate\"},\"8\":{\"At\":375.22093919999318,\"UserId\":72220195,\"Action\":\"Excavate\"},\"16\":{\"At\":400.05308380001227,\"UserId\":72220195,\"Action\":\"Excavate\"},\"17\":{\"At\":401.21863630000737,\"UserId\":72220195,\"Action\":\"Excavate\"},\"13\":{\"At\":396.55404749998709,\"UserId\":72220195,\"Action\":\"Excavate\"},\"12\":{\"At\":395.3693129000021,\"UserId\":72220195,\"Action\":\"Excavate\"},\"11\":{\"At\":394.2022988999961,\"UserId\":72220195,\"Action\":\"Excavate\"},\"10\":{\"At\":377.5706721000024,\"UserId\":72220195,\"Action\":\"Excavate\"}},\"event\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":72220195,\"Points\":65,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":59.52533449998009,\"AdmissionLocked\":true,\"GateIndex\":3,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Resolving\",\"Stage\":\"complete\",\"EventInstanceId\":\"a7bb430f-5a97-450c-9fbc-26d695fe3e43:1\"},\"completion\":{\"Participants\":{\"1\":{\"ActiveSeconds\":177.3087570000207,\"ObjectiveIds\":{\"1\":\"vault_anchor_3\",\"3\":\"vault_anchor_1\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"Points\":65,\"UserId\":72220195,\"Eligible\":true}},\"LandmarkId\":\"landmark_spring_vault\",\"ContentVersion\":1,\"EventId\":\"event_vault\",\"CompletedStages\":{\"1\":\"excavation\",\"3\":\"ball_return\",\"2\":\"vault_open\"},\"CompletedAtUnix\":1791588400,\"CompletedAt\":511.9994588000118,\"StartedAt\":334.6907017999911,\"ObjectiveIds\":{\"1\":\"vault_anchor_3\",\"3\":\"vault_anchor_1\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"BoundaryVersion\":1,\"Success\":true,\"RegionId\":\"sunshine_shore\",\"EventInstanceId\":\"a7bb430f-5a97-450c-9fbc-26d695fe3e43:1\"}}"
+      }
+    ],
+    "isError": false
+  },
+  "leaveProbe": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"root\":\"688, 24.14999771118164, 19\",\"loans\":1,\"speed\":16,\"avatar\":\"R15\"}"
+      }
+    ],
+    "isError": false
+  },
+  "notes": [
+    "Baseline sequential instance-targeted Join/Start delivered; Ready immediate follow-up missed the snapshot/layout transition. Fixed coordinate batch also missed; no callback defect established.",
+    "After ordinary single instance-targeted Join then Begin, callback sent Ready after accepted preparation snapshot. No direct remote requests.",
+    "E holds cleared all anchors and latch; mouse Right route and Guide ball accepted. Character navigation is assisted movement, not uncoached play.",
+    "Default-speed navigation outran ball and detached; 0.5 speed navigation reattached and reached gate3.",
+    "Leave probe occurred after auto cleanup and hit repacked Join position: loans1 is from a new Join, not accepted Leave evidence. Safe return restoration checked separately later."
+  ]
+}

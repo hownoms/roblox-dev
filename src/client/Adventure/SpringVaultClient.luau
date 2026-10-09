@@ -26,6 +26,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local promptEntries: { [Instance]: any } = {}
 	local expanded = false
 	local nearMara = false
+	local beginRequested: string? = nil
+	local rescueComplete = false
 	local dead = false
 	local eventId: string? = nil
 	local reducedMotion = false
@@ -154,12 +156,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 		item.Parent = card
 		return item
 	end
-	label("SPRING VAULT · Review", 8, 24)
-	local status = label(
-		"Help uncover a springy surprise · about 5 minutes. Review build: permanent rewards are unavailable.",
-		32,
-		42
-	)
+	label("SPRING VAULT", 8, 24)
+	local status = label("Help Mara rescue the ball. Pip's trial is optional.", 32, 42)
 	local objective = label("Talk to Mara, then try Pip's Broadwave.", 76, 48)
 	local function button(text: string, x: number, y: number, callback: () -> ()): TextButton
 		local item = Instance.new("TextButton")
@@ -187,7 +185,10 @@ function Client.Start(remotes: Folder, scene: Instance)
 		send("Leave")
 	end)
 	local start = button("Start", 12, 224, function()
-		send("Start")
+		if latestSnapshot.canStart then
+			beginRequested = eventId
+			send("Start")
+		end
 	end)
 	local ready = button("Ready", 116, 224, function()
 		send("Ready")
@@ -226,11 +227,11 @@ function Client.Start(remotes: Folder, scene: Instance)
 		local data = latestSnapshot
 		join.Visible = not data.joined and (not data.trialActive or nearMara)
 		ignore.Visible = not data.joined
-		leave.Visible = data.joined == true
-		start.Visible = data.joined == true
-			and data.phase == "Inviting"
-			and (data.canStart or (data.startWaitSeconds or 0) > 0)
-		start.Text = if (data.startWaitSeconds or 0) > 0 then "Start in " .. data.startWaitSeconds .. "s" else "Start"
+		leave.Visible = data.joined == true or data.trialActive == true
+		leave.Text = if data.joined then "Leave" else "End trial"
+		start.Visible = data.joined == true and data.phase == "Inviting" and data.isStarter == true
+		start.Text = if (data.startWaitSeconds or 0) > 0 then "Begin in " .. data.startWaitSeconds .. "s" else "Begin"
+		ready.Text = "Begin helping"
 		ready.Visible = data.canReady == true
 		haul.Visible = data.joined == true and data.stage == "ball"
 		resetBall.Visible = expanded and data.joined == true and data.stage == "ball"
@@ -575,19 +576,34 @@ function Client.Start(remotes: Folder, scene: Instance)
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
 			latestSnapshot = data
 			eventId = data.eventInstanceId
+			if data.joined and data.stage == "complete" then
+				rescueComplete = true
+			elseif data.joined or data.trialActive then
+				rescueComplete = false
+			end
+			-- Begin is the player's readiness confirmation. Wait for the server's
+			-- preparation snapshot and the real scene before acknowledging it.
+			if beginRequested == eventId and beginRequested ~= nil and data.canReady and sceneAvailable then
+				beginRequested = nil
+				send("Ready")
+			elseif
+				beginRequested ~= eventId
+				or not data.joined
+				or data.phase ~= "Inviting" and data.phase ~= "Preparing"
+			then
+				beginRequested = nil
+			end
 			if data.message then
 				status.Text = data.message
 				messageUntil = os.clock() + 4
 			elseif os.clock() >= messageUntil then
-				status.Text = "Stage: "
-					.. tostring(data.stage or "Optional")
-					.. (
-						if data.joined
-								and data.RemainingSeconds
-								and data.RemainingSeconds > 0
-							then " · " .. math.ceil(data.RemainingSeconds) .. "s"
-							else ""
-					)
+				status.Text = if rescueComplete
+					then "✓ Ball rescued · 3/3 gates"
+					else "Stage: " .. tostring(data.stage or "Optional") .. (if data.joined
+							and data.RemainingSeconds
+							and data.RemainingSeconds > 0
+						then " · " .. math.ceil(data.RemainingSeconds) .. "s"
+						else "")
 			end
 			if charging and not (data.joined or data.loanAvailable or data.licensedEquipped) then
 				send("ChargeCancel", "trial_patch")
@@ -598,6 +614,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 				else data.objective or (if type(data.objectives) == "table"
 					then table.concat(data.objectives, "\n")
 					else "Follow the marked objectives.")
+			if rescueComplete and not data.joined then
+				objective.Text = "Rescue complete. Talk to Mara for another run, or leave the arena."
+			end
 			haul.Text = if data.hauling then "Release ball" else "Guide ball"
 			layoutControls()
 			if sceneAvailable then

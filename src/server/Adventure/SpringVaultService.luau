@@ -326,6 +326,7 @@ function Service.Start(options: Options?)
 			and event.Phase == "Inviting"
 			and event.StarterUserId == player.UserId
 			and data.startWaitSeconds == 0
+		data.isStarter = event ~= nil and event.StarterUserId == player.UserId
 		data.canReady = data.joined
 			and not data.ready
 			and event ~= nil
@@ -338,10 +339,10 @@ function Service.Start(options: Options?)
 			if event.Phase == "Inviting" then
 				data.objective = if event.StarterUserId ~= player.UserId
 					then "Waiting for the host to start."
-					elseif data.startWaitSeconds > 0 then "Start available in " .. data.startWaitSeconds .. "s."
-					else "Start the adventure when you are ready."
+					elseif data.startWaitSeconds > 0 then "Begin available in " .. data.startWaitSeconds .. "s."
+					else "Press Begin when you are ready to rescue the ball."
 			elseif data.canReady then
-				data.objective = "Arena visible? Press Ready to begin helping."
+				data.objective = "Press Begin helping to join the rescue."
 			elseif event.Stage == "anchors" then
 				for index, shape in { "Triangle", "Square", "Circle" } do
 					local anchor = event.Anchors[Config.AnchorIds[index]]
@@ -360,7 +361,7 @@ function Service.Start(options: Options?)
 					.. math.min(event.GateIndex + 1, 3)
 					.. "/3."
 			else
-				data.objective = "Adventure complete. Review only; no permanent rewards."
+				data.objective = "Ball rescued · 3/3 gates. Leave when you are ready."
 			end
 		end
 		data.objectives = {
@@ -388,6 +389,7 @@ function Service.Start(options: Options?)
 	end
 	local function resetEvent()
 		for player in returns do
+			trial[player] = nil
 			restore(player)
 		end
 		scene.Destroy()
@@ -442,6 +444,9 @@ function Service.Start(options: Options?)
 					return
 				end
 				trial[player] = trial[player] or { Wave = false, Cleared = 0, Targets = {} }
+				if not returns[player] and player.Character then
+					returns[player] = player.Character:GetPivot()
+				end
 				loan(player)
 				send(player, "Pip: Try a Broadwave on the dark patch, then scoop three targets.")
 			else
@@ -475,6 +480,9 @@ function Service.Start(options: Options?)
 				ok, reason = event:join(player.UserId, os.clock())
 			end
 			if ok then
+				-- The optional practice session ends when the main rescue accepts the player.
+				trial[player] = nil
+				cancel(player)
 				local part = root(player)
 				if part and not returns[player] then
 					returns[player] = (player.Character :: Model):GetPivot()
@@ -484,8 +492,10 @@ function Service.Start(options: Options?)
 					player,
 					if reason == "rejoined"
 						then "Rejoined. Your contribution is preserved; attach to the ball again when ready."
-						elseif event.Phase == "Active" then "Joined. Press Ready to help with the current objective."
-						else "Joined. Start after five seconds; Ready confirms the arena is loaded."
+						elseif
+							event.Phase == "Active"
+						then "Joined. Press Begin helping to help with the current objective."
+						else "Invitation accepted. Press Begin when you are ready."
 				)
 			else
 				send(player, reason)
@@ -495,6 +505,12 @@ function Service.Start(options: Options?)
 		end
 		local isTrial = trial[player] ~= nil
 		local member = participant(player)
+		if action == "Leave" and isTrial and (not member or member.Left or not member.Connected) then
+			trial[player] = nil
+			restore(player)
+			send(player, "Practice finished. Talk to Mara when you want to join the rescue.")
+			return
+		end
 		if action == "ChargeCancel" then
 			cancel(player)
 			return
@@ -660,6 +676,7 @@ function Service.Start(options: Options?)
 		-- Leaving stays available after walking out of the bounded arena or dying.
 		if action == "Leave" then
 			event:leave(player.UserId, os.clock(), false)
+			trial[player] = nil
 			restore(player)
 			broadcast()
 			return
