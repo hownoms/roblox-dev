@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
 local Kit = require(ReplicatedStorage.Shared.Models.Expansion1)
 
 local Client = {}
@@ -56,7 +57,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 			local started = os.clock()
 			while not dead and token == bounceToken and os.clock() - started < 0.25 do
 				local t = (os.clock() - started) / 0.25
-				local amount = math.sin(t * math.pi) * 0.025
+				-- Keep colored panels inside the cream gutters even at peak squash.
+				local amount = math.sin(t * math.pi) * 0.01
 				for panel, size in bounceSizes do
 					if panel.Parent then
 						panel.Size = Vector3.new(size.X * (1 + amount), size.Y * (1 - amount), size.Z * (1 + amount))
@@ -82,11 +84,33 @@ function Client.Start(remotes: Folder, scene: Instance)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 	table.insert(instances, gui)
-	local card = Instance.new("Frame")
+	local card = Instance.new("ScrollingFrame")
 	card.Size = UDim2.new(0, 330, 0, 330)
-	card.Position = UDim2.new(0, 12, 0.5, -165)
+	card.AnchorPoint = Vector2.new(0, 0.5)
+	card.Position = UDim2.new(0, 12, 0.5, 0)
 	card.BackgroundColor3 = Color3.fromRGB(24, 47, 66)
+	card.BorderSizePixel = 0
+	card.ScrollBarThickness = 6
+	card.ScrollingDirection = Enum.ScrollingDirection.Y
+	card.CanvasSize = UDim2.fromOffset(0, 330)
 	card.Parent = gui
+	local cardContentHeight = 330
+	local function fitCard()
+		local viewport = gui.AbsoluteSize
+		-- Keep the review card between the touch movement and jump zones.
+		card.AnchorPoint = Vector2.new(if UserInputService.TouchEnabled then 0.5 else 0, 0.5)
+		card.Position = if UserInputService.TouchEnabled then UDim2.new(0.5, 0, 0.5, 0) else UDim2.new(0, 12, 0.5, 0)
+		-- Scroll short viewports instead of shrinking the 48px interaction targets.
+		card.Size = UDim2.fromOffset(
+			math.min(330, math.max(0, viewport.X - 24)),
+			math.min(cardContentHeight, math.max(0, viewport.Y - 24))
+		)
+		card.CanvasSize = UDim2.fromOffset(0, cardContentHeight)
+		card.CanvasPosition =
+			Vector2.new(0, math.min(card.CanvasPosition.Y, math.max(0, cardContentHeight - card.AbsoluteSize.Y)))
+	end
+	fitCard()
+	table.insert(connections, gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCard))
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 12)
 	corner.Parent = card
@@ -114,8 +138,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local function button(text: string, x: number, y: number, callback: () -> ()): TextButton
 		local item = Instance.new("TextButton")
 		item.Name = string.gsub(text, "[^%w]", "")
-		item.Size = UDim2.fromOffset(98, 48)
-		item.Position = UDim2.fromOffset(x, y)
+		local column = (x - 12) / 104
+		item.Size = UDim2.new(1 / 3, -12, 0, 48)
+		item.Position = UDim2.new(column / 3, 12 - column * 6, 0, y)
 		item.BackgroundColor3 = Color3.fromRGB(255, 244, 216)
 		item.TextColor3 = Color3.fromRGB(24, 47, 66)
 		item.TextSize = 14
@@ -147,6 +172,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local motion: TextButton
 	motion = button("Motion: on", 12, 278, function()
 		reducedMotion = not reducedMotion
+		if reducedMotion then
+			restorePanels()
+		end
 		motion.Text = if reducedMotion then "Motion: low" else "Motion: on"
 	end)
 	local particles: TextButton
@@ -192,7 +220,16 @@ function Client.Start(remotes: Folder, scene: Instance)
 			chargeVisual = nil
 		end
 	end
+	local function clearEffects()
+		for model in effects do
+			model:Destroy()
+		end
+		table.clear(effects)
+	end
 	local function ability(_: string, state: Enum.UserInputState)
+		if dead or (state ~= Enum.UserInputState.Begin and not charging) then
+			return Enum.ContextActionResult.Pass
+		end
 		if state == Enum.UserInputState.Begin then
 			if not (snapshot.joined or snapshot.loanAvailable) or os.clock() < cooldownUntil or charging then
 				return Enum.ContextActionResult.Pass
@@ -210,7 +247,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		return Enum.ContextActionResult.Sink
 	end
 	ContextActionService:BindAction("SpringVaultBroadwave", ability, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonL1)
-	ContextActionService:SetTitle("SpringVaultBroadwave", "Hold Wave")
+	ContextActionService:SetTitle("SpringVaultBroadwave", "Hold / release")
 	ContextActionService:SetPosition("SpringVaultBroadwave", UDim2.new(1, -160, 1, -170))
 	local touch = ContextActionService:GetButton("SpringVaultBroadwave")
 	if touch then
@@ -268,6 +305,10 @@ function Client.Start(remotes: Folder, scene: Instance)
 							else ""
 					)
 			end
+			if charging and not (data.joined or data.loanAvailable) then
+				send("ChargeCancel", "trial_patch")
+				clearCharge()
+			end
 			objective.Text = data.objective
 				or (
 					if type(data.objectives) == "table"
@@ -278,7 +319,8 @@ function Client.Start(remotes: Folder, scene: Instance)
 			local choosingRoute = data.joined and data.stage == "vault"
 			routeLeft.Visible = choosingRoute
 			routeRight.Visible = choosingRoute
-			card.Size = UDim2.fromOffset(330, if choosingRoute then 390 else 330)
+			cardContentHeight = if choosingRoute then 390 else 330
+			fitCard()
 			if data.joined then
 				card.Visible = true
 			end
@@ -296,6 +338,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if data.kind == "Wave" and data.playerUserId == player.UserId then
 				cooldownUntil = os.clock() + 8
 			end
+			if data.kind == "Gate" then
+				objective.Text = "✓ Gate validated. " .. (data.message or "Keep guiding the ball.")
+			end
 			local frame = data.frame
 			if typeof(frame) ~= "CFrame" or not visible(frame) then
 				return
@@ -306,9 +351,16 @@ function Client.Start(remotes: Folder, scene: Instance)
 					local model = Kit.AbilityEffect(0, reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
-					while not dead and os.clock() - started < 0.35 do
+					while not dead and effects[model] and os.clock() - started < 0.35 do
 						local progress = math.clamp((os.clock() - started) / 0.35, 0, 1)
-						model:PivotTo(frame * CFrame.new(0, 0, -progress * 8))
+						if not reducedMotion then
+							model:PivotTo(frame * CFrame.new(0, 0, -progress * 8))
+						end
+						for _, part in model:GetDescendants() do
+							if part:IsA("BasePart") then
+								part.Transparency = 0.3 + progress * 0.7
+							end
+						end
 						RunService.RenderStepped:Wait()
 					end
 					model:Destroy()
@@ -330,7 +382,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 					local model = Kit.BallEffect(reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
-					while not dead and os.clock() - started < 0.25 do
+					while not dead and effects[model] and os.clock() - started < 0.25 do
 						for _, part in model:GetDescendants() do
 							if part:IsA("BasePart") then
 								part.Transparency = (os.clock() - started) / 0.25
@@ -342,8 +394,6 @@ function Client.Start(remotes: Folder, scene: Instance)
 					effects[model] = nil
 					puffActive = false
 				end)
-			elseif data.kind == "Gate" then
-				objective.Text = "✓ Gate validated. " .. (data.message or "Keep guiding the ball.")
 			end
 		end)
 	)
@@ -385,6 +435,12 @@ function Client.Start(remotes: Folder, scene: Instance)
 		)
 	end
 	local function clearScene()
+		if charging then
+			send("ChargeCancel", "trial_patch")
+		end
+		clearCharge()
+		clearEffects()
+		restorePanels()
 		for _, connection in sceneConnections do
 			connection:Disconnect()
 		end

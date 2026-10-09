@@ -43,6 +43,7 @@
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local CollectionService = game:GetService("CollectionService")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
@@ -133,7 +134,7 @@ local DENT_MAX_RADIUS = 2.2
 local DENT_BALL_RADIUS = 2.6
 local DENT_RISE = 1.5 -- ball centre sits this far above the resolved target (≈1.5 under the surface)
 
-local function carveDent(target: Vector3): (Vector3, Vector3)
+local function carveDent(target: Vector3, boundsOnly: boolean?): (Vector3, Vector3)
 	local r = DENT_BALL_RADIUS
 	local margin = r + 0.5
 	local center = Vector3.new(
@@ -142,19 +143,22 @@ local function carveDent(target: Vector3): (Vector3, Vector3)
 		math.clamp(target.Z, ZONE_CENTER.Z - ZONE_HALF_Z + margin, ZONE_CENTER.Z + ZONE_HALF_Z - margin)
 	)
 	debug.profilebegin("DigTheBeach.Dig.FillBall")
-	local ok, err = pcall(terrain.FillBall, terrain, center, r, Enum.Material.Air)
+	local ok, err = true, nil
+	if not boundsOnly then
+		ok, err = pcall(terrain.FillBall, terrain, center, r, Enum.Material.Air)
+	end
 	debug.profileend()
 	if not ok then
 		error(err, 0)
 	end
 	local half = Vector3.new(r, r, r)
 	local max = center + half
-	return center - half, Vector3.new(max.X, math.min(max.Y, S), max.Z)
+	return center - half, Vector3.new(max.X, (if boundsOnly then max.Y else math.min(max.Y, S)), max.Z)
 end
 
-local function carve(target: Vector3, radius: number): (Vector3, Vector3)
+local function carve(target: Vector3, radius: number, boundsOnly: boolean?): (Vector3, Vector3)
 	if radius <= DENT_MAX_RADIUS then
-		return carveDent(target)
+		return carveDent(target, boundsOnly)
 	end
 	local cells = math.max(1, math.floor(radius * 2 / VOXEL + 0.5))
 	local function axisStart(value: number, minEdge: number, maxEdge: number): number
@@ -174,12 +178,15 @@ local function carve(target: Vector3, radius: number): (Vector3, Vector3)
 	local clearTop = if max.Y >= S then S + VOXEL else max.Y
 	local box = Vector3.new(size.X, clearTop - min.Y, size.Z)
 	debug.profilebegin("DigTheBeach.Dig.FillBlock")
-	local ok, err = pcall(terrain.FillBlock, terrain, CFrame.new(min + box / 2), box, Enum.Material.Air)
+	local ok, err = true, nil
+	if not boundsOnly then
+		ok, err = pcall(terrain.FillBlock, terrain, CFrame.new(min + box / 2), box, Enum.Material.Air)
+	end
 	debug.profileend()
 	if not ok then
 		error(err, 0)
 	end
-	return min, Vector3.new(max.X, math.min(max.Y, S), max.Z)
+	return min, Vector3.new(max.X, if boundsOnly then clearTop else math.min(max.Y, S), max.Z)
 end
 
 -- The smooth-terrain surface a player clicks is not on voxel boundaries, so the raw hit point can
@@ -275,7 +282,7 @@ function DigService.ShovelOptions(player: Player, source: Types.DigSource?): Typ
 	}
 end
 
-function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOptions): Types.DigResult?
+local function digAt(player: Player, position: Vector3, opts: Types.DigOptions, protect: boolean?): Types.DigResult?
 	local data = DataService.Get(player)
 	local ctx = MultiplierService.GetContext(player)
 	if not data or not ctx then
@@ -361,6 +368,15 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 		return fail(player, result, "BackpackFull", opts)
 	end
 
+	if protect then
+		-- Inspect the exact volume before any cooldown, terrain, sand or discovery mutation.
+		-- Include the surface voxel and dent's full sphere, not just reported below-surface bounds.
+		local minimum, maximum = carve(target, opts.Radius, true)
+		if DigService.IsProtectedVolume(minimum, maximum) then
+			return fail(player, result, "OutOfZone", opts)
+		end
+	end
+
 	-- Success ------------------------------------------------------------------------------------
 	if not companion then
 		lastDig[player] = now
@@ -403,6 +419,70 @@ function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOpti
 		ServerSignals.BackpackFull:Fire(player)
 	end
 	return result
+end
+
+-- Broadwave's terrain path is explicitly opt-in and never changes ordinary shovel behavior.
+-- The conservative sphere test covers rotated protected parts and protected model descendants.
+function DigService.IsProtectedVolume(minimum: Vector3, maximum: Vector3): boolean
+	local center = (minimum + maximum) / 2
+	local radius = (maximum - minimum).Magnitude / 2
+	local seen: { [Instance]: boolean } = {}
+	local function intersects(part: BasePart): boolean
+		if seen[part] then
+			return false
+		end
+		seen[part] = true
+		local point = part.CFrame:PointToObjectSpace(center)
+		local half = part.Size / 2
+		local closest = Vector3.new(
+			math.clamp(point.X, -half.X, half.X),
+			math.clamp(point.Y, -half.Y, half.Y),
+			math.clamp(point.Z, -half.Z, half.Z)
+		)
+		return (point - closest).Magnitude <= radius
+	end
+	for _, tagged in CollectionService:GetTagged("ProtectedGeometry") do
+		if tagged:IsDescendantOf(Workspace) then
+			if tagged:IsA("BasePart") and intersects(tagged) then
+				return true
+			end
+			for _, child in tagged:GetDescendants() do
+				if child:IsA("BasePart") and intersects(child) then
+					return true
+				end
+			end
+		end
+	end
+	-- Attributes are also an established protection contract; do not require a tag to honor them.
+	for _, instance in Workspace:GetDescendants() do
+		if instance:GetAttribute("ProtectedGeometry") == true then
+			if instance:IsA("BasePart") and intersects(instance) then
+				return true
+			end
+			if not instance:IsA("BasePart") then
+				for _, child in instance:GetDescendants() do
+					if child:IsA("BasePart") and intersects(child) then
+						return true
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
+function DigService.DigAt(player: Player, position: Vector3, opts: Types.DigOptions): Types.DigResult?
+	return digAt(player, position, opts)
+end
+
+-- Server-only adapter supplies the resolved terrain position. No client stats, yield multiplier,
+-- inventory write or new source: one accepted release is one ordinary shovel-equivalent scoop.
+function DigService.DigBroadwave(player: Player, position: Vector3): Types.DigResult?
+	if not Net.IsVector3(position) then
+		return nil
+	end
+	local opts = DigService.ShovelOptions(player, "Shovel")
+	return if opts then digAt(player, position, opts, true) else nil
 end
 
 -- v1 compatibility: a dig with the equipped shovel (isAuto -> Source "Auto").

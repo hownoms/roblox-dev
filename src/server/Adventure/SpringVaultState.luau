@@ -167,16 +167,37 @@ function State.join(self: State, userId: number, now: number): (boolean, string)
 	if self.Phase ~= "Inviting" and self.Phase ~= "Preparing" and self.Phase ~= "Active" then
 		return false, "closed"
 	end
-	if self.AdmissionLocked or (self.Deadline and now >= self.Deadline - self.Config.AdmissionLockSeconds) then
-		return false, "admission_locked"
-	end
 	local existing = self.Participants[userId]
+	-- The held slot belongs to this identity; recovering it is not a new admission.
+	-- Preserve work, points, readiness and cooldowns, but never restore cargo attachment.
+	if existing and not existing.Left and not existing.Connected and existing.DisconnectedAt then
+		if
+			now - existing.DisconnectedAt >= self.Config.DisconnectHoldSeconds
+			or (self.Deadline and now >= self.Deadline)
+		then
+			return false, "departed"
+		end
+		existing.Connected = true
+		existing.Present = true
+		existing.DisconnectedAt = nil
+		existing.Attached = false
+		if not existing.Ready then
+			existing.JoinedAt = now
+		elseif self.Phase == "Active" then
+			existing.PresenceSince = now
+		end
+		self.EmptySince = nil
+		return true, "rejoined"
+	end
 	if existing and not existing.Left then
 		return false, "already_joined"
 	end
 	-- A departed identity cannot erase its contribution/cooldown or collect twice by rejoining.
 	if existing then
 		return false, "departed"
+	end
+	if self.AdmissionLocked or (self.Deadline and now >= self.Deadline - self.Config.AdmissionLockSeconds) then
+		return false, "admission_locked"
 	end
 	local count = 0
 	for _, p in self.Participants do

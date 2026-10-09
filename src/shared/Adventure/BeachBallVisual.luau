@@ -17,17 +17,19 @@ function Ball.Create(): Model
 	-- Players can walk beside/through the visual cargo; it cannot pin or shove avatars.
 	contact.CanCollide = false
 	contact.CanQuery = true
-	-- Six inset-radius spherical caps have actual cream gutters. Avoid nearly coplanar
-	-- ellipsoids: their intersecting surfaces z-fight across entire panels in Studio.
+	-- Caps extend just 0.1 studs beyond the contact sphere at their centers.
+	-- At adjacent-panel bisectors their surface is inside the cream sphere, so
+	-- no two colored surfaces meet outside it. Wider gutters mask curved-edge
+	-- faceting without meshes, uploads, CSG or additional seam overlays.
 	for index, color in
 		{ Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold, Kit.Palette.Blue, Kit.Palette.Coral, Kit.Palette.Gold }
 	do
 		local angle = (index - 1) * math.pi / 3
-		local offset = Vector3.new(math.sin(angle), 0, math.cos(angle)) * 0.46
-		Build.ball(model, "ColorPanel", 6.8, CFrame.new(center + offset), color)
+		local offset = Vector3.new(math.sin(angle), 0, math.cos(angle)) * (diameter / 2 - 2.9)
+		Build.ball(model, "ColorPanel", 6, CFrame.new(center + offset), color)
 	end
-	Build.ball(model, "TopCap", 0.8, CFrame.new(0, diameter - 0.32, 0), Kit.Palette.Cream)
-	Build.ball(model, "BottomCap", 0.8, CFrame.new(0, 0.32, 0), Kit.Palette.Cream)
+	-- The contact sphere supplies smooth cream poles; separate balls protrude
+	-- beyond its surface and introduce another visible intersection seam.
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "RollEffectOrigin"
 	attachment.Parent = contact

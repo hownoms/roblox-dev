@@ -1,0 +1,161 @@
+{
+  "classification": "Assisted actual local server/two networked Studio clients; client RemoteEvent requests and Humanoid movement. Injected keyboard and simulator evidence explicitly separated; not real account persistence, uncoached play, or physical devices.",
+  "records": [
+    {
+      "name": "repeated-client-requests",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"trace\":{\"43\":{\"At\":168.89165559998947,\"UserId\":-1,\"Action\":\"Excavate\"},\"41\":{\"At\":168.89164449999226,\"UserId\":-1,\"Action\":\"Excavate\"},\"47\":{\"At\":168.89167760001147,\"UserId\":-1,\"Action\":\"Excavate\"},\"37\":{\"At\":168.89137279998978,\"UserId\":-1,\"Action\":\"Excavate\"},\"45\":{\"At\":168.89166759999353,\"UserId\":-1,\"Action\":\"Excavate\"},\"35\":{\"At\":168.8912471999938,\"UserId\":-1,\"Action\":\"Excavate\"},\"39\":{\"At\":168.89149680000265,\"UserId\":-1,\"Action\":\"Excavate\"},\"29\":{\"At\":168.89066500001355,\"UserId\":-1,\"Action\":\"Excavate\"},\"1\":{\"At\":9.41306620000978,\"UserId\":-1,\"Action\":\"Sync\"},\"3\":{\"At\":97.2762359000044,\"UserId\":-1,\"Action\":\"Join\"},\"2\":{\"At\":10.017182999989018,\"UserId\":-2,\"Action\":\"Sync\"},\"5\":{\"At\":125.1911778000067,\"UserId\":-1,\"Action\":\"Ready\"},\"4\":{\"At\":111.20856520000962,\"UserId\":-1,\"Action\":\"Start\"},\"7\":{\"At\":133.9242734000145,\"UserId\":-1,\"Action\":\"Excavate\"},\"6\":{\"At\":133.92423890001374,\"UserId\":-1,\"Action\":\"Excavate\"},\"9\":{\"At\":133.92429970001104,\"UserId\":-1,\"Action\":\"Excavate\"},\"8\":{\"At\":133.9242874000047,\"UserId\":-1,\"Action\":\"Excavate\"},\"27\":{\"At\":164.0730407999945,\"UserId\":-1,\"Action\":\"Start\"},\"17\":{\"At\":133.92434810000123,\"UserId\":-1,\"Action\":\"Excavate\"},\"13\":{\"At\":133.92432739998913,\"UserId\":-1,\"Action\":\"Excavate\"},\"21\":{\"At\":133.92438290000428,\"UserId\":-1,\"Action\":\"Excavate\"},\"11\":{\"At\":133.9243165999942,\"UserId\":-1,\"Action\":\"Excavate\"},\"23\":{\"At\":133.92439570001444,\"UserId\":-1,\"Action\":\"Excavate\"},\"42\":{\"At\":168.8916503000073,\"UserId\":-1,\"Action\":\"Excavate\"},\"40\":{\"At\":168.8915716999909,\"UserId\":-1,\"Action\":\"Excavate\"},\"36\":{\"At\":168.8913106000109,\"UserId\":-1,\"Action\":\"Excavate\"},\"46\":{\"At\":168.89167270000326,\"UserId\":-1,\"Action\":\"Excavate\"},\"34\":{\"At\":168.8911844000104,\"UserId\":-1,\"Action\":\"Excavate\"},\"44\":{\"At\":168.8916625000129,\"UserId\":-1,\"Action\":\"Excavate\"},\"48\":{\"At\":168.89168279999286,\"UserId\":-1,\"Action\":\"Excavate\"},\"28\":{\"At\":164.38932829999249,\"UserId\":-1,\"Action\":\"Ready\"},\"38\":{\"At\":168.8914330000116,\"UserId\":-1,\"Action\":\"Excavate\"},\"33\":{\"At\":168.8911165999889,\"UserId\":-1,\"Action\":\"Excavate\"},\"32\":{\"At\":168.89104710001267,\"UserId\":-1,\"Action\":\"Excavate\"},\"31\":{\"At\":168.890947900014,\"UserId\":-1,\"Action\":\"Excavate\"},\"30\":{\"At\":168.8908400000073,\"UserId\":-1,\"Action\":\"Excavate\"},\"15\":{\"At\":133.92433800001164,\"UserId\":-1,\"Action\":\"Excavate\"},\"18\":{\"At\":133.9243557000009,\"UserId\":-1,\"Action\":\"Excavate\"},\"19\":{\"At\":133.92436609999278,\"UserId\":-1,\"Action\":\"Excavate\"},\"25\":{\"At\":133.92441629999667,\"UserId\":-1,\"Action\":\"Excavate\"},\"14\":{\"At\":133.9243323999981,\"UserId\":-1,\"Action\":\"Excavate\"},\"24\":{\"At\":133.9244056000025,\"UserId\":-1,\"Action\":\"Excavate\"},\"16\":{\"At\":133.92434289999074,\"UserId\":-1,\"Action\":\"Excavate\"},\"26\":{\"At\":158.57367499999237,\"UserId\":-1,\"Action\":\"Join\"},\"20\":{\"At\":133.92437670001528,\"UserId\":-1,\"Action\":\"Excavate\"},\"12\":{\"At\":133.92432190000546,\"UserId\":-1,\"Action\":\"Excavate\"},\"22\":{\"At\":133.924388000014,\"UserId\":-1,\"Action\":\"Excavate\"},\"10\":{\"At\":133.92431060000673,\"UserId\":-1,\"Action\":\"Excavate\"}},\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":0,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":231.39871929999209,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_2\":{\"Work\":0,\"Required\":6,\"Completed\":false},\"vault_anchor_1\":{\"Work\":1,\"Required\":6,\"Completed\":false}},\"Phase\":\"Active\",\"Stage\":\"anchors\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "late-helper-excavation",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":20,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":182.43361739997637,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"vault\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "two-client-gate1",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"ball\":\"692, 20, -35.311439514160156\",\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":112.75514870000188,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "repeated-reset-recovery",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"speeds\":{\"1\":16,\"2\":16},\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":101.13707119997707,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"},\"ball\":\"700, 20, -17\"}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "two-client-route",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"trace\":{\"1\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":true,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":77.58902459999081,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"},\"4\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":68.53819439999643,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"},\"3\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":71.55667769999127,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"},\"2\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":74.5715227999899,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"6b686437-8079-4c7b-a581-28ba9ac251ba:2\"}}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "buffered-hauling-retest",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"trace\":{\"1\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":10,\"Attached\":true,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":25,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":165.05392060001032,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"},\"4\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":24.984857417033504,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":40.0151425829665,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":157.52050310000778,\"AdmissionLocked\":true,\"GateIndex\":3,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Resolving\",\"Stage\":\"complete\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"},\"3\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":20.023653475574247,\"Attached\":true,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":34.97634652442576,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":160.0377008000214,\"AdmissionLocked\":true,\"GateIndex\":2,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"},\"2\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":15.020182296449585,\"Attached\":true,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":29.979817703550418,\"Attached\":true,\"Ready\":true}},\"RemainingSeconds\":162.55332540001838,\"AdmissionLocked\":false,\"GateIndex\":1,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Active\",\"Stage\":\"ball\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"}},\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":true,\"Present\":true,\"UserId\":-2,\"Points\":24.984857417033504,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":40.0151425829665,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":156.50539320000099,\"AdmissionLocked\":true,\"GateIndex\":3,\"Anchors\":{\"vault_anchor_3\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_2\":{\"Work\":6,\"Required\":6,\"Completed\":true},\"vault_anchor_1\":{\"Work\":6,\"Required\":6,\"Completed\":true}},\"Phase\":\"Resolving\",\"Stage\":\"complete\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"},\"completion\":{\"Participants\":{\"1\":{\"ActiveSeconds\":41.78113859999576,\"ObjectiveIds\":{\"1\":\"vault_anchor_2\",\"3\":\"spring_vault_open\",\"2\":\"vault_anchor_3\",\"5\":\"ball_gate_2\",\"4\":\"ball_gate_1\",\"6\":\"ball_gate_3\"},\"Points\":24.984857417033504,\"UserId\":-2,\"Eligible\":true},\"2\":{\"ActiveSeconds\":81.72826219999115,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"Points\":40.0151425829665,\"UserId\":-1,\"Eligible\":true}},\"LandmarkId\":\"landmark_spring_vault\",\"ContentVersion\":1,\"EventId\":\"event_vault\",\"CompletedStages\":{\"1\":\"excavation\",\"3\":\"ball_return\",\"2\":\"vault_open\"},\"CompletedAtUnix\":1791551184,\"CompletedAt\":138.52285360000679,\"StartedAt\":56.794591400015637,\"ObjectiveIds\":{\"1\":\"vault_anchor_1\",\"3\":\"vault_anchor_3\",\"2\":\"vault_anchor_2\",\"5\":\"ball_gate_1\",\"4\":\"spring_vault_open\",\"7\":\"ball_gate_3\",\"6\":\"ball_gate_2\"},\"BoundaryVersion\":1,\"Success\":true,\"RegionId\":\"sunshine_shore\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:1\"},\"ball\":\"692, 20, -83.86231231689453\"}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "completion-cleanup-network-trace",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"ballPresent\":false,\"network\":{\"22\":{\"At\":111.94124670000747,\"UserId\":-2,\"Action\":\"Excavate\"},\"27\":{\"At\":125.10676690001856,\"UserId\":-1,\"Action\":\"PushBall\"},\"26\":{\"At\":118.70637230001739,\"UserId\":-1,\"Action\":\"OpenVault\"},\"25\":{\"At\":113.64053390000481,\"UserId\":-2,\"Action\":\"Excavate\"},\"24\":{\"At\":113.07377190000261,\"UserId\":-2,\"Action\":\"Excavate\"},\"23\":{\"At\":112.50672510001459,\"UserId\":-2,\"Action\":\"Excavate\"},\"28\":{\"At\":127.50649570001406,\"UserId\":-2,\"Action\":\"PushBall\"},\"21\":{\"At\":111.39120840001852,\"UserId\":-2,\"Action\":\"Excavate\"},\"20\":{\"At\":110.84030330000678,\"UserId\":-2,\"Action\":\"Excavate\"},\"19\":{\"At\":107.89115810001386,\"UserId\":-1,\"Action\":\"Excavate\"},\"18\":{\"At\":107.32396110001719,\"UserId\":-1,\"Action\":\"Excavate\"},\"9\":{\"At\":64.02546390000498,\"UserId\":-1,\"Action\":\"Excavate\"},\"1\":{\"At\":9.828398200013908,\"UserId\":-1,\"Action\":\"Sync\"},\"15\":{\"At\":105.65850799999316,\"UserId\":-1,\"Action\":\"Excavate\"},\"3\":{\"At\":50.97627149999607,\"UserId\":-1,\"Action\":\"Join\"},\"2\":{\"At\":10.864931799995248,\"UserId\":-2,\"Action\":\"Sync\"},\"5\":{\"At\":56.79408039999544,\"UserId\":-1,\"Action\":\"Ready\"},\"4\":{\"At\":56.476646600000098,\"UserId\":-1,\"Action\":\"Start\"},\"7\":{\"At\":62.893634000007299,\"UserId\":-1,\"Action\":\"Excavate\"},\"6\":{\"At\":62.32654979999643,\"UserId\":-1,\"Action\":\"Excavate\"},\"14\":{\"At\":105.10757049999666,\"UserId\":-1,\"Action\":\"Excavate\"},\"8\":{\"At\":63.46058100002119,\"UserId\":-1,\"Action\":\"Excavate\"},\"16\":{\"At\":106.20850229999633,\"UserId\":-1,\"Action\":\"Excavate\"},\"17\":{\"At\":106.77477839999483,\"UserId\":-1,\"Action\":\"Excavate\"},\"13\":{\"At\":96.74170509999385,\"UserId\":-2,\"Action\":\"Ready\"},\"12\":{\"At\":96.35840880000615,\"UserId\":-2,\"Action\":\"Join\"},\"11\":{\"At\":65.14319410000462,\"UserId\":-1,\"Action\":\"Excavate\"},\"10\":{\"At\":64.57627310001408,\"UserId\":-1,\"Action\":\"Excavate\"}},\"snapshot\":{\"Phase\":\"Dormant\"},\"players\":{\"1\":{\"State\":{\"Charging\":false,\"Loan\":false},\"Name\":\"Player1\",\"UserId\":-1},\"2\":{\"State\":{\"Charging\":false,\"Loan\":false},\"Name\":\"Player2\",\"UserId\":-2}},\"speeds\":{\"Player1\":16,\"Player2\":16}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "reduced-motion-particles-cleanup",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"labels\":{\"1\":\"SPRING VAULT · Optional adventure\",\"3\":\"Optional: talk to Mara to join, or Pip to try Broadwave.\",\"2\":\"Stage: Optional\"},\"effects\":[]}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "r6-grip-r15-preservation",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"playerR15\":\"R15\",\"avatarPreserved\":true,\"grip\":true,\"rig\":\"R6\"}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "active-helper-real-disconnect",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"players\":1,\"snapshot\":{\"Participants\":{\"1\":{\"Connected\":false,\"Present\":false,\"UserId\":-3,\"Points\":0,\"Attached\":false,\"Ready\":true},\"2\":{\"Connected\":true,\"Present\":true,\"UserId\":-1,\"Points\":0,\"Attached\":false,\"Ready\":true}},\"RemainingSeconds\":229.73339970002417,\"AdmissionLocked\":false,\"GateIndex\":0,\"Anchors\":{\"vault_anchor_3\":{\"Work\":0,\"Required\":8,\"Completed\":false},\"vault_anchor_2\":{\"Work\":0,\"Required\":8,\"Completed\":false},\"vault_anchor_1\":{\"Work\":1,\"Required\":8,\"Completed\":false}},\"Phase\":\"Active\",\"Stage\":\"anchors\",\"EventInstanceId\":\"d00dc965-5f41-48ad-b7f9-cc5d2a1f8093:2\"}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "injected-keyboard-short-charge",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"Trial\":{\"Wave\":false,\"Targets\":[],\"Cleared\":0},\"Charging\":false,\"Loan\":true}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "injected-controller-charge",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"trial\":{\"Trial\":{\"Wave\":false,\"Targets\":[],\"Cleared\":0},\"Charging\":false,\"Loan\":true},\"trace\":{\"1\":{\"At\":5261.0927657999859,\"UserId\":72220195,\"Action\":\"Sync\"},\"4\":{\"At\":5317.413610999996,\"UserId\":72220195,\"Action\":\"ChargeRelease\"},\"3\":{\"At\":5317.280219699984,\"UserId\":72220195,\"Action\":\"ChargeBegin\"},\"2\":{\"At\":5311.646386899985,\"UserId\":72220195,\"Action\":\"Talk\"}}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "name": "injected-keyboard-full-charge",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"trial\":{\"Trial\":{\"Wave\":false,\"Targets\":[],\"Cleared\":0},\"Charging\":false,\"Loan\":true},\"trace\":{\"1\":{\"At\":5261.0927657999859,\"UserId\":72220195,\"Action\":\"Sync\"},\"3\":{\"At\":5317.280219699984,\"UserId\":72220195,\"Action\":\"ChargeBegin\"},\"2\":{\"At\":5311.646386899985,\"UserId\":72220195,\"Action\":\"Talk\"},\"5\":{\"At\":5351.396878300002,\"UserId\":72220195,\"Action\":\"ChargeBegin\"},\"4\":{\"At\":5317.413610999996,\"UserId\":72220195,\"Action\":\"ChargeRelease\"},\"6\":{\"At\":5352.262842600001,\"UserId\":72220195,\"Action\":\"ChargeRelease\"}}}"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}
