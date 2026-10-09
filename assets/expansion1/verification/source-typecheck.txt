@@ -1,0 +1,2 @@
+src/server/Services/RewardsService.luau(280,10): DeprecatedApi: Member 'IsInGroup' is deprecated, use 'Player:IsInGroupAsync' instead
+src/server/Services/RewardsService.luau(308,12): DeprecatedApi: Member 'IsFriendsWith' is deprecated, use 'Player:IsFriendsWithAsync' instead
