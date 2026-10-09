@@ -540,6 +540,10 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if data.kind == "Gate" then
 				objective.Text = "✓ Gate validated. " .. (data.message or "Keep guiding the ball.")
 			end
+			if dead or not sceneAvailable then
+				return
+			end
+			local generation = sceneGeneration
 			local frame = data.frame
 			if typeof(frame) ~= "CFrame" or not visible(frame) then
 				return
@@ -547,6 +551,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 			if data.kind == "Wave" and waves < 2 then
 				waves += 1
 				task.spawn(function()
+					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
 					local model = Kit.AbilityEffect(0, reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
@@ -564,7 +571,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 					end
 					model:Destroy()
 					effects[model] = nil
-					waves -= 1
+					if generation == sceneGeneration then
+						waves -= 1
+					end
 				end)
 			elseif
 				(data.kind == "Bounce" or data.kind == "Gate")
@@ -578,6 +587,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 				end
 				lastPuff = os.clock()
 				task.spawn(function()
+					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
 					local model = Kit.BallEffect(reducedMotion)
 					localEffect(model, frame)
 					local started = os.clock()
@@ -591,7 +603,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 					end
 					model:Destroy()
 					effects[model] = nil
-					puffActive = false
+					if generation == sceneGeneration then
+						puffActive = false
+					end
 				end)
 			end
 		end)
@@ -694,6 +708,9 @@ function Client.Start(remotes: Folder, scene: Instance)
 		end
 		clearCharge()
 		clearEffects()
+		waves = 0
+		puffActive = false
+		lastPuff = -math.huge
 		restorePanels()
 		for _, cleanup in visualCleanups do
 			cleanup()

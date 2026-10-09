@@ -136,6 +136,16 @@ check(
 )
 check(not Mock.Service("Workspace"):FindFirstChild("tool_broadwave_charge"), "scene stream-out clears charge dots")
 check(not target:FindFirstChildWhichIsA("ProximityPrompt"), "scene stream-out removes owned prompt")
+Mock.FireEvent(effect, "OnClientEvent", {
+	kind = "Wave",
+	playerUserId = 9511,
+	frame = Mock.CFrame.new(0, 3, 6),
+})
+Mock.Advance(0.05)
+check(
+	not Mock.Service("Workspace"):FindFirstChild("tool_broadwave_effect"),
+	"late network effect cannot recreate geometry while scene is absent"
+)
 local replacement = new("Model")
 replacement.Name = "SpringVaultAdventure"
 local replacementTarget = new("Part", replacement)
@@ -163,6 +173,93 @@ for _ = 1, 50 do
 	check(contact:FindFirstChildWhichIsA("ProximityPrompt"), "reloaded target installs exactly one fresh prompt")
 	contact:Destroy()
 	repeatedBall:Destroy()
+end
+-- Representative crowded *mock* workload: simultaneous nearby effect requests and
+-- 32 actionable targets. This establishes bounded allocations, not device frame time
+-- or uncoached prompt readability, and ancestry reload is not streaming eviction.
+local workspace = Mock.Service("Workspace")
+local function namedChildren(parent, name)
+	local result = {}
+	for _, child in parent:GetChildren() do
+		if child.Name == name then
+			table.insert(result, child)
+		end
+	end
+	return result
+end
+local crowdedTargets = {}
+for index = 1, 32 do
+	local part = new("Part")
+	part:SetAttribute("AdventureAction", "Talk")
+	part:SetAttribute("TargetId", "crowd_" .. index)
+	part.Parent = replacement
+	table.insert(crowdedTargets, part)
+end
+Mock.Advance(0.05)
+for _, part in crowdedTargets do
+	check(#namedChildren(part, "SpringVaultLocalPrompt") == 1, "crowded target owns exactly one prompt")
+end
+for _ = 1, 48 do
+	Mock.FireEvent(effect, "OnClientEvent", { kind = "Wave", playerUserId = 9511, frame = Mock.CFrame.new(0, 3, 6) })
+	Mock.FireEvent(effect, "OnClientEvent", { kind = "Bounce", frame = Mock.CFrame.new(0, 3, 6) })
+end
+Mock.Advance(0.05)
+check(#namedChildren(workspace, "tool_broadwave_effect") == 2, "48 nearby wave requests allocate at most two groups")
+check(
+	#namedChildren(workspace, "landmark_spring_vault_ball_effect") == 1,
+	"48 nearby bounce requests allocate one puff group"
+)
+for _, model in workspace:GetChildren() do
+	if model.Name == "tool_broadwave_effect" or model.Name == "landmark_spring_vault_ball_effect" then
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				check(
+					not part.CanCollide and not part.CanTouch and not part.CanQuery,
+					"crowded local effect has no contact/query authority"
+				)
+			end
+		end
+	end
+end
+Mock.Advance(0.7)
+check(
+	#namedChildren(workspace, "tool_broadwave_effect") == 0
+		and #namedChildren(workspace, "landmark_spring_vault_ball_effect") == 0,
+	"crowded burst expires fully"
+)
+Mock.FireEvent(gui:FindFirstChild("Motionon", true), "Activated")
+Mock.FireEvent(effect, "OnClientEvent", { kind = "Wave", playerUserId = 9511, frame = Mock.CFrame.new(0, 3, 6) })
+Mock.FireEvent(effect, "OnClientEvent", { kind = "Bounce", frame = Mock.CFrame.new(0, 3, 6) })
+Mock.Advance(0.05)
+local lowWave = workspace:FindFirstChild("tool_broadwave_effect")
+local lowPuffs = workspace:FindFirstChild("landmark_spring_vault_ball_effect")
+check(
+	lowWave.Wave.Size.Y == 0.35 and #namedChildren(lowPuffs, "BouncePuff") == 4,
+	"reduced motion uses low wave and four puffs"
+)
+local lowFrame = lowWave:GetPivot()
+Mock.Advance(0.1)
+check(lowWave:GetPivot() == lowFrame, "reduced motion wave remains stationary")
+Mock.Advance(0.6)
+Mock.FireEvent(gui:FindFirstChild("Puffson", true), "Activated")
+Mock.FireEvent(effect, "OnClientEvent", { kind = "Bounce", frame = Mock.CFrame.new(0, 3, 6) })
+Mock.FireEvent(effect, "OnClientEvent", { kind = "Wave", playerUserId = 9511, frame = Mock.CFrame.new(1000, 3, 6) })
+Mock.Advance(0.05)
+check(#namedChildren(workspace, "landmark_spring_vault_ball_effect") == 0, "particle reduction omits puff allocations")
+check(#namedChildren(workspace, "tool_broadwave_effect") == 0, "distant crowded effects are culled")
+for _ = 1, 10 do
+	replacement.Parent = nil
+	Mock.Advance(0.05)
+	check(#replacement:GetDescendants() == #crowdedTargets + 1, "crowded ancestry removal releases every owned prompt")
+	replacement.Parent = workspace
+	Mock.Advance(0.05)
+	check(
+		#replacement:GetDescendants() == (#crowdedTargets + 1) * 2,
+		"crowded ancestry reload recreates exactly one prompt per target"
+	)
+end
+for _, part in crowdedTargets do
+	part:Destroy()
 end
 action(E.UserInputState.Begin, touch1)
 Mock.FireEvent(player, "CharacterRemoving", character)

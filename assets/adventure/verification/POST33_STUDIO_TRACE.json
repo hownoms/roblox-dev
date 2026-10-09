@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-09",
+  "studio": "Expansion1Review_AutoRecovery_0.rbxl",
+  "studio_id": "e3d4e012-25f9-4e84-8fdb-0e7db440444a",
+  "place_id": 0,
+  "classification": "assisted networked Studio observation",
+  "late_effect_regression": {
+    "method": "ServerStorage reparent removes replicated scene, temporary LocalScript counts incoming messages and model creation",
+    "Received": 48,
+    "Created": 0,
+    "Prompts": 0,
+    "SceneAbsent": true,
+    "genuine_streaming": false,
+    "restored": true,
+    "temporary_script_and_remote_removed": true
+  },
+  "lighting_probe": {
+    "classification": "isolated translated visual rig, not full candidate",
+    "origin": [700, 20, 0],
+    "parts": 11,
+    "lights": 6,
+    "brightness": 1.6,
+    "range": 48,
+    "production_terrain_face_included": false,
+    "review_lighting": true,
+    "observed": "bright floor and far-side sky; cannot infer production lighting acceptance",
+    "ball_mode": "LocalSmoothSectors",
+    "prompts": 13,
+    "viewport": [896, 635]
+  },
+  "inaccessible_settings": ["StreamingMinRadius", "StreamingTargetRadius"],
+  "avatar_preserved": "existing R15",
+  "hardware_checks": "open; no physical controller/touch available",
+  "same_account_rejoin": "not attempted; safe supported reconnection surface not established",
+  "final_state": "Edit, StreamingEnabled=false",
+  "production_touched": false,
+  "upload_publish_live_save": false
+}

@@ -17,6 +17,9 @@ local Service = {}
 export type Options = {
 	Origin: Vector3?,
 	ReviewSpawn: boolean?,
+	-- Production supplies a trusted destination; only characters still in the pocket are returned.
+	-- Missing/invalid/error results fall back to the recorded join frame. Review defaults are unchanged.
+	ReturnFrame: ((Player) -> CFrame?)?,
 	-- Admission reads authoritative loaded data/certification contracts; review explicitly injects a loan.
 	CanEnter: ((Player) -> boolean)?,
 	CanTrial: ((Player) -> boolean)?,
@@ -170,8 +173,26 @@ function Service.Start(options: Options?)
 			tools[player] = nil
 		end
 		local character = player.Character
-		if character and returns[player] then
-			character:PivotTo(returns[player])
+		local target = returns[player]
+		local function inPocket(): boolean
+			local part = root(player)
+			return part ~= nil
+				and math.abs((part :: BasePart).Position.X - scene.Origin.X) <= 48
+				and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69
+				and (part :: BasePart).Position.Y <= scene.Origin.Y + 20
+		end
+		-- Surface/respawned characters must never be pulled back down during production cleanup.
+		if character and target and (not opts.ReturnFrame or inPocket()) then
+			if opts.ReturnFrame then
+				local ok, frame = pcall(opts.ReturnFrame, player)
+				if ok and typeof(frame) == "CFrame" then
+					target = frame
+				end
+			end
+			-- A callback may yield or change the character. Recheck before moving it.
+			if player.Character == character and character.Parent and (not opts.ReturnFrame or inPocket()) then
+				character:PivotTo(target)
+			end
 		end
 		returns[player] = nil
 		lastPositions[player] = nil
@@ -402,7 +423,9 @@ function Service.Start(options: Options?)
 			if not opts.CanEnter or not opts.CanEnter(player) or not near(player, scene.Targets.npc_mara, 10) then
 				send(
 					player,
-					"Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."
+					if opts.ReviewSpawn == true
+						then "Mara's adventure unlocks after a sale and scanner deposit. Review uses an explicit starter loan."
+						else "Spring Vault opens after your Rookie certificate, or once you have sold sand and dug up a deposit."
 				)
 				return
 			end
