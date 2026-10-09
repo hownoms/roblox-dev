@@ -17,6 +17,9 @@
 	Reveals: while a Reveal popup is on screen, new non-urgent toasts (anything but Error and
 	Warning) wait in the queue so they never cover its rarity headline; they appear when it
 	closes, or after REVEAL_HOLD_MAX seconds if reveals keep chaining.
+	Clearance (expansion adventure): Toasts.SetClearance(top) starts the column no higher than
+	`top` (design px) so toasts stay below the adventure panel at the top centre
+	(UI/AdventureHUD); fewer stack at once if the column would reach the bottom bar.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,6 +34,8 @@ local Reveal = require(script.Parent.Reveal)
 local Toasts = {}
 
 local MAX_VISIBLE = 3
+local TOAST_STEP = 46 -- 40 px pill + 6 px list padding
+local clearance: number? = nil
 local MAX_QUEUED = 7
 local excavating = false
 local DEFAULT_DURATION = 3.2
@@ -124,8 +129,9 @@ local function getContainer(): Frame
 	frame.BackgroundTransparency = 1
 	frame.Parent = Root.Get("Toasts")
 	Layout.Observe(function(regions: Layout.Regions)
-		frame.Position = Layout.Position(regions.Toasts)
-		frame.Size = Layout.SizeOf(regions.Toasts)
+		local area = regions.Toasts
+		frame.Position = UDim2.fromOffset(area.X, math.max(area.Y, clearance or area.Y))
+		frame.Size = Layout.SizeOf(area)
 	end)
 	Style.List(frame, Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
 	container = frame
@@ -219,11 +225,22 @@ local function waitsForReveal(entry: Entry, now: number): boolean
 		and (excavating or (Reveal.IsShowing() and now - entry.Queued < REVEAL_HOLD_MAX))
 end
 
+-- How many toasts fit: MAX_VISIBLE, or fewer when a clearance pushes the column onto the bottom bar.
+local function maxVisible(): number
+	local top = clearance
+	if not top then
+		return MAX_VISIBLE
+	end
+	local regions = Layout.Current()
+	local room = regions.Bottom.Y - math.max(regions.Toasts.Y, top)
+	return math.clamp(math.floor((room + 6) / TOAST_STEP), 1, MAX_VISIBLE)
+end
+
 local holdTimer = false
 pump = function()
 	local now = os.clock()
 	local i = 1
-	while i <= #queue and #active < MAX_VISIBLE do
+	while i <= #queue and #active < maxVisible() do
 		local entry = queue[i]
 		if waitsForReveal(entry, now) then
 			i += 1
@@ -239,6 +256,27 @@ pump = function()
 			pump()
 		end)
 	end
+end
+
+-- Keeps the column below `top` (design px from the top of the Toasts canvas); nil restores it.
+function Toasts.SetClearance(top: number?)
+	local value = if top then math.floor(top + 0.5) else nil
+	if value == clearance then
+		return
+	end
+	clearance = value
+	local frame = container
+	if frame then
+		local area = Layout.Current().Toasts
+		frame.Position = UDim2.fromOffset(area.X, math.max(area.Y, value or area.Y))
+	end
+	if not value then
+		task.defer(pump)
+	end
+end
+
+function Toasts.GetClearance(): number?
+	return clearance
 end
 
 -- Excavation pushes presentation state, avoiding a Toasts -> ExcavationGame require cycle.

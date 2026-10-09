@@ -141,9 +141,12 @@ following the steps in `settlement-durability.md`:
    rewards granted" after a wired completion, and Mara's line still mentions the review build.
    This contradicts the reward cards. Before `AdventureRewards` is enabled, this copy must be
    made production-safe (`settlement-durability.md` R1).
-2. **Duplicate equip button.** `SpringVaultClient` builds its own "Equip Broadwave" button at the
-   top centre. Production would show it next to `BroadwaveEquip`. Request: an `ExternalEquip`
-   start option (`licensed-broadwave.md`).
+2. **Duplicate equip button.** `SpringVaultClient` builds its own "Equip Broadwave" button (after
+   PR #35: bottom right on desktop, inside the panel on touch). **Mitigated Claude-side**
+   (`claude/apf-arbitration`): exactly one equip control is visible at a time
+   (`production-wiring.md` 4.4). The runtime's button owns equip whenever the runtime runs. The
+   clean fix is still Codex's `ExternalEquip` start option (4.7), plus reduced-motion and particle
+   preferences (4.6) and an arena-only panel (4.7 item 3).
 3. **Completion message to everyone.** It is broadcast to every player. Request: send it to
    participants only, or per recipient (R2). Our text is neutral for now.
 4. **Kill switch and failure cleanup.** Participants are told nothing (R3).
@@ -151,7 +154,9 @@ following the steps in `settlement-durability.md`:
    arena. A licensed tool can start and cancel charges anywhere, and each is broadcast to all
    clients.
 6. **Scene rebuild.** Confirm the client picks up the rebuilt scene after each run. The mock
-   covers this; streaming eviction does not.
+   covers this, including the client-side dig pauses: hauling is never carried across a rebuild,
+   a respawn, a Leave or a kill switch (`production-wiring.md` 4.3). Streaming eviction is not
+   covered.
 
 **Studio and devices (joint):**
 

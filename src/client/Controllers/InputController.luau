@@ -1,6 +1,7 @@
 --!strict
 -- InputController — console/PC shortcuts. Gamepad: R2 dig (DigController), X = Surface,
--- (Q yields to the adventure's Broadwave charge only while a Broadwave tool is equipped),
+-- (Q yields to the adventure's Broadwave charge only while a Broadwave tool is equipped and the
+-- charge is bound),
 -- Y = jump into the HUD menu with selection (B closes panels, see Panel). Keyboard: Q = Surface,
 -- G = Shop, P = Pets.
 local ContextActionService = game:GetService("ContextActionService")
@@ -26,12 +27,13 @@ end
 
 function InputController.Init()
 	-- Q is shared with the adventure's Broadwave charge (Q / L1). Bound one step above default
-	-- priority so Q surfaces as before unless a Broadwave tool is equipped, in which case Q passes
-	-- to the charge action (InputArbiter). ButtonX always surfaces.
+	-- priority so Q surfaces as before unless a Broadwave tool is equipped and the runtime's charge
+	-- action is bound, in which case Q passes to it (InputArbiter.QToCharge). ButtonX always
+	-- surfaces.
 	ContextActionService:BindActionAtPriority(
 		"DigSurface",
 		function(_, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
-			if input.KeyCode == Enum.KeyCode.Q and InputArbiter.BroadwaveEquipped() then
+			if input.KeyCode == Enum.KeyCode.Q and InputArbiter.QToCharge() then
 				return Enum.ContextActionResult.Pass
 			end
 			if state == Enum.UserInputState.Begin then
