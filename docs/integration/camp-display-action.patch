@@ -1,0 +1,72 @@
+diff --git a/src/client/Main.client.luau b/src/client/Main.client.luau
+index 4ec6b85..86ea6a6 100644
+--- a/src/client/Main.client.luau
++++ b/src/client/Main.client.luau
+@@ -80,6 +80,8 @@ local Reveal = require(UI:WaitForChild("Reveal"))
+ local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
+ -- Map overhaul: client-side ambient motion for tagged decor (Ferris wheel, boats, gulls, flags...)
+ local AmbientController = require(Controllers:WaitForChild("AmbientController"))
++-- Expansion: trophy camp display action + local preview on the camp pad (TrophyService prompts)
++local CampDisplayController = require(Controllers:WaitForChild("CampDisplayController"))
+ 
+ local function start(name: string, fn: () -> ())
+ 	local ok, err = xpcall(function(): any
+@@ -157,3 +159,4 @@ start("RideButton", RideButton.Init)
+ start("Status", StatusController.Init)
+ start("Discovery", DiscoveryController.Init)
+ start("Ambient", AmbientController.Init)
++start("CampDisplay", CampDisplayController.Init)
+diff --git a/src/server/Main.server.luau b/src/server/Main.server.luau
+index 0b67ca8..35da9fe 100644
+--- a/src/server/Main.server.luau
++++ b/src/server/Main.server.luau
+@@ -126,6 +126,7 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
+ end)
+ 
+ run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
++run("TrophyService", "ConnectCampPrompts", TrophyService.ConnectCampPrompts, Net) -- camp display action
+ AdventureSettlement.SetNotifier(function(player: Player, text: string)
+ 	Net.Notify(player, "Reward", text)
+ end)
+diff --git a/tests/trophy-wired.spec.luau b/tests/trophy-wired.spec.luau
+index 850a34f..ed9c63c 100644
+--- a/tests/trophy-wired.spec.luau
++++ b/tests/trophy-wired.spec.luau
+@@ -157,6 +157,37 @@ check(notified == 2, "stage and final reward notifications reach the client (" .
+ local crewSaved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
+ check(crewSaved.Certifications.cert_crew ~= nil and crewSaved.TrophyRecords[TROPHY] ~= nil, "saved immediately")
+ 
++-- Camp display action, wired by Main (docs/integration/camp-display-action.patch) -----------
++TrophyService.SetCampPads(nil) -- back to the authored pad Main's World built
++local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
++local map = Mock.Service("Workspace"):FindFirstChild("Map")
++local hub = map and map:FindFirstChild("Hub")
++local padModel = hub and hub:FindFirstChild("TrophyCampPad1")
++local deck = padModel and padModel:FindFirstChild("Deck")
++local show = deck and deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
++local put = deck and deck:FindFirstChild(CampAction.REMOVE_PROMPT)
++check(show ~= nil and put ~= nil, "Main hangs both camp prompts on the authored deck")
++check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Ready", "crew status Ready after the bridge grant")
++if show and put then
++	local before = #Mock.Remote.ToClient
++	Mock.FireEvent(show, "Triggered", crew)
++	Mock.Advance(0.5)
++	check(TrophyService.GetCampPadOwner(1) == CREW, "display prompt puts the crew's trophy on the pad")
++	check(crew:GetAttribute(CampAction.STATUS_ATTR) == "Displayed", "status Displayed")
++	local told = false
++	for i = before + 1, #Mock.Remote.ToClient do
++		local e = Mock.Remote.ToClient[i]
++		if e.Player == crew and e.Name == "Notify" and e.Args[2] == "Trophy on display!" then
++			told = true
++		end
++	end
++	check(told, "result toast reaches the client through Net")
++	Mock.FireEvent(put, "Triggered", crew)
++	Mock.Advance(0.5)
++	check(TrophyService.GetCampPadOwner(1) == nil, "put-away prompt frees the pad")
++	check(TrophyService.Owns(crew, TROPHY) == true, "put away keeps the trophy")
++end
++
+ check(#Mock.Errors == 0, "no uncaught errors")
+ for _, e in Mock.Errors do
+ 	print("  error: " .. tostring(e))
