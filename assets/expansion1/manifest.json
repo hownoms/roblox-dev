@@ -1,0 +1,737 @@
+{
+  "kit": "Dig to the Core! first expansion",
+  "version": 1,
+  "prepared_date": "2026-10-08",
+  "scope": "Mara, Pip, Broadwave, Spring Vault, controlled beach ball and first trophy; no future regions",
+  "source_specs": [
+    "docs/game-bible/02-future-game.md",
+    "docs/game-bible/03-future-content-catalog.md",
+    "docs/game-bible/04-mechanics-economy-and-production.md",
+    "docs/game-bible/05-roadmap-validation-and-handoff.md"
+  ],
+  "preserved_references": [
+    "docs/UI_STYLE.md",
+    "src/shared/Models/Build.luau",
+    "src/shared/Models/Shovels.luau",
+    "src/shared/Models/Props.luau",
+    "assets/icons/preview_32.png",
+    "marketing/publish-kit-bacon-v3/contact-sheet.jpg"
+  ],
+  "ownership": "Original repo procedural assets and newly generated artwork; no third-party Roblox asset IDs",
+  "uploaded": false,
+  "published": false,
+  "studio_verified": false,
+  "assets": [
+    {
+      "asset_id": "concepts/npc_mara_design.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara design",
+      "status": "concept_art",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "NPC design reference only",
+      "path": "assets/expansion1/concepts/npc_mara_design.png",
+      "sha256": "40ab3508814f4e02b58e1d365a5f27398cf1f9366d029d1dc5e6e1f031e6d0ca"
+    },
+    {
+      "asset_id": "concepts/npc_pip_design.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip design",
+      "status": "concept_art",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "NPC design reference only",
+      "path": "assets/expansion1/concepts/npc_pip_design.png",
+      "sha256": "d2ae7dd662782cc59f0419402ad1f59ce2ec03b2c054a373e8ba64d288bc0358"
+    },
+    {
+      "asset_id": "INTEGRATION.md",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "INTEGRATION",
+      "status": "reference_document",
+      "source": "tools/expansion1/manifest.py",
+      "integration_location": "local development handoff",
+      "path": "assets/expansion1/INTEGRATION.md",
+      "sha256": "3739d74bbc9d0ba3fbfa23df0abd1714e00182d6016e5aa7030d249b0ce2f15d"
+    },
+    {
+      "asset_id": "models/Expansion1Review.rbxlx",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "Expansion1Review",
+      "status": "roblox_compatible_review_place_studio_pending",
+      "source": "expansion1.project.json + src/shared/Models/Expansion1.luau",
+      "integration_location": "Studio isolated local review; Play builds models",
+      "path": "assets/expansion1/models/Expansion1Review.rbxlx",
+      "sha256": "22aa5f2387baf5234f9224f24a7b5e3f8abba70920159cd3eed0b616fedaa03b"
+    },
+    {
+      "asset_id": "previews/camp_trophy_display.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "camp trophy display",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/camp_trophy_display.png",
+      "sha256": "9c930990dba6f03adecbd1de1a271490ab94cd34044c432e6f9db1c687698ae5"
+    },
+    {
+      "asset_id": "previews/camp_trophy_stand.png",
+      "entity_id": "camp_trophy_stand",
+      "purpose": "camp trophy stand",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/camp_trophy_stand.png",
+      "sha256": "ebd4f941821b9c14fb1e03311a2a7ab3929317bd4ff1dc0c76ad798d92f428d4"
+    },
+    {
+      "asset_id": "previews/character_contact_sheet.jpg",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "character contact sheet",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/character_contact_sheet.jpg",
+      "sha256": "9ccb9f29e6dfeebb6f8eba00848384a96d2eaff3328177dcea8dbddb1b691a72"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_ball.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault ball",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_ball.png",
+      "sha256": "dfbeec953f31f5ec17012c4d9b2b37928bbbaa9a103b4f1518fbd35ad0cf10be"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_ball_effect.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault ball effect",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_ball_effect.png",
+      "sha256": "2afa6201a9fe281d01defe3460a2dec1170c2727a5d96e681c52b9d60f27fbeb"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_Covered.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault Covered",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_Covered.png",
+      "sha256": "4582777776ad57235a43c811834030787db494973c905fb5eb80290795dcfdc8"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_Opened.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault Opened",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_Opened.png",
+      "sha256": "3a50b68a1f3eb5bbf272263e3849915575ea6c570cf8cb5bcc9a292a90e5435d"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_Partial.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault Partial",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_Partial.png",
+      "sha256": "2376bfa3d7b5e72eaff8c950d50c584cff9c6011b74813236b59bd3b6bef1e1b"
+    },
+    {
+      "asset_id": "previews/landmark_spring_vault_trophy.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "landmark spring vault trophy",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/landmark_spring_vault_trophy.png",
+      "sha256": "3c794b7b71c8ff82049afbbc07614ca790220e8f1eeabfc6be344a259e273942"
+    },
+    {
+      "asset_id": "previews/model_contact_sheet.jpg",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "model contact sheet",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/model_contact_sheet.jpg",
+      "sha256": "76ad667e8b90d615cab62145b221d65da20f3e31ac3580f21f9a1bd28d722182"
+    },
+    {
+      "asset_id": "previews/npc_mara_Idle.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara Idle",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/npc_mara_Idle.png",
+      "sha256": "db891d256516fd6a8e5a98820bcdd376164bb755ad90471d5d6a77849f065927"
+    },
+    {
+      "asset_id": "previews/npc_pip_Idle.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip Idle",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/npc_pip_Idle.png",
+      "sha256": "d68c8c5e8143c6f0786b7a18082ca64dd68e3edde493f5a1b4140167fb12d8c6"
+    },
+    {
+      "asset_id": "previews/tool_broadwave.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "tool broadwave",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/tool_broadwave.png",
+      "sha256": "50db4433c62a043beb3480406cf6c597e04e74b637470a39740c3ebdb08b9e63"
+    },
+    {
+      "asset_id": "previews/tool_broadwave_effect.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "tool broadwave effect",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/tool_broadwave_effect.png",
+      "sha256": "8f83af237d26e0fc60b90580985b47356a015f48cc407582a7710c6bf9fdb480"
+    },
+    {
+      "asset_id": "previews/ui_readability.png",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "ui readability",
+      "status": "review_preview_not_gameplay_screenshot",
+      "source": "tools/expansion1/export_visuals.py / manifest.py",
+      "integration_location": "local visual review",
+      "path": "assets/expansion1/previews/ui_readability.png",
+      "sha256": "6f32f1374d07951db7e3647a14b269f8cc01bce5b889495cbd6f1063c302d79b"
+    },
+    {
+      "asset_id": "PROMPTS.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "PROMPTS",
+      "status": "reference_document",
+      "source": "tools/expansion1/manifest.py",
+      "integration_location": "local development handoff",
+      "path": "assets/expansion1/PROMPTS.json",
+      "sha256": "864fa09be8d615cbaf8c08366cfdd5d4fdf2684503db696305dda901faea820e"
+    },
+    {
+      "asset_id": "README.md",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "README",
+      "status": "reference_document",
+      "source": "tools/expansion1/manifest.py",
+      "integration_location": "local development handoff",
+      "path": "assets/expansion1/README.md",
+      "sha256": "5ce013872cd91a1493c6e564b2ca5e2acf53923c0fc9bfab1c6ad892febfcf9b"
+    },
+    {
+      "asset_id": "SPEC.md",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "SPEC",
+      "status": "reference_document",
+      "source": "tools/expansion1/manifest.py",
+      "integration_location": "local development handoff",
+      "path": "assets/expansion1/SPEC.md",
+      "sha256": "949e05b348a8fadee28037cff4adedd9a906023e70f7208f0f6c770484fc02bf"
+    },
+    {
+      "asset_id": "ui/ability_broadwave_120.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "ability broadwave 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/ability_broadwave_120.png",
+      "sha256": "7f4dba3ac7b75a8e764ed080212ecca8ddc3952164cd5ffb51284c3e1fb557db"
+    },
+    {
+      "asset_id": "ui/ability_broadwave_240.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "ability broadwave 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/ability_broadwave_240.png",
+      "sha256": "28728ea074259d878b495e435aa882ab63d717995fcb19cad3352ed609713fb3"
+    },
+    {
+      "asset_id": "ui/ability_broadwave_32.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "ability broadwave 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/ability_broadwave_32.png",
+      "sha256": "d80b320ff2acf47f045c7b197c33bac3df25a1a0a978527c9f04c816dd6a0267"
+    },
+    {
+      "asset_id": "ui/atlas_rects.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "atlas rects",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/atlas_rects.json",
+      "sha256": "0426fda82843f78365015761a837ea51d101fd6c7592f17cefdd333eaa152217"
+    },
+    {
+      "asset_id": "ui/expansion1_atlas.png",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "expansion1 atlas",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/expansion1_atlas.png",
+      "sha256": "9372c1d01c38fc986779219e0f40f4e7aecd87c23469d5eff61e9fd905088996"
+    },
+    {
+      "asset_id": "ui/helping_120.png",
+      "entity_id": "event_vault",
+      "purpose": "helping 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/helping_120.png",
+      "sha256": "3d342ac52cac3eb642ae118e22f7e45b74b96ccfed6ecebf73763506a0a96ff2"
+    },
+    {
+      "asset_id": "ui/helping_240.png",
+      "entity_id": "event_vault",
+      "purpose": "helping 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/helping_240.png",
+      "sha256": "294181cc6607019fd91c83e2778b9688577016bc3ef6ba48087e2c9099a1ebae"
+    },
+    {
+      "asset_id": "ui/helping_32.png",
+      "entity_id": "event_vault",
+      "purpose": "helping 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/helping_32.png",
+      "sha256": "ada18084be392a5eaa95f3d8627cbbaf94f597901ecf6c17d05f63674c1761a3"
+    },
+    {
+      "asset_id": "ui/npc_mara_portrait_120.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara portrait 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_mara_portrait_120.png",
+      "sha256": "be98d5d9cdcb972cd84037281b2070274853a9fd3f7c211ffc093c9f46d8c273"
+    },
+    {
+      "asset_id": "ui/npc_mara_portrait_240.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara portrait 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_mara_portrait_240.png",
+      "sha256": "028a34c3590ae3881192d92c3bc57a229a02ff308f3a46676899f59d499cbd05"
+    },
+    {
+      "asset_id": "ui/npc_mara_portrait_64.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara portrait 64",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_mara_portrait_64.png",
+      "sha256": "a93a393b12d557fd12c849aea7e662663a349c9dcfd5715b70abe5a744bad391"
+    },
+    {
+      "asset_id": "ui/npc_mara_portrait_source.png",
+      "entity_id": "npc_mara",
+      "purpose": "npc mara portrait source",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_mara_portrait_source.png",
+      "sha256": "589f7ec361a5a13a2a70e44a7f9bec20ff7a93a85a866222d31b36a56ec0b132"
+    },
+    {
+      "asset_id": "ui/npc_pip_portrait_120.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip portrait 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_pip_portrait_120.png",
+      "sha256": "4379e647c582e71279ba45065837f7315b0a02f18577d6598ea6ee402fbfc400"
+    },
+    {
+      "asset_id": "ui/npc_pip_portrait_240.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip portrait 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_pip_portrait_240.png",
+      "sha256": "facf8af9692d4efc141ac179b75a85378cc8203b149f09628a45eece59cdb506"
+    },
+    {
+      "asset_id": "ui/npc_pip_portrait_64.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip portrait 64",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_pip_portrait_64.png",
+      "sha256": "7dce7661229e3f02cd37f380e6d45a0c95f32b86a5fdb29be5e3243cdbdfcea9"
+    },
+    {
+      "asset_id": "ui/npc_pip_portrait_source.png",
+      "entity_id": "npc_pip",
+      "purpose": "npc pip portrait source",
+      "status": "local_raster_ready_upload_pending",
+      "source": "built-in image_gen; PROMPTS.json",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/npc_pip_portrait_source.png",
+      "sha256": "19b91aa223a9d118a130a0bec27166dceaee13262b31214863d80bb09d4271d5"
+    },
+    {
+      "asset_id": "ui/objective_complete_120.png",
+      "entity_id": "event_vault",
+      "purpose": "objective complete 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/objective_complete_120.png",
+      "sha256": "48ac7423d521d2344a49265d315dbf2064d227cf59ad26227bf58bb7cc180927"
+    },
+    {
+      "asset_id": "ui/objective_complete_240.png",
+      "entity_id": "event_vault",
+      "purpose": "objective complete 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/objective_complete_240.png",
+      "sha256": "14898c5e35cbc1d303b021b270885ccb673596093add13d0540eb13a8d5f2595"
+    },
+    {
+      "asset_id": "ui/objective_complete_32.png",
+      "entity_id": "event_vault",
+      "purpose": "objective complete 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/objective_complete_32.png",
+      "sha256": "236426cd475f66e2cdd0ce72574a0d6e3a65c6d32718fd93f801d2f4b8563cb2"
+    },
+    {
+      "asset_id": "ui/shared_discovery_120.png",
+      "entity_id": "event_vault",
+      "purpose": "shared discovery 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/shared_discovery_120.png",
+      "sha256": "f0afed7142f0aae5e5f3a5822c76708d0941a26f981a6cdc0e774786d83c4ae7"
+    },
+    {
+      "asset_id": "ui/shared_discovery_240.png",
+      "entity_id": "event_vault",
+      "purpose": "shared discovery 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/shared_discovery_240.png",
+      "sha256": "81925241370e7c907b58b26f657ae7ed442369c821c9371eb4451df2500177f2"
+    },
+    {
+      "asset_id": "ui/shared_discovery_32.png",
+      "entity_id": "event_vault",
+      "purpose": "shared discovery 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/shared_discovery_32.png",
+      "sha256": "582f305c320cc45610b5dd9b13a809252c68a1018001b0131e5bef6c4f4eeed6"
+    },
+    {
+      "asset_id": "ui/tool_broadwave_120.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "tool broadwave 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/tool_broadwave_120.png",
+      "sha256": "451b3a391ea41a53da73a9a0c414068b292c96966fa6c13daebf1a75967026e2"
+    },
+    {
+      "asset_id": "ui/tool_broadwave_240.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "tool broadwave 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/tool_broadwave_240.png",
+      "sha256": "783304669d06e2bcdbf375071500bf347cd556fdccb2f9414fee2aa9125f1ad3"
+    },
+    {
+      "asset_id": "ui/tool_broadwave_32.png",
+      "entity_id": "tool_broadwave",
+      "purpose": "tool broadwave 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/tool_broadwave_32.png",
+      "sha256": "86de6de17ab4db7c459be03e6e61aa3abe264c579ef8ba9d09c502037657544a"
+    },
+    {
+      "asset_id": "ui/trophy_reward_120.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "trophy reward 120",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/trophy_reward_120.png",
+      "sha256": "dc78f1de8263b71d19344395d8c2edbad50f277780d4c0b650c923ec86078c92"
+    },
+    {
+      "asset_id": "ui/trophy_reward_240.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "trophy reward 240",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/trophy_reward_240.png",
+      "sha256": "16a7ff1aa62e41df822fa6cf38ee70f3ac1548a67c26b23b2deedf1855fb7ae4"
+    },
+    {
+      "asset_id": "ui/trophy_reward_32.png",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "trophy reward 32",
+      "status": "local_raster_ready_upload_pending",
+      "source": "tools/expansion1/export_visuals.py; existing tools/icons/generate_icons.py house renderer",
+      "integration_location": "future NPC dialogue / contextual ability / event objective / settled result UI",
+      "path": "assets/expansion1/ui/trophy_reward_32.png",
+      "sha256": "e8052e036ac1199e2602cf74ce92b4c5d9e9e5dba63a7363f2ed98a4f60d7eba"
+    },
+    {
+      "asset_id": "verification/format-check.txt",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "format-check",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/format-check.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "asset_id": "verification/image-audit.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "image-audit",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/image-audit.json",
+      "sha256": "a2bedd24ac14a50d8b94399cac5bc10dc8ac29b74c2702c5919c86ffb2933829"
+    },
+    {
+      "asset_id": "verification/model-audit.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "model-audit",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/model-audit.json",
+      "sha256": "d8566456cb1b9a592b4735c58d2d989f712ef7c59bcfa1d85adefc01a75dd6f3"
+    },
+    {
+      "asset_id": "verification/model-geometry.tsv",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "model-geometry",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/model-geometry.tsv",
+      "sha256": "28300e015477ef96c95f1d1b10109abab1a9b9caba61cdc3ba895c235a4a141e"
+    },
+    {
+      "asset_id": "verification/ProductionBuildCheck.rbxlx",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "ProductionBuildCheck",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/ProductionBuildCheck.rbxlx",
+      "sha256": "6b39159ce05763ec22b5a13b305fa6924432dbafe40353eccb24b35c2906cc19"
+    },
+    {
+      "asset_id": "verification/RESULTS.md",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "RESULTS",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/RESULTS.md",
+      "sha256": "73c46dc38d331d574ba4fada1ca7e66b0ea266698eccc8babfb72a125bbaef9a"
+    },
+    {
+      "asset_id": "verification/review-sourcemap.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "review-sourcemap",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/review-sourcemap.json",
+      "sha256": "9aeeedb64eee1443cf6cbb8abd616c920d6c71256c827a205d74a1b8949c722e"
+    },
+    {
+      "asset_id": "verification/review-typecheck.txt",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "review-typecheck",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/review-typecheck.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "asset_id": "verification/source-typecheck.txt",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "source-typecheck",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/source-typecheck.txt",
+      "sha256": "6420e8e3a38e3faa3e4a58a07ef7e794b6366a3f52e420b825694171b80e32b5"
+    },
+    {
+      "asset_id": "verification/sourcemap.json",
+      "entity_id": "expansion1_visual_kit",
+      "purpose": "sourcemap",
+      "status": "headless_or_build_evidence_not_studio_evidence",
+      "source": "local Rojo / Luau / image inspection",
+      "integration_location": "reviewer evidence only",
+      "path": "assets/expansion1/verification/sourcemap.json",
+      "sha256": "45f07dc5926fc001cc9503f316e2a8182fde2531a78b65a17620bd20c00506e5"
+    },
+    {
+      "asset_id": "factory:NPC(\"npc_mara\", pose)",
+      "entity_id": "npc_mara",
+      "purpose": "blocky lifeguard; Idle/Point/Celebrate",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.NPC(\"npc_mara\", pose)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:NPC(\"npc_pip\", pose)",
+      "entity_id": "npc_pip",
+      "purpose": "blocky shopkeeper; Idle/Point/Celebrate",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.NPC(\"npc_pip\", pose)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:Broadwave()",
+      "entity_id": "tool_broadwave",
+      "purpose": "held welded shovel",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.Broadwave()",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:SpringVault(state)",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "Covered/Partial/Opened 12x10x8 shared vault",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.SpringVault(state)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:BeachBall()",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "giant springy controlled cargo ball",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.BeachBall()",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:TrophyStand()",
+      "entity_id": "camp_trophy_stand",
+      "purpose": "2x2 cream camp pedestal",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.TrophyStand()",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:TrophyReplica()",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "first-adventure display replica",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.TrophyReplica()",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:ChargeEffect(progress)",
+      "entity_id": "tool_broadwave",
+      "purpose": "three filling charge dots",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.ChargeEffect(progress)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:AbilityEffect(progress, reducedMotion)",
+      "entity_id": "tool_broadwave",
+      "purpose": "local blue foam release cue",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.AbilityEffect(progress, reducedMotion)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    {
+      "asset_id": "factory:BallEffect(reducedMotion)",
+      "entity_id": "landmark_spring_vault",
+      "purpose": "small bounce ground puffs",
+      "status": "roblox_compatible_factory_integration_and_studio_pending",
+      "source": "src/shared/Models/Expansion1.luau",
+      "path": "src/shared/Models/Expansion1.luau",
+      "api": "Kit.BallEffect(reducedMotion)",
+      "integration_location": "ReplicatedStorage.Shared.Models.Expansion1; future NPC/Ability/Event/Camp controllers",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    }
+  ],
+  "source_specs_snapshot": "assets/expansion1/SPEC.md"
+}
