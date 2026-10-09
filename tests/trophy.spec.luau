@@ -1233,6 +1233,312 @@ step("Studio review preview: displays without a stand, grants nothing", function
 	leave(d)
 end)
 
+-- Camp lifecycle and ownership audit (docs/integration/camp-lifecycle.md) --------------------
+section("camp lifecycle and ownership protections")
+local function seedDisplayed(userId, layout)
+	seedTrophyWithoutStand(userId)
+	local save = Mock.DataStores[STORE]["Player_" .. userId].Data
+	save.Cosmetics = { camp_trophy_stand = { Kind = "CampFurniture", Source = "event_vault", AcquiredAt = 1 } }
+	save.CampLayout = layout or { NextId = 2, Placements = { { Id = 1, TrophyId = TROPHY, X = 5, Z = 5, Rot = 90 } } }
+	return save
+end
+local function promptCount(part)
+	local n = 0
+	for _, c in part:GetChildren() do
+		if c:IsA("ProximityPrompt") then
+			n += 1
+		end
+	end
+	return n
+end
+local function currentDeck()
+	return Mock.Tagged("TrophyCampPad")[1]
+end
+local L1, L2, L3, L4, L5, L6 = 9601, 9602, 9603, 9604, 9605, 9606
+
+step("join with a saved layout: nothing before the load, shown after it", function()
+	seedDisplayed(L1)
+	local p = Mock.AddPlayer(L1, "Lu")
+	TrophyService.OnPlayerAdded(p) -- Main runs this before the async load finishes
+	check(status(p) == nil and owner() == nil, "not loaded: no status, no pad")
+	check(TrophyService.DisplayAction(p) == false, "not loaded: action refused")
+	DataService.OnPlayerAdded(p)
+	Mock.Advance(0.5)
+	check(owner() == L1 and status(p) == "Displayed", "after the load the saved camp is on the pad")
+	check(campModel(L1) ~= nil, "camp model built")
+	-- death / respawn: the camp and the pad do not care about the character
+	local model = campModel(L1)
+	Mock.SpawnCharacter(p, Vector3.new(80, Config.SURFACE_Y + 3, 76))
+	Mock.SpawnCharacter(p, Vector3.new(80, Config.SURFACE_Y + 3, 76))
+	Mock.Advance(0.2)
+	check(owner() == L1 and campModel(L1) == model and status(p) == "Displayed", "respawn changes nothing")
+	leave(p)
+	check(owner() == nil and campModel(L1) == nil, "leave frees the pad and destroys the model")
+end)
+
+step("load failure: no status, no display, nothing claimed", function()
+	seedDisplayed(L2)
+	Mock.DataStoreFail = true
+	local p = Mock.AddPlayer(L2, "Fae")
+	DataService.OnPlayerAdded(p)
+	TrophyService.OnPlayerAdded(p)
+	Mock.Advance(60)
+	Mock.DataStoreFail = false
+	check(DataService.IsLoaded(p) == false, "save not loaded")
+	check(status(p) == nil and owner() == nil and campModel(L2) == nil, "nothing shown for an unloaded save")
+	local ok, why = TrophyService.DisplayAction(p)
+	check(not ok and why == "NotLoaded", "action refused: NotLoaded")
+	TrophyService.OnPlayerRemoving(p)
+	Mock.RemovePlayer(p)
+	Mock.Advance(0.5)
+	local saved = stored(L2)
+	check(saved and #saved.CampLayout.Placements == 1, "the stored layout is untouched by the failed session")
+end)
+
+step("a late refresh after leave never claims a pad (departed guard)", function()
+	seedDisplayed(L3)
+	local p = join(L3, "Lev")
+	check(owner() == L3, "shown")
+	-- the leave chain has run TrophyService.OnPlayerRemoving; the save is still loaded until
+	-- DataService releases it. A grant or settlement refresh landing now must not re-show it.
+	TrophyService.OnPlayerRemoving(p)
+	check(owner() == nil, "pad freed on leave")
+	TrophyService.AfterGrantApplied(p, TROPHY, nil, true)
+	check(owner() == nil and campModel(L3) == nil, "late refresh does not re-claim the pad")
+	check(
+		TrophyService.PlaceTrophy(p, { TrophyId = TROPHY, X = 0, Z = 0, Rot = 0 }) == false,
+		"already displayed id refused"
+	)
+	DataService.OnPlayerRemoving(p)
+	Mock.RemovePlayer(p)
+	Mock.Advance(0.5)
+	check(owner() == nil, "still free after the release")
+end)
+
+step("SetEnabled(false) takes camps down; true restores them in order", function()
+	seedDisplayed(L1)
+	seedDisplayed(L2)
+	local p1 = join(L1, "Lu")
+	local p2 = join(L2, "Fae")
+	check(owner() == L1 and status(p2) == "Queued", "Lu shown, Fae queued")
+	TrophyService.SetEnabled(false)
+	check(owner() == nil and campModel(L1) == nil, "off: no camp on the pad")
+	check(deck:GetAttribute("OwnerUserId") == 0, "off: pad shows free")
+	check(status(p1) == "Off" and status(p2) == "Off", "off: status Off for everyone")
+	check(showPrompt.Enabled == false and putPrompt.Enabled == false, "off: prompts disabled")
+	seedDisplayed(L4)
+	local p4 = join(L4, "Ike")
+	check(owner() == nil and campModel(L4) == nil, "joining while off claims nothing")
+	check(#TrophyService.GetCampLayout(p1).Placements == 1, "layouts stay saved while off")
+	TrophyService.SetEnabled(true)
+	check(owner() == L1 and status(p1) == "Displayed", "on: the previous holder gets the pad back")
+	local s2, q2 = status(p2)
+	local s4, q4 = status(p4)
+	check(s2 == "Queued" and q2 == 1 and s4 == "Queued" and q4 == 2, "on: old line first, then the newcomer")
+	check(showPrompt.Enabled == true and putPrompt.Enabled == true, "on: prompts enabled")
+	TrophyService.SetEnabled(true) -- repeat is a no-op
+	check(owner() == L1 and select(2, status(p4)) == 2, "repeat SetEnabled(true) reshuffles nothing")
+	leave(p1)
+	check(owner() == L2, "hand-over still works after the switch")
+	leave(p2)
+	leave(p4)
+end)
+
+step("Studio review layout cannot show on a live server", function()
+	seedTrophyOnly(L5)
+	local p = join(L5, "Rae")
+	Mock.IsStudio = true
+	TrophyService.SetReviewPreview(true)
+	TrophyService.DisplayAction(p)
+	check(owner() == L5, "Studio review shows it")
+	TrophyService.SetReviewPreview(false)
+	Mock.IsStudio = false
+	leave(p)
+	check(
+		#stored(L5).CampLayout.Placements == 1 and stored(L5).Cosmetics.camp_trophy_stand == nil,
+		"reviewed layout saved, no stand"
+	)
+	local again = join(L5, "Rae")
+	check(TrophyService.SetReviewPreview(true) == false, "a live server refuses the review preview")
+	check(owner() == nil and status(again) == "NoStand", "live: reviewed layout without a stand stays hidden")
+	leave(again)
+end)
+
+step("pad deck destroyed and rebuilt on the server", function()
+	seedDisplayed(L1)
+	seedDisplayed(L2)
+	local p1 = join(L1, "Lu")
+	local p2 = join(L2, "Fae")
+	check(owner() == L1 and status(p2) == "Queued", "Lu shown, Fae queued")
+	local oldModel = deck.Parent
+	oldModel:Destroy()
+	Mock.Advance(0.1)
+	check(TrophyService.GetCampPadCount() == 0, "no pad left")
+	check(campModel(L1) == nil, "the camp model does not float where the deck was")
+	check(TrophyService.GetCampPad(p1) == nil and TrophyService.GetCampPadOwner(1) == nil, "no stale pad ownership")
+	check(status(p1) == "NoPad" and status(p2) == "NoPad", "both told there is no pad")
+	local rebuilt = CampPad.Build(padFolder)
+	Mock.Advance(0.1)
+	deck = rebuilt[1]
+	check(promptCount(deck) == 2, "rebuilt deck gets exactly two prompts")
+	showPrompt = deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
+	putPrompt = deck:FindFirstChild(CampAction.REMOVE_PROMPT)
+	check(owner() == L1 and status(p1) == "Displayed", "the displaced owner is first on the rebuilt pad")
+	check(deck:GetAttribute("OwnerUserId") == L1 and signText() == "Lu's camp", "rebuilt deck shows its owner")
+	local camp = campModel(L1)
+	local holder = camp and camp:FindFirstChild("Placement_1")
+	local stand = holder and holder:FindFirstChild("camp_trophy_stand")
+	if check(stand ~= nil, "camp rebuilt on the new deck") then
+		local top = deck.CFrame * CFrame.new(0, deck.Size.Y / 2, 0)
+		check(
+			(stand:GetPivot().Position - CampAction.CellCFrame(top, 5, 5, 90).Position).Magnitude < 1e-4,
+			"on the new deck's cell"
+		)
+	end
+	check(select(2, status(p2)) == 1, "Fae still #1 in line")
+	leave(p1)
+	check(owner() == L2, "hand-over on the rebuilt pad")
+	-- untag / re-tag: prompts removed, then exactly one fresh pair
+	local CS = Mock.Service("CollectionService")
+	CS:RemoveTag(deck, "TrophyCampPad")
+	Mock.Advance(0.1)
+	check(promptCount(deck) == 0, "untagged deck loses its prompts")
+	check(owner() == nil and campModel(L2) == nil, "untagged deck holds no camp")
+	check(deck:GetAttribute("OwnerUserId") == 0, "untagged deck shows free")
+	CS:AddTag(deck, "TrophyCampPad")
+	Mock.Advance(0.1)
+	check(promptCount(deck) == 2, "re-tagged deck: exactly two prompts")
+	showPrompt = deck:FindFirstChild(CampAction.DISPLAY_PROMPT)
+	putPrompt = deck:FindFirstChild(CampAction.REMOVE_PROMPT)
+	check(owner() == L2 and status(p2) == "Displayed", "re-tagged deck shows the waiting camp")
+	leave(p2)
+	check(owner() == nil, "pad free")
+end)
+
+step("unknown or no-longer-owned trophies never show or hold the pad", function()
+	-- a placement saved by a newer server: owned id this server cannot build
+	local save = seedDisplayed(
+		L1,
+		{ NextId = 2, Placements = { { Id = 1, TrophyId = "future_trophy", X = 5, Z = 5, Rot = 90 } } }
+	)
+	save.TrophyRecords.future_trophy = { Kind = "Landmark", Source = "event_future", RegionId = "x", AcquiredAt = 1 }
+	local p = join(L1, "Lu")
+	check(owner() == nil and campModel(L1) == nil, "unbuildable placement claims no pad")
+	check(status(p) == "Ready", "status honest: the Spring Vault trophy can still go up")
+	check(#TrophyService.GetCampLayout(p).Placements == 1, "the newer server's placement stays saved")
+	local ok, st = TrophyService.DisplayAction(p)
+	check(ok and st == "Displayed" and owner() == L1, "the action still displays the real trophy")
+	check(TrophyService.Owns(p, "future_trophy") == true, "future record untouched")
+	-- the owned trophy disappears from records while displayed (rollback / revoke)
+	DataService.Get(p).TrophyRecords[TROPHY] = nil
+	TrophyService.SetReviewPreview(false) -- any refresh
+	check(owner() == nil and campModel(L1) == nil, "revoked trophy taken off the pad")
+	check(#TrophyService.GetCampLayout(p).Placements == 2, "layout itself is not deleted at runtime")
+	check(#Mock.Errors == 0, "no errors")
+	leave(p)
+	-- a saved layout naming a trophy the player does not own, or junk: sanitized on load
+	local bad = seedDisplayed(L6, {
+		NextId = "x",
+		Placements = {
+			{ Id = 1, TrophyId = "not_owned", X = 1, Z = 1, Rot = 0 },
+			"garbage",
+			{ Id = "2", TrophyId = TROPHY, X = 2, Z = 2, Rot = 0 }, -- (a store cannot hold NaN)
+			{ Id = 3, TrophyId = TROPHY, X = 99, Z = 2, Rot = 0 },
+			{ Id = 4, TrophyId = TROPHY, X = 2, Z = 2, Rot = 45 },
+			{ Id = 5, TrophyId = TROPHY, X = 4, Z = 4, Rot = 180, Extra = "drop me" },
+			{ Id = 6, TrophyId = TROPHY, X = 6, Z = 6, Rot = 0 },
+		},
+	})
+	bad.Coins = 777
+	local q = join(L6, "Ola")
+	local layout = TrophyService.GetCampLayout(q)
+	check(
+		#layout.Placements == 1 and layout.Placements[1].Id == 5 and layout.Placements[1].Extra == nil,
+		"corrupt layout sanitized to the one valid placement"
+	)
+	check(layout.NextId == 6, "NextId repaired past the kept ids")
+	check(TrophyService.Owns(q, TROPHY) == true and TrophyService.OwnsStand(q) == true, "trophy and stand kept")
+	check(DataService.Get(q).Coins == 777, "other save data kept")
+	check(owner() == L6, "the valid placement is displayed")
+	leave(q)
+	check(#stored(L6).CampLayout.Placements == 1 and stored(L6).Coins == 777, "sanitized layout saved, rest intact")
+end)
+
+step("prompts: simultaneous claims, other players, spam and leaving mid-action", function()
+	seedTrophyOnly(L1)
+	seedTrophyOnly(L2)
+	local p1 = join(L1, "Lu")
+	local p2 = join(L2, "Fae")
+	grantBoth(p1, "life1")
+	grantBoth(p2, "life2")
+	check(TrophyService.OwnsStand(p1) and TrophyService.OwnsStand(p2), "both own trophy + stand")
+	-- same frame, free pad
+	Mock.FireEvent(showPrompt, "Triggered", p1)
+	Mock.FireEvent(showPrompt, "Triggered", p2)
+	Mock.Advance(0.1)
+	check(owner() == L1 and status(p1) == "Displayed", "the first trigger claims the pad")
+	check(status(p2) == "Queued" and select(2, status(p2)) == 1, "the second is queued, not given the pad")
+	-- another player's put-away acts only on their own save
+	local before = TrophyService.GetCampLayout(p1)
+	Mock.Advance(1.5)
+	trigger(putPrompt, p2)
+	check(
+		deepEqual(TrophyService.GetCampLayout(p1), before) and owner() == L1,
+		"Fae's put-away never touches Lu's camp"
+	)
+	check(#TrophyService.GetCampLayout(p2).Placements == 0, "Fae's own layout emptied")
+	-- spam: 20 triggers in one frame act at most twice
+	Mock.Advance(1.5)
+	local changes = 0
+	local conn = TrophyService.CampChanged:Connect(function(pl)
+		if pl == p2 then
+			changes += 1
+		end
+	end)
+	for i = 1, 20 do
+		Mock.FireEvent(if i % 2 == 1 then showPrompt else putPrompt, "Triggered", p2)
+	end
+	Mock.Advance(0.1)
+	check(changes <= 2, "spammed prompt acted at most twice (" .. changes .. ")")
+	Mock.Advance(1.5)
+	local burst = changes
+	local now = TrophyService.GetCampLayout(p2)
+	trigger(if #now.Placements == 0 then showPrompt else putPrompt, p2)
+	check(changes == burst + 1, "a normal press works again after the burst")
+	conn:Disconnect()
+	-- owner leaves, then a stale trigger from them arrives
+	local notes = #actionNotes
+	leave(p1)
+	trigger(showPrompt, p1)
+	trigger(putPrompt, p1)
+	check(TrophyService.GetCampPad(p1) == nil and owner() ~= L1, "a departed player's trigger claims nothing")
+	check(#actionNotes == notes, "no toast to a departed player")
+	check(#Mock.Errors == 0, "no errors")
+	leave(p2)
+	check(owner() == nil, "pad free")
+end)
+
+step("display models: anchored, non-colliding, server-built in Workspace.TrophyCamps", function()
+	seedDisplayed(L1)
+	local p = join(L1, "Lu")
+	local camp = campModel(L1)
+	local parts, bad = 0, {}
+	for _, d in (camp and camp:GetDescendants() or {}) do
+		if d:IsA("BasePart") then
+			parts += 1
+			if not d.Anchored or d.CanCollide or d.CanTouch then
+				table.insert(bad, d.Name)
+			end
+		end
+	end
+	check(
+		parts > 0 and #bad == 0,
+		"every camp part anchored, CanCollide/CanTouch off (" .. table.concat(bad, ",") .. ")"
+	)
+	check(camp and camp.Parent == workspace:FindFirstChild("TrophyCamps"), "built under Workspace.TrophyCamps")
+	leave(p)
+end)
+
 check(#Mock.Errors == 0, "no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))

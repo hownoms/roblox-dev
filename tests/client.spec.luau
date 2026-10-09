@@ -395,7 +395,7 @@ do
 		-- PC windows and 1920x1080 (scale 1.35)
 		{ 1000, 540, "pc" }, { 1044, 540, "pc" }, { 1422, 757, "pc" }, { 1422, 800, "pc" }, { 1600, 900, "pc" },
 	}
-	local names = { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Bottom", "Ride", "RideDig" }
+	local names = { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Bottom", "Ride", "RideDig", "Broadwave" }
 	for _, entry in sizes do
 		local W, H, kind = entry[1], entry[2], entry[3]
 		local r = Layout.Compute(Mock.Env.Vector2.new(W, H))
@@ -412,11 +412,40 @@ do
 		if kind == "phone" then
 			local thumb = { X = 0, Y = H - 190, W = 260, H = 190 }
 			local jump = { X = W - 170, Y = H - 160, W = 170, H = 160 }
-			for _, n in { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Ride", "RideDig", "Bottom" } do
+			for _, n in { "TopRight", "Menu", "Depth", "Centre", "Survival", "Social", "Ride", "RideDig", "Bottom", "Broadwave" } do
 				check(not Layout.Overlaps(r[n], thumb), tag .. ": " .. n .. " clear of the thumbstick")
 				check(not Layout.Overlaps(r[n], jump), tag .. ": " .. n .. " clear of the jump button")
 			end
 		end
+	end
+	-- Broadwave equip toggle (UI/BroadwaveEquip): clear of the DetectorHUD Scan pill on every size,
+	-- and, on real phone viewports, of the runtime's 64 px Broadwave charge button (PR #33:
+	-- viewport.X - 88, max(76, viewport.Y / 2 - 66)) and Roblox's jump button. Real px -> design
+	-- px = / UI scale (Root: min(X / 1000, Y / 540) clamped 0.6..1.35), insets ignored.
+	check(Layout.BROADWAVE.Y - 6 >= 74 and Layout.BROADWAVE.X >= 74, "Broadwave toggle face >= 74 design px")
+	for _, entry in sizes do
+		local W, H = entry[1], entry[2]
+		local r = Layout.Compute(Mock.Env.Vector2.new(W, H))
+		local pill = { X = math.floor(W / 2 - 205), Y = r.Bottom.Y - 72, W = 140, H = 80 }
+		check(not Layout.Overlaps(r.Broadwave, pill), W .. "x" .. H .. ": Broadwave toggle clear of the Scan pill")
+	end
+	for _, viewport in { { 705, 338 }, { 800, 360 }, { 844, 390 }, { 915, 412 }, { 932, 430 }, { 1024, 768 }, { 1180, 820 } } do
+		local vx, vy = viewport[1], viewport[2]
+		local s = math.clamp(math.min(vx / 1000, vy / 540), 0.6, 1.35)
+		local r = Layout.Compute(Mock.Env.Vector2.new(math.floor(vx / s), math.floor(vy / s)))
+		local function design(x, y, w, h)
+			return { X = x / s, Y = y / s, W = w / s, H = h / s }
+		end
+		local tag = vx .. "x" .. vy .. " real"
+		local charge = design(vx - 88, math.max(76, vy / 2 - 66), 64, 64)
+		local small = math.min(vx, vy) <= 500
+		local jumpSize = if small then 70 else 120
+		local jump = design(vx - (if small then 95 else 170), vy - (if small then 90 else 210), jumpSize, jumpSize)
+		local measured = design(610, 190, 70, 70) -- Galaxy A06 capture (PR #33)
+		check(not Layout.Overlaps(r.Broadwave, charge), tag .. ": Broadwave toggle clear of the runtime charge button")
+		check(not Layout.Overlaps(r.Broadwave, jump), tag .. ": Broadwave toggle clear of the jump button")
+		check(not Layout.Overlaps(r.Broadwave, measured), tag .. ": Broadwave toggle clear of the measured A06 jump")
+		check(not Layout.Overlaps(r.Broadwave, r.Ride) and not Layout.Overlaps(r.Broadwave, r.Survival), tag .. ": clear of Ride / SurvivalHUD")
 	end
 	check(Layout.MENU_CELL >= 74, "menu cells >= 74 design px (44 px on phones at scale 0.6)")
 	local round = HUD.Buttons.Daily.Holder
@@ -3733,6 +3762,12 @@ do
 		check(ghost() == nil, "displayed: preview gone")
 		check(show.Enabled == false and put.Enabled == true, "displayed: only put-away")
 		check(entry.Body.Text == "Your trophy is on display.", "displayed wording")
+		-- TrophyService.SetEnabled(true) writes Enabled = true on both server prompts; that write
+		-- can replicate after the status attribute. The local choice must win again.
+		show.Enabled = true
+		put.Enabled = true
+		Mock.Advance(0.1)
+		check(show.Enabled == false and put.Enabled == true, "replicated server Enabled write re-hidden locally")
 		set("Queued", 2)
 		check(put.Enabled == true and string.find(entry.Body.Text, "#2", 1, true) ~= nil, "queued: place in line")
 		set("NoPad")
@@ -3741,8 +3776,26 @@ do
 		check(card.Enabled == false and show.Enabled == false and put.Enabled == false, "feature off: hidden")
 		check(ghost() == nil, "feature off: no preview")
 
-		-- streaming: the deck streams out and back in as a new instance
+		-- the server removes the prompts (deck untagged / rebuilt) while the preview is up
 		set("Ready")
+		Mock.FireEvent(show, "PromptShown", Enum.ProximityPromptInputType.Keyboard)
+		Mock.Advance(0.1)
+		check(ghost() ~= nil, "preview up before the prompt is removed")
+		local oldGhost = ghost()
+		show:Destroy()
+		Mock.Advance(0.1)
+		check(
+			ghost() == nil and oldGhost.Parent == nil and entry.Show == nil,
+			"removed prompt takes the preview with it"
+		)
+		show = prompt(CampAction.DISPLAY_PROMPT)
+		Mock.Advance(0.1)
+		check(
+			entry.Show == show and show.Enabled == true and ghost() == nil,
+			"fresh prompt hooked, no preview until shown"
+		)
+
+		-- streaming: the deck streams out and back in as a new instance
 		local token = Mock.StreamOut(deck)
 		Mock.Advance(0.1)
 		check(Camp.GetEntry(deck) == nil and card.Parent == nil, "stream-out cleans up card and preview")

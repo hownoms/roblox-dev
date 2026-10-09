@@ -7,7 +7,8 @@
 	- Load takes the lock with UpdateAsync. A lock held by another live server is respected
 	  (retry with backoff, then kick); a lock older than Config.SESSION_LOCK_SECONDS is stolen.
 	- Every save refreshes the lock; the final save on leave releases it. A save that finds the
-	  lock owned by someone else aborts (the other server owns the truth now).
+	  lock owned by someone else, or no lock at all (another server took it over and released
+	  it), aborts: the other server owns the truth now.
 	- Studio without API access: in-memory store (warns once).
 
 	Replication: every mutation marks top-level keys dirty; once per resumption cycle the service
@@ -403,7 +404,10 @@ local function saveAsync(session: Session, release: boolean): boolean
 				stolen = false
 				local record = if type(old) == "table" then old else {}
 				local lock = record.Lock
-				if type(lock) == "table" and lock.Owner ~= SESSION_ID then
+				-- Load took the lock and every save keeps it, so a missing lock means another
+				-- server took the save over (stale lock) and has since released it: its write is
+				-- newer than this session's data, which must not overwrite it.
+				if type(lock) ~= "table" or lock.Owner ~= SESSION_ID then
 					stolen = true
 					return nil
 				end

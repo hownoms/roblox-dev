@@ -353,7 +353,10 @@ function Rewards.FinalDecisions(context: any, now: number): ({ Decision }?, stri
 		}, #participants)
 		local decision: Decision = { UserId = p.UserId }
 		if p.Eligible ~= true then
-			decision.Reason = "EventIneligible"
+			-- The runtime's veto covers several facts (left, disconnected, absent, too few
+			-- points). Name the contribution reason when our rule says the same, so a watcher
+			-- who stayed to the finish is told "didn't contribute", not "weren't in the crew".
+			decision.Reason = if eligible then "EventIneligible" else why
 		elseif not eligible then
 			decision.Reason = why
 		else

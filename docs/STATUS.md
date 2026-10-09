@@ -30,27 +30,22 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
-- **Adventure trophies (merged, not wired or published):** server-authoritative trophy
-  settlement for the Spring Vault (`landmark_spring_vault` from `event_vault`), Mara's trophy
-  stand granted with the first trophy, a durable outbox for players not loaded at settlement,
-  and camp placement/removal with the kit's stand and replica.
-  - The code is in the tree but not booted. Wiring is the 8-line
-    `docs/trophy-integration.patch`, which is held until Codex's Spring Vault adventure is
-    reviewed.
-  - Mock-tested only: `trophy.spec` 259 checks, and `trophy-wired.spec` 18 with the patch.
-  - Handoff and the owner's 9 October decisions: [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md).
-- **Adventure completion bridge (branch `claude/adventure-completion-bridge`, not wired):**
-  `AdventureSettlement` consumes the Spring Vault runtime's `OnStage` and `OnCompletion`
-  contexts.
-  - It grants 6 coins per stage and the remainder to 60 at the final.
-  - The first eligible clear grants the trophy, Mara's stand, cert_crew and q_mara credit in
-    one save mutation.
-  - Receipts use the `adv:` prefix. A grant is reported only once its save is written or it
-    is in the `AdventureRewardIntents_v1` outbox, which drains on any server.
-  - `adventure-settlement.spec` has 153 checks. One Studio solo run passed; live DataStores
-    and two-client play are not tested yet.
-  - The held patch now also boots it. See "Completion bridge" in
-    [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md).
+- **Spring Vault production integration (branch `claude/spring-vault-production-integration`,
+  in joint review, not merged, every flag off):**
+  - Wiring is applied in this branch. Main boots TrophyService, AdventureSettlement and
+    AdventureBoot, the camp and outcome remotes exist, and Q goes through the input arbiter.
+  - With `AdventureFlags` off, which is how it ships, the adventure runtime is never required.
+  - It contains Codex's merged PRs #33 and #34, plus Claude's work on:
+    - a surface hatch and safe returns;
+    - pocket lighting;
+    - removing the arena spawn;
+    - licensed Broadwave (`ResolveTool`) with an equip control that doesn't need the Backpack;
+    - a settlement durability audit (9 fixes);
+    - a camp lifecycle audit (8 fixes).
+  - Every spec passes on the mock store, and Codex's candidate audit passes. Live DataStores,
+    Studio lighting, devices and real cross-server play are still unverified.
+  - The packet, with every open gate and owner decision, is
+    [integration/README.md](integration/README.md).
 - **Validation (latest):** client 1,464, server 2,199, Studio-mode 2,166, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
   deprecated-API warnings. CI is green on every merge.
@@ -79,11 +74,17 @@ Mock tests, bots and Studio's in-memory DataStore don't count as real clients or
 
 ## Open
 
-- **Trophies:**
-  - Apply `docs/trophy-integration.patch` together with Codex's adventure PR.
-  - Live-verify on a private test place: grant, leave, rejoin on another server, and an
-    outbox recovery. Same-server-only recovery stays a release blocker until then.
-  - Production gates: the 16 `TrophyCampPad` pads and a camp/trophy UI.
+- **Spring Vault adventure (before any flag is turned on):** see "Open gates" in
+  [integration/README.md](integration/README.md). In brief:
+  - Codex's runtime copy still says "REVIEW ONLY".
+  - There is a duplicate equip button.
+  - Pocket lighting and the hatch need a Studio look.
+  - Physical phone and controller input is untested.
+  - Live persistence tests are listed in
+    [integration/settlement-durability.md](integration/settlement-durability.md).
+  - Owner decisions still open: who grants the Broadwave licence, permanent first-sale
+    evidence, the kill-switch trigger, and the reach of the rewards flag.
+  - Production camp gates: the 16 `TrophyCampPad` pads and a camp/trophy UI.
 
 - **Map art overhaul:** mobile frame-time check with ~9.7k surface parts before publishing; motion
   not yet watched live.

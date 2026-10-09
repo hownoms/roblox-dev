@@ -1,75 +1,184 @@
-# Adventure rewards + camp: joint review packet
+# Spring Vault production integration: joint review packet
 
-Branch `claude/adventure-rewards-integration` (from default `a4167d9`). It merges three Claude
-branches: `claude/settlement-outcomes` (fb3f235), `claude/camp-display-action` (8dfd2b1) and
-`claude/production-wiring` (6ec6bdf). Nothing here is pushed, uploaded or published, and no
-shared boot file is edited in the tree.
+Branch `claude/spring-vault-production-integration`, 9 October 2026. It starts from default
+`520575d` and is now merged with default `7df3a73`, which contains Codex's PR #33 and PR #34.
+**Every `AdventureFlags` flag is still `false`.** Nothing was uploaded or published, no flag was
+enabled, and no live save test was run. Keep this PR unmerged until Claude and Codex have
+reviewed it together.
 
-## Shared wiring: one patch
+## What changed since the last packet
 
-`adventure-integration.patch` holds the shared-file edits from all four earlier patches,
-already conflict-resolved: `trophy-integration.patch`, `settlement-outcomes.patch`,
-`camp-display-action.patch` and `production-wiring.patch`. Apply only this patch; the other
-four stay as history. It touches `Main.server.luau`, `Main.client.luau`, `Remotes.luau`,
-`DigController.luau`, `InputController.luau`, `tests/run.sh` and `tests/trophy-wired.spec.luau`.
-Every adventure flag (`AdventureFlags`) defaults to off.
+1. **The shared wiring is applied in the tree** (commit `3e216f5`). This is
+   `adventure-integration.patch`, which used to be held back. Main now boots `TrophyService`,
+   `AdventureSettlement` and `AdventureBoot`. `Remotes.luau` gains `PlaceCampItem`,
+   `RemoveCampItem` and `AdventureOutcome`. The client starts the outcome card, the camp display
+   and `AdventureController`, and Q goes through `InputArbiter`. With the flags off,
+   `AdventureBoot.Start` returns immediately and no adventure module is required. The `.patch`
+   files in this folder are kept as history only. Do not apply them again.
+2. **Surface entry, safe return, pocket lighting, and no review spawn** (`claude/svi-entry`; see
+   `adventure-entry.md`):
+   - a hatch on the surface at (-124, 1024, 76) with a "Go down" prompt, checked against
+     `CanEnter` on the server;
+   - a return pad inside the pocket;
+   - lifts back to the surface after Leave, a fall, or the kill switch;
+   - a dark backdrop box and 6 shadowless PointLights;
+   - every SpawnLocation under the scene is destroyed, including after a rebuild.
+3. **Licensed Broadwave and an equip control that works with the hidden Backpack**
+   (`claude/svi-equip`; see `licensed-broadwave.md`):
+   - `AdventureBoot.Options` supplies `ResolveTool = BroadwaveLicense.ResolveTool`. It returns
+     only the equipped tool that this server issued, and only after `CanUseBroadwave` passes.
+   - The loan still never reaches ordinary digging.
+   - New `UI/BroadwaveEquip` control: an on-screen button, Z, or gamepad R1. It is labelled
+     "Broadwave (loan)" for the loan and "Broadwave" for the licensed tool.
+   - Ordinary digging pauses while a Broadwave is in hand.
+4. **`ReturnFrame` is wired** (`651d1c9`). The runtime now returns players to
+   `AdventureEntry.SURFACE_RETURN`, not to the frame where they joined inside the arena.
+5. **Settlement durability audit, 9 fixes** (`claude/svi-settle`; see
+   `settlement-durability.md`):
+   - The most serious fix: `DataService` no longer overwrites a newer save when its own session
+     lock is missing or stale.
+   - The outbox `Ack` no longer deletes intents that a newer server version wrote.
+   - The broadcast completion text is neutral.
+   - Watchers get their real refusal reason.
+   - The display or drain no longer wedges a grant.
+   - Retries happen within the session.
+   - A final outbox write is attempted after a failed leave save.
+6. **Camp display lifecycle and ownership, 8 fixes** (`claude/svi-camp`; see
+   `camp-lifecycle.md`):
+   - The camp follows the real deck part when the deck is rebuilt or retagged.
+   - `SetEnabled(false)` clears the pad and the queue.
+   - Placements that can't be built never hold the pad.
+   - Prompts are rate-limited.
+   - A player who has left is never reassigned the pad.
+   - The client re-renders when a prompt's `Enabled` changes.
+7. `TrophyService` had two strict `pcall` type errors where the camp and settlement work met.
+   Both are fixed (`dc9f6b5`).
+
+## Branches and commits (all pushed to origin)
+
+| Branch | Commit | Merged into this branch by |
+|---|---|---|
+| `claude/svi-entry` | `b724c05` | `a9fb29b` |
+| `claude/svi-camp` | `4df61df` | merge after `a9fb29b` |
+| `claude/svi-equip` | `d0777d7` | `b98a1b4` |
+| `claude/svi-settle` | `1dfeadf` | `a56a905` |
+| default (Codex PRs #33 and #34) | `7df3a73` | merge before `651d1c9` |
+| ReturnFrame wiring, obsolete patch removed | `651d1c9` | direct |
+| Strict `pcall` typing fix, Codex audit log | `dc9f6b5` | direct |
+
+The pull request is not open yet, because `gh` was logged out. Open it from
+`https://github.com/hownoms/roblox-dev/compare/claude/pensive-meitner-6jx4u4...claude/spring-vault-production-integration?expand=1`
+and keep it unmerged until the joint review.
 
 ## Handoffs
 
 | Area | Doc |
 |---|---|
-| Stage and final settlement, trophy reuse, per-player outcomes, durability | `settlement-outcomes.md` |
+| Settlement, trophy reuse, per-player outcomes (design) | `settlement-outcomes.md` |
+| Settlement durability audit, truth table, **live test plan** | `settlement-durability.md` |
 | Camp pad display action and preview | `camp-display-action.md` |
-| Flags, eligibility, licensed Broadwave, input arbitration, boot | `production-wiring.md` |
-| Review of Codex's `codex/spring-vault-gameplay-polish` | `codex-polish-review.md` |
+| Camp lifecycle and ownership audit | `camp-lifecycle.md` |
+| Flags, eligibility, input arbitration, boot | `production-wiring.md` |
+| Licensed Broadwave contract, equip control, input audit | `licensed-broadwave.md` |
+| Surface entrance, returns, pocket lighting, spawn removal | `adventure-entry.md` |
+| Earlier review of Codex's polish branch | `codex-polish-review.md` |
+| Raw logs | `evidence/combined-candidate.log`, `evidence/codex-audit-651d1c9.log` |
 
-## Joint evidence (9 Oct 2026, headless mock store)
+## Combined candidate evidence (headless mock with in-memory DataStores)
 
-Tree: this branch + Codex `d335eab` merged + `adventure-integration.patch`. Every spec passed.
+The tree is this branch at `dc9f6b5`, which already contains PR #33 and PR #34. Every spec
+passes.
 
 | Spec | Checks |
 |---|---|
 | util | 8 |
-| smoke (live) | 2212 |
-| smoke (Studio) | 2179 |
-| trophy | 400 |
+| smoke live / Studio | 2212 / 2179 |
+| trophy | 476 |
 | adventure-settlement | 275 |
+| settlement-durability on / off | 105 / 53 |
 | adventure-outcome | 23 |
-| trophy-wired | 35 |
-| production-wiring, flags off | 36 |
-| production-wiring, flags on | 38 |
-| production-wiring, rejoin | 13 |
-| production-wiring, client | 20 |
-| client | 1500, plus the 7 tutorial scenarios |
-| persistence-boot (live and Studio) | pass |
-| Codex spring-vault | 22 |
-| Codex broadwave-dig | 23 |
+| trophy-wired (real Main) | 60 |
+| production-wiring off / on / rejoin / client | 37 / 42 / 13 / 59 |
+| adventure-entry off / on | 16 / 69 |
+| broadwave-license (end to end through the real runtime, no SKIP) | 61 |
+| persistence-boot live / Studio | pass / pass |
+| client | 1679, plus 7 tutorial scenarios (14, 13, 12, 10, 10, 14, 16) |
+| Codex: spring-vault / runtime / input / return / broadwave-dig | 22 / 38 / 278 / 73 / 24 |
 | adventure-trophy-contract | 24 |
 
-`rojo build default.project.json` succeeds. Without Codex's branch, the flags-on and rejoin
-scenarios print SKIPPED and everything else passes.
+Other checks:
 
-## Not verified
+- **Codex's audit:** `tools/adventure/audit-claude-candidate.py 651d1c9` exits 0, with
+  `authoritative_boot_resolver: passed` and `licensed_runtime_ordinary_sand: passed`. Both gates
+  were blocked on `a9fb29b`.
+- **Build:** `rojo build default.project.json` succeeds.
+- **Strict analysis:** `luau-lsp analyze` with a sourcemap is clean on every changed service,
+  Main and client UI file.
+- **StyLua:** clean on the changed files. `tests/client.spec.luau` already had a formatting
+  diff before this branch.
+- **Mutation runs by the agents:** entry 9 of 9, settlement 10 of 10, camp 17, and licensed
+  Broadwave 2 groups. Every one was caught.
 
-- Live DataStores.
-- Real cross-server rejoin.
-- A real shutdown during settlement.
-- Studio visuals of the camp card and ghost preview.
-- Real multiplayer, phone and controller input.
-- Populated performance.
+## Mocked durability compared with live evidence
 
-## Blocking before any flag is turned on
+Everything above runs on the mock store. A fresh mock "second server" that shares the mock
+DataStore shows that intents survive and are applied exactly once. That shows the logic is
+correct. It does not prove the following, which all need a private test place with API access,
+following the steps in `settlement-durability.md`:
 
-These come from `codex-polish-review.md` and `production-wiring.md`.
+- a real `BindToClose` shutdown during settlement. The mock worst case is 10.4 s for 5 players
+  against a 20 s wait.
+- a real rejoin on another server, followed by a drain;
+- a real session-lock takeover;
+- live `UpdateAsync` throttling;
+- servers running different versions at the same time.
 
-1. The review arena's neutral `SpawnLocation` must not exist in production.
-2. The runtime must accept the licensed Broadwave tool for a charge, or `BroadwaveOrdinary`
-   stays off.
-3. The production client hides the Backpack, so equipping the loan or licence needs a control.
-4. Players need a surface entry or teleport into the under-slab arena, plus a lighting check
-   there.
-5. Owner decisions:
-   - the permanent first-sale and deposit evidence;
-   - who grants the Broadwave licence and under which key;
-   - what triggers the kill switch;
-   - how far the rewards flag reaches.
+## Open gates before any flag is turned on
+
+**Runtime (Codex):**
+
+1. **"REVIEW ONLY" text in production.** The runtime still shows "REVIEW ONLY: no permanent
+   rewards granted" after a wired completion, and Mara's line still mentions the review build.
+   This contradicts the reward cards. Before `AdventureRewards` is enabled, this copy must be
+   made production-safe (`settlement-durability.md` R1).
+2. **Duplicate equip button.** `SpringVaultClient` builds its own "Equip Broadwave" button at the
+   top centre. Production would show it next to `BroadwaveEquip`. Request: an `ExternalEquip`
+   start option (`licensed-broadwave.md`).
+3. **Completion message to everyone.** It is broadcast to every player. Request: send it to
+   participants only, or per recipient (R2). Our text is neutral for now.
+4. **Kill switch and failure cleanup.** Participants are told nothing (R3).
+5. **Old findings L1 and M2.** The ordinary refusal still replaces the event hint inside the
+   arena. A licensed tool can start and cancel charges anywhere, and each is broadcast to all
+   clients.
+6. **Scene rebuild.** Confirm the client picks up the rebuilt scene after each run. The mock
+   covers this; streaming eviction does not.
+
+**Studio and devices (joint):**
+
+7. **Pocket lighting and hatch.** A Studio look at the pocket lighting, the hatch, the return pad
+   and the ceiling from player camera angles. Codex's probe in the review place was not a
+   production check. This session's probe did not run: the Expansion1Review Studio instance
+   closed before it started, and no other place was operated.
+8. **Hardware input.** Physical phone, controller and keyboard use of `BroadwaveEquip` (Z and R1)
+   and of the charge.
+9. **Avatars and network.** Moving R6 and custom avatars, same-account network rejoin, real
+   streaming in and out, and populated device performance.
+10. **Camp display in Studio.** The card, the ghost preview, a live deck rebuild, and two clients
+    holding the prompt at once.
+
+**Live persistence (owner, private test place only):**
+
+11. Every item under "Mocked durability compared with live evidence" above.
+
+**Owner decisions** (unchanged unless noted):
+
+12. Permanent first-sale and deposit evidence. Today the save can produce false negatives for
+    veterans.
+13. Who grants `ToolLicenses.tool_broadwave`. Nothing writes it yet, so the licensed path is
+    never reached in production.
+14. The kill-switch trigger: an admin command or a cross-server message.
+15. How far the rewards flag reaches.
+16. **New:** should the hatch also admit players who are eligible for Pip's trial but not yet for
+    entry?
+17. **New:** at the end of a run, should crews be lifted to the beach or stay in the pocket?
+18. **New:** should stage pay require being present in the arena (R4 / L5)?

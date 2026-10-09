@@ -23,6 +23,11 @@
 	  Bottom    backpack bar + Surface/Sell/Auto, 420 x 180 centred on the bottom edge
 	  Ride      Ride button beside the bottom bar (right side; left side only when that would
 	            meet the SurvivalHUD, i.e. short narrow PC windows); RideDig = touch dig button
+	  Broadwave expansion Broadwave equip toggle (UI/BroadwaveEquip; shown only while the player
+	            holds a Broadwave tool), 120 x 86: the first free slot of: above the bottom bar
+	            right of centre, right of the Scan button's DOWN/UP pill, above Ride, left of the
+	            bottom bar, above that, left of the Scan pill. Never over another region, the Scan
+	            pill or the phone thumbstick/jump zones (tests check this)
 	Phones keep the thumbstick (bottom-left) and jump button (bottom-right) zones clear:
 	nothing but the bottom bar/Ride reaches below y H-183 near those corners (tests check this).
 ]]
@@ -48,6 +53,7 @@ export type Regions = {
 	Bottom: Rect,
 	Ride: Rect,
 	RideDig: Rect,
+	Broadwave: Rect,
 }
 
 Layout.MENU_CELL = 74 -- >= Theme.MinTouchSize
@@ -62,6 +68,7 @@ Layout.SOCIAL = Vector2.new(200, 80)
 Layout.BOTTOM = Vector2.new(420, 180)
 Layout.RIDE = Vector2.new(80, 86)
 Layout.RIDE_DIG = 96
+Layout.BROADWAVE = Vector2.new(120, 86) -- holder incl. the 6 px lip: an 80 px tall face
 Layout.CENTRE_WIDTH = 380
 Layout.WIDE_AT = 1184
 
@@ -118,6 +125,47 @@ function Layout.Compute(size: Vector2): Regions
 		social = rect(survival.X - 8 - Layout.SOCIAL.X, survival.Y, Layout.SOCIAL.X, Layout.SOCIAL.Y)
 	end
 
+	-- Broadwave equip toggle: the first candidate clear of every region above, the Scan button's
+	-- DOWN/UP pill (DetectorHUD, over the left end of the actions row) and the phone thumbstick /
+	-- jump zones (tests/client.spec.luau uses the same zones).
+	local bw, bh = Layout.BROADWAVE.X, Layout.BROADWAVE.Y
+	local scanPill = rect(math.floor(W / 2 - 205), bottom.Y - 72, 140, 80)
+	local avoid = {
+		topRight,
+		menu,
+		depth,
+		centre,
+		survival,
+		social,
+		bottom,
+		ride,
+		rideDig,
+		scanPill,
+		rect(0, H - 190, 260, 190), -- phone thumbstick
+		rect(W - 170, H - 160, 170, 160), -- phone jump button
+	}
+	local candidates = {
+		rect(math.floor(W / 2 + 10), bottom.Y - 6 - bh, bw, bh),
+		rect(scanPill.X + scanPill.W + 4, bottom.Y - 6 - bh, bw, bh),
+		rect(ride.X, ride.Y - 6 - bh, bw, bh),
+		rect(bottom.X - 4 - bw, ride.Y + ride.H - bh, bw, bh),
+		rect(bottom.X - 4 - bw, ride.Y - 6 - bh, bw, bh),
+		rect(scanPill.X - 6 - bw, bottom.Y - 6 - bh, bw, bh),
+	}
+	local broadwave = candidates[1]
+	for _, candidate in candidates do
+		local fits = candidate.X >= 0 and candidate.Y >= 0 and candidate.X + bw <= W and candidate.Y + bh <= H
+		for _, other in avoid do
+			if fits and Layout.Overlaps(candidate, other) then
+				fits = false
+			end
+		end
+		if fits then
+			broadwave = candidate
+			break
+		end
+	end
+
 	return {
 		Size = size,
 		Wide = wide,
@@ -133,6 +181,7 @@ function Layout.Compute(size: Vector2): Regions
 		Bottom = bottom,
 		Ride = ride,
 		RideDig = rideDig,
+		Broadwave = broadwave,
 	}
 end
 

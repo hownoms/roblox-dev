@@ -9,6 +9,13 @@ opening, ball routing or effects, which belong to Codex's branch. It does not ed
 files, DataService, Config, Types or Codex's files. The one shared-file change is a single line
 in `tests/run.sh` that registers the new spec. Nothing was uploaded or published.
 
+> **Update (9 October 2026, later the same day).** `docs/trophy-integration.patch` and its
+> successors are now applied, as the consolidated `docs/integration/adventure-integration.patch`,
+> on `claude/spring-vault-production-integration`. TrophyService is booted there, with its
+> camp remotes and prompts. Later fixes are in `docs/integration/settlement-durability.md` and
+> `docs/integration/camp-lifecycle.md`. The current state is in `docs/integration/README.md`.
+> The sections below are the original handoff.
+
 ## Owner decisions (9 October 2026)
 
 | Decision | How this branch applies it |
@@ -90,8 +97,10 @@ per user. It stores no player progress.
    `Duplicate`. It then saves through `DataService.SaveAsync`.
 3. **Acknowledge.** Applied receipts are removed from the outbox only after that save
    succeeds. If the server crashes after the save but before the acknowledgement, the next
-   load re-applies the grant as a `Duplicate` and acknowledges it then. Unreadable entries
-   are dropped at acknowledgement, so they can't hold the bound.
+   load re-applies the grant as a `Duplicate` and acknowledges it then. Entries this server
+   cannot validate never count toward the bound. An acknowledgement drops them only once they
+   are dead (malformed, or older than 90 days), so an intent written by a newer server version
+   survives an older server's drain.
 
 Store availability follows DataService:
 
@@ -135,7 +144,9 @@ SpringVaultService.Start({
 
 Both callbacks run inside the runtime's Heartbeat loop. Neither one yields, which is tested.
 Rewards are applied to loaded saves synchronously, and the durable writes run in their own
-threads. `OnCompletion` returns `(true, "Adventure complete! Rewards are on their way.")`.
+threads. `OnCompletion` returns `(true, AdventureSettlement.COMPLETION_MESSAGE)`, a broadcast that
+claims no reward because the runtime sends it to every player (see
+`docs/integration/settlement-durability.md`).
 Each participant then gets their own `Reward` notification, for example
 "+42 Coins · You earned the Spring Vault trophy, Mara's trophy stand, Crew certification!".
 
@@ -335,8 +346,9 @@ These are programming errors on the caller's side. Log them; don't retry blindly
 | `SetReviewPreview(bool)` | Studio only; returns whether preview is on |
 | `TrophyGranted` / `CampChanged` | Signals for UI, analytics or quest hooks such as q_trophies |
 
-`SetEnabled(false)` blocks new grants and camp edits only. Earned trophies stay owned and
-queries keep working.
+`SetEnabled(false)` blocks new grants and camp edits and takes every camp off its pad (layouts
+stay saved). Earned trophies stay owned and queries keep working. `SetEnabled(true)` puts the
+camps back, previous pad holders first (docs/integration/camp-lifecycle.md).
 
 Clients cannot grant trophies:
 

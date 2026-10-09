@@ -59,6 +59,10 @@ local PetDigService = require(Services.PetDigService)
 local RideService = require(Services.RideService)
 local OfflineService = require(Services.OfflineService)
 local StreamingService = require(Services.StreamingService) -- v2.3 world anchors + streaming modes
+local TrophyService = require(Services.TrophyService) -- expansion: permanent trophies + camp display
+local AdventureSettlement = require(Services.AdventureSettlement) -- expansion: adventure stage/final rewards
+-- expansion: Spring Vault runtime under server-owned, default-off AdventureFlags (no-op when off)
+local AdventureBoot = require(Services.AdventureBoot)
 local Net = require(Services.Net)
 
 type Service = {
@@ -94,6 +98,9 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "PetDigService", Module = PetDigService :: any },
 	{ Name = "RideService", Module = RideService :: any },
 	{ Name = "OfflineService", Module = OfflineService :: any }, -- v2.2 offline pet earnings
+	{ Name = "TrophyService", Module = TrophyService :: any }, -- expansion: needs DataService only
+	{ Name = "AdventureSettlement", Module = AdventureSettlement :: any }, -- expansion: after TrophyService
+	{ Name = "AdventureBoot", Module = AdventureBoot :: any }, -- expansion: after Dig + AdventureSettlement
 	{ Name = "DevCommands", Module = DevCommands :: any },
 }
 
@@ -119,6 +126,16 @@ MonetizationService.SetGrantHandler(function(player: Player, reward, source: str
 		SurvivalService.GrantConsumables(player, reward.Consumables, source)
 	end
 	return granted
+end)
+
+run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)
+run("TrophyService", "ConnectCampPrompts", TrophyService.ConnectCampPrompts, Net) -- camp display action
+AdventureSettlement.SetNotifier(function(player: Player, text: string)
+	Net.Notify(player, "Reward", text)
+end)
+-- per-player settlement outcomes (replaces the reward text above while wired)
+AdventureSettlement.SetOutcomeSender(function(player: Player, outcome)
+	Net.FireClient("AdventureOutcome", player, outcome)
 end)
 
 for _, entry in ordered do

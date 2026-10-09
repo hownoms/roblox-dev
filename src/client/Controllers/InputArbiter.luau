@@ -44,8 +44,14 @@ function InputArbiter.IsBroadwaveTool(tool: Instance?): boolean
 		and tool:IsA("Tool")
 		and (
 			tool:GetAttribute("ToolId") == InputArbiter.BROADWAVE_TOOL_ID
+			or tool:GetAttribute("LicensedBroadwave") == true
 			or tool:GetAttribute("AdventureLoan") == true
 		)
+end
+
+-- The runtime's adventure loan (event/trial only) as opposed to a licensed tool (ordinary only).
+function InputArbiter.IsBroadwaveLoan(tool: Instance?): boolean
+	return InputArbiter.IsBroadwaveTool(tool) and (tool :: Instance):GetAttribute("AdventureLoan") == true
 end
 
 function InputArbiter.BroadwaveEquipped(): boolean

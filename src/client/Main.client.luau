@@ -51,6 +51,7 @@ local HUD = require(UI:WaitForChild("HUD"))
 local HatchAnimation = require(UI:WaitForChild("HatchAnimation"))
 local TreasurePopup = require(UI:WaitForChild("TreasurePopup"))
 local OfflinePopup = require(UI:WaitForChild("OfflinePopup")) -- v2.2 offline pet earnings
+local AdventureOutcome = require(UI:WaitForChild("AdventureOutcome")) -- expansion: adventure reward outcomes
 
 local ShopPanel = require(Panels:WaitForChild("ShopPanel"))
 local EggPanel = require(Panels:WaitForChild("EggPanel"))
@@ -80,6 +81,10 @@ local Reveal = require(UI:WaitForChild("Reveal"))
 local ChatLayoutController = require(Controllers:WaitForChild("ChatLayoutController"))
 -- Map overhaul: client-side ambient motion for tagged decor (Ferris wheel, boats, gulls, flags...)
 local AmbientController = require(Controllers:WaitForChild("AmbientController"))
+-- Expansion: trophy camp display action + local preview on the camp pad (TrophyService prompts)
+local CampDisplayController = require(Controllers:WaitForChild("CampDisplayController"))
+-- Expansion adventure: starts only when the server has created the adventure remotes
+local AdventureController = require(Controllers:WaitForChild("AdventureController"))
 
 local function start(name: string, fn: () -> ())
 	local ok, err = xpcall(function(): any
@@ -119,6 +124,7 @@ start("SurvivalHUD", SurvivalHUD.Init)
 start("HatchAnimation", HatchAnimation.Init)
 start("TreasurePopup", TreasurePopup.Init)
 start("OfflinePopup", OfflinePopup.Init)
+start("AdventureOutcome", AdventureOutcome.Init)
 start("Announcements", Announcements.Init)
 start("SocialHUD", SocialHUD.Init)
 start("DetectorHUD", DetectorHUD.Init)
@@ -157,3 +163,5 @@ start("RideButton", RideButton.Init)
 start("Status", StatusController.Init)
 start("Discovery", DiscoveryController.Init)
 start("Ambient", AmbientController.Init)
+start("CampDisplay", CampDisplayController.Init)
+start("Adventure", AdventureController.Init)

@@ -43,6 +43,10 @@ Remotes.Events = table.freeze({
 	-- answer an excavation with per-ring timing errors in seconds (-1 = no tap)
 	"Scan",
 	"Excavate",
+	-- expansion trophies (TrophyService): (trophyId: string, x: number, z: number, rot: number)
+	-- place an owned trophy on a camp grid cell; (placementId: number) remove that display
+	"PlaceCampItem",
+	"RemoveCampItem",
 	-- server -> client
 	"DataChanged",
 	"Notify",
@@ -62,6 +66,11 @@ Remotes.Events = table.freeze({
 	"DetectorPing",
 	"ExcavationStart",
 	"FindRevealed",
+	-- expansion adventure settlement (AdventureSettlement), server -> owner: (outcome:
+	-- { InstanceId, Kind, StageId?, State = "Accepted" | "Pending" | "Refused", Status, Coins,
+	-- Trophy, Stand, Certification?, Reason?, Resolved? }) one per stage/final, plus a Resolved
+	-- follow-up when a Pending outcome later becomes Accepted
+	"AdventureOutcome",
 })
 
 Remotes.Functions = table.freeze({

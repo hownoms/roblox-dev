@@ -26,7 +26,7 @@ The server publishes the status as read-only Player attributes `CampStatus` and 
 | `CampStatus` | When | Card text | Prompt shown | Ghost |
 |---|---|---|---|---|
 | *(missing)* | data not loaded | hidden | none | no |
-| `Off` | `TrophyService.SetEnabled(false)` | hidden | none (also disabled on the server) | no |
+| `Off` | `TrophyService.SetEnabled(false)` (camps also come off the pad, see `camp-lifecycle.md`) | hidden | none (also disabled on the server) | no |
 | `NoTrophy` | no displayable trophy | "Finish the Spring Vault to earn a trophy." | none | no |
 | `NoStand` | trophy, no stand (or a saved layout without the stand) | "You need Mara's trophy stand first." | none | no |
 | `Ready`, pad free or yours | may display, layout empty | "Your Spring Vault trophy can go here." | Display trophy | yes |
@@ -112,9 +112,9 @@ clean on the changed files.
 - **No real multiplayer or phone/controller check.** Queue positions and the hand-over are
   covered by mock tests only.
 - **Prompt override.** The client hides prompts by setting `Enabled` locally on a server-owned
-  prompt. If the server changes `Enabled` (only `SetEnabled` does), the replicated value wins
-  until the next status change re-renders. `SetEnabled` always publishes a new status, so this
-  should not stick, but it has not been checked in a live client.
+  prompt. If the server changes `Enabled` (only `SetEnabled` does), the client now re-renders
+  on that property change, so the local choice wins again (fixed in `camp-lifecycle.md`). Not
+  checked in a live client.
 
 ## Decisions and risks to review
 
