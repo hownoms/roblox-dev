@@ -34,13 +34,27 @@ export type Outbox = {
 }
 
 local ATTEMPTS = 3
+-- An entry this server cannot validate is only dropped once it is clearly dead (malformed, or
+-- older than this). An entry written by a NEWER server version (a new event, a raised reward)
+-- reads as invalid here, and must survive until a server that understands it applies it.
+local STALE_SECONDS = 90 * 24 * 60 * 60
+
+local function isDead(entry: any, now: number): boolean
+	if type(entry) ~= "table" then
+		return true
+	end
+	local at = entry.At
+	return type(at) ~= "number" or at ~= at or now - at > STALE_SECONDS
+end
 
 local DurableOutbox = {}
 
 --[[
 	storeName: DataStore name. maxPerUser: bound on stored intents per user.
-	isValid(receiptId, entry): re-validates entries read back (invalid ones are never returned and
-	are dropped on the next acknowledgement, so they cannot hold the bound).
+	isValid(receiptId, entry): re-validates entries read back. Invalid ones are never returned and
+	never count toward the bound; an acknowledgement drops them only once they are dead (not a
+	table, no numeric At, or older than 90 days), so an intent from a newer server version is kept
+	for a server that understands it.
 ]]
 function DurableOutbox.new(storeName: string, maxPerUser: number, isValid: (any, any) -> boolean): Outbox
 	local store: DataStore? = nil
@@ -162,8 +176,9 @@ function DurableOutbox.new(storeName: string, maxPerUser: number, isValid: (any,
 		return if done then snapshot else nil
 	end
 
-	-- Removes applied (and any invalid) receipt ids. Yields. Returns success.
+	-- Removes applied receipt ids (and dead invalid entries, see isDead). Yields. Returns success.
 	function outbox.Ack(userId: number, receiptIds: { string }): boolean
+		local now = os.time()
 		return update(userId, function(record)
 			local changed = false
 			for _, receiptId in receiptIds do
@@ -173,7 +188,7 @@ function DurableOutbox.new(storeName: string, maxPerUser: number, isValid: (any,
 				end
 			end
 			for receiptId, entry in record.Grants do
-				if not isValid(receiptId, entry) then
+				if not isValid(receiptId, entry) and isDead(entry, now) then
 					record.Grants[receiptId] = nil
 					changed = true
 				end

@@ -381,7 +381,8 @@ step("final eligibility: runtime veto AND contribution rule", function()
 	check(by[2].Intent ~= nil, "active participant with points eligible")
 	check(by[3].Intent == nil and by[3].Reason == "LowContribution", "low points ineligible")
 	check(by[4].Intent == nil and by[4].Reason == "EventIneligible", "runtime veto honoured")
-	check(by[5].Intent == nil and by[5].Reason == "EventIneligible", "spectator ineligible")
+	-- vetoed AND below our contribution rule: the truthful reason is the contribution one
+	check(by[5].Intent == nil and by[5].Reason == "LowContribution", "spectator ineligible, told why")
 	local solo = Rewards.FinalDecisions(completion("i:4", { cp(9, 3, true, 10, { "vault_anchor_1" }) }), NOW)
 	check(solo[1].Intent ~= nil, "solo objective completion qualifies")
 end)
@@ -700,7 +701,11 @@ step("late helper gets only what they qualify for", function()
 	check(TrophyService.Owns(dee, TROPHY) == true, "late helper trophy")
 	check(DataService.Get(eve).Coins == base[5103] and report.ByUserId[5103].Status == "Ineligible", "watcher nothing")
 	check(TrophyService.Owns(eve, TROPHY) == false, "watcher no trophy")
-	check(report.ByUserId[5104].Reason == "EventIneligible", "disconnected at completion: no final")
+	-- vetoed by the runtime (disconnected) and below our 5-point rule: told the contribution reason
+	check(
+		report.ByUserId[5104].Status == "Ineligible" and report.ByUserId[5104].Reason == "LowContribution",
+		"disconnected at completion: no final"
+	)
 	check(DataService.Get(fay).Coins - base[5104] == 6, "disconnected keeps the stage grant earned before")
 	check(Settlement.HasCertification(fay, "cert_crew") == false, "no cert without the final")
 	local deeFinal = lastOutcome(5102)
@@ -730,7 +735,7 @@ step("late helper gets only what they qualify for", function()
 	check(
 		fayAll[#fayAll].Kind == "Final"
 			and fayAll[#fayAll].State == "Refused"
-			and fayAll[#fayAll].Reason == "EventIneligible",
+			and fayAll[#fayAll].Reason == "LowContribution",
 		"Fay's final refused with the runtime veto"
 	)
 	for _, pl in { cal, dee, eve, fay } do
@@ -1101,6 +1106,13 @@ step("a drain whose save fails acknowledges nothing; the next load does", functi
 	Mock.BeforeDataStoreUpdate = nil
 	leave(una)
 	una = join(5403, "Una")
+	-- an in-session drain retry may still hold a save in flight; the rejoin waits for it
+	for _ = 1, 400 do
+		if DataService.Get(una) then
+			break
+		end
+		Mock.Advance(0.1)
+	end
 	Mock.Advance(1)
 	check(DataService.Get(una).Coins == start + 60, "the leave save carried it; not paid twice")
 	check(trophyReceipts(DataService.Get(una)) == 1, "one trophy receipt")

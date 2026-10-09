@@ -24,6 +24,7 @@ Every adventure flag (`AdventureFlags`) defaults to off.
 | Flags, eligibility, licensed Broadwave, input arbitration, boot | `production-wiring.md` |
 | Review of Codex's `codex/spring-vault-gameplay-polish` | `codex-polish-review.md` |
 | Surface entrance, safe returns, pocket lighting, spawn removal | `adventure-entry.md` |
+| Adversarial settlement and durability audit, live test plan | `settlement-durability.md` |
 
 ## Joint evidence (9 Oct 2026, headless mock store)
 

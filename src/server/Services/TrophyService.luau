@@ -296,7 +296,12 @@ local function applyGrant(player: Player, grant: Grant, requestSave: boolean?): 
 	if (record or standGranted) and requestSave ~= false then
 		TrophyData.RequestSave(player)
 	end
-	TrophyService.AfterGrantApplied(player, grant.TrophyId, record, standGranted)
+	-- The grant is in the live save now. Display/status side effects must never undo that
+	-- report (a throw here would abort a whole settlement or wedge a drain).
+	local shown, err = pcall(TrophyService.AfterGrantApplied, player, grant.TrophyId, record, standGranted)
+	if not shown then
+		warn("[TrophyService] display refresh after grant failed: " .. tostring(err))
+	end
 	return status, reason, standGranted
 end
 
@@ -323,20 +328,34 @@ end
 
 --[[
 	Applies the player's durable pending grants, saves, then acknowledges them. Yields.
-	Returns what was applied and acknowledged (Duplicate entries included), or nil when nothing
-	was acknowledged: a drain already running for this user here, the store unavailable or
-	unreadable, nothing pending, not loaded, or the save failed (then everything stays queued
-	and the next load re-applies it as a Duplicate).
+	Returns (acknowledged, retry, unacknowledged):
+	  acknowledged: what was applied and acknowledged (Duplicate entries included), or nil when
+	    nothing was acknowledged: a drain already running for this user here, the store
+	    unavailable or unreadable, nothing pending, not loaded, or the save failed (then
+	    everything stays queued and the next drain re-applies it as a Duplicate).
+	  retry: true when the read or the save failed, so a later drain in this session should try
+	    again.
+	  unacknowledged: on a failed save, what this drain applied to the live save but could not
+	    acknowledge (so a caller can still announce it once a later drain acknowledges it).
 ]]
-function TrophyService.DrainPending(player: Player): { DrainedGrant }?
+function TrophyService.DrainPending(player: Player): ({ DrainedGrant }?, boolean, { DrainedGrant }?)
 	local userId = player.UserId
 	if draining[userId] or not Pending.IsAvailable() then
-		return nil
+		return nil, false, nil
 	end
 	draining[userId] = true
 	local result: { DrainedGrant }? = nil
-	local grants = Pending.Read(userId)
-	if grants and next(grants) ~= nil and TrophyData.Get(player) ~= nil then
+	local retry = false
+	local unacked: { DrainedGrant }? = nil
+	local ok, err = pcall(function()
+		local grants = Pending.Read(userId)
+		if grants == nil then
+			retry = true -- unreadable right now
+			return
+		end
+		if next(grants) == nil or TrophyData.Get(player) == nil then
+			return
+		end
 		local applied: { DrainedGrant } = {}
 		local ids: { string } = {}
 		for receiptId, g in grants do
@@ -358,15 +377,24 @@ function TrophyService.DrainPending(player: Player): { DrainedGrant }?
 				table.insert(applied, drained)
 			end
 		end
-		-- Acknowledge only once the save holding them is written; otherwise the next load
+		if #ids == 0 then
+			return
+		end
+		-- Acknowledge only once the save holding them is written; otherwise the next drain
 		-- re-applies them as Duplicates and acknowledges then.
-		if #ids > 0 and DataService.SaveAsync(player) then
+		if DataService.SaveAsync(player) then
 			Pending.Ack(userId, ids)
 			result = applied
+		elseif TrophyData.Get(player) ~= nil then
+			retry, unacked = true, applied
 		end
+	end)
+	draining[userId] = nil -- always cleared, even if something above threw
+	if not ok then
+		warn("[TrophyService] drain failed: " .. tostring(err))
+		return nil, true, nil
 	end
-	draining[userId] = nil
-	return result
+	return result, retry, unacked
 end
 
 local drainHandler: ((Player, string) -> ())? = nil

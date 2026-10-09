@@ -90,8 +90,10 @@ per user. It stores no player progress.
    `Duplicate`. It then saves through `DataService.SaveAsync`.
 3. **Acknowledge.** Applied receipts are removed from the outbox only after that save
    succeeds. If the server crashes after the save but before the acknowledgement, the next
-   load re-applies the grant as a `Duplicate` and acknowledges it then. Unreadable entries
-   are dropped at acknowledgement, so they can't hold the bound.
+   load re-applies the grant as a `Duplicate` and acknowledges it then. Entries this server
+   cannot validate never count toward the bound. An acknowledgement drops them only once they
+   are dead (malformed, or older than 90 days), so an intent written by a newer server version
+   survives an older server's drain.
 
 Store availability follows DataService:
 
@@ -135,7 +137,9 @@ SpringVaultService.Start({
 
 Both callbacks run inside the runtime's Heartbeat loop. Neither one yields, which is tested.
 Rewards are applied to loaded saves synchronously, and the durable writes run in their own
-threads. `OnCompletion` returns `(true, "Adventure complete! Rewards are on their way.")`.
+threads. `OnCompletion` returns `(true, AdventureSettlement.COMPLETION_MESSAGE)`, a broadcast that
+claims no reward because the runtime sends it to every player (see
+`docs/integration/settlement-durability.md`).
 Each participant then gets their own `Reward` notification, for example
 "+42 Coins · You earned the Spring Vault trophy, Mara's trophy stand, Crew certification!".
 
