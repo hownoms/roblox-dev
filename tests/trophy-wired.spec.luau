@@ -108,6 +108,55 @@ local again = Mock.AddPlayer(USER, "Wired")
 Mock.Advance(2)
 check(TrophyService.Owns(again, TROPHY) == true, "owned after rejoin")
 
+-- Adventure completion bridge, booted by Main ----------------------------------------------
+local Settlement = Mock.Require(byPath["ServerScriptService/Server/Services/AdventureSettlement"])
+local CREW = 9202
+local crew = Mock.AddPlayer(CREW, "Crew")
+Mock.Advance(2)
+local coins0 = DataService.Get(crew).Coins
+local function participants(stageId)
+	return {
+		BoundaryVersion = 1,
+		EventInstanceId = "wired-guid:2",
+		EventId = "event_vault",
+		LandmarkId = TROPHY,
+		RegionId = "sunshine_shore",
+		StageId = stageId,
+		CompletedStages = { "excavation" },
+		Participants = { { UserId = CREW, Points = 10, ObjectiveIds = {}, Connected = true, Left = false } },
+	}
+end
+local since = #Mock.Remote.ToClient
+Settlement.OnStage(participants("excavation"))
+local accepted = Settlement.OnCompletion({
+	BoundaryVersion = 1,
+	EventInstanceId = "wired-guid:2",
+	EventId = "event_vault",
+	LandmarkId = TROPHY,
+	RegionId = "sunshine_shore",
+	Success = true,
+	ObjectiveIds = { "vault_anchor_1" },
+	CompletedStages = { "excavation", "vault_open", "ball_return" },
+	Participants = {
+		{ UserId = CREW, Points = 30, Eligible = true, ActiveSeconds = 90, ObjectiveIds = { "vault_anchor_1" } },
+	},
+})
+Mock.Advance(2)
+check(accepted == true, "bridge accepted the completion through Main's boot")
+check(DataService.Get(crew).Coins == coins0 + 60, "+60 coins")
+check(TrophyService.Owns(crew, TROPHY) == true and TrophyService.OwnsStand(crew) == true, "trophy + stand")
+check(Settlement.HasCertification(crew, "cert_crew") == true, "cert_crew")
+local notified = 0
+for i = since + 1, #Mock.Remote.ToClient do
+	local e = Mock.Remote.ToClient[i]
+	if e.Player == crew and e.Name == "Notify" and e.Args[1] == "Reward" then
+		notified += 1
+	end
+end
+check(notified == 2, "stage and final reward notifications reach the client (" .. notified .. ")")
+local crewSaved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. CREW].Data
+check(crewSaved.Certifications.cert_crew ~= nil and crewSaved.TrophyRecords[TROPHY] ~= nil, "saved immediately")
+
 check(#Mock.Errors == 0, "no uncaught errors")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))

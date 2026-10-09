@@ -28,7 +28,8 @@ in `tests/run.sh` that registers the new spec. Nothing was uploaded or published
 | `src/server/Services/TrophyPendingStore.luau` | The durable outbox for accepted grants to players who are not loaded here. It holds intents only, never progress. |
 | `src/server/Services/TrophyService.luau` | Server-authoritative settlement API, ownership queries, camp place/remove, review preview and remote handlers. |
 | `src/server/Services/TrophyCampDisplay.luau` | Builds camps from `Models.Expansion1.TrophyStand()` + `TrophyReplica()` on reserved pads. |
-| `tests/trophy.spec.luau` | 259 headless checks (261 once the patch adds the two camp remotes), including a second mock server. Registered in `tests/run.sh`. |
+| `tests/trophy.spec.luau` | 312 headless checks (314 once the patch adds the two camp remotes), including a second mock server and the authored camp pad. Registered in `tests/run.sh`. |
+| `src/server/World/CampPad.luau` | Builds the one authored camp pad (`Layout.CAMP_PADS`) in `Map.Hub`. |
 | `tests/trophy-wired.spec.luau` | 18 checks through the real `Main` with the patch applied. Register it when the patch merges. |
 | `docs/trophy-integration.patch` | The exact shared-file wiring, tested (see below). |
 
@@ -115,14 +116,113 @@ the general API.
 Receipt pruning is safe because ownership in `TrophyRecords` is the permanent first-clear
 flag.
 
-## Completion API for Codex
+## Completion bridge (stage and final settlement)
 
-**Shortest path for `codex/spring-vault-adventure`** (checked against `e19f508`): pass
-`OnCompletion = TrophyService.OnCompletion` to `SpringVaultService.Start` in place of the
-review adapter. It takes the frozen `CompletionContext` from
-`SpringVaultState.completionContext()` and returns `(accepted, message)`. The message is
-broadcast to every player, so it stays generic. `TrophyService.SettleCompletionContext(context)`
-returns the full per-player report described below.
+Branch `claude/adventure-completion-bridge`, 9 October 2026. This is the path Codex's runtime
+should use. It replaces the trophy-only `TrophyService.OnCompletion` described further down.
+
+**Wiring for `codex/spring-vault-adventure`.** It was checked against the working copy on
+9 October, including the uncommitted `OnStage` hook. Pass both callbacks in place of the
+review adapter:
+
+```lua
+SpringVaultService.Start({
+	OnStage = AdventureSettlement.OnStage,           -- frozen stage observation, once per stage
+	OnCompletion = AdventureSettlement.OnCompletion, -- frozen CompletionContext
+	...
+})
+```
+
+Both callbacks run inside the runtime's Heartbeat loop. Neither one yields, which is tested.
+Rewards are applied to loaded saves synchronously, and the durable writes run in their own
+threads. `OnCompletion` returns `(true, "Adventure complete! Rewards are on their way.")`.
+Each participant then gets their own `Reward` notification, for example
+"+42 Coins · You earned the Spring Vault trophy, Mara's trophy stand, Crew certification!".
+
+**What is granted.** Amounts come from bible ch.04 and q_mara in ch.03. They live in
+`src/shared/Rewards/AdventureRewards.luau`.
+
+| When | Who | Grant |
+|---|---|---|
+| Each stage completes (`excavation`, `vault_open`, `ball_return`) | Participants who are connected, have not left and have points > 0 at that moment | 6 coins (10% of the 60-coin intro base) |
+| Successful completion | Players the runtime marks `Eligible` **and** who pass the trophy contribution rule | 60 minus the stage coins already received this run (a late helper still reaches 60; a stage replayed after the final pays 0) |
+| The first eligible completion, in the same save mutation as the coins | Same | `landmark_spring_vault` trophy, Mara's `camp_trophy_stand`, `Certifications.cert_crew`, `AdventureProgress.QuestCredit.q_mara.finish_event_vault` |
+
+Later clears pay the 60-coin base again and count `Clears`. Missing first-clear entitlements
+are repaired, and nothing is granted twice. Failure keeps the stage grants and grants nothing
+else. No multipliers apply, as ch.04 requires for fixed event awards.
+
+**Receipts and idempotency.**
+
+- Stage receipts are `adv:<EventInstanceId>:<UserId>:stage:<stageId>:v1` and final receipts
+  are `adv:<EventInstanceId>:<UserId>:final:v1`. The trophy keeps its own
+  `trophy:<EventInstanceId>:<UserId>:final:v1` receipt, so the old trophy-only path and the
+  bridge cannot both grant.
+- A replayed stage or final, a retry and a drained outbox intent each report `Duplicate`.
+- The trophy, cert and quest credit are permanent flags, so pruning receipts (512 kept, 30
+  days) can never re-grant them.
+
+**Durability.** "Accepted" means durable:
+
+| Status | Meaning |
+|---|---|
+| `Saved` | Applied to the live save, and `DataService.SaveAsync` wrote it. |
+| `Queued` | Applied to the live save. The save write failed, but the intent is in the outbox `AdventureRewardIntents_v1`. |
+| `PendingRejoin` | Eligible, but the save is not loaded on this server. The intent is in the outbox. |
+| `Unconfirmed` | Applied to the live save, but both writes failed. It is logged, and the next autosave or leave save carries it. |
+| `Refused` | Not loaded here and the outbox write failed. It is not stored and can be retried with the same call. |
+
+- **Outbox drain.** The outbox drains on the player's next load on any server. Within a run,
+  stage intents are applied before the final. Intents are acknowledged only after the save
+  that applied them succeeds.
+- **Shutdown.** DataService's `BindToClose` writes every live save, and those saves already
+  hold the applied grants. The bridge's own `BindToClose` waits up to 20 s for outbox writes
+  still in flight.
+- **Shared outbox code.** `TrophyPendingStore` and the bridge use the same
+  `DurableOutbox` module.
+
+**New save keys.** These are top-level `PlayerData` keys, using the names from bible ch.04.
+They are added by an idempotent migration that touches no other key and invents nothing.
+
+- `Certifications = { [certId] = { At, Source, ReceiptId } }`
+- `AdventureProgress = { Events = { event_vault = { Clears, FirstClearAt, FirstClearReceipt, LastClearAt } }, QuestCredit = { q_mara = { finish_event_vault = { At, ReceiptId } } } }`
+
+Rebirth's reset list does not include either key.
+
+**Open decision.** q_mara's "1 R intro grant" (60 coins) is **not** paid by the bridge. It
+belongs to completing the whole q_mara chain, and the quest service that tracks that chain
+does not exist yet. The bridge records the `finish_event_vault` credit that service will need.
+
+**Evidence.**
+
+- `tests/adventure-settlement.spec.luau`: 153 headless checks. It covers validation,
+  eligibility (late helper, watcher, disconnect), reconciliation, first clear versus repeat,
+  pruning, migration, never yielding, replay, flag, save outage, both stores down, offline
+  outbox, drain order, shutdown right after completion, a crash and rejoin on a fresh second
+  mock server, and a crash between save and acknowledgement.
+- Mutation check: removing receipt dedupe, reconciliation, stage-after-final, the presence
+  rule, the runtime veto, cert dedupe, save-before-"Saved", or save-before-ack each fails the
+  spec. The drain sort is belt-and-braces. Reconciliation is symmetric, so an unsorted drain
+  still totals 60.
+- A scratch contract run drove Codex's real `SpringVaultState` through a solo run and a crew
+  run with a late hauler, a watcher and a disconnecting digger. It fed the real contexts into
+  the bridge rules: 13/13 passed (solo 60, late hauler 60, watcher 0, disconnected digger 6
+  from the stage only).
+- `trophy-wired.spec` with the patch: 24 checks. It boots the real `Main` and checks coins,
+  trophy, stand, cert, both `Reward` notifications and the immediate save.
+- **Studio** (`DigTheBeach.rbxlx`, unpublished, in-memory store): the modules were injected
+  into a Play server only. A solo run settled at about 0.2 ms per call with no yield, went
+  `Saved`, totalled +60 coins and granted the trophy, stand, cert_crew and q_mara credit. A
+  replay was a `Duplicate`, and four economy analytics events fired.
+- **Not verified:** real DataStores, cross-server rejoin on live servers, and real
+  two-client play.
+
+## Trophy-only completion API (superseded by the bridge for the Spring Vault)
+
+`OnCompletion = TrophyService.OnCompletion` settles only the trophy and stand. It takes the
+frozen `CompletionContext` from `SpringVaultState.completionContext()` and returns
+`(accepted, message)`. `TrophyService.SettleCompletionContext(context)` returns the full
+per-player report described below. If both are wired, they share the trophy receipt.
 
 The mapping:
 
@@ -268,11 +368,45 @@ Clients cannot grant trophies:
 - **Pads.** Pads are borrowed, not saved. A loaded player with a non-empty layout gets the
   lowest free pad. Leaving unloads the camp and frees the pad. If no pad is free, the layout
   still saves; nothing is shown.
+- **The authored pad (claude/trophy-camp-pad).** The world builds exactly one pad,
+  `Workspace.Map.Hub.TrophyCampPad1` (`World/CampPad.luau`, coordinates in
+  `Layout.CAMP_PADS`):
+  - Centre (80, 1024, 76), on open sand between the Rebirth shrine and the Beach Shop. The
+    deck is 24×1×24 wood planks, top at `Layout.DECK_TOP` (1027). The `Deck` part is anchored,
+    walkable and tagged `TrophyCampPad`. A non-colliding rim, gold corner posts and a
+    "TROPHY CAMP" sign stand just outside the footprint; the sign faces the plaza and names the
+    owner.
+  - Clearance: every other map part is at least 10 studs away. The smoke spec checks that no
+    map part enters the footprint plus 2 studs. The pad is more than 60 studs from the spawns,
+    off the deck-to-plaza path, and 70 studs inland of the dig zone.
+- **Dig protection.** The dig zone clamp already keeps every carve out of the hub.
+  `World.IsProtected(position, margin)` also covers the pad footprint plus rim in X/Z at any
+  depth. `DigService.DigAt` refuses (`OutOfZone`) any dig whose carve could reach it (margin =
+  dig radius + one voxel), so the pad stays safe if the pad or the zone ever move. The Studio
+  `/dig` dev command is clamped to the zone.
+- **Ownership rules** (`TrophyService` camp section):
+  - A pad shows exactly one owner's camp. A player claims a free pad only when they are
+    loaded, own the stand (or the Studio review preview is on) and have a non-empty layout. A
+    player without the stand never claims one.
+  - Place and remove act only on the caller's own `CampLayout`; placement ids are per player.
+    Nothing another player sends can change someone else's camp, and `Display.Show` never
+    takes a pad someone else holds.
+  - When the pad is busy, an eligible player's placement still saves. They join a FIFO wait
+    list and nothing is shown for them.
+  - **Automatic hand-over.** When the pad is released (the owner leaves, empties their camp,
+    or loses display rights), it goes at once to the longest-waiting player who is still
+    loaded and eligible. A rejoining former owner waits like anyone else; the pad is never
+    taken back from its current owner.
+  - Read-only queries: `TrophyService.GetCampPadOwner(padIndex)` returns the owner's UserId or
+    nil. `GetCampPad(player)` and `GetCampPadCount()` are also available. The pad's `Deck`
+    carries the attributes `OwnerUserId` (0 when free), `OwnerName` and `PadIndex`. The server
+    writes them and they replicate to clients; client writes never replicate back.
+  - `SetCampPads` is a boot-time override and does not move camps that are already shown.
 
 ## Shared-file wiring (apply after review)
 
-`docs/trophy-integration.patch` has 8 added lines in 2 files. `git apply --check` passes
-against `afbb8a0`.
+`docs/trophy-integration.patch` has 13 added lines in 2 files. `git apply --check` passes
+against `d9ad846`.
 
 1. `src/shared/Remotes.luau`: add `"PlaceCampItem"` and `"RemoveCampItem"` to
    `Remotes.Events`. `Remotes.Get` asserts on unknown names, so this branch cannot create
@@ -283,14 +417,18 @@ against `afbb8a0`.
      `Init` must run first; the existing order guarantees that.
    - Call `run("TrophyService", "ConnectRemotes", TrophyService.ConnectRemotes, Net)` after
      the `Init` loop.
+   - Require `Services.AdventureSettlement` and add it to `ordered` right after TrophyService.
+     It needs DataService and TrophyService.
+   - Call `AdventureSettlement.SetNotifier`, which routes per-player reward text to
+     `Net.Notify(player, "Reward", text)`.
 3. `tests/run.sh`: add `luau tests/trophy-wired.spec.luau || status=1`.
 
 ## Production gates (owner-listed, outside this slice)
 
 - **Camp display wiring.**
-  - Map/World: 16 `TrophyCampPad`-tagged anchored parts, or
-    `TrophyService.SetCampPads({CFrame})`. The 24×24 area is centred on the part's top
-    surface, clear of transit and NPC pads. With no pads, nothing renders.
+  - Map/World: one authored pad now exists (see "Camp display"). The full 16 pads are still
+    open: add more centres to `Layout.CAMP_PADS`, clear of transit and NPC pads; the display
+    and the ownership rules already handle N pads.
   - A client camp edit UI and trophy collection view. Today the client can read the
     replicated keys, but there is no UI.
 - **Treasure and legacy trophies** (first-find and sale records, legacy Index replicas) and

@@ -837,6 +837,139 @@ step("review preview bypass is Studio-only", function()
 	leave(kim)
 end)
 
+-- Authored camp pad and pad ownership -----------------------------------------------------
+section("authored camp pad: one pad, one owner, hand-over")
+-- Clear the explicit test pads and everyone still shown on them, then use the world's pad.
+for _, p in { alice, bob, cara, dan } do
+	if p and p.Parent ~= nil then
+		leave(p)
+	end
+end
+TrophyService.SetCampPads(nil)
+local CampPad = Mock.Require(byPath["ServerScriptService/Server/World/CampPad"])
+local WorldLayout = Mock.Require(byPath["ServerScriptService/Server/World/Layout"])
+local World = Mock.Require(byPath["ServerScriptService/Server/World"])
+local padFolder = Mock.Env.Instance.new("Folder")
+padFolder.Name = "PadTest"
+padFolder.Parent = workspace
+local decks = CampPad.Build(padFolder)
+local deck = decks[1]
+local function owner()
+	return TrophyService.GetCampPadOwner(1)
+end
+local function signText()
+	local sign = deck.Parent:FindFirstChild("CampSign")
+	local sub = sign and sign:FindFirstChild("SignGui") and sign.SignGui:FindFirstChild("SubLabel")
+	return sub and sub.Text
+end
+local function campModel(userId)
+	return workspace:FindFirstChild("TrophyCamps") and workspace.TrophyCamps:FindFirstChild("Camp_" .. userId)
+end
+local M1, M2, NS = 9401, 9402, 9403
+local m1, m2, ns
+
+step("the authored pad", function()
+	check(#decks == 1 and #WorldLayout.CAMP_PADS == 1, "one authored pad")
+	check(TrophyService.GetCampPadCount() == 1 and Display.GetPadCount() == 1, "display sees exactly one tagged pad")
+	check(deck.Anchored and deck.Size.X == 24 and deck.Size.Z == 24, "anchored 24x24 deck")
+	check(math.abs(deck.Position.Y + deck.Size.Y / 2 - WorldLayout.DECK_TOP) < 1e-3, "deck top at DECK_TOP")
+	for _, d in deck.Parent:GetDescendants() do
+		if d:IsA("BasePart") and d ~= deck then
+			check(not d.CanCollide and not d.CanTouch, "pad decor does not collide: " .. d.Name)
+		end
+	end
+	check(owner() == nil and deck:GetAttribute("OwnerUserId") == 0, "pad starts free")
+	local c = WorldLayout.CAMP_PADS[1]
+	check(not World.IsInDigZone(Vector3.new(c.X, Config.SURFACE_Y - 10, c.Z)), "pad is outside the dig zone")
+	check(World.IsProtected(Vector3.new(c.X + 12.5, 0, c.Z - 12.5)), "pad footprint protected at any depth")
+	check(not World.IsProtected(Vector3.new(c.X + 30, 0, c.Z)), "protection ends past the pad")
+	check(World.IsProtected(Vector3.new(c.X + 20, 0, c.Z), 8), "carve margin grows the protected area")
+	local zone = World.GetDigZone()
+	check(
+		c.Z - 12 - WorldLayout.CAMP_PAD_RIM > zone.CFrame.Position.Z + zone.Size.Z / 2 + 8,
+		"no dig in the zone can reach under the pad"
+	)
+end)
+
+step("first eligible player claims the single pad", function()
+	m1 = join(M1, "Mo")
+	m2 = join(M2, "Nia")
+	local report = settle(result("srv-pad:1", { participant(M1, 9, 60, 1, true), participant(M2, 9, 60, 1, true) }))
+	check(
+		report.ByUserId[M1].Status == "Granted" and report.ByUserId[M2].Status == "Granted",
+		"both own trophy + stand"
+	)
+	check(owner() == nil, "owning a stand alone claims nothing (empty layout)")
+	local ok = TrophyService.PlaceTrophy(m1, { TrophyId = TROPHY, X = 5, Z = 5, Rot = 0 })
+	check(ok == true and TrophyService.GetCampPad(m1) == 1, "first placer claims pad 1")
+	check(owner() == M1, "GetCampPadOwner reports the claimer")
+	check(
+		deck:GetAttribute("OwnerUserId") == M1 and deck:GetAttribute("OwnerName") == "Mo",
+		"pad attributes show the owner"
+	)
+	check(signText() == "Mo's camp", "pad sign names the owner")
+end)
+
+step("no stand never claims, even when the pad is free later", function()
+	seedTrophyWithoutStand(NS)
+	ns = join(NS, "Ned")
+	check(#TrophyService.GetCampLayout(ns).Placements == 1, "no-stand player has a saved layout")
+	check(TrophyService.GetCampPad(ns) == nil and owner() == M1, "no-stand player does not take the pad")
+end)
+
+step("a second player cannot claim or alter the occupied pad", function()
+	local campBefore = campModel(M1)
+	local layoutBefore = TrophyService.GetCampLayout(m1)
+	local ok, id = TrophyService.PlaceTrophy(m2, { TrophyId = TROPHY, X = 5, Z = 5, Rot = 0 })
+	check(ok == true and id == 1, "second player's placement is saved")
+	check(#TrophyService.GetCampLayout(m2).Placements == 1, "second player's layout recorded")
+	check(TrophyService.GetCampPad(m2) == nil, "second player gets no pad while it is busy")
+	check(owner() == M1 and deck:GetAttribute("OwnerUserId") == M1, "owner unchanged")
+	check(campModel(M2) == nil, "only the owner's camp is shown")
+	-- placement ids are per player: m2 removing "1" removes m2's own display, never m1's
+	local okRm = TrophyService.RemovePlacement(m2, 1)
+	check(okRm == true and #TrophyService.GetCampLayout(m2).Placements == 0, "removal edits the caller's layout")
+	check(deepEqual(TrophyService.GetCampLayout(m1), layoutBefore), "owner's layout untouched")
+	check(campModel(M1) == campBefore and campBefore:FindFirstChild("Placement_1") ~= nil, "owner's camp untouched")
+	local okBad, why = TrophyService.RemovePlacement(m2, 1)
+	check(not okBad and why == "NoSuchPlacement", "cannot reach another player's placement id")
+	check(owner() == M1, "still the first owner")
+	local okAgain = TrophyService.PlaceTrophy(m2, { TrophyId = TROPHY, X = 0, Z = 0, Rot = 90 })
+	check(okAgain == true and TrophyService.GetCampPad(m2) == nil, "waiting player keeps a saved layout")
+end)
+
+step("owner leaving hands the pad to the waiting eligible player", function()
+	leave(m1)
+	check(campModel(M1) == nil, "leaver's camp unloaded")
+	check(owner() == M2 and TrophyService.GetCampPad(m2) == 1, "pad handed over automatically")
+	check(TrophyService.GetCampPad(ns) == nil, "no-stand player skipped by the hand-over")
+	check(deck:GetAttribute("OwnerUserId") == M2 and signText() == "Nia's camp", "pad attributes follow the owner")
+	local camp = campModel(M2)
+	check(camp ~= nil and camp:GetAttribute("PadIndex") == 1, "new owner's camp built on the pad")
+end)
+
+step("rejoining owner waits; emptying a camp releases the pad to them", function()
+	m1 = join(M1, "Mo")
+	check(#TrophyService.GetCampLayout(m1).Placements == 1, "layout kept across leave/rejoin")
+	check(TrophyService.GetCampPad(m1) == nil and owner() == M2, "pad not taken back from its current owner")
+	local placed = TrophyService.GetCampLayout(m2).Placements[1]
+	TrophyService.RemovePlacement(m2, placed.Id)
+	check(owner() == M1 and TrophyService.GetCampPad(m1) == 1, "empty camp releases the pad to the waiting player")
+	check(TrophyService.GetCampPad(m2) == nil, "empty layout holds no pad and does not wait")
+	TrophyService.PlaceTrophy(m2, { TrophyId = TROPHY, X = 1, Z = 1, Rot = 0 })
+	check(owner() == M1, "re-placing does not steal the pad")
+end)
+
+step("everyone leaving frees the pad", function()
+	leave(m1)
+	check(owner() == M2, "handed to the remaining eligible player")
+	leave(m2)
+	leave(ns)
+	check(owner() == nil and deck:GetAttribute("OwnerUserId") == 0, "pad free when nobody is left")
+	check(deck:GetAttribute("OwnerName") == "" and signText() == "Free pad", "sign shows a free pad")
+	check(campModel(M1) == nil and campModel(M2) == nil, "no camps left")
+end)
+
 check(#Mock.Errors == 0, "no uncaught errors (" .. #Mock.Errors .. ")")
 for _, e in Mock.Errors do
 	print("  error: " .. tostring(e))

@@ -39,6 +39,18 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
     reviewed.
   - Mock-tested only: `trophy.spec` 259 checks, and `trophy-wired.spec` 18 with the patch.
   - Handoff and the owner's 9 October decisions: [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md).
+- **Adventure completion bridge (branch `claude/adventure-completion-bridge`, not wired):**
+  `AdventureSettlement` consumes the Spring Vault runtime's `OnStage` and `OnCompletion`
+  contexts.
+  - It grants 6 coins per stage and the remainder to 60 at the final.
+  - The first eligible clear grants the trophy, Mara's stand, cert_crew and q_mara credit in
+    one save mutation.
+  - Receipts use the `adv:` prefix. A grant is reported only once its save is written or it
+    is in the `AdventureRewardIntents_v1` outbox, which drains on any server.
+  - `adventure-settlement.spec` has 153 checks. One Studio solo run passed; live DataStores
+    and two-client play are not tested yet.
+  - The held patch now also boots it. See "Completion bridge" in
+    [TROPHY_INTEGRATION.md](TROPHY_INTEGRATION.md).
 - **Validation (latest):** client 1,464, server 2,199, Studio-mode 2,166, utility 8, seven
   tutorial scenarios and persistence boot all pass. Strict typecheck shows only the two existing
   deprecated-API warnings. CI is green on every merge.

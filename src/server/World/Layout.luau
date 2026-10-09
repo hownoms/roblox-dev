@@ -94,6 +94,15 @@ Layout.EGG_ARC_RADIUS = 19
 Layout.EGG_ARC_DEGREES = 110
 Layout.TITLE_SIGN = Vector3.new(0, S, 118)
 
+-- Trophy camp pad (bible ch.02 "Camps and trophies"; TrophyCampDisplay borrows it). One
+-- 24x24 display deck on open sand between the Rebirth shrine and the Beach Shop: >= 10 studs
+-- from every hub part (stations, paths, lamps), far from the spawns, the deck path and the dig
+-- zone. Centre is ground level; the deck top is DECK_TOP. The footprint plus its rim is
+-- protected from digging (World.IsProtected).
+Layout.CAMP_PAD_SIZE = 24
+Layout.CAMP_PAD_RIM = 1 -- border strip outside the 24x24 footprint
+Layout.CAMP_PADS = { Vector3.new(80, S, 76) }
+
 -- Terrain surface height at `z` on the beach side (flat, then linear slope to the seabed).
 function Layout.GroundY(z: number): number
 	if z >= Layout.BEACH_FLAT_END_Z then

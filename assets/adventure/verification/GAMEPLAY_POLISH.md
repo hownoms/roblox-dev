@@ -96,3 +96,17 @@ controller/phone interaction, custom avatar strike contact, streaming, populated
 100 full runtime activity cleanup cycles and uncoached newcomer pacing remain open.
 
 Keep the PR unmerged until gameplay and Claude's production changes are reviewed together.
+
+## Latest-default combination
+
+Before delivery, default advanced to`a4167d9` with Claude's settlement bridge and camp pad.
+Merged that default into this review branch; DigService combined without conflict and retains
+Claude's World.IsProtected footprint refusal as well as the Broadwave carve-volume guard.
+No reward/camp code was authored or changed by Codex in that merge.
+
+Combined checks:23 Broadwave,24 trophy-contract,153 adventure-settlement and312 trophy
+checks pass; refreshed server smoke2212 live/2179 Studio and production/review builds pass.
+Full-source analysis retains only the two existing deprecated API warnings.
+The optional`trophy-wired.spec` was invoked
+and refused execution because its production integration patch is deliberately unapplied.
+That is an outstanding joint boot-wiring gate, not a passing wired-production test.

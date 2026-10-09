@@ -151,6 +151,10 @@ Gate confirmation is independent of particle settings. Review controls scale for
 
 New evidence and remaining device/multiplayer limits are recorded in
 `verification/GAMEPLAY_POLISH.md` and `verification/GAMEPLAY_POLISH_TRACE.json`.
+Latest default`a4167d9` (Claude's settlement bridge and protected camp pad) was incorporated
+into this branch before delivery. Its World.IsProtected footprint guard remains in DigService
+alongside the Broadwave-specific volume guard. Joint mock settlement/contract checks pass;
+production boot patch, actual callback injection and live durability remain integration gates.
 
 See `verification/VALIDATION.md`, `STUDIO_TRACE.json`, and the saved before/after ball captures.
 Automated and assisted Studio checks do not establish real phone/controller use, real multiplayer,

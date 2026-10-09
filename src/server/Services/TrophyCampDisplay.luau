@@ -6,7 +6,13 @@
 	location does not). A pad is any anchored BasePart tagged "TrophyCampPad" (the camp area
 	is the 24x24 square centred on the part, on its top surface), or a CFrame passed to
 	SetPads(). Each loaded player with a layout borrows the lowest free pad; leaving frees it.
-	No pads = nothing is shown (the persisted layout is unaffected).
+	No pads = nothing is shown (the persisted layout is unaffected). The world builds one
+	authored pad (World/CampPad.luau, Layout.CAMP_PADS).
+
+	Ownership: a pad has at most one owner at a time and is never taken from its owner; Show
+	only ever claims a pad that is free or already the caller's. The owner is mirrored onto a
+	tagged pad part as read-only attributes OwnerUserId (0 = free) and OwnerName (""), which
+	replicate to clients. Who waits for a busy pad and who gets it next is TrophyService's job.
 
 	Built from the visual kit only: Models.Expansion1.TrophyStand() with
 	Models.Expansion1.TrophyReplica() on its TrophySlot. Every part from Models.Build is
@@ -28,15 +34,20 @@ local Display = {}
 Display.PAD_TAG = "TrophyCampPad"
 Display.FOLDER_NAME = "TrophyCamps"
 
+type Pad = { CFrame: CFrame, Part: BasePart? }
+
 local explicitPads: { CFrame }? = nil
 local assigned: { [number]: Player } = {} -- pad index -> player
-local camps: { [Player]: { Pad: number, Model: Model } } = {}
+local camps: { [Player]: { Pad: number, Model: Model, Part: BasePart? } } = {}
 
-local function padCFrames(): { CFrame }
+local function padList(): { Pad }
+	local list: { Pad } = {}
 	if explicitPads then
-		return explicitPads :: { CFrame }
+		for _, cf in explicitPads :: { CFrame } do
+			table.insert(list, { CFrame = cf })
+		end
+		return list
 	end
-	local list = {}
 	local parts = CollectionService:GetTagged(Display.PAD_TAG)
 	-- stable order so pad indices do not reshuffle between calls
 	table.sort(parts, function(a: Instance, b: Instance): boolean
@@ -45,10 +56,19 @@ local function padCFrames(): { CFrame }
 	for _, inst in parts do
 		if inst:IsA("BasePart") then
 			local part = inst :: BasePart
-			table.insert(list, part.CFrame * CFrame.new(0, part.Size.Y / 2, 0))
+			table.insert(list, { CFrame = part.CFrame * CFrame.new(0, part.Size.Y / 2, 0), Part = part })
 		end
 	end
 	return list
+end
+
+-- Mirrors the owner onto the pad part (server-written; client writes never replicate back).
+local function markOwner(part: BasePart?, player: Player?)
+	if not part then
+		return
+	end
+	part:SetAttribute("OwnerUserId", if player then player.UserId else 0)
+	part:SetAttribute("OwnerName", if player then player.DisplayName else "")
 end
 
 local function folder(): Folder
@@ -100,7 +120,24 @@ function Display.SetPads(pads: { CFrame }?)
 end
 
 function Display.GetPadCount(): number
-	return #padCFrames()
+	return #padList()
+end
+
+-- The player whose camp is shown on pad `index`, or nil when the pad is free.
+function Display.GetPadOwner(index: number): Player?
+	local owner = assigned[index]
+	return if owner and camps[owner] and camps[owner].Pad == index then owner else nil
+end
+
+-- Number of pads with no camp on them.
+function Display.FreePadCount(): number
+	local free = 0
+	for i = 1, #padList() do
+		if not assigned[i] then
+			free += 1
+		end
+	end
+	return free
 end
 
 -- Pad index currently shown for this player, or nil.
@@ -120,22 +157,36 @@ function Display.Hide(player: Player)
 		return
 	end
 	camps[player] = nil
-	assigned[camp.Pad] = nil
+	if assigned[camp.Pad] == player then
+		assigned[camp.Pad] = nil
+		markOwner(camp.Part, nil)
+	end
 	camp.Model:Destroy()
 end
 
 -- (Re)builds the player's camp from their layout. Returns the pad index used, or nil.
 function Display.Show(player: Player, layout: Rules.CampLayout): number?
-	local pads = padCFrames()
+	local pads = padList()
 	local previous = camps[player]
 	local padIndex: number? = if previous and pads[previous.Pad] then previous.Pad else nil
 	if previous then
 		previous.Model:Destroy()
 		camps[player] = nil
-		assigned[previous.Pad] = nil
+		if assigned[previous.Pad] == player then
+			assigned[previous.Pad] = nil
+		end
 	end
 	if #layout.Placements == 0 then
+		if previous then
+			markOwner(previous.Part, nil)
+		end
 		return nil -- an empty camp does not hold a pad
+	end
+	if padIndex and assigned[padIndex :: number] then
+		padIndex = nil -- never take a pad someone else holds
+	end
+	if previous and not padIndex then
+		markOwner(previous.Part, nil)
 	end
 	if not padIndex then
 		for i = 1, #pads do
@@ -149,7 +200,7 @@ function Display.Show(player: Player, layout: Rules.CampLayout): number?
 		return nil
 	end
 	local index = padIndex :: number
-	local pad = pads[index]
+	local pad = pads[index].CFrame
 	local camp = Instance.new("Model")
 	camp.Name = "Camp_" .. tostring(player.UserId)
 	camp:SetAttribute("OwnerUserId", player.UserId)
@@ -163,7 +214,8 @@ function Display.Show(player: Player, layout: Rules.CampLayout): number?
 	end
 	camp.Parent = folder()
 	assigned[index] = player
-	camps[player] = { Pad = index, Model = camp }
+	camps[player] = { Pad = index, Model = camp, Part = pads[index].Part }
+	markOwner(pads[index].Part, player)
 	return index
 end
 

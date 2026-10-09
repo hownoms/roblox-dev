@@ -295,6 +295,76 @@ function Rules.IsEligible(p: Participant, participantCount: number): (boolean, s
 	return false, "NotPresent"
 end
 
+-- Grant mutation ---------------------------------------------------------------------------
+
+export type LandmarkGrant = {
+	TrophyId: string,
+	Source: string,
+	RegionId: string,
+	ReceiptId: string, -- a "trophy:" receipt
+	At: number,
+}
+
+--[[
+	Applies one landmark trophy grant (and Mara's stand when missing) to a migrated save table.
+	Pure and synchronous, so a caller can run it inside a larger save mutation (the adventure
+	completion bridge grants the trophy, stand and progression in one mutation).
+	Returns (status, reason?, newRecord?, standGranted):
+		"Duplicate"    the receipt was already settled; nothing changed
+		"AlreadyOwned" the trophy was owned; only a missing stand was added
+		"Granted"      the trophy is newly owned
+		"Refused"      RecordLimit; nothing changed
+]]
+function Rules.ApplyLandmarkGrant(
+	data: { [string]: any },
+	grant: LandmarkGrant,
+	now: number
+): (string, string?, TrophyRecord?, boolean)
+	local records = data.TrophyRecords :: { [string]: any }
+	local receipts = data.RewardReceipts :: { [string]: any }
+	local cosmetics = data.Cosmetics :: { [string]: any }
+	if receipts[grant.ReceiptId] ~= nil then
+		return "Duplicate", nil, nil, false
+	end
+	local hadTrophy = records[grant.TrophyId] ~= nil
+	local hadStand = cosmetics[Rules.STAND_ID] ~= nil
+	if hadTrophy and hadStand then
+		return "AlreadyOwned", nil, nil, false
+	end
+	local count = 0
+	for _ in records do
+		count += 1
+	end
+	if not hadTrophy and count >= Rules.MAX_TROPHY_RECORDS then
+		return "Refused", "RecordLimit", nil, false
+	end
+	local record: TrophyRecord? = nil
+	if not hadTrophy then
+		local new: TrophyRecord = {
+			Kind = "Landmark",
+			Source = grant.Source,
+			RegionId = grant.RegionId,
+			AcquiredAt = grant.At,
+			ReceiptId = grant.ReceiptId,
+			Legacy = false,
+			ContentVersion = Rules.CONTENT_VERSION,
+		}
+		records[grant.TrophyId] = new
+		record = new
+	end
+	if not hadStand then
+		cosmetics[Rules.STAND_ID] = {
+			Kind = "CampFurniture",
+			Source = grant.Source,
+			AcquiredAt = grant.At,
+			ReceiptId = grant.ReceiptId,
+		}
+	end
+	receipts[grant.ReceiptId] = now
+	Rules.PruneReceipts(receipts, now)
+	return if hadTrophy then "AlreadyOwned" else "Granted", nil, record, not hadStand
+end
+
 -- Durable pending grants -------------------------------------------------------------------
 
 -- A pending grant read back from the outbox store is re-validated before it is applied.
