@@ -33,6 +33,8 @@ luau tests/adventure-entry.spec.luau || status=1
 luau tests/adventure-entry.spec.luau -a on || status=1
 luau tests/adventure-entry.spec.luau -a invite || status=1
 luau tests/adventure-entry.spec.luau -a invite-client || status=1
+echo "== production-review.spec (review-only boot gate around the real Main) =="
+luau tests/production-review.spec.luau || status=1
 echo "== broadwave-license.spec (licensed Broadwave contract) =="
 luau tests/broadwave-license.spec.luau || status=1
 echo "== persistence boot failure (live / Studio) =="

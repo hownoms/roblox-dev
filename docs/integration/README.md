@@ -81,6 +81,7 @@ and keep it unmerged until the joint review.
 | Flags, eligibility, input arbitration, boot | `production-wiring.md` |
 | Licensed Broadwave contract, equip control, input audit | `licensed-broadwave.md` |
 | Surface entrance, returns, pocket lighting, spawn removal | `adventure-entry.md` |
+| Studio review of the real production boot (review flags, in-memory saves, seeded prerequisites) | `production-review.md` |
 | Earlier review of Codex's polish branch | `codex-polish-review.md` |
 | Raw logs | `evidence/combined-candidate.log`, `evidence/codex-audit-651d1c9.log` |
 
