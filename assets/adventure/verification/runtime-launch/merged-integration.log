@@ -1,0 +1,27 @@
+tests/production-wiring.spec.luau
+PRODUCTION WIRING (off): 37 passed, 0 failed
+tests/production-wiring.spec.luau -a on
+PRODUCTION WIRING (on): 42 passed, 0 failed
+tests/production-wiring.spec.luau -a rejoin
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+tests/production-wiring.spec.luau -a client
+PRODUCTION WIRING (client): 61 passed, 0 failed
+tests/adventure-entry.spec.luau
+ADVENTURE ENTRY (off): 16 passed, 0 failed
+tests/adventure-entry.spec.luau -a on
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+tests/broadwave-license.spec.luau
+NOTE: runtime accepts ResolveTool but declares no Service.Contract marker
+BROADWAVE LICENSE: 61 passed, 0 failed
+tests/adventure-settlement.spec.luau
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+tests/adventure-outcome.spec.luau
+ADVENTURE OUTCOME CLIENT: 23 passed, 0 failed

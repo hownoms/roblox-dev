@@ -1,0 +1,5 @@
+StarterPlayer.StarterPlayerScripts.Client.Adventure.SpringVaultClient:902: attempt to index nil with 'GetDescendants'
+stacktrace:
+StarterPlayer.StarterPlayerScripts.Client.Adventure.SpringVaultClient:902 function bindScene
+StarterPlayer.StarterPlayerScripts.Client.Adventure.SpringVaultClient:925 function Start
+./tests/spring-vault-initial-stream.spec.luau:15

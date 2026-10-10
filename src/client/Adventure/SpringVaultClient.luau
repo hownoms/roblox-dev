@@ -10,7 +10,7 @@ local Config = require(ReplicatedStorage.Shared.Adventure.SpringVaultConfig)
 local BallVisual = require(ReplicatedStorage.Shared.Adventure.BeachBallVisual)
 
 local Client = {}
-function Client.Start(remotes: Folder, scene: Instance)
+function Client.Start(remotes: Folder, scene: Instance?)
 	local player = Players.LocalPlayer
 	local connections: { RBXScriptConnection } = {}
 	local instances: { Instance } = {}
@@ -21,7 +21,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local visualCleanups: { [Model]: () -> () } = {}
 	local visualConnections: { [Model]: RBXScriptConnection } = {}
 	local sceneGeneration = 0
-	local sceneAvailable = true
+	local sceneAvailable = false
 	local latestSnapshot: any = {}
 	local promptEntries: { [Instance]: any } = {}
 	local expanded = false
@@ -61,7 +61,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		end
 		restorePanels()
 		local token = bounceToken
-		local ball = scene:FindFirstChild("landmark_spring_vault_ball")
+		local ball = if scene then scene:FindFirstChild("landmark_spring_vault_ball") else nil
 		if not ball then
 			return
 		end
@@ -638,7 +638,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end
 			haul.Text = if data.hauling then "Release ball" else "Guide ball"
 			layoutControls()
-			if sceneAvailable then
+			if sceneAvailable and scene then
 				for _, item in scene:GetDescendants() do
 					if item:IsA("BasePart") then
 						local gate = tonumber(string.match(item.Name, "^GateMarker(%d+)$"))
@@ -859,7 +859,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		promptEntries[item] = { Prompt = prompt, Part = part, Action = action, Target = targetId }
 		promptCleanups[item] = cleanupPrompt
 		ancestryConnection = item.AncestryChanged:Connect(function()
-			if not item:IsDescendantOf(scene) then
+			if not scene or not item:IsDescendantOf(scene) then
 				cleanupPrompt()
 			end
 		end)
@@ -922,7 +922,11 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end)
 		)
 	end
-	bindScene(scene)
+	-- Remotes and licensed ordinary input can exist before the pocket first streams in.
+	-- Never synthesize an arena: loans/prompts/effects wait for the real scene below.
+	if scene and scene:IsDescendantOf(workspace) then
+		bindScene(scene)
+	end
 	table.insert(
 		connections,
 		workspace.ChildAdded:Connect(function(child)
