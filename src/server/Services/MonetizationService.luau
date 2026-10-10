@@ -7,9 +7,11 @@
 	  "not configured" and always read as not owned; we never prompt id 0.
 	- Replicated to the client via GetOwnedPasses() and Player attributes "Pass_<Key>" (bool),
 	  plus "Premium" (bool) and "VIP" (bool, for chat tags / name colour).
-	- ProcessReceipt: idempotent via the PurchaseHistory DataStore (key = PurchaseId) plus an
-	  in-server guard; grants Config.Monetization.Products[key].Grant through the grant handler
-	  (RewardsService.Grant, wired by Main) and saves the player's data before acknowledging.
+	- ProcessReceipt: idempotent via the PurchaseHistory DataStore (key = PurchaseId, acquired
+	  through StorageGate) plus an in-server guard; grants Config.Monetization.Products[key].Grant
+	  through the grant handler (RewardsService.Grant, wired by Main) and saves the player's data
+	  before acknowledging. With in-memory saves (DataService.IsMock: Studio fallback or a
+	  LocalOnly candidate) the history is in memory and the store is never acquired.
 	- v2.2 policy: PromptPass / PromptProduct refuse PaidRandom items (Config.IsPaidRandom) for
 	  players PolicyService marks ArePaidRandomItemsRestricted. ProcessReceipt never checks the
 	  policy: a purchase that already completed is always granted.
@@ -24,7 +26,6 @@
 		MonetizationService.STUDIO_GRANT_ALL_PASSES (dev toggle, Studio only)
 ]]
 
-local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,7 +36,9 @@ local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Signal = require(Shared.Util.Signal)
 
+local CandidateProfile = require(script.Parent.CandidateProfile)
 local DataService = require(script.Parent.DataService)
+local StorageGate = require(script.Parent.StorageGate)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Net)
 local PolicyService = require(script.Parent.PolicyService)
@@ -291,11 +294,14 @@ end
 -- Lifecycle -------------------------------------------------------------------------------------
 
 function MonetizationService.Init()
-	local ok, store = pcall(function()
-		return DataStoreService:GetDataStore(PURCHASE_HISTORY_STORE)
-	end)
-	if ok and not DataService.IsMock() then
-		historyStore = store
+	-- in-memory saves get in-memory history: decide before acquiring anything
+	if not CandidateProfile.IsLocalOnly() and not DataService.IsMock() then
+		local ok, store = pcall(function()
+			return StorageGate.GetDataStore(PURCHASE_HISTORY_STORE)
+		end)
+		if ok then
+			historyStore = store
+		end
 	end
 
 	MarketplaceService.ProcessReceipt = processReceipt

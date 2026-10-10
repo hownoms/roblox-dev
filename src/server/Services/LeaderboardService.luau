@@ -21,7 +21,9 @@
 	also check GetRequestBudgetForRequestType when available. Every call is pcall'd with one
 	retry; a store that keeps failing is skipped with exponential backoff (30 s .. WriteBackoffMax).
 	Scope cycling only redraws from cached entries. In Studio without DataStore access (or if a
-	read fails) the board shows the players in this server instead.
+	read fails) the board shows the players in this server instead. A LocalOnly candidate
+	(CandidateProfile) is the same, decided before any acquisition: no store, no budget query.
+	Every store and budget query goes through StorageGate.
 
 	Public API (tests / other services):
 		LeaderboardService.GetScope(): "AllTime" | "Week" | "Server"
@@ -33,7 +35,6 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
-local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -43,7 +44,9 @@ local Types = require(Shared.Types)
 local Format = require(Shared.Util.Format)
 local Week = require(Shared.Util.Week)
 
+local CandidateProfile = require(script.Parent.CandidateProfile)
 local DataService = require(script.Parent.DataService)
+local StorageGate = require(script.Parent.StorageGate)
 local ServerSignals = require(script.Parent.ServerSignals)
 
 export type Scope = string -- "AllTime" | "Week" | "Server"
@@ -191,8 +194,11 @@ end
 
 -- Remaining sorted-store write budget (math.huge when the engine can't tell us).
 local function writeBudget(): number
+	if CandidateProfile.IsLocalOnly() then
+		return math.huge -- no stores to write; never ask the engine
+	end
 	local ok, budget = pcall(function(): number
-		return DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementSortedAsync)
+		return StorageGate.GetRequestBudget(Enum.DataStoreRequestType.SetIncrementSortedAsync)
 	end)
 	return if ok and type(budget) == "number" then budget else math.huge
 end
@@ -207,7 +213,7 @@ local function call<T>(storeName: string, fn: () -> T): (boolean, T?)
 end
 
 local function weeklyStore(storeName: string): OrderedDataStore?
-	if not storesEnabled then
+	if not storesEnabled or CandidateProfile.IsLocalOnly() then
 		return nil
 	end
 	local cached = weeklyStores[storeName]
@@ -215,7 +221,7 @@ local function weeklyStore(storeName: string): OrderedDataStore?
 		return cached
 	end
 	local ok, store = pcall(function()
-		return DataStoreService:GetOrderedDataStore(storeName)
+		return StorageGate.GetOrderedDataStore(storeName)
 	end)
 	if ok and store then
 		weeklyStores[storeName] = store
@@ -688,13 +694,13 @@ end
 
 function LeaderboardService.Init()
 	ServerSignals.Dug:Connect(onDug)
-	if DataService.IsMock() then
+	if CandidateProfile.IsLocalOnly() or DataService.IsMock() then
 		return
 	end
 	storesEnabled = true
 	for _, board in boards do
 		local ok, store = pcall(function()
-			return DataStoreService:GetOrderedDataStore(board.AllTimeStoreName)
+			return StorageGate.GetOrderedDataStore(board.AllTimeStoreName)
 		end)
 		if ok then
 			board.AllTimeStore = store

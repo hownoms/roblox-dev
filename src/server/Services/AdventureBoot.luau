@@ -17,8 +17,10 @@
 	  OFF: settlement is disabled and the completion callback refuses truthfully.
 	BroadwaveOrdinary ON: OnOrdinaryBroadwave = BroadwaveDigBridge.Create({ CanUse =
 	  AdventureEligibility.CanUseBroadwave, Dig = DigService.DigBroadwave }) and licensed tools are
-	  issued (BroadwaveLicense). OFF: no ordinary adapter is passed at all, so the runtime keeps its
-	  event/trial-only Broadwave gating.
+	  issued (BroadwaveLicense). PipQuest starts after the runtime: completing Pip's trial grants
+	  the saved ToolLicenses.tool_broadwave record once (docs/integration/pip-quest-license.md).
+	  OFF: no ordinary adapter is passed at all, so the runtime keeps its event/trial-only
+	  Broadwave gating, PipQuest is never started and Pip's trial stays a demo that grants nothing.
 
 	Disable() is the in-server kill switch (docs/integration/production-wiring.md).
 ]]
@@ -28,6 +30,7 @@ local Workspace = game:GetService("Workspace")
 local Flags = require(script.Parent.AdventureFlags)
 local Eligibility = require(script.Parent.AdventureEligibility)
 local BroadwaveLicense = require(script.Parent.BroadwaveLicense)
+local PipQuest = require(script.Parent.PipQuest)
 local AdventureSettlement = require(script.Parent.AdventureSettlement)
 local AdventureEntry = require(script.Parent.AdventureEntry)
 local DigService = require(script.Parent.DigService)
@@ -186,6 +189,10 @@ function AdventureBoot.Start()
 	if ok then
 		runtime = result
 		AdventureEntry.Start(result, AdventureBoot.POCKET_ORIGIN)
+		if options.OnOrdinaryBroadwave then
+			-- q_pip's permanent license (docs/integration/pip-quest-license.md).
+			PipQuest.Start(result)
+		end
 	else
 		warn("[AdventureBoot] SpringVaultService.Start failed: " .. tostring(result))
 		AdventureBoot.Disable()
@@ -193,9 +200,10 @@ function AdventureBoot.Start()
 end
 
 -- In-server kill switch: stops the runtime (restores loans/positions/speeds), returns everyone in
--- the pocket to the surface, refuses new
--- settlements, removes licensed tools. Accepted grants stay owned; outbox drains continue.
+-- the pocket to the surface, refuses new settlements and new q_pip license grants, removes
+-- licensed tools. Accepted grants (and granted licenses) stay owned; outbox drains continue.
 function AdventureBoot.Disable()
+	PipQuest.Stop()
 	Eligibility.SetOrdinaryEnabled(false)
 	BroadwaveLicense.Stop()
 	if runtime then

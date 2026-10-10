@@ -3,6 +3,10 @@
 	Server entry point — Dig to the Core! Beach Simulator.
 
 	Boot order:
+	  0. CandidateProfile (before anything else): Production (no ServerScriptService.
+	     ProductionCandidate marker) boots normally; LocalOnly (validated Studio-only review
+	     candidate) boots with in-memory storage and no DataStore at all; Refused (marker present
+	     but invalid) warns, stamps ReplicatedStorage.CandidateProfile and starts NOTHING.
 	  1. Remotes.CreateAll()  (every remote exists before clients look for them)
 	  2. World.Build()        (map, dig zone, tagged parts)
 	  3. Service Init() in dependency order (connect remotes, read config), then Start() (loops)
@@ -20,6 +24,23 @@ if sharedState.DigToTheCoreServer then
 	return
 end
 sharedState.DigToTheCoreServer = script:GetFullName()
+
+-- Storage mode, decided before any remote, world or service exists (fail closed).
+local CandidateProfile = require(script.Parent.Services.CandidateProfile)
+local candidateMode = CandidateProfile.Mode()
+if candidateMode == "Refused" then
+	local reason = CandidateProfile.Refusal() or "unknown reason"
+	warn("[CandidateProfile] REFUSED: " .. reason .. ". Nothing was started")
+	ReplicatedStorage:SetAttribute("CandidateProfile", "refused: " .. reason)
+	return
+elseif candidateMode == "LocalOnly" then
+	print(
+		"[CandidateProfile] LOCAL-ONLY CANDIDATE: in-memory saves, outboxes, purchase history and"
+			.. " leaderboards; no DataStore is acquired. Rewards are local simulation."
+	)
+	ReplicatedStorage:SetAttribute("CandidateProfile", "LocalOnly")
+	ReplicatedStorage:SetAttribute("CandidateStorage", "LocalOnly")
+end
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 Remotes.CreateAll()

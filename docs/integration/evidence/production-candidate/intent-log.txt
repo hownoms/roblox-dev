@@ -1,0 +1,25 @@
+# Runtime Intent remote, as received by the server during the acceptance run (read-only listener).
+# Every line came from real Studio client input (keyboard E/Q/Z, mouse clicks on the runtime panel).
+# No Intent was fired from a script. Clock = server os.clock().
+3365.8 xxLoyalAcExx ChargeBegin:trial_patch      (Q held 9.7 studs from the patch: outside the 8-stud corridor, refused)
+3367.2 xxLoyalAcExx ChargeRelease:trial_patch
+3382.7 xxLoyalAcExx ChargeBegin:trial_patch      (Q held 5.5 studs from the patch: Wave = true)
+3384.0 xxLoyalAcExx ChargeRelease:trial_patch
+3391.7 xxLoyalAcExx Excavate:trial_target_2      (E)
+3393.9 xxLoyalAcExx Excavate:trial_target_1      (E)
+3396.1 xxLoyalAcExx Excavate:trial_target_3      (E; PipQuest granted ToolLicenses.tool_broadwave)
+3422.6 xxLoyalAcExx Leave:nil                    ("End trial" button)
+3443.1 xxLoyalAcExx Sync:nil
+3455.4 xxLoyalAcExx ChargeBegin:trial_patch      (licensed Broadwave on the beach dig zone)
+3456.7 xxLoyalAcExx ChargeRelease:trial_patch    (ordinary sand 30 -> 33.75)
+3482.8 xxLoyalAcExx Sync:nil
+3485.8 xxLoyalAcExx Talk:npc_mara                (E)
+3492.5 xxLoyalAcExx Join:nil                     (Join button)
+3502.6 xxLoyalAcExx Start:nil                    (Begin button; the callback sends Start + Ready)
+3502.6 xxLoyalAcExx Ready:nil
+3514.6 .. 3520.2   Excavate:vault_anchor_2 x6   (E)
+3530.2 .. 3535.8   Excavate:vault_anchor_1 x6   (E)
+3537.6 .. 3543.2   Excavate:vault_anchor_3 x6   (E)
+3551.4 xxLoyalAcExx OpenVault:vault_latch        (E)
+3566.8 xxLoyalAcExx RouteLeft:route_left         (E)
+3574.4 xxLoyalAcExx PushBall:ball                (E; then walked the left channel through gates 1-3)

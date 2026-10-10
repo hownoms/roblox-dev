@@ -1,0 +1,2502 @@
+{
+  "project": "expansion1-production-candidate.project.json",
+  "commit": "470465fd14f928b203b45fcb2ba84c289b514ff5",
+  "roots": [
+    [
+      "ReplicatedStorage",
+      "Shared"
+    ],
+    [
+      "ServerScriptService",
+      "Server"
+    ],
+    [
+      "ServerScriptService",
+      "ProductionCandidate"
+    ],
+    [
+      "StarterPlayer",
+      "StarterPlayerScripts",
+      "Client"
+    ],
+    [
+      "StarterPlayer",
+      "StarterPlayerScripts",
+      "ProductionCandidateClient"
+    ]
+  ],
+  "branch": "claude/spring-vault-production-candidate",
+  "dirty": false,
+  "park": [
+    [
+      "ServerScriptService",
+      "AdventureReview"
+    ],
+    [
+      "ServerScriptService",
+      "ExpansionReview"
+    ],
+    [
+      "ServerScriptService",
+      "Adventure"
+    ],
+    [
+      "ServerScriptService",
+      "ProductionReview"
+    ],
+    [
+      "ReplicatedStorage",
+      "SpringVaultClient"
+    ],
+    [
+      "StarterPlayer",
+      "StarterPlayerScripts",
+      "AdventureReview"
+    ],
+    [
+      "StarterPlayer",
+      "StarterPlayerScripts",
+      "ProductionReviewClient"
+    ]
+  ],
+  "serviceProperties": [
+    {
+      "path": [
+        "Workspace"
+      ],
+      "properties": {
+        "FilteringEnabled": true,
+        "StreamingEnabled": true,
+        "StreamingMinRadius": 64,
+        "StreamingTargetRadius": 320,
+        "StreamingIntegrityMode": "MinimumRadiusPause",
+        "StreamOutBehavior": "Opportunistic"
+      }
+    },
+    {
+      "path": [
+        "SoundService"
+      ],
+      "properties": {
+        "RespectFilteringEnabled": true
+      }
+    },
+    {
+      "path": [
+        "Lighting"
+      ],
+      "properties": {
+        "Technology": "Future"
+      }
+    }
+  ],
+  "files": {
+    "1": {
+      "path": "src/shared/Adventure/BeachBallVisual.luau",
+      "sha256": "17e7364ba8b0b25603809934cf0bb8579a9a1c4ed7d6999423b034f8e1e41dcc"
+    },
+    "2": {
+      "path": "src/shared/Adventure/SpringVaultConfig.luau",
+      "sha256": "62a03a2982801e67b1f43faf6acfc456b1c97f5d74a5289e57262cef9c54d9ce"
+    },
+    "3": {
+      "path": "src/shared/Config/init.luau",
+      "sha256": "17ea916112a67808b721cea82f1dcf5415301e4b0189304ed9a838606e01773e"
+    },
+    "4": {
+      "path": "src/shared/Config/Backpacks.luau",
+      "sha256": "09ab3824ddc9136d5db5233fa024b3e2ff3d9881cca369d04c137b41e737e7a6"
+    },
+    "5": {
+      "path": "src/shared/Config/Badges.luau",
+      "sha256": "b07abdaaa3922da13ac0923270e34344f7de0e5441291534fff64ae598d2e85d"
+    },
+    "6": {
+      "path": "src/shared/Config/Boosts.luau",
+      "sha256": "d401a6db4cd09e9e5834e7a823b414c35f3e0a62ee3adcda45d5b24c33bb8b19"
+    },
+    "7": {
+      "path": "src/shared/Config/Codes.luau",
+      "sha256": "f3df285af7d534a15b34acff2509ab5abb5504468bf58bb723171544269b27b8"
+    },
+    "8": {
+      "path": "src/shared/Config/Consumables.luau",
+      "sha256": "dfda46f04d136ab4487ddad173b51485774d66ea659e1559442ce53e382c0a76"
+    },
+    "9": {
+      "path": "src/shared/Config/DailyRewards.luau",
+      "sha256": "5c71a7dae3b0e450e5e0455a10bd1c15d878bd505afae324c27730fda72d6c18"
+    },
+    "10": {
+      "path": "src/shared/Config/Discovery.luau",
+      "sha256": "dd7427f6546f8de5cc46450d560847d7128b5bda93efb7d9729e7ea0ffb0edc4"
+    },
+    "11": {
+      "path": "src/shared/Config/Eggs.luau",
+      "sha256": "861afbc987e851571c0e06fddf0d9f41ef2ece72a42fff8e5830d3b56df0880c"
+    },
+    "12": {
+      "path": "src/shared/Config/Events.luau",
+      "sha256": "6531688dbf9474b5b1c194b678386d83fb8dfbfe6f2279ea946538e4ba8af98a"
+    },
+    "13": {
+      "path": "src/shared/Config/Heat.luau",
+      "sha256": "8f00b2553f3fb4f3328e827fa898aabced76023115d5715cdaf84da08f570a32"
+    },
+    "14": {
+      "path": "src/shared/Config/IconAtlas.luau",
+      "sha256": "a85ea2fc7ff5244637d53757dbfcf9769aa106182f65da24086d95378979deaa"
+    },
+    "15": {
+      "path": "src/shared/Config/Layers.luau",
+      "sha256": "45ff3cda82a268ccbf972d8905008a5f8f478b0083777f5dc3e2a8242c4621b0"
+    },
+    "16": {
+      "path": "src/shared/Config/Monetization.luau",
+      "sha256": "c39f69d8b962f5492e11b59cc9d585d9fd478971742d904867a964710b4f3cd4"
+    },
+    "17": {
+      "path": "src/shared/Config/Pets.luau",
+      "sha256": "57c3c5e990b3e96adf0e23610dc5cfbc15725d4c3cea128a62e58e91ff515f5b"
+    },
+    "18": {
+      "path": "src/shared/Config/Quests.luau",
+      "sha256": "1f939191ac12234c557fe0c53608c472bca1d5dd6aec7b1a2b4463f746f3953a"
+    },
+    "19": {
+      "path": "src/shared/Config/Rarities.luau",
+      "sha256": "e360cb3f646a1e3b515ad2a59c01826a89c84008c217db89231ab372db9a6f96"
+    },
+    "20": {
+      "path": "src/shared/Config/RebirthPerks.luau",
+      "sha256": "e0ec198da96f6693f68cde005f5bbfb7d720751ccba4a419675b85a3737580ad"
+    },
+    "21": {
+      "path": "src/shared/Config/Rebirths.luau",
+      "sha256": "7de0a9ab47f4fee63a49dde8d4cccade8505bf6034e9ee443eaa3ad8a0dbfc78"
+    },
+    "22": {
+      "path": "src/shared/Config/Ride.luau",
+      "sha256": "d335f6127322b3ef741fb81ef87eae83957a6b29b56d2d4f33d35952046eb466"
+    },
+    "23": {
+      "path": "src/shared/Config/Shades.luau",
+      "sha256": "c2e1ad473345b953fbc37b5e9857a253ea8a42a5c01db67aa0221e4520365884"
+    },
+    "24": {
+      "path": "src/shared/Config/Shovels.luau",
+      "sha256": "948350c4fc51962c91c1763da7247f9e0ae645d073c9241d9f46c5400d442890"
+    },
+    "25": {
+      "path": "src/shared/Config/Social.luau",
+      "sha256": "c47c3301d817da7fa9daa4bc0048376391a3704abc9a68cdc470a611cbcef051"
+    },
+    "26": {
+      "path": "src/shared/Config/Sounds.luau",
+      "sha256": "2479f427acb5bbb1a10d4698fce088833f2adc4c727ac2b1f7ecf2e01647135c"
+    },
+    "27": {
+      "path": "src/shared/Config/Theme.luau",
+      "sha256": "1a3e106a77704a3107beab41d7b757d7d31b8ed93362a4fdf8c84908d8f915dc"
+    },
+    "28": {
+      "path": "src/shared/Config/Titles.luau",
+      "sha256": "7335fa55a454ac1a1faf069dd9431216124391083c63001f7cfb023e67120ae1"
+    },
+    "29": {
+      "path": "src/shared/Config/Treasures.luau",
+      "sha256": "a18e66674874b9d16d96d89b6de8f46fdb6a649e67aa12701f5e360f862b1aac"
+    },
+    "30": {
+      "path": "src/shared/Models/init.luau",
+      "sha256": "2f9362d0bae84ecbfc3567fc6115ace73625289489791d70a0a6d231ffbe8554"
+    },
+    "31": {
+      "path": "src/shared/Models/Backpacks.luau",
+      "sha256": "fa1220b403ed53bf3a3307409193d74c7733f176db3366fd2c5c7841165e0f9f"
+    },
+    "32": {
+      "path": "src/shared/Models/Build.luau",
+      "sha256": "942645e130149b8ca96ee305199681dc7a2baf41de62e12635d4de5d3a44427e"
+    },
+    "33": {
+      "path": "src/shared/Models/Consumables.luau",
+      "sha256": "e15e9976f800bb3e1ddabacc6b9cbd7fc77eb8879230d3f85d4f1217cfbe81f7"
+    },
+    "34": {
+      "path": "src/shared/Models/Diggers.luau",
+      "sha256": "e3a9d6311b9dcacb06d66a2898cb67d0244dba03fa5b0b91c04085a511f19d71"
+    },
+    "35": {
+      "path": "src/shared/Models/Eggs.luau",
+      "sha256": "638f69406d525553cc136fcf7f555be92dcefcad7e1e4c9c9245018a61e046d7"
+    },
+    "36": {
+      "path": "src/shared/Models/Expansion1.luau",
+      "sha256": "ff05037ba4d50b1574f03b6d511dcdf14b1a1771f973382af6a43ddf7046afe6"
+    },
+    "37": {
+      "path": "src/shared/Models/Pets.luau",
+      "sha256": "e850aa5bf98391823675f8ff1f4d9530b9e305d6adbc3c3abaff8a0111ba8335"
+    },
+    "38": {
+      "path": "src/shared/Models/Props.luau",
+      "sha256": "b7bb968af2bfaa6f8a88649d58ce86153d1365aa874b68fc70c2406a206d902f"
+    },
+    "39": {
+      "path": "src/shared/Models/PropsBeach.luau",
+      "sha256": "672c6c4522ea7470fa8c1cd8bca3bdd54bde8d838b96876b153c859cf23c7f3a"
+    },
+    "40": {
+      "path": "src/shared/Models/Rides.luau",
+      "sha256": "319bd449eaaedf9c0d190821d8486cd965471d2cf6773839999871518ec7db44"
+    },
+    "41": {
+      "path": "src/shared/Models/Shades.luau",
+      "sha256": "8583d6814490e458af7898b937f62b2dd55c320478b84e880d2da8b35ccb4f12"
+    },
+    "42": {
+      "path": "src/shared/Models/Shovels.luau",
+      "sha256": "56598fa2ec1322e488413703b781d21eb7569560c2a29e38db6cc6455f42578d"
+    },
+    "43": {
+      "path": "src/shared/Models/Treasures.luau",
+      "sha256": "39492ebf365b70b2d716c228459dcd2dd133e678cfc70f466e154716a41b0d71"
+    },
+    "44": {
+      "path": "src/shared/Remotes.luau",
+      "sha256": "1c7055715276dbe9e93432dc1b8c3786c4fa2a431f98325ce6a7f6c506697a62"
+    },
+    "45": {
+      "path": "src/shared/Rewards/AdventureRewards.luau",
+      "sha256": "81732b0aee8326f2f281319b9decefe6d5fd23d790bcf28a1afa03d4de1cee5c"
+    },
+    "46": {
+      "path": "src/shared/Trophies/CampAction.luau",
+      "sha256": "00ef200c501758280f23500cf668787efd3b07519aad6c46b912834bd09024db"
+    },
+    "47": {
+      "path": "src/shared/Trophies/Catalog.luau",
+      "sha256": "1c594af91a82b8637181a71a68da5ec8f331b933bc260c24219f69cb25e254cb"
+    },
+    "48": {
+      "path": "src/shared/Trophies/Rules.luau",
+      "sha256": "96493390ccf299301837847f5140553b1dfacc4a53efdd03c2c5095a6f2794bd"
+    },
+    "49": {
+      "path": "src/shared/Types.luau",
+      "sha256": "4fde20615a070ca1c78f21a52e19fbb18481fce4d190e4a4ddbe0341bc0c0360"
+    },
+    "50": {
+      "path": "src/shared/Util/Finds.luau",
+      "sha256": "766cae0721e5b54c508ef452216500a19a864a267822f8767899493fe1a92e33"
+    },
+    "51": {
+      "path": "src/shared/Util/Format.luau",
+      "sha256": "113992954673047d8a3476360f8f12458bac46af615f106aaf0dad2771967bb8"
+    },
+    "52": {
+      "path": "src/shared/Util/RateLimiter.luau",
+      "sha256": "a73b95de1379b2daec4f5093b92e0288b1935db9d85defa5e28abee69b784d39"
+    },
+    "53": {
+      "path": "src/shared/Util/RideMath.luau",
+      "sha256": "df6b1615d94bd8a38cb2aaa0548669584ba2c1554b90ca5b0a02e1c315f0a023"
+    },
+    "54": {
+      "path": "src/shared/Util/Signal.luau",
+      "sha256": "fb6131dbc10fe34e5da4eb12d876d58590be410214a44f20fe1527094a0043b8"
+    },
+    "55": {
+      "path": "src/shared/Util/Stats.luau",
+      "sha256": "ee4beeea848d357305c25bab9ed0b9d1bb584e7598ee13cd4cf71d6938f17d62"
+    },
+    "56": {
+      "path": "src/shared/Util/TableUtil.luau",
+      "sha256": "cbdea805888a51717b3c1ec691d8c3731dc9a57ccfd46c094a6efad0e794f7ff"
+    },
+    "57": {
+      "path": "src/shared/Util/Week.luau",
+      "sha256": "fd81fd98d1a2876f1860651cbb3dc92377b75676ee709744b48b6a35275d1ca4"
+    },
+    "58": {
+      "path": "src/shared/Util/Weighted.luau",
+      "sha256": "d8e1e7fb3935efcdcd911fb638e3c7010315331095d1a33d0501a098c98e4fee"
+    },
+    "59": {
+      "path": "src/server/Adventure/BroadwaveDigBridge.luau",
+      "sha256": "9f9429075cf6c2fa681ce23485d5b6d7925eec306ede435fd7e47f685a38355a"
+    },
+    "60": {
+      "path": "src/server/Adventure/HaulMovementBudget.luau",
+      "sha256": "537d533b24a720d457b05eea776d97fecc2b0b6c1ea04cf418f5ffb761dea493"
+    },
+    "61": {
+      "path": "src/server/Adventure/SpringVaultRules.luau",
+      "sha256": "3e57ab17ca5639d0c967c37246e9a9151f0ae0c777c449381ce0b43d6563f979"
+    },
+    "62": {
+      "path": "src/server/Adventure/SpringVaultScene.luau",
+      "sha256": "749e580f45d279fd79e53a0f350807e51cf950f2858d9e930b0e376a972a3c6c"
+    },
+    "63": {
+      "path": "src/server/Adventure/SpringVaultService.luau",
+      "sha256": "0ed547eb23f83ed3723d1d63e5161a27c5a9523fb36eeda408b5982c56a1e579"
+    },
+    "64": {
+      "path": "src/server/Adventure/SpringVaultState.luau",
+      "sha256": "58666292a39a19899fba3826a9566b2395b0f95869fcc9909405c252b13dae2b"
+    },
+    "65": {
+      "path": "src/server/Adventure/TemporaryReviewCompletionAdapter.luau",
+      "sha256": "7b1fe847975e2fc676d77f7686e87643163ec0e51935e7427bdd7cb14fe06a91"
+    },
+    "66": {
+      "path": "src/server/Main.server.luau",
+      "sha256": "6501f18abc1ac86d85fc5b60be5e0198b95d74c9d903c1bf09cf21de3ee5f165"
+    },
+    "67": {
+      "path": "src/server/Services/AdventureBoot.luau",
+      "sha256": "1821354e6f2ec9ba13614f57ad418df4bfd2f252f29f5560f3033f992f62486c"
+    },
+    "68": {
+      "path": "src/server/Services/AdventureEligibility.luau",
+      "sha256": "4ac98aa0a0e2f4edce52e9a494198a7372447294962575051667ae1da972f9f8"
+    },
+    "69": {
+      "path": "src/server/Services/AdventureEntry.luau",
+      "sha256": "7afdabee04ffe06448e2862370946c65276003e0c36da12a1f6bcacf7d96b90c"
+    },
+    "70": {
+      "path": "src/server/Services/AdventureFlags.luau",
+      "sha256": "d8acc8556f8b3c3cff26896279d6c326c20a86319097d5ed0f83433df8641594"
+    },
+    "71": {
+      "path": "src/server/Services/AdventureSettlement.luau",
+      "sha256": "95085596e7e3d5b93ce2d76aa63e1b25dd6596e14c4ea0a01e50a4040b4fbd1e"
+    },
+    "72": {
+      "path": "src/server/Services/Analytics.luau",
+      "sha256": "c30ae20edc3f0a4b71ada4ae9804a8542914ff2a58b3272643475378d05a107c"
+    },
+    "73": {
+      "path": "src/server/Services/BadgeAwardService.luau",
+      "sha256": "9dab257c0dbc1167b90a7242f5ae5abf7f0ad536b47f11b22e0a627faac27d0a"
+    },
+    "74": {
+      "path": "src/server/Services/BeachService.luau",
+      "sha256": "0520f6d39bf50cdc9b7f3c7d98870ff9748de472afa965f2a1516109d00e7259"
+    },
+    "75": {
+      "path": "src/server/Services/BroadwaveLicense.luau",
+      "sha256": "412f94a328db76d99ed5383f0d18f87213a6fb11bf24a90b1bdb6b49292eebfe"
+    },
+    "76": {
+      "path": "src/server/Services/CandidateProfile.luau",
+      "sha256": "e08d910f901c9b6c765caf15d11dc30ad6ff1f540c02a4a5eb7c5ccfaa55f6ec"
+    },
+    "77": {
+      "path": "src/server/Services/DataService.luau",
+      "sha256": "191739afe0dd91e9222e51c08ffe7704901e0261266ec2e801ddd80ffb520da4"
+    },
+    "78": {
+      "path": "src/server/Services/DevCommands.luau",
+      "sha256": "087a0ab58b1da78ee0f6888b1306205b39011245f1e7c510705b039eeb8eb505"
+    },
+    "79": {
+      "path": "src/server/Services/DigService.luau",
+      "sha256": "2ed964cc963e43d91d335fed92d6be1a5f8bbebc24930cde26f11705168eab81"
+    },
+    "80": {
+      "path": "src/server/Services/DiscoveryService.luau",
+      "sha256": "0b3a1be17a14d5e1ae09a6cf042b1ae9b0814986400dd429352cd8a7cd5ce82f"
+    },
+    "81": {
+      "path": "src/server/Services/DurableOutbox.luau",
+      "sha256": "b320a78a210ed07ea6e0a4a36434375146d90fc4bbfc55fac0dd079417854470"
+    },
+    "82": {
+      "path": "src/server/Services/EconomyService.luau",
+      "sha256": "d1ae40f263d7890a634b9a74034f4119c748b9a1f32c6880f5387056665b95e3"
+    },
+    "83": {
+      "path": "src/server/Services/EventService.luau",
+      "sha256": "589ba00f97069243d3001baeccb784db557f738bd574b91abadc40c801ca0df2"
+    },
+    "84": {
+      "path": "src/server/Services/LaunchCheck.luau",
+      "sha256": "2a09abaf559561f05ef47ddd1d695ff4428f20ec7e43996b28af24d537770ff8"
+    },
+    "85": {
+      "path": "src/server/Services/LeaderboardService.luau",
+      "sha256": "193605ad4971b165f3547c8cfd060a58dc5aa6d1713333c9310441366e6fa7df"
+    },
+    "86": {
+      "path": "src/server/Services/MonetizationService.luau",
+      "sha256": "dcc52b945628354fb8d319fc89ebbfc4fae6bb2606edd4fe21e11d72b9a2cf65"
+    },
+    "87": {
+      "path": "src/server/Services/MultiplierService.luau",
+      "sha256": "c20542f76e2bc2b3a9ffd6043def42ddea11198df97fd98ef1d31be153f6e5cb"
+    },
+    "88": {
+      "path": "src/server/Services/Net.luau",
+      "sha256": "32bd3032850b7083bd36cdca64eabed765bf979e6e94d869ed2ef04c16d75b29"
+    },
+    "89": {
+      "path": "src/server/Services/OfflineService.luau",
+      "sha256": "7de92bfaae247cb9123e8c7f8b79eb0547b9880b83c6666416297b9c97c52b60"
+    },
+    "90": {
+      "path": "src/server/Services/PetDigService.luau",
+      "sha256": "c43bfa181fc2443ee05ae210c533410bddfa7800ec556a7cbef6db57f5594b50"
+    },
+    "91": {
+      "path": "src/server/Services/PetService.luau",
+      "sha256": "17bf62675eb611d9ecae8dc3730261b49dcdfd77dc0f56edcf047b3b2d755816"
+    },
+    "92": {
+      "path": "src/server/Services/PipQuest.luau",
+      "sha256": "7cf90af6c731104a5a0e9bce0b2f6defaf6bb776533b034599cca8a7b9edf924"
+    },
+    "93": {
+      "path": "src/server/Services/PolicyService.luau",
+      "sha256": "df02c0d552ac5cdde023758116c17e05fdc58822a058bceaef6f49989f168f12"
+    },
+    "94": {
+      "path": "src/server/Services/RebirthService.luau",
+      "sha256": "f230756246989fdd1ebe1571483a1bf54410400b8bcc34cbf90e027993122eda"
+    },
+    "95": {
+      "path": "src/server/Services/RewardsService.luau",
+      "sha256": "fdd5458dccf858efb2213171fa61737e336656994e0232c6318d734052e3668b"
+    },
+    "96": {
+      "path": "src/server/Services/RideService.luau",
+      "sha256": "ef53ddc43dcbe660cda6ea804db178c6abbf2d31657414d5db2911677afe6301"
+    },
+    "97": {
+      "path": "src/server/Services/ServerGoalService.luau",
+      "sha256": "f7e773437cfbff20a6c1a3bd368ac32ade5f6583a0f1c42bd97ccf9352572b7d"
+    },
+    "98": {
+      "path": "src/server/Services/ServerSignals.luau",
+      "sha256": "340e78464093b8da8c9e6073863d6664f1ed70ece5dfafe9543ac0b1ec249d9f"
+    },
+    "99": {
+      "path": "src/server/Services/SettingsService.luau",
+      "sha256": "4f64f241f7c81ab000b215b97a540ef5b99bb167e1001a57f7ad4d7b17befbfa"
+    },
+    "100": {
+      "path": "src/server/Services/ShopService.luau",
+      "sha256": "ca46a73d9caca55d9af50cbe93ee39d1dc06d9d5af06c4ee90e270492da4b3a9"
+    },
+    "101": {
+      "path": "src/server/Services/StatusService.luau",
+      "sha256": "9c478091384cc4394d2aa165a254613c4666a9c6cf6647296f32fb82c3b8990d"
+    },
+    "102": {
+      "path": "src/server/Services/StorageGate.luau",
+      "sha256": "165b19139ae9b41a64e607cab757ed54ddfb9f663ef1a623977ac80dbe046ff3"
+    },
+    "103": {
+      "path": "src/server/Services/StreamingService.luau",
+      "sha256": "b9ca35fc3cfd7d65f170aef5230591c7f6f812696acae6df3fcfaa6a0002fdff"
+    },
+    "104": {
+      "path": "src/server/Services/SurvivalService.luau",
+      "sha256": "8d374657925ec736a84991ca0f6b0dd923edb185fa1e99b4fa6118bdf1085c4d"
+    },
+    "105": {
+      "path": "src/server/Services/SurvivalShades.luau",
+      "sha256": "f976a7bc179cbe30350e70cd1cf22b0d4875f066cf724413f67ffc16138ffec1"
+    },
+    "106": {
+      "path": "src/server/Services/TrophyCampDisplay.luau",
+      "sha256": "c79eb99d4e37dad3c473608e7c4bd0845409dd0d4ffe4f4f39ed6d9a2d865698"
+    },
+    "107": {
+      "path": "src/server/Services/TrophyData.luau",
+      "sha256": "232c27aabbd2b9d90acda308622432b7e2513505efd74a7db9ca2ce595a89e01"
+    },
+    "108": {
+      "path": "src/server/Services/TrophyPendingStore.luau",
+      "sha256": "8152073d2e3768447a8c9b289e5e337c8992206ebd969dec9a22d9a0060ff08d"
+    },
+    "109": {
+      "path": "src/server/Services/TrophyService.luau",
+      "sha256": "35c591b3fd9730600259aa3073ab838aaa6a8525b98ff10988e44b23f92e519b"
+    },
+    "110": {
+      "path": "src/server/World/init.luau",
+      "sha256": "86a830062c56112727996cb29d374e18d6acea6b54393aeef062ae31b162a900"
+    },
+    "111": {
+      "path": "src/server/World/Boardwalk.luau",
+      "sha256": "7ad9845ee806844d387851d8c64475712826455f08b51758502d5b1b108038b8"
+    },
+    "112": {
+      "path": "src/server/World/CampPad.luau",
+      "sha256": "50755096515b98f8e711407602ffc6023384e617da23be1c1fabc02ac67e0d5b"
+    },
+    "113": {
+      "path": "src/server/World/Decor.luau",
+      "sha256": "9f3d87a74e4337774604d2201d83c74a8c39d9073bf0ca8bc3ed561f35931cf8"
+    },
+    "114": {
+      "path": "src/server/World/Headlands.luau",
+      "sha256": "7005f957ba7664817ac7d5482d9420fabd9da3e550d8c2027bed07d07872ae52"
+    },
+    "115": {
+      "path": "src/server/World/Hub.luau",
+      "sha256": "dc458d53cccdfacf414a8eeefdecaa78fbab50ed3a6ef35b387b1dfcc423295d"
+    },
+    "116": {
+      "path": "src/server/World/HubAttractions.luau",
+      "sha256": "42e9445a126f94347efd778a308cf96713750b559b2483d3761a93b6a1dd5db6"
+    },
+    "117": {
+      "path": "src/server/World/HubKit.luau",
+      "sha256": "c1dbe807bdc6d30cffae5b8ffbd13227c68c79bb0eb470c602ea007db7b4f371"
+    },
+    "118": {
+      "path": "src/server/World/HubPlaza.luau",
+      "sha256": "f2696f3a42ca0b61fd703b2bd30868b2e19367ce0cafc1fdf47b507ac7f24a0b"
+    },
+    "119": {
+      "path": "src/server/World/HubShops.luau",
+      "sha256": "a81882baf27b7bfbfd76644c02927b9912be235b3616958664451e9aff1b3c16"
+    },
+    "120": {
+      "path": "src/server/World/Layout.luau",
+      "sha256": "b139a20ec2f154819171cb19a82e633fe266f439bbaa63df867c37f332a6c830"
+    },
+    "121": {
+      "path": "src/server/World/Lighting.luau",
+      "sha256": "4cd03130437706c2677eef148c3a72e6b149cc95256218453737dab9c3c2d607"
+    },
+    "122": {
+      "path": "src/server/World/PierCarnival.luau",
+      "sha256": "12e75604eac0cbc55df650366bab03414a2df5d725e94406e3e052dfe68f97fa"
+    },
+    "123": {
+      "path": "src/server/World/Promenade.luau",
+      "sha256": "7f5778ce05f80664f3f3ce80daae6e78b3f8f37271a0174b9bfb33534d4f8e4f"
+    },
+    "124": {
+      "path": "src/server/World/PromenadeKit.luau",
+      "sha256": "86da6dae0cf6bd8a9423d63dd6827e5331fa5b142b188c97c0c9e552c4ed0e70"
+    },
+    "125": {
+      "path": "src/server/World/Skyline.luau",
+      "sha256": "cbd216428668bd89bdd198843673fa6c5c711360c3a4545a47e72cab25f00761"
+    },
+    "126": {
+      "path": "src/server/World/Terrain.luau",
+      "sha256": "7fe2826ede8979f7442558bbb30c466c9eca582b78162fac695693f5595c5cc0"
+    },
+    "127": {
+      "path": "src/server/World/Underground.luau",
+      "sha256": "4c8027e771af2d2a7acb79ee905d2936073fc6353081daa3680ff70620da4a45"
+    },
+    "128": {
+      "path": "src/server/World/Util.luau",
+      "sha256": "8a32b51770437a30dad8b5eb2032af75e275cbfe42a42bdfbf5aace40b501a00"
+    },
+    "129": {
+      "path": "src/server/World/Vistas.luau",
+      "sha256": "926882e2da0a066f660a27c5b64f1d64915aabe711fcfa7b0d52c6eb598de748"
+    },
+    "130": {
+      "path": "tools/expansion1/production-candidate/CandidateConfig.luau",
+      "sha256": "b9548e0f18dd09caa7f79aeb69b061037ebca4576c3ff857530a9a7ca43c5cf7"
+    },
+    "131": {
+      "path": "src/client/Adventure/SpringVaultClient.luau",
+      "sha256": "05eb226dd9e7cc227a810143cae94bf94ddb0fb42d191f5553260572173232d1"
+    },
+    "132": {
+      "path": "src/client/Controllers/AdventureController.luau",
+      "sha256": "fea965b9c7db6f3530ccee12eccd15b9abc1abfa85b3c816d9d96a58bcc42ab6"
+    },
+    "133": {
+      "path": "src/client/Controllers/AdventureInviteController.luau",
+      "sha256": "ab5c465adc36cf0bc8faa31062d2cf099f03d6e4035d0421dc9e35aec959a155"
+    },
+    "134": {
+      "path": "src/client/Controllers/AmbientController.luau",
+      "sha256": "675d59b715d5754f74c1f5b6e0d7bca599307b7e201bfb8bef1068499cc858f0"
+    },
+    "135": {
+      "path": "src/client/Controllers/CampDisplayController.luau",
+      "sha256": "ab3094d0a246317a4d3f9c2755bfdd33055e10656f137b23f800fa866ce2d851"
+    },
+    "136": {
+      "path": "src/client/Controllers/ChatLayoutController.luau",
+      "sha256": "be33ec6a0fc8f9d5f33bec87ba15aad06554860ddf44b2fdd23e796129355fc6"
+    },
+    "137": {
+      "path": "src/client/Controllers/DigController.luau",
+      "sha256": "813f7c8bb456f1724653d964c71afe2d1d30c79f862839cea84a2381f79d5013"
+    },
+    "138": {
+      "path": "src/client/Controllers/DiscoveryController.luau",
+      "sha256": "6ebcf2d9219742f4f8a6a42fc03dfea184e258ee9adc0ab2673704192b45abbc"
+    },
+    "139": {
+      "path": "src/client/Controllers/EffectsController.luau",
+      "sha256": "7aacd0262c63e69f73ad9be96e69f632fc6e16547142a98d38bb916065c2b3c3"
+    },
+    "140": {
+      "path": "src/client/Controllers/GuideController.luau",
+      "sha256": "b961b1b95c1e5f280dd92a169448de7ba8debd1bebab9e77fe40deae2aa75d3d"
+    },
+    "141": {
+      "path": "src/client/Controllers/InputArbiter.luau",
+      "sha256": "1dd6f03966ae2c933e050fc21cfb5154d77c18aa50e385f813aadd00640a5092"
+    },
+    "142": {
+      "path": "src/client/Controllers/InputController.luau",
+      "sha256": "8d81d502317358eb6b17caf4fd83d30366247e4bfdff59f8adfbc88796b59993"
+    },
+    "143": {
+      "path": "src/client/Controllers/LayerController.luau",
+      "sha256": "7e997638fa7bc3c6ae2b67bfe718010dcdca63fdc19764832f4b821cafe68bec"
+    },
+    "144": {
+      "path": "src/client/Controllers/PetFollowController.luau",
+      "sha256": "24120e9d8b72ee007419707bb6c71b0271670059cef2b103de8e8fb807d1c391"
+    },
+    "145": {
+      "path": "src/client/Controllers/PlacementController.luau",
+      "sha256": "5c9bf8b9566aa7121675ff80396a41f613283f98b3f98e237088475076d7e307"
+    },
+    "146": {
+      "path": "src/client/Controllers/PurchaseController.luau",
+      "sha256": "e0f475c0c28c6c02ed639be9bfa77fd3f390326550e1abd2cd6311c85b4ab454"
+    },
+    "147": {
+      "path": "src/client/Controllers/RideController.luau",
+      "sha256": "6cd58689f947bb0ea9eb0af67fda513db9ebccd42b35ef0ee205e0773fd1db37"
+    },
+    "148": {
+      "path": "src/client/Controllers/ShovelPoseController.luau",
+      "sha256": "642e2f81a79b3c4df8358af2acbe94910f668929bc55ea45c86cf2fb9b2084a6"
+    },
+    "149": {
+      "path": "src/client/Controllers/SoundController.luau",
+      "sha256": "a95186d39ca84707e0ebfd0bd79ac9bf4909428bb5203d7c8024b5e0bae0787b"
+    },
+    "150": {
+      "path": "src/client/Controllers/State.luau",
+      "sha256": "f044d9b74efc7910ed4b9eb56fc97f33637523ab6a85cae4e391db4e248cf82e"
+    },
+    "151": {
+      "path": "src/client/Controllers/StatusController.luau",
+      "sha256": "96a918482d2b3b679634b44409a9db0ef1528ecfb7a68d30e5cd1f35f5bf2e7f"
+    },
+    "152": {
+      "path": "src/client/Controllers/SurvivalController.luau",
+      "sha256": "7284695f2abc175f1b8f054b0a68bcd66862c4c978ad7bdd8cb636c248da4ed8"
+    },
+    "153": {
+      "path": "src/client/Controllers/TutorialController.luau",
+      "sha256": "4339b63636d4cee2d97f481f3311259b59433b4eba9201ea5858ee053ddf57ea"
+    },
+    "154": {
+      "path": "src/client/Controllers/WorldPromptController.luau",
+      "sha256": "06709486ab40922464b9e5791e02c6cf3640eb80910170f0ba353d6446fa93d5"
+    },
+    "155": {
+      "path": "src/client/Main.client.luau",
+      "sha256": "70c452c139400febec495ba17b9d030c5b3cadcc002363a5d200d0df294e7e0b"
+    },
+    "156": {
+      "path": "src/client/UI/AdventureHUD.luau",
+      "sha256": "eae26ccb4b038da269e8f0b122858d82d78d27fcae5683f4978382b0fd379e59"
+    },
+    "157": {
+      "path": "src/client/UI/AdventureOutcome.luau",
+      "sha256": "61095165d1410c6f9ddb263cba56955009d43f94cfa48811a216009ca06c4344"
+    },
+    "158": {
+      "path": "src/client/UI/Announcements.luau",
+      "sha256": "3f28c5f3cff45cfc28e99cfa99f085a37db358076d928126bc094f2c2c29c00a"
+    },
+    "159": {
+      "path": "src/client/UI/Banner.luau",
+      "sha256": "aa0208ae50c7cb89c8ca13f23d9330653ede27482fff1449233d4d1632bc894e"
+    },
+    "160": {
+      "path": "src/client/UI/BroadwaveEquip.luau",
+      "sha256": "837fb9e71ac6f988006822f90ebdf728681203d51cf389d6cabb6702ccdf8d66"
+    },
+    "161": {
+      "path": "src/client/UI/Components/AtlasIcon.luau",
+      "sha256": "125f726c7f45171f26833bff6a710774ad85393d0fc1757a382ebdc4673de5fa"
+    },
+    "162": {
+      "path": "src/client/UI/Components/Button.luau",
+      "sha256": "c9ccf97c98d1083b1866f92156d0353c087a86b3fa95cba256975bbcb44f5d5a"
+    },
+    "163": {
+      "path": "src/client/UI/Components/Card.luau",
+      "sha256": "132f226a881a0b59dbee1f5f8cf5cd4d05adb3219dd778d0dd6c2571e077064a"
+    },
+    "164": {
+      "path": "src/client/UI/Components/IconLabel.luau",
+      "sha256": "8feb8c906e9ba93524253739f35ac533897dce6c5f64aa788ebca57989890bc6"
+    },
+    "165": {
+      "path": "src/client/UI/Components/Panel.luau",
+      "sha256": "da46207070a94bcf057857ff9f66f1b8aaa58637fe03894c263c38a68a12a2b8"
+    },
+    "166": {
+      "path": "src/client/UI/Components/ProgressBar.luau",
+      "sha256": "d965966112f858687468eca211752741c3ea144233028e44f8091551b325d888"
+    },
+    "167": {
+      "path": "src/client/UI/Components/Style.luau",
+      "sha256": "c501b133679b4cf74bab484768beedebfe7cb09812b17cd257340bb1493373c2"
+    },
+    "168": {
+      "path": "src/client/UI/Components/UpgradeRow.luau",
+      "sha256": "0056a6ad4ea689ba9391e9af0449cbcf62b669d6acb9c314475bff62580d10b3"
+    },
+    "169": {
+      "path": "src/client/UI/Components/Viewport.luau",
+      "sha256": "1c0ef05e493858c68d2e22e232358fe7437602a418a5dc07cec4ca1449ff2464"
+    },
+    "170": {
+      "path": "src/client/UI/DetectorHUD.luau",
+      "sha256": "01c37e82c5f6075158176f1ac7d8c81c930db0fd8c4de05c6d1dc50df382bf24"
+    },
+    "171": {
+      "path": "src/client/UI/ExcavationGame.luau",
+      "sha256": "41dda3d372dcbd1061550613c10de4bc8afd38d842c4b6d4ad1bad1cff1f9340"
+    },
+    "172": {
+      "path": "src/client/UI/FindReveal.luau",
+      "sha256": "e414a798ef6b2da0a71cd212a777cabe78ed66c18f15d773f78ed12d24025e20"
+    },
+    "173": {
+      "path": "src/client/UI/HUD.luau",
+      "sha256": "dbf16a4753ee127e650aec0794a4bd2bc2776a2fd0a11417c2e26278dfc6251a"
+    },
+    "174": {
+      "path": "src/client/UI/HatchAnimation.luau",
+      "sha256": "6f8f6130f4dc77d0eb8dcde10450a36febd93ea4e5af520b64ca53a409dc0806"
+    },
+    "175": {
+      "path": "src/client/UI/Icons.luau",
+      "sha256": "41edc6eb6642bc7046385552748bff1519b6e59221111116c85944e69a2eac98"
+    },
+    "176": {
+      "path": "src/client/UI/ItemStats.luau",
+      "sha256": "07c5e0ffdd7a059eb213b0b46833ba31b955249821fba7e3fe859dc793f4e80c"
+    },
+    "177": {
+      "path": "src/client/UI/Layout.luau",
+      "sha256": "f698c7fd845584d845abe6cea4758f6a1ef7add10edaf969668a38b7a01034b6"
+    },
+    "178": {
+      "path": "src/client/UI/MenuGate.luau",
+      "sha256": "7cf998b3fd0bc1baef1454949c95379978838aa3731bcbd894c414d23186de76"
+    },
+    "179": {
+      "path": "src/client/UI/ObjectiveBanner.luau",
+      "sha256": "4d1e51ba9be21dc9487ee1fac7c048ef8ed6a47a82bd1048e53526db69915bad"
+    },
+    "180": {
+      "path": "src/client/UI/OfflinePopup.luau",
+      "sha256": "4d684f8a823648427576f9d764b61fb860c2e3ed4dbdf1fef457f021538288d6"
+    },
+    "181": {
+      "path": "src/client/UI/Panels/BeachShopPanel.luau",
+      "sha256": "057f7b70f7c2d08f452793e753c0aa08d4e20d94598ef69885ade3b631f51fab"
+    },
+    "182": {
+      "path": "src/client/UI/Panels/DailyPanel.luau",
+      "sha256": "fe6be8623c862e7a0cc09bc2f703dca4450bfe7defe35cac5de2004885845a57"
+    },
+    "183": {
+      "path": "src/client/UI/Panels/EggPanel.luau",
+      "sha256": "ee981c7993c25b3862aab199c2de4c5be405d667ac2ad40a567d3e33b779295f"
+    },
+    "184": {
+      "path": "src/client/UI/Panels/IndexPanel.luau",
+      "sha256": "57e11c46002fabc3ad1fcb4df6811f6b6fbe8747550901efe22da706ce6f117d"
+    },
+    "185": {
+      "path": "src/client/UI/Panels/PetsPanel.luau",
+      "sha256": "a1fb3f2235f1e8de11dd6bef6af45506f5f056390e7abf0f5b01112cd3c85968"
+    },
+    "186": {
+      "path": "src/client/UI/Panels/QuestsPanel.luau",
+      "sha256": "88b5c769f2a1613f33e862bf238c1f13400616055d6dc98f355985718e7d3b97"
+    },
+    "187": {
+      "path": "src/client/UI/Panels/RebirthPanel.luau",
+      "sha256": "26a9b00ea4fc068a0da971e9d0f1c9a2dc61d07b72f1dcc83eecaa0a7251470c"
+    },
+    "188": {
+      "path": "src/client/UI/Panels/SettingsPanel.luau",
+      "sha256": "2f41120345b33cc6c89d7985624b2942386c5d479f6a3f52ebf63c0947bd37fc"
+    },
+    "189": {
+      "path": "src/client/UI/Panels/ShopPanel.luau",
+      "sha256": "a5b3fb1e4a0d6645b400990832db031ebe3713f944c1cf4db618a920c68753c2"
+    },
+    "190": {
+      "path": "src/client/UI/Panels/StorePanel.luau",
+      "sha256": "b2d5047699a2f829cc20cba0fd4a94ada6e5fa665d9325cced77f0347ab07bdf"
+    },
+    "191": {
+      "path": "src/client/UI/Reveal.luau",
+      "sha256": "06eea6cc19ba66867728aea4ac1f0a2c3950e44d4c0746dd7f64c0f1fb431eeb"
+    },
+    "192": {
+      "path": "src/client/UI/RideButton.luau",
+      "sha256": "24b611dd92720c44404809109adadb19cd23bdae475bc71cd40b2f2c74fd1f11"
+    },
+    "193": {
+      "path": "src/client/UI/Root.luau",
+      "sha256": "cb093c15572f86676b6b9b03e6d5202a497bea0e769467ca1796e97527134f1b"
+    },
+    "194": {
+      "path": "src/client/UI/SocialHUD.luau",
+      "sha256": "3c582b134aeee4da2e5125ddfc54fd4bd57cb10d3e0c8e0a55c988c560577a1f"
+    },
+    "195": {
+      "path": "src/client/UI/SurvivalHUD.luau",
+      "sha256": "e8f647186f9ff508e70825a575bf8dcb83b4bc8022b13cbec3c07fec1d021427"
+    },
+    "196": {
+      "path": "src/client/UI/Toasts.luau",
+      "sha256": "e05ce634a3171197f1ca598baf115b3a8350739f93b7d6b044839e7e2c95fe81"
+    },
+    "197": {
+      "path": "src/client/UI/TreasurePopup.luau",
+      "sha256": "925bb94185bdcec955217dfce583463537e60050afe5489bf28f2f5f169dcf56"
+    },
+    "198": {
+      "path": "src/client/UI/UIEffects.luau",
+      "sha256": "92373937fae59b60f15293d73571e6452b64c6f2215bf98e9be683d68a4d2c85"
+    },
+    "199": {
+      "path": "src/client/Util/Anchors.luau",
+      "sha256": "770fd1e198ed6eb4400bfd619e993dc794f9473dcc739763feb912f8520e74d1"
+    },
+    "200": {
+      "path": "src/client/Util/Character.luau",
+      "sha256": "dae0e559e7fbab4adf97a36f8e610948690457dff5136fbe47bb7e1db8400c85"
+    },
+    "201": {
+      "path": "src/client/Util/ModelFactory.luau",
+      "sha256": "24c450a5c85dc5b23c763f0693576c4425b9f8002d5ef5a8411e9f6f8b8f25eb"
+    },
+    "202": {
+      "path": "src/client/Util/Progress.luau",
+      "sha256": "70d5d34924a0b59a7bd8055eeb5b03d3d6b9364682b7cc579bd9d2e1e9bcb8c4"
+    },
+    "203": {
+      "path": "src/client/Util/RewardText.luau",
+      "sha256": "489b5de1501d77d9197cfdbed433d37fee7943f8bfd0755725d90105ff27bcbc"
+    },
+    "204": {
+      "path": "src/client/Util/Signal.luau",
+      "sha256": "effa158968b7b1ac90e3b51949a6e5159e77ea90d74babbe3cc0dd88a591ab1d"
+    },
+    "205": {
+      "path": "src/client/Util/Tagged.luau",
+      "sha256": "99325ed732259866785e1a872c697fa60ad7659090902ee79146b2b80fef6de9"
+    },
+    "206": {
+      "path": "src/client/Util/Track.luau",
+      "sha256": "555166d53b761a5736d771e2fe0bf407e8a52506121e84082c006c2b48ae230e"
+    },
+    "207": {
+      "path": "tools/expansion1/production-candidate/CandidateClient.client.luau",
+      "sha256": "4a198cbe84176cab8f55d95ce5ae14ed2dc32f489921c4ac78c0cfec0fd53735"
+    }
+  },
+  "candidateConfigSource": "--!strict\n--[[\n\tOwner-reviewed server-only configuration for the local Spring Vault production candidate\n\t(docs/integration/production-candidate.md). Mapped only by\n\texpansion1-production-candidate.project.json as ServerScriptService.ProductionCandidate.\n\tCandidateConfig; never by default.project.json.\n\n\tCandidateProfile (src/server/Services) reads this before Main creates remotes or initializes a\n\tsingle service. It is honoured only in Studio, in an unpublished place (PlaceId 0, GameId 0)\n\twhose folder was stamped by the installer as the authorized Expansion1Review file. Anywhere\n\telse the server refuses to start at all.\n\n\tStorage = \"LocalOnly\": saves, both reward outboxes, purchase history and leaderboards stay in\n\tmemory and no DataStore is acquired. Every reward in a candidate session is local simulation.\n\tFlags: the shipped AdventureFlags stay false in source; these values apply to this candidate\n\tserver only.\n]]\n\nreturn {\n\tAuthorization = \"Expansion1Review\",\n\tStorage = \"LocalOnly\",\n\tFlags = {\n\t\tSpringVault = true,\n\t\tAdventureRewards = true,\n\t\tBroadwaveOrdinary = true,\n\t},\n}\n",
+  "storageProfile": {
+    "mode": "LocalOnly",
+    "selectedBy": "CandidateProfile (src/server/Services), before Main creates remotes or initializes services",
+    "consumers": [
+      "DataService PlayerData_v1 (load, autosave, removal release, BindToClose)",
+      "TrophyPendingStore TrophyPendingGrants_v1 (DurableOutbox)",
+      "AdventureSettlement AdventureRewardIntents_v1 (DurableOutbox)",
+      "MonetizationService PurchaseHistory_v1",
+      "LeaderboardService all-time and weekly OrderedDataStores, request budget"
+    ],
+    "gate": "StorageGate is the only src/ module that references DataStoreService; LocalOnly never calls it"
+  },
+  "instances": [
+    {
+      "path": "ReplicatedStorage/Shared",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Adventure",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Adventure/BeachBallVisual",
+      "class": "ModuleScript",
+      "source": 1,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Adventure/SpringVaultConfig",
+      "class": "ModuleScript",
+      "source": 2,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config",
+      "class": "ModuleScript",
+      "source": 3,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Backpacks",
+      "class": "ModuleScript",
+      "source": 4,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Badges",
+      "class": "ModuleScript",
+      "source": 5,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Boosts",
+      "class": "ModuleScript",
+      "source": 6,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Codes",
+      "class": "ModuleScript",
+      "source": 7,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Consumables",
+      "class": "ModuleScript",
+      "source": 8,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/DailyRewards",
+      "class": "ModuleScript",
+      "source": 9,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Discovery",
+      "class": "ModuleScript",
+      "source": 10,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Eggs",
+      "class": "ModuleScript",
+      "source": 11,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Events",
+      "class": "ModuleScript",
+      "source": 12,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Heat",
+      "class": "ModuleScript",
+      "source": 13,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/IconAtlas",
+      "class": "ModuleScript",
+      "source": 14,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Layers",
+      "class": "ModuleScript",
+      "source": 15,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Monetization",
+      "class": "ModuleScript",
+      "source": 16,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Pets",
+      "class": "ModuleScript",
+      "source": 17,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Quests",
+      "class": "ModuleScript",
+      "source": 18,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Rarities",
+      "class": "ModuleScript",
+      "source": 19,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/RebirthPerks",
+      "class": "ModuleScript",
+      "source": 20,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Rebirths",
+      "class": "ModuleScript",
+      "source": 21,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Ride",
+      "class": "ModuleScript",
+      "source": 22,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Shades",
+      "class": "ModuleScript",
+      "source": 23,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Shovels",
+      "class": "ModuleScript",
+      "source": 24,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Social",
+      "class": "ModuleScript",
+      "source": 25,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Sounds",
+      "class": "ModuleScript",
+      "source": 26,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Theme",
+      "class": "ModuleScript",
+      "source": 27,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Titles",
+      "class": "ModuleScript",
+      "source": 28,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Config/Treasures",
+      "class": "ModuleScript",
+      "source": 29,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models",
+      "class": "ModuleScript",
+      "source": 30,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Backpacks",
+      "class": "ModuleScript",
+      "source": 31,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Build",
+      "class": "ModuleScript",
+      "source": 32,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Consumables",
+      "class": "ModuleScript",
+      "source": 33,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Diggers",
+      "class": "ModuleScript",
+      "source": 34,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Eggs",
+      "class": "ModuleScript",
+      "source": 35,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Expansion1",
+      "class": "ModuleScript",
+      "source": 36,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Pets",
+      "class": "ModuleScript",
+      "source": 37,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Props",
+      "class": "ModuleScript",
+      "source": 38,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/PropsBeach",
+      "class": "ModuleScript",
+      "source": 39,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Rides",
+      "class": "ModuleScript",
+      "source": 40,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Shades",
+      "class": "ModuleScript",
+      "source": 41,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Shovels",
+      "class": "ModuleScript",
+      "source": 42,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Models/Treasures",
+      "class": "ModuleScript",
+      "source": 43,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Remotes",
+      "class": "ModuleScript",
+      "source": 44,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Rewards",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Rewards/AdventureRewards",
+      "class": "ModuleScript",
+      "source": 45,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Trophies",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Trophies/CampAction",
+      "class": "ModuleScript",
+      "source": 46,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Trophies/Catalog",
+      "class": "ModuleScript",
+      "source": 47,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Trophies/Rules",
+      "class": "ModuleScript",
+      "source": 48,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Types",
+      "class": "ModuleScript",
+      "source": 49,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Finds",
+      "class": "ModuleScript",
+      "source": 50,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Format",
+      "class": "ModuleScript",
+      "source": 51,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/RateLimiter",
+      "class": "ModuleScript",
+      "source": 52,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/RideMath",
+      "class": "ModuleScript",
+      "source": 53,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Signal",
+      "class": "ModuleScript",
+      "source": 54,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Stats",
+      "class": "ModuleScript",
+      "source": 55,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/TableUtil",
+      "class": "ModuleScript",
+      "source": 56,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Week",
+      "class": "ModuleScript",
+      "source": 57,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ReplicatedStorage/Shared/Util/Weighted",
+      "class": "ModuleScript",
+      "source": 58,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/BroadwaveDigBridge",
+      "class": "ModuleScript",
+      "source": 59,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/HaulMovementBudget",
+      "class": "ModuleScript",
+      "source": 60,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/SpringVaultRules",
+      "class": "ModuleScript",
+      "source": 61,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/SpringVaultScene",
+      "class": "ModuleScript",
+      "source": 62,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/SpringVaultService",
+      "class": "ModuleScript",
+      "source": 63,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/SpringVaultState",
+      "class": "ModuleScript",
+      "source": 64,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Adventure/TemporaryReviewCompletionAdapter",
+      "class": "ModuleScript",
+      "source": 65,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Main",
+      "class": "Script",
+      "source": 66,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/AdventureBoot",
+      "class": "ModuleScript",
+      "source": 67,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/AdventureEligibility",
+      "class": "ModuleScript",
+      "source": 68,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/AdventureEntry",
+      "class": "ModuleScript",
+      "source": 69,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/AdventureFlags",
+      "class": "ModuleScript",
+      "source": 70,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/AdventureSettlement",
+      "class": "ModuleScript",
+      "source": 71,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/Analytics",
+      "class": "ModuleScript",
+      "source": 72,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/BadgeAwardService",
+      "class": "ModuleScript",
+      "source": 73,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/BeachService",
+      "class": "ModuleScript",
+      "source": 74,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/BroadwaveLicense",
+      "class": "ModuleScript",
+      "source": 75,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/CandidateProfile",
+      "class": "ModuleScript",
+      "source": 76,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/DataService",
+      "class": "ModuleScript",
+      "source": 77,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/DevCommands",
+      "class": "ModuleScript",
+      "source": 78,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/DigService",
+      "class": "ModuleScript",
+      "source": 79,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/DiscoveryService",
+      "class": "ModuleScript",
+      "source": 80,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/DurableOutbox",
+      "class": "ModuleScript",
+      "source": 81,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/EconomyService",
+      "class": "ModuleScript",
+      "source": 82,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/EventService",
+      "class": "ModuleScript",
+      "source": 83,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/LaunchCheck",
+      "class": "ModuleScript",
+      "source": 84,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/LeaderboardService",
+      "class": "ModuleScript",
+      "source": 85,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/MonetizationService",
+      "class": "ModuleScript",
+      "source": 86,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/MultiplierService",
+      "class": "ModuleScript",
+      "source": 87,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/Net",
+      "class": "ModuleScript",
+      "source": 88,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/OfflineService",
+      "class": "ModuleScript",
+      "source": 89,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/PetDigService",
+      "class": "ModuleScript",
+      "source": 90,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/PetService",
+      "class": "ModuleScript",
+      "source": 91,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/PipQuest",
+      "class": "ModuleScript",
+      "source": 92,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/PolicyService",
+      "class": "ModuleScript",
+      "source": 93,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/RebirthService",
+      "class": "ModuleScript",
+      "source": 94,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/RewardsService",
+      "class": "ModuleScript",
+      "source": 95,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/RideService",
+      "class": "ModuleScript",
+      "source": 96,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/ServerGoalService",
+      "class": "ModuleScript",
+      "source": 97,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/ServerSignals",
+      "class": "ModuleScript",
+      "source": 98,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/SettingsService",
+      "class": "ModuleScript",
+      "source": 99,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/ShopService",
+      "class": "ModuleScript",
+      "source": 100,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/StatusService",
+      "class": "ModuleScript",
+      "source": 101,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/StorageGate",
+      "class": "ModuleScript",
+      "source": 102,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/StreamingService",
+      "class": "ModuleScript",
+      "source": 103,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/SurvivalService",
+      "class": "ModuleScript",
+      "source": 104,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/SurvivalShades",
+      "class": "ModuleScript",
+      "source": 105,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/TrophyCampDisplay",
+      "class": "ModuleScript",
+      "source": 106,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/TrophyData",
+      "class": "ModuleScript",
+      "source": 107,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/TrophyPendingStore",
+      "class": "ModuleScript",
+      "source": 108,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/Services/TrophyService",
+      "class": "ModuleScript",
+      "source": 109,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World",
+      "class": "ModuleScript",
+      "source": 110,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Boardwalk",
+      "class": "ModuleScript",
+      "source": 111,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/CampPad",
+      "class": "ModuleScript",
+      "source": 112,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Decor",
+      "class": "ModuleScript",
+      "source": 113,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Headlands",
+      "class": "ModuleScript",
+      "source": 114,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Hub",
+      "class": "ModuleScript",
+      "source": 115,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/HubAttractions",
+      "class": "ModuleScript",
+      "source": 116,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/HubKit",
+      "class": "ModuleScript",
+      "source": 117,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/HubPlaza",
+      "class": "ModuleScript",
+      "source": 118,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/HubShops",
+      "class": "ModuleScript",
+      "source": 119,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Layout",
+      "class": "ModuleScript",
+      "source": 120,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Lighting",
+      "class": "ModuleScript",
+      "source": 121,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/PierCarnival",
+      "class": "ModuleScript",
+      "source": 122,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Promenade",
+      "class": "ModuleScript",
+      "source": 123,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/PromenadeKit",
+      "class": "ModuleScript",
+      "source": 124,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Skyline",
+      "class": "ModuleScript",
+      "source": 125,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Terrain",
+      "class": "ModuleScript",
+      "source": 126,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Underground",
+      "class": "ModuleScript",
+      "source": 127,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Util",
+      "class": "ModuleScript",
+      "source": 128,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/Server/World/Vistas",
+      "class": "ModuleScript",
+      "source": 129,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/ProductionCandidate",
+      "class": "Folder",
+      "source": null,
+      "attributes": {
+        "ProductionCandidate": true,
+        "AuthorizedPlace": "Expansion1Review.rbxlx"
+      },
+      "properties": {}
+    },
+    {
+      "path": "ServerScriptService/ProductionCandidate/CandidateConfig",
+      "class": "ModuleScript",
+      "source": 130,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Adventure",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Adventure/SpringVaultClient",
+      "class": "ModuleScript",
+      "source": 131,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/AdventureController",
+      "class": "ModuleScript",
+      "source": 132,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/AdventureInviteController",
+      "class": "ModuleScript",
+      "source": 133,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/AmbientController",
+      "class": "ModuleScript",
+      "source": 134,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/CampDisplayController",
+      "class": "ModuleScript",
+      "source": 135,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/ChatLayoutController",
+      "class": "ModuleScript",
+      "source": 136,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/DigController",
+      "class": "ModuleScript",
+      "source": 137,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/DiscoveryController",
+      "class": "ModuleScript",
+      "source": 138,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/EffectsController",
+      "class": "ModuleScript",
+      "source": 139,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/GuideController",
+      "class": "ModuleScript",
+      "source": 140,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/InputArbiter",
+      "class": "ModuleScript",
+      "source": 141,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/InputController",
+      "class": "ModuleScript",
+      "source": 142,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/LayerController",
+      "class": "ModuleScript",
+      "source": 143,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/PetFollowController",
+      "class": "ModuleScript",
+      "source": 144,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/PlacementController",
+      "class": "ModuleScript",
+      "source": 145,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/PurchaseController",
+      "class": "ModuleScript",
+      "source": 146,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/RideController",
+      "class": "ModuleScript",
+      "source": 147,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/ShovelPoseController",
+      "class": "ModuleScript",
+      "source": 148,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/SoundController",
+      "class": "ModuleScript",
+      "source": 149,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/State",
+      "class": "ModuleScript",
+      "source": 150,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/StatusController",
+      "class": "ModuleScript",
+      "source": 151,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/SurvivalController",
+      "class": "ModuleScript",
+      "source": 152,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/TutorialController",
+      "class": "ModuleScript",
+      "source": 153,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Controllers/WorldPromptController",
+      "class": "ModuleScript",
+      "source": 154,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Main",
+      "class": "LocalScript",
+      "source": 155,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/AdventureHUD",
+      "class": "ModuleScript",
+      "source": 156,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/AdventureOutcome",
+      "class": "ModuleScript",
+      "source": 157,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Announcements",
+      "class": "ModuleScript",
+      "source": 158,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Banner",
+      "class": "ModuleScript",
+      "source": 159,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/BroadwaveEquip",
+      "class": "ModuleScript",
+      "source": 160,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/AtlasIcon",
+      "class": "ModuleScript",
+      "source": 161,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/Button",
+      "class": "ModuleScript",
+      "source": 162,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/Card",
+      "class": "ModuleScript",
+      "source": 163,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/IconLabel",
+      "class": "ModuleScript",
+      "source": 164,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/Panel",
+      "class": "ModuleScript",
+      "source": 165,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/ProgressBar",
+      "class": "ModuleScript",
+      "source": 166,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/Style",
+      "class": "ModuleScript",
+      "source": 167,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/UpgradeRow",
+      "class": "ModuleScript",
+      "source": 168,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Components/Viewport",
+      "class": "ModuleScript",
+      "source": 169,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/DetectorHUD",
+      "class": "ModuleScript",
+      "source": 170,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/ExcavationGame",
+      "class": "ModuleScript",
+      "source": 171,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/FindReveal",
+      "class": "ModuleScript",
+      "source": 172,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/HUD",
+      "class": "ModuleScript",
+      "source": 173,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/HatchAnimation",
+      "class": "ModuleScript",
+      "source": 174,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Icons",
+      "class": "ModuleScript",
+      "source": 175,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/ItemStats",
+      "class": "ModuleScript",
+      "source": 176,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Layout",
+      "class": "ModuleScript",
+      "source": 177,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/MenuGate",
+      "class": "ModuleScript",
+      "source": 178,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/ObjectiveBanner",
+      "class": "ModuleScript",
+      "source": 179,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/OfflinePopup",
+      "class": "ModuleScript",
+      "source": 180,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/BeachShopPanel",
+      "class": "ModuleScript",
+      "source": 181,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/DailyPanel",
+      "class": "ModuleScript",
+      "source": 182,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/EggPanel",
+      "class": "ModuleScript",
+      "source": 183,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/IndexPanel",
+      "class": "ModuleScript",
+      "source": 184,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/PetsPanel",
+      "class": "ModuleScript",
+      "source": 185,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/QuestsPanel",
+      "class": "ModuleScript",
+      "source": 186,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/RebirthPanel",
+      "class": "ModuleScript",
+      "source": 187,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/SettingsPanel",
+      "class": "ModuleScript",
+      "source": 188,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/ShopPanel",
+      "class": "ModuleScript",
+      "source": 189,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Panels/StorePanel",
+      "class": "ModuleScript",
+      "source": 190,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Reveal",
+      "class": "ModuleScript",
+      "source": 191,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/RideButton",
+      "class": "ModuleScript",
+      "source": 192,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Root",
+      "class": "ModuleScript",
+      "source": 193,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/SocialHUD",
+      "class": "ModuleScript",
+      "source": 194,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/SurvivalHUD",
+      "class": "ModuleScript",
+      "source": 195,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/Toasts",
+      "class": "ModuleScript",
+      "source": 196,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/TreasurePopup",
+      "class": "ModuleScript",
+      "source": 197,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/UI/UIEffects",
+      "class": "ModuleScript",
+      "source": 198,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util",
+      "class": "Folder",
+      "source": null,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Anchors",
+      "class": "ModuleScript",
+      "source": 199,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Character",
+      "class": "ModuleScript",
+      "source": 200,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/ModelFactory",
+      "class": "ModuleScript",
+      "source": 201,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Progress",
+      "class": "ModuleScript",
+      "source": 202,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/RewardText",
+      "class": "ModuleScript",
+      "source": 203,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Signal",
+      "class": "ModuleScript",
+      "source": 204,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Tagged",
+      "class": "ModuleScript",
+      "source": 205,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/Client/Util/Track",
+      "class": "ModuleScript",
+      "source": 206,
+      "attributes": {},
+      "properties": {}
+    },
+    {
+      "path": "StarterPlayer/StarterPlayerScripts/ProductionCandidateClient",
+      "class": "LocalScript",
+      "source": 207,
+      "attributes": {},
+      "properties": {}
+    }
+  ]
+}

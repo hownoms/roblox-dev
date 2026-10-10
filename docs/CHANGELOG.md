@@ -11,6 +11,27 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: Spring Vault production candidate (merged, not published, flags off)
+Branch `claude/spring-vault-production-candidate`, 10 October 2026, on default `d96ac75`.
+**Merged into default on owner instruction** (`01eebba`, no PR: `gh` logged out).
+- **Local-only storage, fail-closed:** `CandidateProfile` is resolved by Main before remotes,
+  world or services. `StorageGate` is now the only module that touches `DataStoreService`. A
+  LocalOnly candidate makes zero acquisitions or requests across saves, both outboxes, purchase
+  history and leaderboards, including autosave, removal and shutdown. A candidate marker outside
+  Studio, an unpublished place or Expansion1Review refuses to start anything.
+  MonetizationService no longer acquires purchase history before checking for an in-memory
+  store.
+- **AdventureController** starts the runtime with `SpringVaultClient.Start(remotes, nil)` when
+  the arena hasn't replicated, so licensed controls work anywhere. No scene is faked.
+- **q_pip license (owner decision):** completing Pip's trial grants
+  `ToolLicenses.tool_broadwave` once, validated from server trial state. The bible's
+  cert_explorer route and the 150-coin q_pip reward are not implemented.
+- **Rides:** the 40-stud horizontal ride check let a ride carry a player out of the pocket. It is
+  now refused, and rides are despawned on entry.
+- **Candidate provisioning:** a project file, an injector with a sha256 manifest, and an
+  installer and uninstaller for the authorized Expansion1Review. The full journey was played on
+  `470465f` from a fresh save, with earned eligibility. Record: `docs/integration/production-candidate.md`.
+
 ## Unreleased: Spring Vault player flow (merged, not published, flags off)
 Branch `claude/adventure-player-flow`, 9–10 October 2026, on default `5897990`. It connects the
 real journey on the production boot, from hatch to invitation, ability, completion card and

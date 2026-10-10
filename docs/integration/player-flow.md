@@ -121,7 +121,8 @@ because the seeded player was still in tutorial step 1; it is covered by mocks o
 
 **Owner decisions:**
 
-- who grants `ToolLicenses.tool_broadwave` (nothing does, so the licensed path is never reached);
+- ~~who grants `ToolLicenses.tool_broadwave`~~: decided, q_pip completion grants it
+  (`pip-quest-license.md`);
 - permanent first-sale and deposit evidence;
 - the kill-switch trigger;
 - how far the rewards flag reaches;

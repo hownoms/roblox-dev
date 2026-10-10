@@ -1,0 +1,56 @@
+{
+  "name": "DigToTheCoreExpansion1ProductionCandidate",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      },
+      "ProductionCandidate": {
+        "$className": "Folder",
+        "$attributes": {
+          "ProductionCandidate": true,
+          "AuthorizedPlace": "Expansion1Review.rbxlx"
+        },
+        "CandidateConfig": {
+          "$path": "tools/expansion1/production-candidate/CandidateConfig.luau"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        },
+        "ProductionCandidateClient": {
+          "$path": "tools/expansion1/production-candidate/CandidateClient.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true,
+        "StreamingEnabled": true,
+        "StreamingMinRadius": 64,
+        "StreamingTargetRadius": 320,
+        "StreamingIntegrityMode": "MinimumRadiusPause",
+        "StreamOutBehavior": "Opportunistic"
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future"
+      }
+    }
+  }
+}
