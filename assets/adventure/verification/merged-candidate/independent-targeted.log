@@ -1,0 +1,28 @@
+PRODUCTION WIRING (on): 42 passed, 0 failed
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+PRODUCTION WIRING (client): 125 passed, 0 failed
+PRODUCTION WIRING (client-stream): 40 passed, 0 failed
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+CANDIDATE STORAGE LocalOnly: 40 passed, 0 failed
+CANDIDATE STORAGE Refusals (15 cases): 179 passed, 0 failed
+MEASURED: ride-area distance from pocket arrival 126.0 studs; nearest arena (presence box) point 0.0 studs at (-248, 2); nearest InPocket point 0.0 studs at (-300, 0); SpawnMaxDistance 40; ride bounds X[-377.0, 377.0] Z[-57.0, 4.0]
+MEASURED: without the guard, ToggleRide from the pocket spawned a ride: true
+PIP QUEST (on): 75 passed, 0 failed
+NOTE: runtime accepts ResolveTool but declares no Service.Contract marker
+BROADWAVE LICENSE: 61 passed, 0 failed
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+ADVENTURE OUTCOME CLIENT: 123 passed, 0 failed
+Spring Vault runtime mock: 52 checks passed
+Spring Vault return mock: 111 checks passed
+Spring Vault input: 295 checks passed
+Spring Vault initial stream: 29 checks passed
+Spring Vault presentation mock: 66 checks passed
+Spring Vault outcome ownership mock: 85 checks passed

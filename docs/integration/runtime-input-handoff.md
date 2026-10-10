@@ -62,33 +62,62 @@ the title `SPRING VAULT · Dedicated review`. The panel is named `Panel`. The Sc
 requires coordinated adapter changes and is not necessary to remove player-facing claims.
 The production-review isolated-memory banner remains untouched and truthful.
 
-## Exact remaining acceptance and launch gates
+## Final merged candidate evidence and resolved gates
 
-- The local `claude/spring-vault-production-candidate` branch currently resolves to
-  `d96ac75`; it contains no separate fail-closed storage provisioning. Existing
-  `ProductionReview.ReviewBoot` calls `GetDataStore(...):GetAsync("__probe")` before
-  allowing memory fallback. Do not run that boot as safe production acceptance.
-- Claude must provide an authorized Expansion1Review PlaceId-0 candidate with explicit
-  server candidate flags, actual production lifecycle and storage isolation before any
-  store acquisition/request, including player saves, reward/trophy outboxes, purchase
-  history and leaderboards. Normal shipped flags remain false.
-- Earn entry eligibility through ordinary production sale/deposit gameplay and Pip trial
-  eligibility through an actual purchased shovel. No seeded records, bypasses, installed
-  resolver or direct remote requests count as input acceptance.
-- Safely provisioned final merged source still needs ordinary UI verification of two
-  consecutive adventures, Pip exit, shared equip/stow, exact original-tool restoration,
-  Leave/automatic return and individual results. Label injected input and assisted
-  movement explicitly. Isolated-memory rewards cannot establish durable live saves.
-- Permanent Broadwave license grant ownership/path, lossy sale/deposit catch-up evidence,
-  kill-switch trigger, rewards scope, trial-only entry policy, end-of-run return policy and
-  arena presence for stage pay remain owner decisions unless separately resolved.
-- Production preference integration and panel behavior with a licensed tool on the beach
-  still need Claude/Codex coordination. Initial licensed-tool startup adoption and legitimate
-  license acquisition must be verified against the final controller; previous handoff
-  findings should not be assumed current without inspecting its source.
-- Physical devices, uncoached discovery, real streaming/populated performance, same-account
-  rejoin and live cross-server durability remain separate launch gates. Existing accepted
-  aiming/two-client recovery evidence can be reused unless affected by these changes.
+Default advanced to `2d4f0cc` and was merged into this branch. Frozen source `ed5dba7`
+was installed into the confirmed Expansion1Review candidate. The earlier statement that
+safe provisioning, controller adoption and license acquisition were absent is superseded:
+CandidateProfile/StorageGate now select fail-closed LocalOnly before service initialization;
+AdventureController adopts runtime startup before arena replication; PipQuest legitimately
+grants the Broadwave license from authoritative trial state. Independent candidate storage,
+PipQuest and client-stream regressions pass. No Claude-owned implementation was edited.
+
+Saved evidence under `assets/adventure/verification/merged-candidate/` records a normal
+fresh profile, earned sale/deposit eligibility and purchased Garden Trowel. Parent-agent
+Studio verification used injected keyboard/mouse input through ordinary client controls
+and assisted Humanoid navigation; it did not seed eligibility, bypass prerequisites,
+install a resolver or fire input remotes directly. This is one-client assisted acceptance,
+not physical hardware input or uncoached play.
+
+- `trial-complete.json` and `trial-exit-and-shared-stow.json`: Pip trial/license, exit,
+  shared equip/stow and restoration of the exact original Garden Trowel instance.
+- `run1-completion-and-return.json` and `run2-auto-return.json`: two consecutive completed
+  adventures on the rebuilt scene, clears increasing from 1 to 2, coins 71 to 131, individual
+  settlement receipts, automatic surface return, WalkSpeed 16, original Garden Trowel
+  equipped and licensed Broadwave stowed. The second adventure verifies latch/route recovery
+  through actual prompt input; delayed server prompt replication is separately mock-regressed.
+- `hauling-before-leave.json` and `hauling-after-leave.json`: Leave during third-run active
+  hauling returns to the surface, restores WalkSpeed 16 and the exact original Garden Trowel.
+- These snapshots report Mode/StorageMode LocalOnly, PlaceId/GameId 0 and empty acquired
+  and refused storage counters throughout. Rewards and license records are isolated-memory
+  simulation; they do not establish live durability.
+
+Independent final targeted source/merged integration checks pass; logs are
+`independent-targeted.log`, `independent-build-analysis.log` and
+`independent-build-retry.log` in the same evidence folder. The first local build attempt
+was denied by the sandbox; the authorized retry created a fresh sourcemap and successfully
+built production, dedicated review and candidate projects. Mapped adventure analysis and
+changed-source formatting pass. The known 11 obsolete Claude-owned completion expectations
+remain explicitly unmodified as documented above; the full suite is not green.
+
+## Exact remaining launch gates
+
+- Claude-owned settlement-durability test expectations need the coordinated updates above.
+  Actual settlement/per-player outcomes continue to pass targeted checks; mock coverage
+  does not substitute for a two-client final-merged production journey.
+- Production preference integration, the tutorial guide arrow overlapping the arena panel,
+  physical phone/controller controls and short-screen layout remain presentation gates.
+  The licensed-beach panel finding is fixed and covered by actual-source regressions.
+- Initial stream-in and stream-out are mock-covered with the final controller; real streaming
+  radii, populated performance, same-account rejoin and uncoached discovery remain open.
+- Permanent first-sale/deposit evidence (catch-up accepts accidental deposit discovery),
+  kill-switch trigger, rewards-flag scope, trial-only hatch entry, and whether End trial should
+  return to the beach remain owner decisions. The q_pip license grant now exists; its separate
+  proposed 150-coin quest reward is not implemented. Candidate outcome cards still call
+  memory results Saved, with the explicit local-simulation banner retained.
+- Live and cross-server durability remain open and require a separately authorized plan;
+  no live save access was used here. Existing accepted aiming/two-client recovery evidence
+  remains reusable where unaffected, but does not close the final production two-client gate.
 
 No production Studio changes, publication, upload, live save tests or merge are authorized
 by this handoff.
