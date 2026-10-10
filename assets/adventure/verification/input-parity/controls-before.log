@@ -1,0 +1,6 @@
+Original compacting layout, all other current code retained; headless regression.
+./tests/spring-vault-presentation.spec.luau:51: controls reserve stable cells and scroll canvas
+stacktrace:
+[C] function assert
+./tests/spring-vault-presentation.spec.luau:51 function check
+./tests/spring-vault-presentation.spec.luau:91

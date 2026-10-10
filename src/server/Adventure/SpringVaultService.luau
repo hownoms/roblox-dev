@@ -17,6 +17,7 @@ local Service = {}
 export type Options = {
 	Origin: Vector3?,
 	ReviewSpawn: boolean?,
+	OutcomeOwner: string?,
 	-- Production supplies a trusted destination; only characters still in the pocket are returned.
 	-- Missing/invalid/error results fall back to the recorded join frame. Review defaults are unchanged.
 	ReturnFrame: ((Player) -> CFrame?)?,
@@ -106,6 +107,8 @@ function Service.Start(options: Options?)
 	local lastBounce = 0
 	local adapter = ReviewAdapter.new()
 	local submit: any = opts.OnCompletion or adapter.Submit
+	-- Production settlement owns individual results; only the dedicated adapter is review-only.
+	local externalOutcome = opts.OutcomeOwner == "External" or opts.OnCompletion ~= nil
 	local self: any = { Scene = scene, ReviewAdapter = adapter }
 	local function near(player: Player, target: Vector3, range: number): boolean
 		local part = root(player)
@@ -334,6 +337,7 @@ function Service.Start(options: Options?)
 		local equipped = equippedAbilityTool(player)
 		data.licensedEquipped = equipped ~= nil and equipped ~= tools[player]
 		data.message = message
+		data.outcomeOwner = if externalOutcome then "External" else "Review"
 		data.route = route
 		data.routeSelectable = data.joined
 			and event ~= nil
@@ -391,7 +395,9 @@ function Service.Start(options: Options?)
 			"Optional: talk to Mara to join Spring Surprise (about 4 minutes).",
 			"Pip lends Broadwave: hold Ability for 0.8 seconds, release toward the marked patch; clear 3 practice targets.",
 			"Clear three shaped anchors, open the latch, then guide the ball through three gates.",
-			"REVIEW ONLY  -  no coins, certifications or permanent trophies are granted.",
+			if externalOutcome
+				then "Rewards and save status are handled separately."
+				else "REVIEW ONLY  -  no coins, certifications or permanent trophies are granted.",
 		}
 		if not data.joined then
 			data.objective = if trial[player]
@@ -999,8 +1005,13 @@ function Service.Start(options: Options?)
 							message = "Completion handoff failed; no rewards confirmed."
 							warn("[SpringVault] completion boundary failed")
 						end
-						for _, player in Players:GetPlayers() do
-							send(player, message)
+						-- A callback summary cannot describe each player's settlement result.
+						-- Ordinary world snapshots still broadcast, but completion feedback is participant-only.
+						for _, result in context.Participants do
+							local player = Players:GetPlayerByUserId(result.UserId)
+							if player then
+								send(player, if externalOutcome and called then "Ball rescued." else message)
+							end
 						end
 						-- Review context is captured, never represented as Rewarded/settled.
 						self.LastCompletion = context

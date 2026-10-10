@@ -1,0 +1,6 @@
+Baseline original HEAD client; current regression spec; API-aware mock, no Studio input.
+./tests/spring-vault-initial-stream.spec.luau:18: fallback Talk range and LOS match the server prompt
+stacktrace:
+[C] function assert
+./tests/spring-vault-initial-stream.spec.luau:18 function check
+./tests/spring-vault-initial-stream.spec.luau:58

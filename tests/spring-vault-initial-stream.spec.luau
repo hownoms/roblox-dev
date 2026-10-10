@@ -54,12 +54,86 @@ check(
 	"cancelled charge cannot release after first stream-in"
 )
 check(target:FindFirstChildWhichIsA("ProximityPrompt"), "first real stream-in binds adventure prompts")
+local firstTalk = target:FindFirstChildWhichIsA("ProximityPrompt")
+check(
+	firstTalk.MaxActivationDistance == 10 and not firstTalk.RequiresLineOfSight,
+	"fallback Talk range and LOS match the server prompt"
+)
 licensed.Parent = player.Backpack
 loan.Parent = character
 check(action(E.UserInputState.Begin) == E.ContextActionResult.Sink, "loan input starts only after real arena arrives")
 scene.Parent = nil
 check(latest() == "ChargeCancel", "stream-out cancels loan charge")
 check(action(E.UserInputState.Begin) == E.ContextActionResult.Pass, "streamed-out loan returns input ownership")
+-- A second adventure can replicate its targets before server prompts. Exercise the
+-- real client callback, while checking LOS explicitly: the mock has no ray occlusion.
+local secondScene = new("Model")
+secondScene.Name = "SpringVaultAdventure"
+local latch = new("Part", secondScene)
+latch.Position = character.HumanoidRootPart.Position
+latch:SetAttribute("AdventureAction", "OpenVault")
+latch:SetAttribute("TargetId", "vault_latch")
+local route = new("Part", secondScene)
+route.Position = character.HumanoidRootPart.Position + Mock.Vector3.new(1, 0, 0)
+route:SetAttribute("AdventureAction", "RouteLeft")
+route:SetAttribute("TargetId", "route_left")
+secondScene.Parent = Mock.Service("Workspace")
+Mock.Advance(0.01)
+local latchPrompt = latch:FindFirstChildWhichIsA("ProximityPrompt")
+local routePrompt = route:FindFirstChildWhichIsA("ProximityPrompt")
+check(latchPrompt and routePrompt, "second adventure installs prompts before delayed replication")
+check(
+	not latchPrompt.RequiresLineOfSight and not routePrompt.RequiresLineOfSight,
+	"covered fallback targets match server LOS policy"
+)
+check(
+	latchPrompt.MaxActivationDistance == 12 and routePrompt.MaxActivationDistance == 12,
+	"fallback interaction distances match server"
+)
+local talkPrompt = target:FindFirstChildWhichIsA("ProximityPrompt")
+check(not talkPrompt, "first adventure prompt was removed at the scene boundary")
+Mock.FireEvent(
+	remotes.Snapshot,
+	"OnClientEvent",
+	{ joined = true, ready = true, stage = "vault", eventInstanceId = "second:1" }
+)
+Mock.Advance(0.3)
+check(latchPrompt.Enabled, "second adventure latch is offered in vault stage")
+local delayed = new("ProximityPrompt")
+delayed.Name = "AdventurePrompt"
+delayed.MaxActivationDistance = 12
+delayed.RequiresLineOfSight = false
+delayed.Parent = latch
+check(not delayed.Enabled and latchPrompt.Enabled, "late server prompt cannot duplicate the selected fallback")
+local beforeLatch = #Mock.Remote.ToServer
+Mock.FireEvent(latchPrompt, "Triggered")
+check(
+	#Mock.Remote.ToServer == beforeLatch + 1 and latest() == "OpenVault",
+	"second adventure latch callback sends exactly one intent"
+)
+check(
+	Mock.Remote.ToServer[#Mock.Remote.ToServer].Args[1].targetId == "vault_latch",
+	"latch callback keeps its validated target"
+)
+Mock.FireEvent(
+	remotes.Snapshot,
+	"OnClientEvent",
+	{ joined = true, ready = true, stage = "ball", routeSelectable = true, eventInstanceId = "second:1" }
+)
+Mock.Advance(0.3)
+check(routePrompt.Enabled and not latchPrompt.Enabled, "route becomes the sole actionable prompt after latch stage")
+Mock.FireEvent(routePrompt, "Triggered")
+check(latest() == "RouteLeft", "second adventure route callback remains reachable")
+secondScene.Parent = nil
+Mock.Advance(0.01)
+check(
+	not latch:FindFirstChild("SpringVaultLocalPrompt") and not route:FindFirstChild("SpringVaultLocalPrompt"),
+	"second adventure teardown removes fallback prompts"
+)
+local afterSecond = #Mock.Remote.ToServer
+Mock.FireEvent(latchPrompt, "Triggered")
+Mock.FireEvent(routePrompt, "Triggered")
+check(#Mock.Remote.ToServer == afterSecond, "removed second adventure prompts have no live callbacks")
 handle.Destroy()
 local lateScene = new("Model")
 lateScene.Name = "SpringVaultAdventure"

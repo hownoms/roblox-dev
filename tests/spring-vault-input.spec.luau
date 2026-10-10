@@ -114,14 +114,14 @@ check(
 	"aim preview has no geometry authority"
 )
 local gui = player.PlayerGui:FindFirstChild("SpringVaultAdventureReview")
-check(not gui.ScrollingFrame.Visible, "charging hides card so centered aim hint does not cover it")
+check(not gui.Panel.Visible, "charging hides card so centered aim hint does not cover it")
 check(
 	gui.BroadwaveAimHint.Visible and string.find(gui.BroadwaveAimHint.Text, "Ready"),
 	"full charge gets readiness cue"
 )
 action(E.UserInputState.End, input(E.UserInputType.Keyboard, E.KeyCode.Q))
 check(latest() == "ChargeRelease" and not preview.Parent, "matching digital input releases and clears preview")
-check(gui.ScrollingFrame.Visible, "release restores the precharge card")
+check(gui.Panel.Visible, "release restores the precharge card")
 action(E.UserInputState.Begin, l1)
 action(E.UserInputState.End, l1)
 check(count("ChargeBegin") == 2 and count("ChargeRelease") == 2, "controller callback sends both requests")

@@ -45,7 +45,7 @@ end
 local Client = Mock.Require(Mock.ByPath["StarterPlayer/StarterPlayerScripts/Client/Adventure/SpringVaultClient"])
 local handle = Client.Start(remotes, scene)
 local gui = player.PlayerGui.SpringVaultAdventureReview
-local card = gui.ScrollingFrame
+local card = gui.Panel
 local passed = 0
 local function check(value, message)
 	assert(value, message)
@@ -69,6 +69,11 @@ local function only(id)
 	end
 	check(enabled == 1, "one nearest valid prompt: " .. id)
 end
+send({ joined = false, outcomeOwner = "Review" })
+local title = card:FindFirstChildWhichIsA("TextLabel")
+check(string.find(title.Text, "Dedicated review", 1, true), "dedicated review remains truthfully labelled")
+send({ joined = false, outcomeOwner = "External" })
+check(title.Text == "SPRING VAULT", "external production header makes no review-only claim")
 send({ joined = false })
 only("npc_pip")
 local tracked = prompt("npc_pip")
@@ -83,7 +88,7 @@ check(
 	card.Join.Visible and not card.Start.Visible and not card.Ready.Visible and not card.Guideball.Visible,
 	"invitation shows join without later controls"
 )
-check(card.Size.Y.Offset <= 192, "invitation card fits a single compact row")
+check(card.CanvasSize.Y.Offset == 348, "controls reserve stable cells and scroll canvas")
 check(card.Options.Visible and not card.Motionon.Visible, "options accessible while motion controls stay tucked away")
 Mock.FireEvent(card.Options, "Activated")
 Mock.Advance(0.05)
@@ -115,10 +120,20 @@ send({ joined = true, phase = "Inviting", isStarter = false, startWaitSeconds = 
 check(not card.Start.Visible, "nonhost never sees a misleading Begin countdown")
 send({ joined = true, phase = "Inviting", isStarter = true, canStart = true })
 local beforeReady = requests("Ready")
+local leavePosition = card.Leave.Position
+local startPosition = card.Start.Position
+local readyPosition = card.Ready.Position
+local canvasHeight = card.CanvasSize.Y.Offset
+local function samePosition(a, b)
+	return a.X.Scale == b.X.Scale and a.X.Offset == b.X.Offset and a.Y.Offset == b.Y.Offset
+end
 Mock.FireEvent(card.Start, "Activated")
 check(requests("Start") == beforeStart + 1, "Begin uses ordinary Activated request")
 send({ joined = true, phase = "Preparing", stage = "anchors", canReady = true })
 check(requests("Ready") == beforeReady + 1, "accepted Begin confirms readiness after preparation snapshot")
+check(samePosition(card.Leave.Position, leavePosition), "Leave stays in its reserved cell after Begin")
+check(not samePosition(card.Leave.Position, startPosition), "second Begin click cannot land on Leave")
+check(card.CanvasSize.Y.Offset == canvasHeight, "Begin transition cannot clamp scroll and shift controls")
 send({ joined = true, phase = "Preparing", stage = "anchors", canReady = true })
 check(requests("Ready") == beforeReady + 1, "repeated snapshot cannot repeat readiness")
 send({ joined = true, phase = "Inviting", isStarter = true, canStart = true })
@@ -146,6 +161,12 @@ send({
 	},
 })
 only("vault_anchor_1")
+check(samePosition(card.Leave.Position, leavePosition), "Leave stays in its reserved cell after Ready")
+check(not samePosition(card.Leave.Position, readyPosition), "second Ready click cannot land on Leave")
+check(card.Leave.Visible, "Leave remains immediately accessible after readiness")
+local beforeLeave = requests("Leave")
+Mock.FireEvent(card.Leave, "Activated")
+check(requests("Leave") == beforeLeave + 1, "reserved Leave retains immediate cancellation")
 check(prompt("vault_anchor_1").ActionText == "Scoop · 2/6", "nearest shaped anchor shows authoritative count")
 send({
 	joined = true,
@@ -229,8 +250,8 @@ send({
 only("trial_target_2")
 send({ joined = false, trialActive = true, trialWave = true, trialComplete = true })
 only("npc_pip")
-check(gui.ScrollingFrame.Join.Visible, "optional trial still allows joining beside Mara")
-check(gui.ScrollingFrame.AnchorPoint.X == 0.5, "compact panel stays clear of chat at top center")
+check(gui.Panel.Join.Visible, "optional trial still allows joining beside Mara")
+check(gui.Panel.AnchorPoint.X == 0.5, "compact panel stays clear of chat at top center")
 send({ joined = true, phase = "Resolving", stage = "complete", objective = "Ball rescued · 3/3 gates." })
 send({ joined = false, phase = "Dormant", stage = "Optional", objective = "Talk to Mara." })
 local endingVisible = false

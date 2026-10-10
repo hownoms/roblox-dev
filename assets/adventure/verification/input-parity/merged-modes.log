@@ -1,0 +1,76 @@
+(mode: Studio without DataStore access)
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (5/8 spots found something)
+== launch check
+== badges
+== shutdown
+== report
+
+SMOKE: 2179 passed, 0 failed
+SMOKE TEST PASSED
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.8 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 9 Accepted (each durable when told), 2 Pending, 0 Refused
+SETTLEMENT DURABILITY (off): 76 passed, 0 failed
+PRODUCTION WIRING (on): 42 passed, 0 failed
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+PRODUCTION WIRING (client): 125 passed, 0 failed
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+ADVENTURE ENTRY (invite): 54 passed, 0 failed
+ADVENTURE ENTRY (invite-client): 9 passed, 0 failed
+PERSISTENCE BOOT Studio: PASSED
+== world + remotes
+== client boot
+CLIENT tutorial-loop: 14 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-resume-full: 13 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-resume-sold: 12 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-complete: 10 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-veteran: 10 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-scan-used: 14 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-short-coins: 16 passed, 0 failed
