@@ -1,0 +1,9 @@
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed

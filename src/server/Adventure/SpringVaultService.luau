@@ -72,6 +72,7 @@ function Service.Start(options: Options?)
 	local charges: { [Player]: { At: number, Character: Model, Tool: Tool, Unequipped: RBXScriptConnection? } } = {}
 	local nextWave: { [Player]: number } = {}
 	local tools: { [Player]: Tool? } = {}
+	local entryEquipment: { [Player]: { Character: Model, Tool: Tool? } } = {}
 	local loanConnections: { [Player]: RBXScriptConnection? } = {}
 
 	local lastPositions: { [Player]: Vector3 } = {}
@@ -136,6 +137,10 @@ function Service.Start(options: Options?)
 		if not backpack then
 			return
 		end
+		local character = player.Character
+		if character and not entryEquipment[player] then
+			entryEquipment[player] = { Character = character, Tool = character:FindFirstChildOfClass("Tool") :: Tool? }
+		end
 		local model = Kit.Broadwave()
 		local handle = model.PrimaryPart :: BasePart
 		local tool = Instance.new("Tool")
@@ -173,6 +178,24 @@ function Service.Start(options: Options?)
 			tools[player] = nil
 		end
 		local character = player.Character
+		local equipment = entryEquipment[player]
+		entryEquipment[player] = nil
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		-- Restore the same possession, never recreate a tool or override a later equipment choice.
+		if
+			equipment
+			and equipment.Character == character
+			and equipment.Tool
+			and backpack
+			and equipment.Tool.Parent == backpack
+			and character
+			and not character:FindFirstChildOfClass("Tool")
+			and humanoid
+			and humanoid.Health > 0
+		then
+			humanoid:EquipTool(equipment.Tool)
+		end
 		local target = returns[player]
 		local function inPocket(): boolean
 			local part = root(player)

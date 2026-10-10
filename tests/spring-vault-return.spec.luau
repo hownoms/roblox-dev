@@ -2,7 +2,7 @@
 -- Actual service/scene with API-aware mocks. No physics, networking, streaming or device pass.
 local Mock = require("./mock/Roblox")
 local Generated = require("../build/test/generated")
-Mock.Init(Generated)
+local Env = Mock.Init(Generated)
 local Service = Mock.Require(Mock.ByPath["ServerScriptService/Server/Adventure/SpringVaultService"])
 local V, CF = Mock.Vector3.new, Mock.CFrame.new
 local origin, surface = V(-200, 970, 106), V(-112, 1030.5, 76)
@@ -153,5 +153,65 @@ Mock.Advance(46)
 check(not practice.ReviewPlayer(student).Trial, "event rebuild cleans practice session with its restored equipment")
 practice.Destroy()
 Mock.RemovePlayer(student)
+local function equipmentReturn(label, setup, automatic, trialOnly)
+	identity += 1
+	local p = Mock.AddPlayer(identity, label)
+	p:LoadCharacter()
+	local original = Env.Instance.new("Tool")
+	original.Name = "Owned shovel"
+	original.Parent = p.Character
+	local runtime = Service.Start({
+		Origin = origin,
+		CanEnter = function()
+			return true
+		end,
+		CanTrial = function()
+			return true
+		end,
+		ReturnFrame = function()
+			return CF(surface)
+		end,
+	})
+	p.Character:PivotTo(CF(runtime.Scene.Targets[if trialOnly then "npc_pip" else "npc_mara"]))
+	runtime.Handle(
+		p,
+		if trialOnly then { action = "Talk", targetId = "npc_pip" } else { action = "Join", eventInstanceId = "" }
+	)
+	local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+	humanoid:EquipTool(p.Backpack:FindFirstChild("Broadwave (Adventure Loan)"))
+	check(original.Parent == p.Backpack, label .. ": loan stows original possession")
+	local expected = if setup then setup(p, original) else original
+	if automatic then
+		Mock.Advance(46)
+	else
+		runtime.Handle(
+			p,
+			{ action = "Leave", eventInstanceId = if runtime.Event() then runtime.Event().EventInstanceId else nil }
+		)
+	end
+	check(p.Character:FindFirstChildOfClass("Tool") == expected, label .. ": return preserves intended equipment")
+	check(not runtime.ReviewPlayer(p).Loan, label .. ": return removes loan")
+	runtime.Destroy()
+	Mock.RemovePlayer(p)
+end
+equipmentReturn("Leave equipment")
+equipmentReturn("Trial equipment", nil, false, true)
+equipmentReturn("Automatic equipment", nil, true)
+equipmentReturn("Changed equipment", function(p)
+	local replacement = Env.Instance.new("Tool")
+	replacement.Name = "Later choice"
+	replacement.Parent = p.Backpack
+	p.Character:FindFirstChildOfClass("Humanoid"):EquipTool(replacement)
+	return replacement
+end)
+equipmentReturn("Removed possession", function(_, original)
+	original:Destroy()
+	return nil
+end)
+equipmentReturn("Respawn equipment", function(p)
+	p:LoadCharacter()
+	p.Character:PivotTo(CF(surface))
+	return nil
+end)
 check(#Mock.Errors == 0, "no asynchronous mock errors")
 print("Spring Vault return mock: " .. passed .. " checks passed")

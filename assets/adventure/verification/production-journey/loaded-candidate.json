@@ -1,0 +1,13 @@
+{
+  "observedAt": "2026-10-09",
+  "studioId": "5c9a8359-4e4a-40d9-8e99-216f19d6fa27",
+  "candidate": "Expansion1Review.rbxlx",
+  "placeId": 0,
+  "mode": "Edit",
+  "serverChildren": ["ExpansionReview:Script", "Adventure:Folder", "AdventureReview:Script"],
+  "clientChildren": ["AdventureReview:LocalScript"],
+  "reviewBoot": {"ReviewSpawn": true, "CanEnter": "returns true", "CanTrial": "returns true", "productionServices": false, "rewards": false},
+  "mutations": [],
+  "inputAcceptanceThisContinuation": "none: loaded candidate is dedicated review, not production",
+  "productionBlocker": "No production candidate is loaded in the authorized review DataModel. Review bypasses prerequisites and omits Main, AdventureBoot, AdventureEntry, shared production HUD and reward services. Actual production flags ship off; DataService probes DataStore access before falling back, so replacing review boot and starting production would not guarantee no live save access. No bypass, fixture resolver or production boot injection was installed."
+}
