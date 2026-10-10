@@ -11,6 +11,29 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: Spring Vault player flow (merged, not published, flags off)
+Branch `claude/adventure-player-flow`, 9–10 October 2026, on default `5897990`. It connects the
+real journey on the production boot, from hatch to invitation, ability, completion card and
+safe return:
+- invitation and hatch guide;
+- input and screen arbitration around the runtime;
+- truthful per-player outcome cards;
+- an isolated Expansion1Review harness for the production boot.
+
+Three bugs found in Studio were fixed: the loan auto-equipped by a surface dig, the tutorial
+pill over the panel, and the empty stage card.
+
+**Merged into default on owner instruction on 10 October 2026**, without a PR because `gh` was
+logged out. Default had moved on to Codex's PR #40 (`f0736bd`). The one conflict was the equip
+control:
+- Codex's PR #37 makes the runtime defer to our `Dig_Broadwave` GUI, while our arbitration hid
+  ours whenever the runtime ran. Together they could leave no control on screen.
+- Resolved: production owns equip and stow, and the runtime's button is a review-scene fallback
+  only (`production-wiring.md` 4.4).
+
+Not published, and every flag is still false. Evidence and blockers are in
+`docs/integration/player-flow.md`.
+
 ## Unreleased: Spring Vault production integration (merged, not published, flags off)
 **Merged to default (`1c0bd10`) on owner instruction, 9 October 2026. Not published. Every `AdventureFlags` flag is false. The packet is
 `docs/integration/README.md`.**

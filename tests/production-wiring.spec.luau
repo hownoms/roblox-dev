@@ -76,12 +76,31 @@ if mode == "client" then
 	end
 	net.Parent = byPath["ReplicatedStorage/Shared/Remotes"]
 	local player = Mock.AddLocalPlayer(1001, "Tester")
-	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	local BEACH = V.new(0, S + 3, 4)
+	local ARENA = CF.new(-200, 973, 70)
+	Mock.SpawnCharacter(player, BEACH)
 	local Controllers = "StarterPlayer/StarterPlayerScripts/Client/Controllers/"
+	local UI = "StarterPlayer/StarterPlayerScripts/Client/UI/"
 	local Arbiter = load(Controllers .. "InputArbiter")
 	local InputController = load(Controllers .. "InputController")
 	local DigController = load(Controllers .. "DigController")
 	local AdventureController = load(Controllers .. "AdventureController")
+	local Equip = load(UI .. "BroadwaveEquip")
+	local Layout = load(UI .. "Layout")
+	local AdventureHUD = load(UI .. "AdventureHUD")
+	local Root = load(UI .. "Root")
+	local Toasts = load(UI .. "Toasts")
+	local ObjectiveBanner = load(UI .. "ObjectiveBanner")
+	local RS = Mock.Service("ReplicatedStorage")
+	local Workspace = Mock.Service("Workspace")
+	-- The mock defaults ScreenGui.Enabled to false; Roblox defaults it to true and neither the
+	-- runtime nor production ever changes it.
+	player.PlayerGui.ChildAdded:Connect(function(child)
+		if child:IsA("ScreenGui") then
+			Mock.Internal(child).props.Enabled = true
+		end
+	end)
+	Root.Init()
 	InputController.Init()
 	local action = Mock.Actions.DigSurface
 	check(action ~= nil, "DigSurface bound")
@@ -96,81 +115,14 @@ if mode == "client" then
 		end
 		return result, fired
 	end
-	local r, fired = press(Enum.KeyCode.Q)
-	check(r == Enum.ContextActionResult.Sink and fired, "Q surfaces without a Broadwave tool")
-	local loan = Mock.Env.Instance.new("Tool")
-	loan.Name = "Broadwave (Adventure Loan)"
-	loan:SetAttribute("AdventureLoan", true)
-	loan.Parent = player.Character
-	check(Arbiter.BroadwaveEquipped(), "loan counts as Broadwave equipped")
-	r, fired = press(Enum.KeyCode.Q)
-	check(r == Enum.ContextActionResult.Pass and not fired, "Q passes to the Broadwave charge while equipped")
-	r, fired = press(Enum.KeyCode.ButtonX)
-	check(r == Enum.ContextActionResult.Sink and fired, "ButtonX always surfaces")
-	loan:Destroy()
-	local licensed = Mock.Env.Instance.new("Tool")
-	licensed:SetAttribute("ToolId", "tool_broadwave")
-	licensed.Parent = player.Character
-	check(Arbiter.BroadwaveEquipped(), "licensed tool counts as Broadwave equipped")
-	licensed:Destroy()
-	check(not Arbiter.BroadwaveEquipped(), "nothing equipped")
-	-- Named dig pauses never clobber each other.
-	check(not Arbiter.DigBlocked(), "digging open by default")
-	Arbiter.Suppress("AdventureHauling", true)
-	Arbiter.Suppress("AdventureArena", true)
-	Arbiter.Suppress("AdventureHauling", false)
-	check(Arbiter.DigBlocked(), "one remaining reason still blocks")
-	check(DigController.TryDigAt(V.new(0, S, -30)) == false, "DigController refuses while blocked")
-	Arbiter.Suppress("AdventureArena", false)
-	check(not Arbiter.DigBlocked(), "released when every reason is released")
-	-- Start gate: nothing until the server creates the remotes folder.
-	local RS = Mock.Service("ReplicatedStorage")
-	AdventureController.Init()
-	Mock.Advance(1)
-	check(not AdventureController.IsStarted(), "client adapter idle without server remotes (flag off)")
-	check(Mock.Actions.SpringVaultBroadwave == nil, "no Broadwave binding while off")
-	-- The server (flag on) creates the remotes and the arena: the adapter starts the runtime UI.
-	local scene = Mock.Env.Instance.new("Model")
-	scene.Name = "SpringVaultAdventure"
-	local floor = Mock.Env.Instance.new("Part")
-	floor.Name = "ProtectedArenaFloor"
-	floor.Size = V.new(100, 2, 140)
-	floor.Position = V.new(-200, 969, 70)
-	floor.Parent = scene
-	scene.Parent = Mock.Service("Workspace")
-	local folder = Mock.Env.Instance.new("Folder")
-	folder.Name = "SpringVaultAdventure"
-	local snapshot
-	for _, name in { "Intent", "Snapshot", "Effect" } do
-		local r = Mock.Env.Instance.new("RemoteEvent")
-		r.Name = name
-		r.Parent = folder
-		if name == "Snapshot" then
-			snapshot = r
+	local function sentSince(before, name)
+		local n = 0
+		for i = before + 1, #Mock.Remote.ToServer do
+			if name == nil or Mock.Remote.ToServer[i].Name == name then
+				n += 1
+			end
 		end
-	end
-	folder.Parent = RS
-	Mock.Advance(1)
-	check(AdventureController.IsStarted(), "adapter starts SpringVaultClient once the server remotes exist")
-	check(Mock.Actions.SpringVaultBroadwave ~= nil, "Broadwave charge bound (Q / L1)")
-	Mock.FireEvent(snapshot, "OnClientEvent", { hauling = true, joined = true, stage = "ball", phase = "Active" })
-	Mock.Advance(0.1)
-	check(Arbiter.DigBlocked(), "hauling snapshot pauses ordinary digging")
-	Mock.FireEvent(snapshot, "OnClientEvent", { hauling = false, joined = true, stage = "ball", phase = "Active" })
-	Mock.Advance(0.1)
-	check(not Arbiter.DigBlocked(), "detaching resumes digging")
-	player.Character:PivotTo(CF.new(-200, 973, 70))
-	Mock.Advance(0.5)
-	check(Arbiter.DigBlocked(), "standing in the arena (dialogue/objectives) pauses digging")
-	player.Character:PivotTo(CF.new(0, S + 3, 4))
-	Mock.Advance(0.5)
-	check(not Arbiter.DigBlocked(), "leaving the arena resumes digging")
-
-	-- Broadwave equip toggle (UI/BroadwaveEquip; docs/integration/licensed-broadwave.md) -------
-	local Equip = load("StarterPlayer/StarterPlayerScripts/Client/UI/BroadwaveEquip")
-	local Layout = load("StarterPlayer/StarterPlayerScripts/Client/UI/Layout")
-	local function sentSince(before)
-		return #Mock.Remote.ToServer - before
+		return n
 	end
 	local function newTool(name, attrs, parent)
 		local t = Mock.Env.Instance.new("Tool")
@@ -181,21 +133,299 @@ if mode == "client" then
 		t.Parent = parent
 		return t
 	end
-	Mock.Advance(0.5)
-	check(Equip.Gui == nil and Equip.Button == nil, "equip: nothing built without a Broadwave tool")
-	check(Mock.Actions.BroadwaveEquip == nil, "equip: no key binding without a Broadwave tool")
-	check(Equip.State().Visible == false, "equip: hidden without a Broadwave tool")
+	local function reasons()
+		return table.concat(Arbiter.Reasons(), ",")
+	end
+	local function toBeach()
+		player.Character:PivotTo(CF.new(0, S + 3, 4))
+	end
+
+	-- Q: surfaces unless a Broadwave is in hand AND the runtime's charge is bound.
+	local r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Sink and fired, "Q surfaces without a Broadwave tool")
+	local loan = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Character)
+	check(Arbiter.BroadwaveEquipped(), "loan counts as Broadwave equipped")
+	r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Sink and fired, "Q still surfaces with a Broadwave in hand but no charge bound")
+	Arbiter.SetChargeAvailable(true)
+	r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Pass and not fired, "Q passes to the Broadwave charge while equipped and bound")
+	r, fired = press(Enum.KeyCode.ButtonX)
+	check(r == Enum.ContextActionResult.Sink and fired, "ButtonX always surfaces")
+	loan:Destroy()
+	r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Sink and fired, "Q surfaces again once the Broadwave is gone")
+	Arbiter.SetChargeAvailable(false)
+	local licensed = newTool("Broadwave", { ToolId = "tool_broadwave" }, player.Character)
+	check(Arbiter.BroadwaveEquipped(), "licensed tool counts as Broadwave equipped")
+	licensed:Destroy()
+	check(not Arbiter.BroadwaveEquipped(), "nothing equipped")
+	-- Named dig pauses never clobber each other.
+	check(not Arbiter.DigBlocked(), "digging open by default")
+	Arbiter.Suppress("AdventureHauling", true)
+	Arbiter.Suppress("AdventureArena", true)
+	Arbiter.Suppress("AdventureHauling", false)
+	check(Arbiter.DigBlocked() and Arbiter.Has("AdventureArena"), "one remaining reason still blocks")
+	check(DigController.TryDigAt(V.new(0, S, -30)) == false, "DigController refuses while blocked")
+	Arbiter.Suppress("AdventureArena", false)
+	check(not Arbiter.DigBlocked(), "released when every reason is released")
+
+	-- Flag off: no remotes folder, nothing binds or builds. -----------------------------------
+	AdventureController.Init()
+	Mock.Advance(1)
+	check(not AdventureController.IsActive() and not AdventureController.IsStarted(), "off: adapter idle")
+	check(Mock.Actions.SpringVaultBroadwave == nil, "off: no Broadwave charge binding")
+	check(Mock.Actions.BroadwaveEquip == nil and Equip.Gui == nil, "off: no equip control")
+	check(player.PlayerGui:FindFirstChild("SpringVaultAdventureReview") == nil, "off: no runtime GUI")
+	check(reasons() == "", "off: no dig pause")
+
+	-- Flag on: the server builds the arena and the remotes. -----------------------------------
+	local function buildScene()
+		local model = Mock.Env.Instance.new("Model")
+		model.Name = "SpringVaultAdventure"
+		local floor = Mock.Env.Instance.new("Part")
+		floor.Name = "ProtectedArenaFloor"
+		floor.Size = V.new(100, 2, 140)
+		floor.Position = V.new(-200, 969, 70)
+		floor.Parent = model
+		model.Parent = Workspace
+		return model
+	end
+	local function buildRemotes()
+		local remotesFolder = Mock.Env.Instance.new("Folder")
+		remotesFolder.Name = "SpringVaultAdventure"
+		local snapRemote
+		for _, name in { "Intent", "Snapshot", "Effect" } do
+			local remote = Mock.Env.Instance.new("RemoteEvent")
+			remote.Name = name
+			remote.Parent = remotesFolder
+			if name == "Snapshot" then
+				snapRemote = remote
+			end
+		end
+		remotesFolder.Parent = RS
+		return remotesFolder, snapRemote
+	end
+	local scene = buildScene()
+	local folder, snapshot = buildRemotes()
+	Mock.Advance(1)
+	local function runtimeGui()
+		return player.PlayerGui:FindFirstChild("SpringVaultAdventureReview")
+	end
+	local function snap(data)
+		Mock.FireEvent(snapshot, "OnClientEvent", data)
+		Mock.Advance(0.05)
+	end
+	local HAULING = { hauling = true, joined = true, stage = "ball", phase = "Active" }
+	check(AdventureController.IsActive(), "on: adapter active once the server remotes exist")
+	check(not AdventureController.IsStarted() and runtimeGui() == nil, "on: no adventure panel on the beach")
+	check(Mock.Actions.SpringVaultBroadwave == nil, "on: no charge binding on the beach without a Broadwave")
+	r, fired = press(Enum.KeyCode.Q)
+	check(fired, "on: Q surfaces on the beach")
+	snap(HAULING)
+	check(not Arbiter.DigBlocked(), "a stale hauling snapshot outside the arena never pauses digging")
+	-- Into the arena: dialogue / objectives pause digging; the runtime starts.
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	check(AdventureController.IsStarted() and runtimeGui() ~= nil, "arena: SpringVaultClient running")
+	check(Mock.Actions.SpringVaultBroadwave ~= nil, "arena: Broadwave charge bound (Q / L1)")
+	check(Arbiter.ChargeAvailable(), "arena: InputArbiter knows the charge is bound")
+	check(reasons() == "AdventureArena", "arena: AdventureArena pauses digging (Mara / Pip / prompts)")
+	check(DigController.TryDigAt(V.new(-200, 970, 70)) == false, "arena: dig refused client-side")
+	r, fired = press(Enum.KeyCode.Q)
+	check(fired, "arena: Q still surfaces without a Broadwave in hand")
+	snap(HAULING)
+	check(reasons() == "AdventureArena,AdventureHauling", "hauling: AdventureHauling on")
+	snap({ hauling = false, joined = true, stage = "ball", phase = "Active" })
+	check(reasons() == "AdventureArena", "hauling: detaching releases AdventureHauling")
+	-- Leave: the runtime returns the player to the beach; everything resumes.
+	snap(HAULING)
+	snap({ hauling = false, joined = false, stage = "Optional", phase = "Dormant" })
+	toBeach()
+	Mock.Advance(0.3)
+	check(reasons() == "" and not Arbiter.DigBlocked(), "leave: every reason released")
+	check(AdventureController.IsStarted(), "leave: runtime kept for the grace period")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted() and runtimeGui() == nil, "leave: runtime stopped after the grace")
+	check(Mock.Actions.SpringVaultBroadwave == nil and not Arbiter.ChargeAvailable(), "leave: charge unbound")
+	-- Lifted out while still attached (no detaching snapshot ever arrives).
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	snap(HAULING)
+	toBeach()
+	Mock.Advance(0.3)
+	check(reasons() == "", "lifted out while hauling: no reason left on")
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	check(reasons() == "AdventureArena", "back in the arena: the old hauling flag is not resurrected")
+	-- Respawn while hauling.
+	snap(HAULING)
+	check(Arbiter.Has("AdventureHauling"), "respawn: hauling before death")
+	Mock.SpawnCharacter(player, BEACH)
+	Mock.Advance(0.05)
+	check(reasons() == "" and not Arbiter.DigBlocked(), "respawn while hauling: digging resumes")
+	snap(HAULING)
+	check(reasons() == "", "respawn: a late hauling snapshot on the beach changes nothing")
+	-- Scene rebuild (end of a run) while hauling in the arena.
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	snap(HAULING)
+	scene:Destroy()
+	Mock.Advance(0.05)
+	check(reasons() == "", "scene removed: arena and hauling released")
+	scene = buildScene()
+	Mock.Advance(0.3)
+	check(reasons() == "AdventureArena", "scene rebuilt: arena again, hauling not carried over")
+	check(AdventureController.IsStarted(), "scene rebuilt: runtime running")
+	-- Kill switch: the remotes folder goes while hauling with a Broadwave in hand.
+	snap(HAULING)
+	local held = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Character)
+	Mock.Advance(0.05)
+	r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Pass and not fired, "Q goes to the charge with the loan in hand")
+	local oldSnapshot = snapshot
+	folder:Destroy()
+	Mock.Advance(0.05)
+	check(not AdventureController.IsActive() and not AdventureController.IsStarted(), "kill switch: runtime stopped")
+	check(runtimeGui() == nil and Mock.Actions.SpringVaultBroadwave == nil, "kill switch: runtime GUI and charge gone")
+	check(reasons() == "", "kill switch: no reason left on")
+	r, fired = press(Enum.KeyCode.Q)
+	check(r == Enum.ContextActionResult.Sink and fired, "kill switch: Q surfaces even with a Broadwave in hand")
+	check(#AdventureHUD.Hidden() == 0, "kill switch: HUD restored")
+	held:Destroy()
+	Mock.FireEvent(oldSnapshot, "OnClientEvent", HAULING)
+	Mock.Advance(0.3)
+	check(reasons() == "", "kill switch: the old snapshot remote no longer drives anything")
+	-- A rebuilt folder (new boot) is picked up again.
+	folder, snapshot = buildRemotes()
+	Mock.Advance(0.3)
+	check(AdventureController.IsActive() and AdventureController.IsStarted(), "remotes rebuilt: runtime restarted")
+	snap(HAULING)
+	check(reasons() == "AdventureArena,AdventureHauling", "remotes rebuilt: new snapshots drive the reasons")
+	snap({ hauling = false, joined = false, stage = "Optional", phase = "Dormant" })
+
+	-- Screen layout (UI/AdventureHUD): only Claude HUD pieces move, only in the arena. -------
+	local function abs(object, x, y, w, h)
+		local p = Mock.Internal(object).props
+		p.AbsolutePosition = Mock.Vector2.new(x, y)
+		p.AbsoluteSize = Mock.Vector2.new(w, h)
+	end
+	local panel = runtimeGui():FindFirstChildOfClass("ScrollingFrame")
+	check(panel ~= nil and panel.Visible, "layout: runtime panel found (read-only)")
+	abs(panel, 475, 12, 330, 246)
+	local canvas = Root.Get("HUD") -- the real Dig_HUD canvas (HUD.Init is not run here)
+	local pieces = {}
+	for name, rect in
+		{
+			Depth = { 900, 8, 200, 118 },
+			Timers = { 450, 60, 380, 36 },
+			Bottom = { 430, 500, 420, 180 },
+			Menu = { 0, 0, 1280, 720 },
+		}
+	do
+		local frame = Mock.Env.Instance.new("Frame")
+		frame.Name = name
+		frame.Parent = canvas
+		abs(frame, table.unpack(rect))
+		pieces[name] = frame
+	end
+	-- RideButton toggles its own Visible, so the arena rule hides its ScreenGui instead.
+	local rideGui = Mock.Env.Instance.new("ScreenGui")
+	rideGui.Name = "Dig_Ride"
+	local rideCanvas = Mock.Env.Instance.new("Frame")
+	rideCanvas.Name = "Canvas"
+	rideCanvas.Parent = rideGui
+	local rideHolder = Mock.Env.Instance.new("Frame")
+	rideHolder.Name = "RideButton"
+	rideHolder.Visible = false -- owner state: not ridable right now
+	rideHolder.Parent = rideCanvas
+	abs(rideHolder, 700, 200, 80, 86)
+	rideGui.Parent = player.PlayerGui
+	Mock.Advance(0.3)
+	check(not pieces.Depth.Visible, "layout: depth meter hidden in the arena")
+	check(not pieces.Timers.Visible, "layout: boost chips under the runtime panel hidden")
+	check(pieces.Bottom.Visible, "layout: bottom bar clear of the runtime stays")
+	check(pieces.Menu.Visible, "layout: unlisted pieces (menu) are never touched")
+	check(panel.Visible and panel.Parent ~= nil, "layout: the runtime panel itself is untouched")
+	check(rideGui.Enabled == false and rideHolder.Visible == false, "layout: Ride hidden via its ScreenGui")
+	rideHolder.Visible = true -- RideButton changes its own state meanwhile
+	Mock.Advance(0.3)
+	check(rideGui.Enabled == false, "layout: owner changes do not undo the arena rule")
+	-- The tutorial objective pill under the runtime panel (seen in the Studio production review).
+	ObjectiveBanner.Show("Follow the arrow to the sand", nil, { Step = "1/7" })
+	local pill = ObjectiveBanner.Get() :: any
+	abs(pill, 240, 64, 500, 64)
+	Mock.Advance(0.3)
+	check(ObjectiveBanner.IsSuppressed() and not pill.Visible, "layout: objective pill under the panel suppressed")
+	ObjectiveBanner.Show("Sell your sand", nil, { Step = "2/7" })
+	Mock.Advance(0.3)
+	check(not pill.Visible and ObjectiveBanner.Visible, "layout: a new objective stays off screen but is kept")
+	toBeach()
+	Mock.Advance(0.3)
+	check(not ObjectiveBanner.IsSuppressed() and pill.Visible, "layout: objective pill back on leaving the arena")
+	ObjectiveBanner.Hide()
+	Mock.Advance(1)
+	check(pieces.Depth.Visible and pieces.Timers.Visible, "layout: restored on leaving the arena")
+	check(rideGui.Enabled == true and rideHolder.Visible == true, "layout: Ride restored, owner state kept")
+	rideGui:Destroy()
+	check(#AdventureHUD.Hidden() == 0, "layout: nothing left hidden")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted(), "layout: runtime stopped on the beach")
+	for _, frame in pieces do
+		frame:Destroy()
+	end
+	-- Toasts move below the panel instead of being hidden.
+	Toasts.Show("Hello", "Info")
+	Mock.Advance(0.1)
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	panel = runtimeGui():FindFirstChildOfClass("ScrollingFrame")
+	local toastCanvas = Root.Get("Toasts")
+	local column = toastCanvas:FindFirstChild("Toasts")
+	check(column ~= nil, "toasts: column exists")
+	abs(toastCanvas, 0, 0, 1280, 662)
+	abs(column, 450, 102, 380, 138)
+	abs(panel, 475, 12, 330, 246)
+	Mock.Advance(0.3)
+	local top = Toasts.GetClearance()
+	check(top ~= nil and top >= 258 / Root.Scale, "toasts: column starts below the runtime panel")
+	check(column.Position.Y.Offset >= 258 / Root.Scale - 1, "toasts: container moved")
+	toBeach()
+	Mock.Advance(0.3)
+	check(Toasts.GetClearance() == nil, "toasts: back in place on the beach")
+	check(column.Position.Y.Offset == Layout.Current().Toasts.Y, "toasts: container restored")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+
+	-- One visible equip control (UI/BroadwaveEquip vs the runtime's own button) -----------------
+	local function controls()
+		local n = 0
+		if Equip.State().Visible then
+			n += 1
+		end
+		if Equip.RuntimeButtonVisible() then
+			n += 1
+		end
+		return n
+	end
+	check(Equip.State().Visible == false and Mock.Actions.BroadwaveEquip == nil, "equip: nothing without a tool")
 	local shovel = newTool("Shovel", { ShovelId = "starter" }, player.Backpack)
 	Mock.Advance(0.2)
-	check(Equip.Gui == nil, "equip: a shovel alone builds nothing")
+	check(Equip.State().Visible == false, "equip: a shovel alone shows nothing")
 	local loanTool = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Backpack)
-	Mock.Advance(0.2)
+	Mock.Advance(0.3)
+	check(Equip.State().Label == nil and controls() == 0, "equip: a stowed loan on the beach offers no control")
+	check(Mock.Actions.BroadwaveEquip == nil, "equip: Z does nothing for a stowed loan on the beach")
+	check(not AdventureController.IsStarted(), "equip: a stowed loan does not start the runtime")
+	-- In the arena the runtime's button is the control; ours steps aside, keys stay.
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
 	local state = Equip.State()
 	check(Equip.Gui ~= nil and state.Visible, "equip: shows once the loan is in the Backpack")
 	local runtimeEquip = player.PlayerGui.SpringVaultAdventureReview:FindFirstChild("BroadwaveEquip", true)
 	check(runtimeEquip and not runtimeEquip.Visible, "equip: actual shared HUD hides runtime review duplicate")
 	Mock.FireEvent(runtimeEquip, "Activated")
 	check(loanTool.Parent == player.Backpack, "equip: runtime fallback cannot compete with production tool selection")
+	check(controls() == 1 and not Equip.RuntimeButtonVisible(), "equip: exactly one control in the arena (ours)")
 	check(state.Label == "Broadwave (loan)", "equip: loan label is 'Broadwave (loan)'")
 	check(Equip.Button.Label.Text == "Broadwave\n(loan)", "equip: loan caption")
 	check(not state.Equipped and Equip.Button.Face.BackgroundColor3 == Equip.STOWED_COLOR, "equip: stowed colour")
@@ -208,15 +438,6 @@ if mode == "client" then
 		table.find(bindingKeys, Enum.KeyCode.Q) == nil and table.find(bindingKeys, Enum.KeyCode.ButtonL1) == nil,
 		"equip: never takes the Q / L1 charge keys"
 	)
-	local holder = Equip.Button.Holder
-	local region = Layout.Current().Broadwave
-	check(
-		holder.Position.X.Offset == region.X
-			and holder.Position.Y.Offset == region.Y
-			and holder.Size.Y.Offset == region.H,
-		"equip: placed by the Layout Broadwave region"
-	)
-	-- Keyboard Z equips the loan locally; no remote is fired.
 	local before = #Mock.Remote.ToServer
 	local key = Mock.Actions.BroadwaveEquip
 	local result =
@@ -224,52 +445,82 @@ if mode == "client" then
 	Mock.Advance(0.1)
 	check(result == Enum.ContextActionResult.Sink, "equip: Z sinks")
 	check(loanTool.Parent == player.Character, "equip: Z equips the loan")
-	check(sentSince(before) == 0, "equip: equipping fires no remote")
-	check(Equip.State().Equipped and Equip.Button.Face.BackgroundColor3 == Equip.IN_HAND_COLOR, "equip: in-hand colour")
-	check(Arbiter.BroadwaveEquipped(), "equip: InputArbiter sees the Broadwave in hand (Q goes to the charge)")
-	check(DigController.TryDigAt(V.new(0, S, -30)) == false, "equip: ordinary digging pauses with a Broadwave in hand")
-	check(sentSince(before) == 0, "equip: paused dig sends nothing")
-	-- Gamepad R1 puts it away and re-equips the shovel.
+	check(sentSince(before, "Dig") == 0 and sentSince(before, "ReturnToSurface") == 0, "equip: no game remote")
+	check(Equip.State().Equipped and Arbiter.QToCharge(), "equip: in hand, Q goes to the charge")
+	check(controls() == 1, "equip: still one control with the loan in hand")
+	-- A loan carried out of the arena: digging stays paused client-side, it can still be put away.
+	toBeach()
 	Mock.Advance(0.3)
+	check(reasons() == "", "loan outside: no arena reason")
+	before = #Mock.Remote.ToServer
+	check(DigController.TryDigAt(V.new(0, S, -30)) == false, "loan outside: ordinary dig refused client-side")
+	check(sentSince(before, "Dig") == 0, "loan outside: no dig request sent")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(AdventureController.IsStarted(), "loan outside: runtime kept while a Broadwave is in hand")
+	check(Equip.State().Label == "Broadwave (loan)" and controls() == 1, "loan outside: one control to put it away")
+	-- Gamepad R1 puts it away and re-equips the shovel.
+	key = Mock.Actions.BroadwaveEquip
 	key.Fn("BroadwaveEquip", Enum.UserInputState.Begin, Mock.Input(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonR1))
 	Mock.Advance(0.1)
+	check(loanTool.Parent == player.Backpack and shovel.Parent == player.Character, "equip: R1 puts it away")
+	check(not Arbiter.BroadwaveEquipped(), "equip: stowed again")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted() and controls() == 0, "loan outside: stowed, runtime stops, no control")
+	check(Mock.Actions.BroadwaveEquip == nil, "loan outside: keys unbound again")
+	-- No shovel Tool in the Backpack (the usual production case): an ordinary dig must not pull
+	-- the stowed loan into the hand (Studio production review finding).
+	player.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
+	shovel.Parent = nil
+	player.Character:PivotTo(CF.new(0, S + 3, -26))
+	Mock.Advance(1)
+	before = #Mock.Remote.ToServer
+	local sentDig = DigController.TryDigAt(V.new(0, S, -30))
+	Mock.Advance(0.1)
+	check(sentDig == true, "no shovel tool: ordinary dig still sent")
 	check(
-		loanTool.Parent == player.Backpack and shovel.Parent == player.Character,
-		"equip: R1 puts it away, shovel back"
+		loanTool.Parent == player.Backpack and not Arbiter.BroadwaveEquipped(),
+		"no shovel tool: loan not auto-equipped"
 	)
-	check(not Arbiter.BroadwaveEquipped() and not Equip.State().Equipped, "equip: stowed again")
-	check(sentSince(before) == 0, "equip: unequipping fires no remote")
-	-- Debounce: a double press within 0.2 s is one toggle.
-	Mock.Advance(0.3)
-	check(Equip.Toggle() == true and Equip.Toggle() == false, "equip: debounced double press")
-	Mock.Advance(0.3)
-	Equip.Toggle()
+	shovel.Parent = player.Backpack
+	player.Character:FindFirstChildOfClass("Humanoid"):EquipTool(shovel)
+	toBeach()
 	Mock.Advance(0.1)
-	check(shovel.Parent == player.Character, "equip: back to the shovel")
-	-- Touch / mouse: the button itself.
-	Mock.Advance(0.3)
-	Mock.FireEvent(Equip.Button.Face, "Activated")
-	Mock.Advance(0.1)
-	check(loanTool.Parent == player.Character, "equip: tapping the button equips")
-	Mock.Advance(0.3)
-	Mock.FireEvent(Equip.Button.Face, "Activated")
-	Mock.Advance(0.1)
-	check(loanTool.Parent == player.Backpack, "equip: tapping again puts it away")
-	-- Licensed tool: different label; with both, the arena prefers the loan, elsewhere the license.
+	-- Licensed tool on the beach: only ours, with its own label and Layout region.
 	local licensedTool = newTool("Broadwave", { ToolId = "tool_broadwave", LicensedBroadwave = true }, player.Backpack)
-	Mock.Advance(0.2)
-	check(Equip.State().Label == "Broadwave", "equip: outside the arena targets the licensed tool")
-	check(Equip.Button.Label.Text == "Broadwave", "equip: licensed caption has no loan marker")
-	player.Character:PivotTo(CF.new(-200, 973, 70))
-	Mock.Advance(0.5)
-	check(Equip.State().Label == "Broadwave (loan)", "equip: in the arena targets the loan")
-	check(Equip.Button.Label.Text == "Broadwave\n(loan)", "equip: arena caption follows the target")
-	player.Character:PivotTo(CF.new(0, S + 3, 4))
-	Mock.Advance(0.5)
+	Mock.Advance(0.3)
+	state = Equip.State()
+	check(state.Label == "Broadwave" and state.Visible and not state.RuntimeOwns, "licensed: ours on the beach")
+	check(Equip.Button.Label.Text == "Broadwave", "licensed: caption has no loan marker")
+	check(controls() == 1, "licensed: exactly one control on the beach")
+	local holder = Equip.Button.Holder
+	local region = Layout.Current().Broadwave
+	check(
+		holder.Position.X.Offset == region.X
+			and holder.Position.Y.Offset == region.Y
+			and holder.Size.Y.Offset == region.H,
+		"licensed: placed by the Layout Broadwave region"
+	)
+	check(Mock.Actions.BroadwaveEquip ~= nil, "licensed: Z bound")
+	-- Tap ours: equips, the runtime starts in the same frame and its button takes over.
+	Mock.FireEvent(Equip.Button.Face, "Activated")
+	Mock.Advance(0.05)
+	check(licensedTool.Parent == player.Character, "licensed: tapping equips")
+	check(AdventureController.IsStarted() and Arbiter.QToCharge(), "licensed: charge bound once in hand")
+	check(controls() == 1 and Equip.State().Visible, "licensed: one control (ours; the runtime defers) while in hand")
+	Mock.Advance(0.3)
 	Equip.Toggle()
 	Mock.Advance(0.1)
-	check(licensedTool.Parent == player.Character, "equip: equips the licensed tool")
-	check(Equip.State().Label == "Broadwave", "equip: an equipped tool wins over the arena preference")
+	check(shovel.Parent == player.Character, "licensed: put away, shovel back")
+	check(Equip.Toggle() == false, "equip: debounced double press")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted() and Equip.State().Visible, "licensed: runtime stops, ours stays")
+	check(controls() == 1, "licensed: still exactly one control")
+	-- In the arena with both tools the loan is preferred; the runtime owns the control.
+	player.Character:PivotTo(ARENA)
+	Mock.Advance(0.3)
+	check(Equip.State().Label == "Broadwave (loan)" and controls() == 1, "both tools in the arena: loan, one control")
+	toBeach()
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
 	-- Removal: loan returned, license removed -> hidden and unbound.
 	loanTool:Destroy()
 	Mock.Advance(0.2)
@@ -280,16 +531,17 @@ if mode == "client" then
 	check(Mock.Actions.BroadwaveEquip == nil, "equip: key binding removed with the last Broadwave")
 	check(Mock.Actions.DigSurface ~= nil, "equip: DigSurface (Q / ButtonX) untouched")
 	-- Respawn: a fresh Backpack; the control follows the new one.
-	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	Mock.SpawnCharacter(player, BEACH)
 	Mock.Advance(0.5)
 	check(Equip.State().Visible == false, "equip: hidden after respawn without tools")
-	local relent = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Backpack)
+	local relent = newTool("Broadwave", { ToolId = "tool_broadwave", LicensedBroadwave = true }, player.Backpack)
 	Mock.Advance(0.2)
 	check(Equip.State().Visible and Mock.Actions.BroadwaveEquip ~= nil, "equip: shows for a tool in the new Backpack")
-	Mock.SpawnCharacter(player, V.new(0, S + 3, 4))
+	Mock.SpawnCharacter(player, BEACH)
 	Mock.Advance(0.5)
 	check(relent.Parent == nil, "respawn destroyed the old Backpack's tool")
 	check(Equip.State().Visible == false and Mock.Actions.BroadwaveEquip == nil, "equip: cleaned up on respawn")
+	check(reasons() == "", "end: no dig pause left on")
 	finish()
 	return
 end

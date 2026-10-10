@@ -14,7 +14,8 @@ but now goes through a priority-ranked binding (see "Input arbitration").
 | `src/server/Services/BroadwaveLicense.luau` | Claude | Issues licensed (non-loan) Broadwave tools; default-off |
 | `src/server/Services/AdventureBoot.luau` | Claude | Starts SpringVaultService under the flags; has the kill switch |
 | `src/client/Controllers/InputArbiter.luau` | Claude | Named dig pauses; checks whether a Broadwave tool is equipped |
-| `src/client/Controllers/AdventureController.luau` | Claude | Starts `SpringVaultClient` only when the server's remotes exist |
+| `src/client/Controllers/AdventureController.luau` | Claude | Runs `SpringVaultClient` only when the server's remotes exist, and only while in the arena or with a Broadwave in hand (section 4) |
+| `src/client/UI/AdventureHUD.luau` | Claude | Added in `claude/apf-arbitration`: hides or moves colliding production HUD pieces while in the arena (4.5) |
 | `tests/production-wiring.spec.luau` | Claude | 4 scenarios: `off`, `on`, `rejoin`, `client` |
 | `docs/integration/production-wiring.patch` | shared | Edits to shared files (below) |
 | `docs/integration/codex-polish-review.md` | Claude | Review of Codex's gameplay-polish branch |
@@ -131,19 +132,209 @@ Known gaps:
 
 ## 4. Input arbitration
 
-Conflicts found by searching the client:
+Revised on branch `claude/apf-arbitration` (9 October 2026, from default `5897990`, which contains
+Codex's PR #35). Audited against the current `SpringVaultClient`: the smaller arrival panel,
+contextual Start / Ready / route / haul controls, the Options panel, its own "Equip Broadwave"
+button and the 48 px touch controls. No Codex file was edited. Codex's GUI is only read
+(names and absolute rects), never changed.
 
-| Input | Existing owner | Adventure use | Resolution |
+### 4.1 When the runtime client runs
+
+`AdventureController` (Claude) starts and stops `SpringVaultClient.Start(remotes, scene)`:
+
+- **Flag off:** `ReplicatedStorage.SpringVaultAdventure` never exists. Nothing binds, builds or
+  yields. There is one `ChildAdded` listener and that is all.
+- **Flag on:** the client runs only while it is needed:
+  - while the player stands in the arena (`ProtectedArenaFloor` box, rotation-aware);
+  - or while a Broadwave (loan or licensed) is in hand, anywhere, so the Q / L1 / touch charge
+    works on the sand.
+- **Stopping:** it stops (`handle.Destroy()`) `STOP_GRACE` (2 s) after neither condition holds.
+  It stops at once when the remotes folder leaves `ReplicatedStorage` (kill switch).
+- **Rebuilt folder:** a later folder (new boot) is picked up again.
+- **Scene rebuild:** the runtime rebinds the new scene itself. The controller reads the scene
+  live on every tick.
+
+The result:
+
+- The adventure panel never appears on the beach for everyone. Before this, it was visible at the
+  top centre from boot for every player as soon as the flag was on.
+- A stowed loan outside the arena binds nothing.
+- `InputArbiter.ChargeAvailable()` tells the truth.
+
+### 4.2 Conflict table (every binding, both sides)
+
+Adventure bindings come from the current `SpringVaultClient`:
+
+- CAS `SpringVaultBroadwave`: `BindAction` at default priority, Q + ButtonL1 + a 64 px touch button
+  at (vw-88, max(76, vh/2-66));
+- prompts with `KeyboardKeyCode = E` (the runtime's own or the server's), only the nearest relevant
+  one enabled;
+- panel TextButtons: Join, Ignore, Leave, Start, Ready, Guide ball, Left / Right route, Options,
+  Motion, Puffs, Reset ball;
+- the "BroadwaveEquip" TextButton.
+
+| Input | Production owner | Adventure use | Resolution |
 |---|---|---|---|
-| Q | `InputController` "DigSurface" (`BindAction`, Q + ButtonX) | `SpringVaultClient` "SpringVaultBroadwave" (`BindAction`, Q + L1; sinks whenever `joined or loanAvailable`) | DigSurface is now bound at `Medium.Value + 1`, so it sees Q first. It passes Q only while a Broadwave tool (loan or licensed) is equipped. Without the fix, a player who did Pip's trial keeps the loan all session, and Q would stop surfacing (review M3). ButtonX always surfaces |
-| L1 | `PlacementController` "SurvivalPlaceRotate" (High priority, only while placing) | Broadwave charge | Placement wins while placing; no change |
-| E | ProximityPrompt default; `ExcavationGame` raw `InputBegan` during the minigame | Adventure prompts (`KeyboardKeyCode = E`) | The prompts live only in the pocket arena and excavations only happen in the dig zone, so they never overlap; no change |
-| Touch | `DigController` digs on touch `InputBegan` (`processed == false` only) | CAS touch button (64px) | CAS buttons are GUI, so the dig handler sees `processed = true`. `AdventureController` shows the button only while a Broadwave tool is equipped (the runtime binds it for everyone) |
-| LMB / R2 / touch dig while hauling or in dialogue | `DigController` | — | `InputArbiter.Suppress("AdventureHauling", snapshot.hauling)` and `Suppress("AdventureArena", standing on the arena floor)`. Every adventure dialogue (Mara, Pip) and objective is in the arena. Reasons are named and independent, unlike the `DigController.Enabled` save/restore pattern that Placement and Ride share |
-| Auto-equip on dig | `DigController.ensureToolEquipped` equipped the *first* Backpack tool | Loan/licensed tool in the Backpack | Now prefers the tool carrying `ShovelId` |
+| Q | `InputController` "DigSurface" (Q + ButtonX, `Medium + 1`) | Broadwave charge (default priority) | DigSurface sees Q first. It passes Q only when `InputArbiter.QToCharge()`: a Broadwave is in hand **and** the charge action is bound. Otherwise Q surfaces, including after the kill switch with a tool still in hand and when the runtime failed to start. ButtonX always surfaces |
+| L1 | `PlacementController` "SurvivalPlaceRotate" (R + L1, High, only while placing) | Broadwave charge | Placement wins while placing. Otherwise the charge gets L1 |
+| Z, ButtonR1 | `BroadwaveEquip` (bound only while a target tool exists) | none | Ours only. They stay bound even while the runtime's button is the visible control, because keys are not a second visible control. Never Q or L1 (tested) |
+| E | ProximityPrompt default: `WorldPromptController`, `CampDisplayController`, the AdventureEntry hatch and return pad. `ExcavationGame` raw `InputBegan` (Space / E / A / R2) during the minigame | Adventure prompts in the scene (Talk, Leave, OpenVault, routes, PushBall, ResetBall, Excavate) | Spatially disjoint. Adventure prompts live in the pocket, and only one is enabled at a time. The hatch is on the surface, outside the dig strip. An excavation can only start from a dig, and digs are paused in the arena |
+| LMB / touch / R2 dig | `DigController` (`InputBegan` with `processed == false`) | Panel buttons, equip button, CAS touch button and prompt touch UI (all GUI, so `processed = true`) | The arena and hauling reasons below, plus the live Broadwave-in-hand check. The dig cursor is hidden while any of them holds. The server refuses digs in the arena anyway (`OutOfZone`) |
+| LMB / MB2 / R2 / touch while riding, V / DPadUp ride | `RideController` (saves and restores `DigController.Enabled`) | none | No key overlap. The Ride buttons hide in the arena when they overlap the panel (4.5). Riding inside the pocket is not prevented (open item) |
+| F, 1 / 2 / 3, R / B / Backspace / Return / R2 while placing | `SurvivalController`, `PlacementController` | none | No overlap |
+| T / ButtonL2 scan | `DiscoveryController` raw `InputBegan` | none | No overlap |
+| G, P, ButtonY menu, ButtonB close (High) | `InputController`, `Panel` | none | No overlap. Panels (DisplayOrder 5) draw above the runtime GUI (DisplayOrder 0) |
+| Gamepad GUI selection (ButtonY, DPad) | HUD menu | The runtime's TextButtons are selectable | Unchanged. Selection moves only when the player opens it |
+| Touch thumbstick / jump zones | Roblox | Charge button (64 px), equip 176 x 48 bottom right, or inside the panel when it is up | Our Broadwave region avoids both (client.spec). Production HUD pieces that overlap them hide in the arena (4.5) |
 
-The server already refuses digs in the arena (`OutOfZone`), so the client pause only removes
-misleading cursor hints.
+### 4.3 Digging pause: named reasons and their release
+
+| Condition | How | Released by |
+|---|---|---|
+| Standing in the arena: Mara / Pip dialogue and prompts, anchors, latch, routes. Mara and Pip stand at (±20, 15) inside the 100 x 140 floor with a 10-stud talk range | `InputArbiter.Suppress("AdventureArena", inArena())`, recomputed every 0.25 s and on every character change, snapshot, scene removal and remotes change | Leaving the box (Leave lift, return pad, fall lift, Q surface), respawn, scene removed, remotes removed |
+| Hauling the ball | `Suppress("AdventureHauling", snapshot.hauling and inArena())`. The latched snapshot flag is dropped when not in the arena, on `CharacterRemoving`, on scene removal and on remotes removal | A detaching snapshot, any of the arena releases, respawn while hauling (tested), a late "hauling" snapshot on the beach (ignored, tested), scene rebuild (not carried over, tested), kill switch (tested) |
+| Broadwave in hand (loan or licensed, charging or not) | Live `InputArbiter.BroadwaveEquipped()` in `DigController.TryDigAt` and the cursor. It is derived from the character, so it cannot get stuck | Putting it away (ours: re-equips the shovel), respawn, the tool removed |
+
+- **Loan carried out of the arena:** ordinary digs are refused client-side. No dig request is
+  sent, no TooFar or zone hint is shown, and the cursor is hidden (tested). The only feedback is
+  "Broadwave in hand. Put it away to dig with your shovel." The runtime keeps running while the
+  loan is in hand, so its button can put it away. Our control never offers a *stowed* loan
+  outside the arena. The server already refuses loans for ordinary sand three times over.
+- **Kill switch:** the folder's `AncestryChanged` detaches. It disconnects the snapshot, destroys
+  the runtime client and releases every reason. `ChargeAvailable` becomes false, so Q surfaces
+  again, and the HUD is restored (tested).
+
+### 4.4 One visible equip control
+
+**Rule (since the merge with Codex's PR #37, 10 October 2026).** Production owns equip and stow.
+`UI/BroadwaveEquip` (ScreenGui `Dig_Broadwave`, button, Z, gamepad R1) is the only control
+whenever the production client runs. `SpringVaultClient` hides its own "BroadwaveEquip" fallback
+and ignores its clicks whenever `PlayerGui.Dig_Broadwave` exists. That is the `ExternalEquip`
+behaviour requested here earlier, delivered under a different mechanism. The fallback appears
+only in Codex's dedicated review scene, which has no production HUD.
+
+The earlier Claude-side rule hid ours while the runtime ran. It was removed in the merge
+because, combined with Codex's deferral, a player could have seen no control at all.
+`RuntimeOwnsControl` now only reports whether the fallback is visible, which the specs treat as
+a bug.
+
+Ours only offers:
+
+- a licensed tool;
+- a loan in the arena;
+- a loan already in hand (to put it away).
+
+| Situation | Visible control |
+|---|---|
+| Beach, no Broadwave, or only a stowed loan | none (a stowed loan has no use on the sand) |
+| Beach, licensed tool stowed or in hand | ours ("Broadwave") |
+| Arena, any Broadwave | ours ("Broadwave (loan)" / "Broadwave"); the runtime's fallback is hidden and inert |
+| Loan in hand outside the arena | ours, to put it away |
+| Kill switch | ours, if a target exists |
+
+Tested (`production-wiring.spec -a client`): exactly one control in every row. Activating the
+runtime's hidden button changes nothing.
+
+### 4.5 Screen layout in the arena (`UI/AdventureHUD`)
+
+Runtime elements, in real px with the same top-bar inset as production:
+
+- **Panel:** top centre, `min(330, vw-24)` wide, 192 px tall on arrival and about 246 px once
+  joined. On touch with the equip row inside it, about 300 px. It scrolls on short screens.
+- **Aim hint:** `0.7 vw` x 48 at y 12, while charging, when the panel is hidden.
+- **Equip:** 176 x 48 at the bottom right.
+- **Charge button:** 64 px.
+
+The table below overlaps these with `UI/Layout` regions at the shared `Root` scale. It was computed
+by porting `Layout.Compute`.
+
+| Viewport | Panel overlaps | Equip / charge overlap |
+|---|---|---|
+| 705x338 phone | TopRight, Banner, Timers, Toasts; joined: also Bottom, Ride | equip (panel hidden): Survival, Ride; charge: Depth, Survival |
+| 844x390 phone | TopRight, Banner, Timers, Toasts; joined: also Bottom, Ride | equip: Survival, Social; charge: Depth, Survival |
+| 932x430 phone | TopRight, Banner, Timers, Toasts; touch equip row: also Bottom | equip: Survival, Social; charge: Depth, Survival |
+| 1024x768 tablet | TopRight, Banner, Timers, Toasts | charge: Survival |
+| 1280x662 / 1366x705 desktop | TopRight, Banner, Timers, Toasts | equip: Social |
+| 1920x1022 desktop | Depth, Banner, Timers, Toasts, Social | none |
+
+Resolution: every 0.25 s, only while in the arena, using the live absolute rects. It is restored on
+leaving, respawn and kill switch.
+
+- **Depth meter:** always hidden. A depth reading inside the pocket under the sand is misleading.
+- **Timers, TopRight, Social, Bottom (`Dig_HUD`) and the `SurvivalHUD` holder:** hidden only while
+  they overlap a visible runtime element. Their owners never toggle these frames' `Visible`, so
+  restoring is exact.
+- **Ride buttons:** `RideButton` toggles its own `Visible`, so the whole `Dig_Ride` ScreenGui is
+  disabled instead, and the owner's later changes survive (tested).
+- **Toasts:** never hidden. `Toasts.SetClearance(top)` moves the column below the panel. Fewer
+  stack at once if the column would reach the bottom bar.
+- **Not touched:** the menu, panels and popups, and every Codex element.
+- **Accepted:** the objective banner is tutorial-only, and the tutorial is complete before
+  `CanEnter`. The aim hint briefly crosses the menu while charging; it is a non-interactive label.
+- **Cost:** on most screens TopRight (coins, Daily, Settings) hides in the arena because the
+  panel's right edge reaches it. Leaving the arena brings it back.
+
+### 4.6 Reduced motion and particles
+
+**Production side.** `Settings.ReducedMotion` (SettingsPanel) is read everywhere through
+`State.GetSetting`, and `LowGraphics` serves as the particle / effects preference (UIEffects).
+
+**Runtime side.** `SpringVaultClient` has no API for these. `Start(remotes, scene)` takes no
+options, the handle exposes only `Destroy`, and `reducedMotion` / `reducedParticles` are local
+upvalues flipped by its own Options buttons. Driving those buttons would mean mutating Codex's
+GUI, so nothing is wired.
+
+**Request to Codex:**
+
+- `options.ReducedMotion` / `options.ReducedParticles` (initial values);
+- `handle.SetPreferences({ ReducedMotion = bool, ReducedParticles = bool })` for live changes.
+
+Production would pass `ReducedMotion = Settings.ReducedMotion` and
+`ReducedParticles = Settings.LowGraphics or Settings.ReducedMotion`, and re-send on `State`
+changes. The Options buttons can stay as per-session overrides.
+
+### 4.7 Requests to Codex (`SpringVaultClient`)
+
+1. ~~`options.ExternalEquip`~~: done differently by Codex's PR #37 (`Dig_Broadwave` deferral, 4.4).
+2. **Preferences** (4.6): `options.ReducedMotion` / `ReducedParticles` and
+   `handle.SetPreferences`.
+3. **Panel outside the arena.** The panel is `Visible` from `Start` for everyone. With our
+   lifetime rule it only shows in the arena, *except* while a licensed Broadwave is in hand on the
+   beach, where Join / Ignore appear at the top centre. Please start it hidden unless the player
+   is in the arena, has talked to Mara / Pip, or has joined (or accept `options.PanelInArenaOnly`).
+4. **Name the panel** (e.g. `"Panel"`). `AdventureHUD` currently finds it read-only as the
+   ScreenGui's `ScrollingFrame` child.
+5. **Optional `handle.State()`** (`charging`, `hauling`, `panelVisible`). Arbitration could then
+   read the runtime directly instead of inferring from snapshots and the character.
+
+### 4.8 Evidence
+
+`production-wiring.spec -a client`: 116 checks (was 59). They cover:
+
+- flag off: nothing binds;
+- no panel on the beach;
+- arena and hauling reasons on and off, through Leave, a lift while hauling, respawn while
+  hauling, a late snapshot, scene rebuild, kill switch and a rebuilt folder;
+- Q: surfaces without a Broadwave and with a Broadwave but no charge; passes only when both hold;
+- the one-control rule in every situation above;
+- a loan outside the arena: no dig request;
+- the HUD hide / restore and Ride whole-gui rules; the toast clearance.
+
+Mutations caught:
+
+| Mutation | Checks failed |
+|---|---|
+| No hauling reset outside the arena | 2 |
+| The old Q rule | 2 |
+| No one-control rule | 6 |
+| Stowed loan offered on the beach | 4 |
+| No kill-switch detach | 4 |
+| Runtime always on | 13 |
+
+Gating hauling on the arena overlaps with the reset (redundant guard, by design).
+
+Not verified: real devices, safe-area insets, Studio play of the panel against the real HUD, and
+the absolute-rect equivalence between the runtime's ScreenGui and production's.
 
 ## 5. Boot wiring and the arena pocket
 
@@ -240,9 +431,8 @@ lighting under the slab, and populated performance.
 3. **Runtime support for the licensed tool.** Should `SpringVaultService` accept a server-issued
    licensed Broadwave for ordinary charges (review H2)? Until it does, `BroadwaveOrdinary` must
    stay off.
-4. **Equip control.** The production client hides the Backpack, so loan and licensed tools can't
-   be equipped (review H3). A HUD toggle or an auto-equip on charge is needed. It belongs to
-   Codex or the UI owner.
+4. **Equip control.** Resolved by `UI/BroadwaveEquip` (licensed-broadwave.md), and reduced to one
+   visible control by the rule in 4.4. The clean fix is Codex's `ExternalEquip` (4.7).
 5. **License key and grant owner.** `ToolLicenses.tool_broadwave` (bible ch.04) or something
    else? Which quest service writes it (q_pip at cert_explorer)?
 6. **Kill-switch trigger.** Should `AdventureBoot.Disable()` be wired to an admin command or a

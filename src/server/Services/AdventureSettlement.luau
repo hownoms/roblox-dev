@@ -67,7 +67,9 @@ export type Outcome = {
 	-- durable or not yet applied (Applied / Unconfirmed / PendingRejoin). Refused: nothing granted.
 	Status: string, -- the weakest component Status (see Status above)
 	-- What is known to be granted. For PendingRejoin these stay 0/false: the amounts depend on
-	-- the save they apply to, and the drain on rejoin reports them in a Resolved outcome.
+	-- the save they apply to, and the drain on rejoin reports them in a Resolved outcome. For
+	-- other Pending outcomes they name what is in flight (not durable yet); only State ==
+	-- "Accepted" may be presented as granted (the client card never lists them otherwise).
 	Coins: number,
 	Trophy: boolean, -- the landmark trophy was newly granted
 	Stand: boolean, -- Mara's trophy stand was newly granted

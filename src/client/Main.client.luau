@@ -85,6 +85,8 @@ local AmbientController = require(Controllers:WaitForChild("AmbientController"))
 local CampDisplayController = require(Controllers:WaitForChild("CampDisplayController"))
 -- Expansion adventure: starts only when the server has created the adventure remotes
 local AdventureController = require(Controllers:WaitForChild("AdventureController"))
+-- Expansion adventure invitation: guide beam to the hatch, only once the server invites
+local AdventureInviteController = require(Controllers:WaitForChild("AdventureInviteController"))
 
 local function start(name: string, fn: () -> ())
 	local ok, err = xpcall(function(): any
@@ -165,3 +167,4 @@ start("Discovery", DiscoveryController.Init)
 start("Ambient", AmbientController.Init)
 start("CampDisplay", CampDisplayController.Init)
 start("Adventure", AdventureController.Init)
+start("AdventureInvite", AdventureInviteController.Init)

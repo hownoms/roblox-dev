@@ -9,8 +9,9 @@
 
 	Truthfulness rules (the server guarantees the State; this module only words it):
 	  * Only State == "Accepted" is ever worded as earned/saved.
-	  * "Pending" says what is still in flight (saving, or saved for the next visit) and never
-	    claims the reward is safe yet.
+	  * "Pending" says what is still in flight (saving, or waiting for the save to load) and
+	    never claims the reward is safe yet: no "saved", no unlock lines, coins marked "not
+	    saved yet", even when the payload's Trophy/Stand/Certification name what is in flight.
 	  * "Refused" always says why (no contribution, disconnected, left, could not be stored).
 	A later outcome for the same run (same InstanceId/Kind/StageId, e.g. Resolved after a
 	Pending) replaces the card on screen instead of stacking.
@@ -62,6 +63,10 @@ local REFUSED_TEXT: { [string]: string } = {
 	PendingFull = "Your reward couldn't be stored. Nothing was lost; try again later.",
 }
 
+-- Statuses the server counts as durable (AdventureSettlement STATE). An "Accepted" payload with
+-- any other Status is worded as Pending: nothing reads as saved before it is.
+local DURABLE: { [string]: boolean } = { Saved = true, Queued = true, Duplicate = true }
+
 local TROPHY_TEXT: { [string]: string } = {
 	TrophyUnavailable = "Trophies are paused right now: no trophy this time.",
 	TrophyRecordLimit = "Your trophy shelf is full: no trophy this time.",
@@ -107,6 +112,9 @@ function AdventureOutcome.Describe(outcome: any): Described?
 	end
 	local coins = num(outcome.Coins)
 	local status = str(outcome.Status) or ""
+	if state == "Accepted" and not DURABLE[status] then
+		state = "Pending"
+	end
 	local reason = str(outcome.Reason)
 	local stageText = STAGE_TEXT[str(outcome.StageId) or ""] or "that stage"
 	local lines: { string } = {}
@@ -120,8 +128,10 @@ function AdventureOutcome.Describe(outcome: any): Described?
 
 	if state == "Pending" then
 		if status == "PendingRejoin" then
-			title = "REWARDS SAVED FOR LATER"
-			table.insert(lines, "They'll be added the next time you join.")
+			-- the intent is queued, not granted: never worded "saved" (only Accepted is)
+			title = "REWARDS WAITING"
+			table.insert(lines, "Not added yet: they'll be added when your save loads,")
+			table.insert(lines, "here or the next time you join.")
 		else
 			title = "SAVING YOUR REWARDS..."
 			if coins > 0 then
@@ -154,6 +164,11 @@ function AdventureOutcome.Describe(outcome: any): Described?
 			table.insert(lines, line)
 		end
 		if #lines == 0 then
+			-- A saved stage that granted nothing (the last stage when the final pays the remainder)
+			-- would only sit under the final card as noise (Studio production review).
+			if kind == "Stage" and outcome.Resolved ~= true and not (reason and TROPHY_TEXT[reason]) then
+				return nil
+			end
 			table.insert(lines, "Nothing new this time.")
 		end
 	end

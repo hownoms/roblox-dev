@@ -1,6 +1,6 @@
 # Project status: Dig to the Core! Beach Simulator
 
-**Last updated:** 9 October 2026. This is the only page that tracks current state. Update it in
+**Last updated:** 10 October 2026. This is the only page that tracks current state. Update it in
 place; don't add dated "current status" blocks to other docs. Measurements and observations go
 in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such as
 [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md).
@@ -30,6 +30,20 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
+- **Spring Vault player flow (merged to default on owner instruction, 10 October 2026, not
+  published, every flag off):**
+  - The journey is connected on the real production boot: hatch and invitation, equipped
+    Broadwave and adventure controls, per-player completion card, and a safe return to the
+    beach.
+  - A full run was played in Studio Expansion1Review with real input. In-memory saves; the
+    review prerequisite was seeded.
+  - It contains Codex's PRs #36 to #40.
+  - Before any flag goes on:
+    - Codex: fallback prompts require line of sight, which stalls repeat runs; contextual buttons
+      reflow under the cursor; the last line of B1 review copy.
+    - Owner decisions, including who grants the Broadwave license.
+    - Two clients, devices, streaming and live persistence.
+  - Record: [integration/player-flow.md](integration/player-flow.md).
 - **Spring Vault production integration (merged to default `1c0bd10` on owner instruction,
   not published, every flag off):**
   - Wiring is applied in this branch. Main boots TrophyService, AdventureSettlement and

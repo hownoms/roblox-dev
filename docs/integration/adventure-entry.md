@@ -176,6 +176,64 @@ Vault again in a moment."
 **Cleanup:** `PlayerRemoving` clears per-player state. `Stop()` disconnects the Triggered,
 PlayerRemoving and Heartbeat connections and destroys every instance it built.
 
+## Invitation (branch `claude/apf-invite`)
+
+Only with `SpringVault` on. Lets an eligible player find the hatch through normal flow. No new
+prerequisite, no save write, nothing taken from money, depth or the client.
+
+**Server (`AdventureEntry`).** `ConsiderInvite(player)` runs:
+
+- on `DataService.PlayerLoaded`;
+- on `DataService.Changed` when the batch holds `Certifications`, `Quests`, `FindVariants` or
+  `Settings` (a `cert_rookie` grant, catch-up sale or deposit evidence, a tutorial step save);
+- once for every already-loaded player when the entry starts.
+
+It invites when `AdventureEligibility.CanEnter(player)` is true and the tutorial is over:
+`data.Settings.Tutorial >= #Config.TUTORIAL_STEPS`. That is TutorialController's saved step
+count; it writes the full count for veterans on their first join. A missing or shorter count
+means the tutorial is still running, so the invitation waits and never reorders it (the
+menu-gate unlocks that the tutorial drives have all happened by then). The tutorial count is a
+client-written setting, but it only delays presentation; entry itself is still gated by
+`CanEnter` at the hatch.
+
+Each player is invited at most once per server session (`invited[player]`, cleared on leave).
+After `INVITE_DELAY` (6 s, so join popups settle) the server:
+
+- sets the player attribute `SpringVaultInvited = true` (a presentation hint, never read back);
+- sends one `Info` toast, "Mara needs diggers: the hatch west of the crate yard.", unless the
+  player is already in the pocket.
+
+The hatch is tagged `SpringVaultHatch` and published through `StreamingService.Track` as an
+always-replicated world anchor, so a guide can point at it from anywhere. `Stop()` (kill switch)
+disconnects the data signals, clears the attribute, and the anchor count drops to 0.
+
+**Client (`Controllers/AdventureInviteController`, started after `AdventureController`).** It
+does nothing until the attribute is true. Then:
+
+- it waits while `TutorialController.IsActive()`;
+- it sets one GuideController beam and marker to the `SpringVaultHatch` anchor, at priority 1,
+  below the tutorial (10), TooHard (5) and SellHint (4);
+- it clears the guide at the hatch (12 studs), below the surface, after 120 s, or when the
+  attribute is cleared;
+- it shows once per session.
+
+No new UI is built. With the flag off the attribute and the anchor never exist, so it builds
+nothing.
+
+The hatch prompt stays visible to everyone as "Go down" / "Spring Vault"; ineligible players
+get the existing truthful refusal toast.
+
+**Leaving** is unchanged. The return pad, runtime Leave and the end of a run land on
+`SURFACE_RETURN` beside the hatch (covered by `adventure-entry on`).
+
+**Tests:**
+
+| Scenario | Covers |
+|---|---|
+| `adventure-entry off` | An eligible, tutorial-done player: no toast, no attribute, no tag, no anchor |
+| `adventure-entry invite` | Eligible on load: invited once, even after more saves. Ineligible: never invited. Catch-up deposit mid-session: once (a later cert does not re-invite). `cert_rookie` granted mid-session: once. Tutorial at step 2, one step short, or with no key: deferred, then invited once it reaches the full count. A new session invites again. Already in the pocket: attribute only, no toast. Kill switch: attribute cleared, anchor emptied, no invites afterwards |
+| `adventure-entry invite-client` | Nothing without the attribute. Nothing with the attribute but no hatch anchor. Waits while the tutorial is active. Beam once the tutorial is done. Cleared at the hatch. Once per session |
+
 ## Test evidence (headless mock, 9 Oct 2026, luau 0.640, Windows)
 
 | Spec | Result |

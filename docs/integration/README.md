@@ -1,5 +1,11 @@
 # Spring Vault production integration: joint review packet
 
+> **Latest (10 October 2026):** `claude/adventure-player-flow` is merged into default on owner
+> instruction. It connects the player journey end to end. Read `player-flow.md` first: Studio
+> evidence, fixes, the merge record, and the current blockers. Codex should look first at the
+> fallback prompts that require line of sight, the buttons that reflow under the cursor, and the
+> last line of B1.
+
 Branch `claude/spring-vault-production-integration`, 9 October 2026. It starts from default
 `520575d` and is now merged with default `7df3a73`, which contains Codex's PR #33 and PR #34.
 **Every `AdventureFlags` flag is still `false`.** Nothing was uploaded or published, no flag was
@@ -81,6 +87,7 @@ and keep it unmerged until the joint review.
 | Flags, eligibility, input arbitration, boot | `production-wiring.md` |
 | Licensed Broadwave contract, equip control, input audit | `licensed-broadwave.md` |
 | Surface entrance, returns, pocket lighting, spawn removal | `adventure-entry.md` |
+| Studio review of the real production boot (review flags, in-memory saves, seeded prerequisites) | `production-review.md` |
 | Earlier review of Codex's polish branch | `codex-polish-review.md` |
 | Raw logs | `evidence/combined-candidate.log`, `evidence/codex-audit-651d1c9.log` |
 
@@ -137,13 +144,17 @@ following the steps in `settlement-durability.md`:
 
 **Runtime (Codex):**
 
-1. **"REVIEW ONLY" text in production.** The runtime still shows "REVIEW ONLY: no permanent
-   rewards granted" after a wired completion, and Mara's line still mentions the review build.
-   This contradicts the reward cards. Before `AdventureRewards` is enabled, this copy must be
-   made production-safe (`settlement-durability.md` R1).
-2. **Duplicate equip button.** `SpringVaultClient` builds its own "Equip Broadwave" button at the
-   top centre. Production would show it next to `BroadwaveEquip`. Request: an `ExternalEquip`
-   start option (`licensed-broadwave.md`).
+1. **Review copy in production (B1).** After a wired completion the runtime still tells
+   contributors "Adventure complete. Review only; no permanent rewards." (text changed by PR #35;
+   Mara's line no longer mentions review). The `objectives` entry "REVIEW ONLY - no coins, ..." and
+   the client header "SPRING VAULT · Review" say the same. This contradicts the reward card.
+   Before `AdventureRewards` is enabled this copy must be production-safe. Exact strings and the
+   suggested `OutcomeOwner = "External"` start option (already passed by `AdventureBoot`) are in
+   `settlement-outcomes.md`, "Blockers for Codex".
+2. **Duplicate equip button. Resolved** (10 October 2026). Codex's PR #37 hides the runtime's
+   fallback whenever the production `Dig_Broadwave` GUI exists, and the player-flow merge made
+   ours the only control (`production-wiring.md` 4.4). Still open from 4.7: reduced-motion and
+   particle preferences, an arena-only panel, a named panel.
 3. **Completion message to everyone.** It is broadcast to every player. Request: send it to
    participants only, or per recipient (R2). Our text is neutral for now.
 4. **Kill switch and failure cleanup.** Participants are told nothing (R3).
@@ -151,7 +162,9 @@ following the steps in `settlement-durability.md`:
    arena. A licensed tool can start and cancel charges anywhere, and each is broadcast to all
    clients.
 6. **Scene rebuild.** Confirm the client picks up the rebuilt scene after each run. The mock
-   covers this; streaming eviction does not.
+   covers this, including the client-side dig pauses: hauling is never carried across a rebuild,
+   a respawn, a Leave or a kill switch (`production-wiring.md` 4.3). Streaming eviction is not
+   covered.
 
 **Studio and devices (joint):**
 

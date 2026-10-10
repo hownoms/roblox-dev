@@ -84,6 +84,18 @@ local stage = text({
 	Coins = 6,
 })
 check(has(stage, "+6 Coins for clearing the vault anchors"), "stage reward names the stage")
+-- The last stage when the final pays the remainder: saved, nothing granted -> no card at all.
+local emptyStage = {
+	InstanceId = "guid:1",
+	Kind = "Stage",
+	StageId = "ball_return",
+	State = "Accepted",
+	Status = "Saved",
+	Coins = 0,
+	Trophy = false,
+	Stand = false,
+}
+check(Outcome.Describe(emptyStage) == nil, "an empty saved stage shows no card")
 local pending = text(final({ State = "Pending", Status = "Unconfirmed" }))
 check(has(pending, "SAVING") and has(pending, "not saved yet"), "unconfirmed says it is not saved yet")
 check(not has(pending, "SAVED") and not has(pending, "trophy"), "pending never reads as saved or earned")
@@ -96,6 +108,64 @@ local rejoin = text(final({
 	Certification = false,
 }))
 check(has(rejoin, "next time you join"), "pending rejoin explains when")
+check(not has(rejoin, "SAVED") and has(rejoin, "Not added yet"), "pending rejoin is queued, never worded as saved")
+
+-- Truth table sweep: whatever the payload carries, a Pending or Refused card never reads as a
+-- grant (no "SAVED", no unlock line, no bare "+N Coins", no reward sound), and an "Accepted"
+-- payload whose Status is not durable (Saved / Queued / Duplicate) is worded as Pending.
+local GRANT_WORDS = { "SAVED", "REWARDS FROM", "Spring Vault trophy", "Mara's trophy stand", "Crew certification" }
+local function readsAsGrant(t)
+	for _, word in GRANT_WORDS do
+		if has(t, word) then
+			return true
+		end
+	end
+	for amount in string.gmatch(t, "%+%d+ Coins[^\n]*") do
+		if not has(amount, "not saved yet") then
+			return true
+		end
+	end
+	return false
+end
+local sweep = {
+	{ State = "Pending", Status = "Unconfirmed" },
+	{ State = "Pending", Status = "PendingRejoin" },
+	{ State = "Pending", Status = "Applied" },
+	{ State = "Pending", Status = "Unconfirmed", Reason = "TrophyPendingWriteFailed" },
+	{ State = "Refused", Status = "Ineligible", Reason = "NoContribution" },
+	{ State = "Refused", Status = "Ineligible", Reason = "Disconnected" },
+	{ State = "Refused", Status = "Refused", Reason = "PendingFull" },
+	{ State = "Refused", Status = "Refused", Reason = "SettlementError" },
+	-- defensive: "Accepted" with a status the server never maps to Accepted
+	{ State = "Accepted", Status = "Applied" },
+	{ State = "Accepted", Status = "Unconfirmed" },
+	{ State = "Accepted", Status = "PendingRejoin" },
+	{ State = "Accepted", Status = "" },
+}
+for _, case in sweep do
+	for _, kind in { "Final", "Stage" } do
+		for _, resolved in { false, true } do
+			local o = final({
+				Kind = kind,
+				StageId = if kind == "Stage" then "vault_open" else nil,
+				State = case.State,
+				Status = case.Status,
+				Reason = case.Reason,
+				Resolved = resolved or nil,
+			})
+			local d = Outcome.Describe(o)
+			local label =
+				string.format("%s/%s %s%s", case.State, case.Status, kind, if resolved then " resolved" else "")
+			check(d ~= nil and d.State ~= "Accepted", label .. ": not presented as Accepted")
+			local t = text(o) or ""
+			check(not readsAsGrant(t), label .. ": never reads as a grant (" .. string.gsub(t, "\n", " | ") .. ")")
+		end
+	end
+end
+for _, status in { "Saved", "Queued" } do
+	local t = text(final({ Status = status }))
+	check(has(t, "SAVED") and has(t, "Spring Vault trophy"), "Accepted/" .. status .. " (durable) reads as saved")
+end
 local low = text(final({ State = "Refused", Status = "Ineligible", Reason = "LowContribution", Coins = 0 }))
 check(has(low, "No reward") and has(low, "didn't contribute"), "ineligible watcher told why")
 local veto = text(final({ State = "Refused", Status = "Ineligible", Reason = "EventIneligible", Coins = 0 }))
