@@ -843,7 +843,10 @@ function Service.Start(options: Options?)
 							player.UserId,
 							part ~= nil
 								and math.abs((part :: BasePart).Position.X - scene.Origin.X) <= 48
-								and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69,
+								and math.abs((part :: BasePart).Position.Z - (scene.Origin.Z - 36)) <= 69
+								-- Surface players directly above the pocket are absent; falling players
+								-- stay present so the existing checkpoint recovery can still rescue them.
+								and (part :: BasePart).Position.Y <= scene.Origin.Y + 20,
 							now
 						)
 						if p.Left and returns[player] then

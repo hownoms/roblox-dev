@@ -138,6 +138,29 @@ check(latest() == "ChargeCancel", "scene ancestry removal cancels charge")
 local beginsBeforeAbsent = count("ChargeBegin")
 action(E.UserInputState.Begin, q)
 check(count("ChargeBegin") == beginsBeforeAbsent, "streamed-out scene cannot start another charge")
+-- Permanent production tool works on ordinary sand even when the remote arena streams out.
+local licensed = new("Tool", character)
+licensed:SetAttribute("ToolId", "tool_broadwave")
+licensed:SetAttribute("LicensedBroadwave", true)
+loan.Parent = player.Backpack
+Mock.FireEvent(snapshot, "OnClientEvent", { licensedEquipped = true, eventInstanceId = "input:1" })
+local licensedBegins = count("ChargeBegin")
+check(
+	action(E.UserInputState.Begin, q) == E.ContextActionResult.Sink,
+	"licensed ordinary charge owns Q without streamed arena"
+)
+check(count("ChargeBegin") == licensedBegins + 1, "licensed ordinary charge begins without streamed arena")
+Mock.Advance(0.9)
+check(gui.BroadwaveAimHint.Visible, "ordinary charge keeps local aim feedback without arena")
+action(E.UserInputState.End, q)
+check(latest() == "ChargeRelease", "licensed ordinary charge releases through actual callback")
+licensed:SetAttribute("AdventureLoan", true)
+check(
+	action(E.UserInputState.Begin, q) == E.ContextActionResult.Pass,
+	"loan with licensed markers still requires arena"
+)
+licensed:Destroy()
+loan.Parent = character
 check(not Mock.Service("Workspace"):FindFirstChild("SpringVaultLocalAim"), "scene stream-out clears local aim")
 check(
 	not Mock.Service("Workspace"):FindFirstChild("tool_broadwave_effect"),

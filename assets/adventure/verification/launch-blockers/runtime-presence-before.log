@@ -1,0 +1,11 @@
+BEFORE: merged c7c660e bundled source, API-aware headless actual SpringVaultService/Scene
+./tests/spring-vault-return.spec.luau:11: surface above pocket is absent from adventure attendance
+stacktrace:
+[C] function assert
+./tests/spring-vault-return.spec.luau:11 function check
+./tests/spring-vault-return.spec.luau:85
+./tests/spring-vault-return.spec.luau:38 function run
+./tests/spring-vault-return.spec.luau:80
+Reproduction: admitted character moved to Origin + Vector3(0,54,-36), Mock.Advance(1.1).
+Expected absent; merged runtime retained Present=true because it checked only X/Z.
+Not Studio or production UI acceptance. Source change adds existing cleanup upper-height bound to attendance.
