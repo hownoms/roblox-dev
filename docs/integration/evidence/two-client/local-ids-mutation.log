@@ -1,0 +1,233 @@
+=== MUTANT: guard always on (src/server/Services/LocalSimulationPolicy.luau)
+    'return RunService:IsStudio() and CandidateProfile.IsLocalOnly() and DataService.StorageMode() == "LocalOnly"' -> 'return true'
+    [localids] exit=0
+        CANDIDATE STORAGE Local ids (localonly): 96 passed, 0 failed
+    [localids mock] exit=1
+        FAIL: mock: policy off
+        FAIL: mock: -1 not accepted
+        FAIL: mock: stage BadParticipants (nil)
+        FAIL: mock: final BadParticipants (nil)
+        FAIL: mock: no outcome cards
+        FAIL: mock: no grants
+    [localids production] exit=1
+        FAIL: production: policy off
+        FAIL: production: -1 not accepted
+        FAIL: production: stage BadParticipants (nil)
+        FAIL: production: final BadParticipants (nil)
+        FAIL: production: no outcome cards
+        FAIL: production: no grants
+    [localids notstudio] exit=1
+        FAIL: notstudio: policy off
+        FAIL: notstudio: -1 not accepted
+        FAIL: notstudio: stage BadParticipants (nil)
+        FAIL: notstudio: final BadParticipants (nil)
+        FAIL: notstudio: no outcome cards
+        FAIL: notstudio: no grants
+    RESULT: KILLED by localids mock, localids production, localids notstudio
+=== MUTANT: drop IsStudio from guard (src/server/Services/LocalSimulationPolicy.luau)
+    'return RunService:IsStudio() and CandidateProfile.IsLocalOnly()' -> 'return CandidateProfile.IsLocalOnly()'
+    [localids] exit=0
+        CANDIDATE STORAGE Local ids (localonly): 96 passed, 0 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=1
+        FAIL: notstudio: policy off
+        FAIL: notstudio: -1 not accepted
+        FAIL: notstudio: stage BadParticipants (nil)
+        FAIL: notstudio: final BadParticipants (nil)
+        FAIL: notstudio: no outcome cards
+        FAIL: notstudio: no grants
+    RESULT: KILLED by localids notstudio
+=== MUTANT: drop joined-player membership (src/server/Services/LocalSimulationPolicy.luau)
+    'return joined[userId] == true or Players:GetPlayerByUserId(userId) ~= nil' -> 'return true'
+    [localids] exit=1
+        FAIL: an id no Player joined with is not accepted
+        FAIL: unknown -9 -> BadParticipants
+        CANDIDATE STORAGE Local ids (localonly): 94 passed, 2 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: widen range floor to -1000 (src/shared/Trophies/Rules.luau)
+    'Rules.LOCAL_SIM_MIN_USER_ID = -64' -> 'Rules.LOCAL_SIM_MIN_USER_ID = -1000'
+    [localids] exit=1
+        FAIL: policy still rejects -65
+        FAIL: policy still rejects -1000
+        FAIL: the predicate is never asked about an out-of-range id
+        FAIL: range floor is -64
+        FAIL: -65 still BadParticipants with policy
+        CANDIDATE STORAGE Local ids (localonly): 91 passed, 5 failed
+    [localids mock] exit=1
+        FAIL: policy still rejects -65
+        FAIL: policy still rejects -1000
+        FAIL: the predicate is never asked about an out-of-range id
+        FAIL: range floor is -64
+        FAIL: -65 still BadParticipants with policy
+        CANDIDATE STORAGE Local ids (mock): 50 passed, 5 failed
+    [localids production] exit=1
+        FAIL: policy still rejects -65
+        FAIL: policy still rejects -1000
+        FAIL: the predicate is never asked about an out-of-range id
+        FAIL: range floor is -64
+        FAIL: -65 still BadParticipants with policy
+        CANDIDATE STORAGE Local ids (production): 50 passed, 5 failed
+    [localids notstudio] exit=1
+        FAIL: policy still rejects -65
+        FAIL: policy still rejects -1000
+        FAIL: the predicate is never asked about an out-of-range id
+        FAIL: range floor is -64
+        FAIL: -65 still BadParticipants with policy
+        CANDIDATE STORAGE Local ids (notstudio): 52 passed, 5 failed
+    RESULT: KILLED by localids, localids mock, localids production, localids notstudio
+=== MUTANT: IsUserId ignores the predicate (src/shared/Trophies/Rules.luau)
+    'isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1) and acceptLocal(v) == true' -> 'isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)'
+    [localids] exit=1
+        FAIL: a predicate that refuses keeps -1 rejected
+        FAIL: refusing predicate: BadParticipants
+        FAIL: unknown -9 -> BadParticipants
+        CANDIDATE STORAGE Local ids (localonly): 93 passed, 3 failed
+    [localids mock] exit=1
+        FAIL: a predicate that refuses keeps -1 rejected
+        FAIL: refusing predicate: BadParticipants
+        CANDIDATE STORAGE Local ids (mock): 53 passed, 2 failed
+    [localids production] exit=1
+        FAIL: a predicate that refuses keeps -1 rejected
+        FAIL: refusing predicate: BadParticipants
+        CANDIDATE STORAGE Local ids (production): 53 passed, 2 failed
+    [localids notstudio] exit=1
+        FAIL: a predicate that refuses keeps -1 rejected
+        FAIL: refusing predicate: BadParticipants
+        CANDIDATE STORAGE Local ids (notstudio): 55 passed, 2 failed
+    RESULT: KILLED by localids, localids mock, localids production, localids notstudio
+=== MUTANT: IsUserId accepts negatives with no predicate (src/shared/Trophies/Rules.luau)
+    'return acceptLocal ~= nil and isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)' -> 'return isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)'
+    [localids] exit=1
+    [localids mock] exit=1
+    [localids production] exit=1
+    [localids notstudio] exit=1
+    RESULT: KILLED by localids, localids mock, localids production, localids notstudio
+=== MUTANT: settlement does not pass predicate to rewards (src/server/Services/AdventureSettlement.luau)
+    'Rewards.FinalDecisions(context, os.time(), { AcceptLocalUserId = acceptLocal })' -> 'Rewards.FinalDecisions(context, os.time())'
+    [localids] exit=1
+        FAIL: final run 1 settles (BadParticipants)
+        FAIL: run 1: -1 Accepted card with trophy/stand/cert, Storage LocalOnly (Accepted/Saved/nil)
+        FAIL: run 1: -2 Refused (NoContribution)
+        FAIL: run 1: TrophyService settled the same context
+        FAIL: final run 2 settles (BadParticipants)
+        FAIL: run 2: -1 gets a new card
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=1
+        FAIL: notstudio: settles once Studio again
+        CANDIDATE STORAGE Local ids (notstudio): 56 passed, 1 failed
+    RESULT: KILLED by localids, localids notstudio
+=== MUTANT: settlement does not pass predicate to TrophyService (src/server/Services/AdventureSettlement.luau)
+    '{ CallerSaves = true, AcceptLocalUserId = acceptLocal }' -> '{ CallerSaves = true }'
+    [localids] exit=1
+        FAIL: run 1: -1 Accepted card with trophy/stand/cert, Storage LocalOnly (Accepted/Saved/TrophyUnavailable)
+        FAIL: run 1: TrophyService settled the same context
+        FAIL: run 2: -2 now Accepted with trophy
+        FAIL: -4: trophy and stand newly granted in the live save (Unavailable)
+        FAIL: -4: coins and trophy parts Unconfirmed, not Queued/Applied (Unconfirmed/nil)
+        FAIL: -4: retry resolves both parts with the trophy (Saved)
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: simulated not-loaded id queued in outbox (src/server/Services/AdventureSettlement.luau)
+    'if LocalSimulationPolicy.IsSimulatedId(intent.UserId) then' -> 'if false then'
+    [localids] exit=1
+        FAIL: not-loaded simulated id refused truthfully (PendingRejoin/nil)
+        CANDIDATE STORAGE Local ids (localonly): 95 passed, 1 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: live save-failure path queues a simulated id (queueParts guard removed) (src/server/Services/AdventureSettlement.luau)
+    '\tif LocalSimulationPolicy.IsSimulatedId(userId) then\r\n\t\tif intent and entry.Status == "Applied" then' -> '\tif false then\r\n\t\tif intent and entry.Status == "Applied" then'
+    [localids] exit=1
+        FAIL: failed save: entry Unconfirmed, not Queued (Queued)
+        FAIL: failed save: card Unconfirmed/Pending (Queued/Accepted)
+        FAIL: retry resolves the Unconfirmed grant in memory (Queued)
+        FAIL: -4: coins and trophy parts Unconfirmed, not Queued/Applied (Queued/Queued)
+        FAIL: -4: card Unconfirmed/Pending
+        FAIL: -4: nothing queued in either outbox
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: queueParts guard returns without marking Unconfirmed (first-pass bug) (src/server/Services/AdventureSettlement.luau)
+    '\t\tif intent and entry.Status == "Applied" then\r\n\t\t\tentry.Status = "Unconfirmed"\r\n\t\tend\r\n' -> ''
+    [localids] exit=1
+        FAIL: failed save: entry Unconfirmed, not Queued (Applied)
+        FAIL: failed save: card Unconfirmed/Pending (Applied/Pending)
+        FAIL: retry resolves the Unconfirmed grant in memory (Applied)
+        FAIL: -4: coins and trophy parts Unconfirmed, not Queued/Applied (Applied/Unconfirmed)
+        CANDIDATE STORAGE Local ids (localonly): 92 passed, 4 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: queueParts guard leaves the trophy part Applied (TrophyDurable flip removed) (src/server/Services/AdventureSettlement.luau)
+    '\t\tif grant and entry.TrophyDurable == "Applied" then\r\n\t\t\tentry.TrophyDurable = "Unconfirmed"\r\n\t\tend\r\n\t\treturn\r\n' -> '\t\treturn\r\n'
+    [localids] exit=1
+        FAIL: -4: coins and trophy parts Unconfirmed, not Queued/Applied (Unconfirmed/Applied)
+        CANDIDATE STORAGE Local ids (localonly): 95 passed, 1 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: stale trophy PendingWriteFailed kept for an unloaded simulated id (src/server/Services/AdventureSettlement.luau)
+    'trophyEntry.Reason = "LocalSimulationNotLoaded"' -> 'local _ = trophyEntry'
+    [localids] exit=1
+        FAIL: trophy part names the real reason, not a stale PendingWriteFailed (Refused/PendingWriteFailed)
+        FAIL: entry TrophyReason LocalSimulationNotLoaded (PendingWriteFailed)
+        CANDIDATE STORAGE Local ids (localonly): 94 passed, 2 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== MUTANT: policy module not frozen (src/server/Services/LocalSimulationPolicy.luau)
+    'return table.freeze(LocalSimulationPolicy)' -> 'return LocalSimulationPolicy'
+    [localids] exit=1
+        FAIL: policy module is frozen
+        FAIL: policy guard cannot be replaced
+        CANDIDATE STORAGE Local ids (localonly): 94 passed, 2 failed
+    [localids mock] exit=0
+        CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0
+        CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0
+        CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+    RESULT: KILLED by localids
+=== RESTORED: re-running unmutated
+    [localids] exit=0 CANDIDATE STORAGE Local ids (localonly): 96 passed, 0 failed
+    [localids mock] exit=0 CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+    [localids production] exit=0 CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+    [localids notstudio] exit=0 CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+ALL MUTANTS KILLED

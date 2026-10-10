@@ -1,0 +1,97 @@
+import subprocess, sys, os, shutil
+
+W = r"C:/Users/howar/Documents/ChatGPT/Roblox UEFN Dev/roblox-dev-two-client"
+os.chdir(W)
+M = r"C:/Users/howar/Documents/ChatGPT/Roblox UEFN Dev/roblox-dev/.tools"
+env = dict(os.environ)
+env["ROBLOX_DEFS"] = M + "/globalTypes.d.luau"
+env["PATH"] = M + os.pathsep + env["PATH"]
+
+POL = "src/server/Services/LocalSimulationPolicy.luau"
+SET = "src/server/Services/AdventureSettlement.luau"
+TRO = "src/server/Services/TrophyService.luau"
+RUL = "src/shared/Trophies/Rules.luau"
+
+MUTANTS = [
+    ("guard always on", POL,
+     'return RunService:IsStudio() and CandidateProfile.IsLocalOnly() and DataService.StorageMode() == "LocalOnly"',
+     "return true"),
+    ("drop IsStudio from guard", POL,
+     'return RunService:IsStudio() and CandidateProfile.IsLocalOnly()',
+     'return CandidateProfile.IsLocalOnly()'),
+    ("drop joined-player membership", POL,
+     "return joined[userId] == true or Players:GetPlayerByUserId(userId) ~= nil",
+     "return true"),
+    ("widen range floor to -1000", RUL,
+     "Rules.LOCAL_SIM_MIN_USER_ID = -64", "Rules.LOCAL_SIM_MIN_USER_ID = -1000"),
+    ("IsUserId ignores the predicate", RUL,
+     "isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1) and acceptLocal(v) == true",
+     "isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)"),
+    ("IsUserId accepts negatives with no predicate", RUL,
+     "return acceptLocal ~= nil and isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)",
+     "return isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1)"),
+    ("settlement does not pass predicate to rewards", SET,
+     "Rewards.FinalDecisions(context, os.time(), { AcceptLocalUserId = acceptLocal })",
+     "Rewards.FinalDecisions(context, os.time())"),
+    ("settlement does not pass predicate to TrophyService", SET,
+     "{ CallerSaves = true, AcceptLocalUserId = acceptLocal }",
+     "{ CallerSaves = true }"),
+    ("simulated not-loaded id queued in outbox", SET,
+     "if LocalSimulationPolicy.IsSimulatedId(intent.UserId) then",
+     "if false then"),
+    ("live save-failure path queues a simulated id (queueParts guard removed)", SET,
+     "\tif LocalSimulationPolicy.IsSimulatedId(userId) then\r\n\t\tif intent and entry.Status == \"Applied\" then",
+     "\tif false then\r\n\t\tif intent and entry.Status == \"Applied\" then"),
+    ("queueParts guard returns without marking Unconfirmed (first-pass bug)", SET,
+     "\t\tif intent and entry.Status == \"Applied\" then\r\n\t\t\tentry.Status = \"Unconfirmed\"\r\n\t\tend\r\n",
+     ""),
+    ("queueParts guard leaves the trophy part Applied (TrophyDurable flip removed)", SET,
+     "\t\tif grant and entry.TrophyDurable == \"Applied\" then\r\n\t\t\tentry.TrophyDurable = \"Unconfirmed\"\r\n\t\tend\r\n\t\treturn\r\n",
+     "\t\treturn\r\n"),
+    ("stale trophy PendingWriteFailed kept for an unloaded simulated id", SET,
+     'trophyEntry.Reason = "LocalSimulationNotLoaded"',
+     "local _ = trophyEntry"),
+    ("policy module not frozen", POL,
+     "return table.freeze(LocalSimulationPolicy)",
+     "return LocalSimulationPolicy"),
+]
+
+RUNS = [["localids"], ["localids", "mock"], ["localids", "production"], ["localids", "notstudio"]]
+
+
+def run_all():
+    subprocess.run(["python", "-X", "utf8", "tests/tools/bundle.py"], env=env, capture_output=True, check=True)
+    out = {}
+    for r in RUNS:
+        p = subprocess.run(["luau", "tests/candidate-storage.spec.luau", "-a", *r], env=env,
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        lines = (p.stdout + p.stderr).splitlines()
+        summary = [l for l in lines if l.startswith("CANDIDATE STORAGE") or l.startswith("FAIL")]
+        out[" ".join(r)] = (p.returncode, summary)
+    return out
+
+
+killed_all = True
+for name, path, old, new in MUTANTS:
+    src = open(path, encoding="utf-8", newline="").read()
+    assert src.count(old) == 1, (name, old)
+    open(path, "w", encoding="utf-8", newline="").write(src.replace(old, new, 1))
+    try:
+        res = run_all()
+    finally:
+        open(path, "w", encoding="utf-8", newline="").write(src)
+    failing = [k for k, (rc, _) in res.items() if rc != 0]
+    print(f"=== MUTANT: {name} ({path})")
+    print(f"    {old!r} -> {new!r}")
+    for k, (rc, summary) in res.items():
+        print(f"    [{k}] exit={rc}")
+        for l in summary[:6]:
+            print("        " + l)
+    print("    RESULT: " + ("KILLED by " + ", ".join(failing) if failing else "SURVIVED"))
+    killed_all = killed_all and bool(failing)
+
+print("=== RESTORED: re-running unmutated")
+res = run_all()
+for k, (rc, summary) in res.items():
+    print(f"    [{k}] exit={rc} {summary[-1] if summary else ''}")
+print("ALL MUTANTS KILLED" if killed_all else "SOME MUTANTS SURVIVED")

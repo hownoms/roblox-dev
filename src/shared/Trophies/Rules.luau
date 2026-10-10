@@ -65,6 +65,10 @@ Rules.RECEIPT_LIMIT = 512 -- rolling settled window (bible ch.04 "Persistence")
 Rules.RECEIPT_TTL = 30 * 24 * 60 * 60
 Rules.MAX_INSTANCE_ID_LENGTH = 80
 Rules.MAX_PARTICIPANTS = 16 -- server capacity; admission limits per event belong to the event
+-- Lowest UserId a server-supplied local-simulation predicate may vouch for (see Rules.IsUserId).
+-- Studio "Server & Clients" test players get -1, -2, ...; 4x MAX_PARTICIPANTS leaves room for
+-- clients added and removed during one Studio session while staying a small, fixed window.
+Rules.LOCAL_SIM_MIN_USER_ID = -64
 
 -- Eligibility (bible ch.04 "Contribution and eligibility").
 Rules.MIN_POINTS = 5
@@ -264,9 +268,22 @@ end
 
 -- Eligibility ------------------------------------------------------------------------------
 
-function Rules.IsParticipant(p: any): boolean
+--[[
+	A real Roblox UserId: an integer in [1, 2^53]. That is the only rule unless the SERVER caller
+	passes acceptLocal (LocalSimulationPolicy, LocalOnly Studio candidates only): then a small
+	negative Studio test id in [LOCAL_SIM_MIN_USER_ID, -1] is also accepted when acceptLocal(id)
+	returns true. There is no module state: nothing can switch this on except that argument.
+]]
+function Rules.IsUserId(v: any, acceptLocal: ((number) -> boolean)?): boolean
+	if isInteger(v, 1, 2 ^ 53) then
+		return true
+	end
+	return acceptLocal ~= nil and isInteger(v, Rules.LOCAL_SIM_MIN_USER_ID, -1) and acceptLocal(v) == true
+end
+
+function Rules.IsParticipant(p: any, acceptLocal: ((number) -> boolean)?): boolean
 	return type(p) == "table"
-		and isInteger(p.UserId, 1, 2 ^ 53)
+		and Rules.IsUserId(p.UserId, acceptLocal)
 		and isFiniteNonNegative(p.Points)
 		and isFiniteNonNegative(p.ActiveSeconds)
 		and isFiniteNonNegative(p.ObjectiveCompletions)

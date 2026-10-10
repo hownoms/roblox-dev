@@ -46,6 +46,11 @@ luau tests/candidate-storage.spec.luau -a localonly || status=1
 luau tests/candidate-storage.spec.luau -a refusals || status=1
 luau tests/candidate-storage.spec.luau -a production || status=1
 luau tests/candidate-storage.spec.luau -a production studio || status=1
+echo "== candidate-storage.spec localids (Studio test ids settle only in LocalOnly Studio) =="
+luau tests/candidate-storage.spec.luau -a localids || status=1
+luau tests/candidate-storage.spec.luau -a localids mock || status=1
+luau tests/candidate-storage.spec.luau -a localids production || status=1
+luau tests/candidate-storage.spec.luau -a localids notstudio || status=1
 echo "== pip-quest.spec (q_pip license grant + rides vs the pocket; ordinary on / off) =="
 luau tests/pip-quest.spec.luau || status=1
 luau tests/pip-quest.spec.luau -a off || status=1

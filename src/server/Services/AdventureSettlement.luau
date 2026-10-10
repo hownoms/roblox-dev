@@ -44,6 +44,7 @@ local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local DurableOutbox = require(script.Parent.DurableOutbox)
+local LocalSimulationPolicy = require(script.Parent.LocalSimulationPolicy)
 local TrophyService = require(script.Parent.TrophyService)
 
 export type Status =
@@ -328,8 +329,19 @@ end
 
 -- Durable writes ----------------------------------------------------------------------------
 
--- Outbox fallback for parts that are only in the live save. Yields.
+-- Outbox fallback for parts that are only in the live save. Yields. A simulated Studio id
+-- (LocalSimulationPolicy) is never queued: the outbox's read-back accepts real ids only, so the
+-- part reads Unconfirmed (truthfully not durable; retried while they are here), never Queued.
 local function queueParts(userId: number, intent: Rewards.Intent?, entry: PlayerResult, grant: any?)
+	if LocalSimulationPolicy.IsSimulatedId(userId) then
+		if intent and entry.Status == "Applied" then
+			entry.Status = "Unconfirmed"
+		end
+		if grant and entry.TrophyDurable == "Applied" then
+			entry.TrophyDurable = "Unconfirmed"
+		end
+		return
+	end
 	if intent and (entry.Status == "Applied" or entry.Status == "Unconfirmed") then
 		local receiptId = Rewards.ReceiptFor(intent)
 		entry.Status = if outbox.Add(userId, receiptId, intent :: any) then "Queued" else "Unconfirmed"
@@ -396,6 +408,11 @@ end
 -- Durable write for a player not loaded here. Yields.
 local function queueOffline(intent: Rewards.Intent, entry: PlayerResult)
 	local receiptId = Rewards.ReceiptFor(intent)
+	if LocalSimulationPolicy.IsSimulatedId(intent.UserId) then
+		-- no durable rejoin path for a Studio test id: refuse truthfully, store nothing
+		entry.Status, entry.Reason = "Refused", "LocalSimulationNotLoaded"
+		return
+	end
 	local ok, reason = outbox.Add(intent.UserId, receiptId, intent :: any)
 	if ok then
 		entry.Status, entry.Reason = "PendingRejoin", nil
@@ -436,7 +453,13 @@ end
 
 local requestDrain: (Player, boolean) -> ()
 
-local function settle(kind: "Stage" | "Final", context: any, decisions: { Rewards.Decision }?, err: string?): Report
+local function settle(
+	kind: "Stage" | "Final",
+	context: any,
+	decisions: { Rewards.Decision }?,
+	err: string?,
+	acceptLocal: ((number) -> boolean)?
+): Report
 	local report: Report = {
 		Ok = decisions ~= nil,
 		Error = err,
@@ -463,7 +486,11 @@ local function settle(kind: "Stage" | "Final", context: any, decisions: { Reward
 	if kind == "Final" then
 		-- A throw in the trophy part must not take the coins/cert settlement (or the runtime's
 		-- completion) down with it: the trophy part then reports TrophyUnavailable.
-		local prepared, r, w = pcall(TrophyService.PrepareCompletionContext, context, { CallerSaves = true })
+		local prepared, r, w = pcall(
+			TrophyService.PrepareCompletionContext,
+			context,
+			{ CallerSaves = true, AcceptLocalUserId = acceptLocal }
+		)
 		if prepared then
 			trophyReport, trophyWrites = r, w
 			report.Trophy = r
@@ -533,7 +560,13 @@ local function settle(kind: "Stage" | "Final", context: any, decisions: { Reward
 				-- provisional until the durable writes below succeed
 				entry = { UserId = userId, Status = "Refused", Reason = "PendingWriteFailed" }
 				local offlineEntry = entry
-				local trophyWrite = trophyWrites[userId]
+				-- a simulated Studio id is never queued (see queueOffline), so TrophyService's
+				-- provisional PendingWriteFailed is final: name the real reason on its entry too
+				local simulated = LocalSimulationPolicy.IsSimulatedId(userId)
+				local trophyWrite = if simulated then nil else trophyWrites[userId]
+				if simulated and trophyEntry and trophyEntry.Status == "Refused" then
+					trophyEntry.Reason = "LocalSimulationNotLoaded"
+				end
 				table.insert(work, function()
 					queueOffline(intent, offlineEntry)
 					if kind == "Final" then
@@ -599,8 +632,10 @@ function AdventureSettlement.SettleStage(observation: any): Report
 	if not enabled then
 		return disabled("Stage", observation)
 	end
-	local decisions, err = Rewards.StageDecisions(observation, os.time())
-	return settle("Stage", observation, decisions, err)
+	-- nil unless this is a LocalOnly Studio candidate (LocalSimulationPolicy); decided now
+	local acceptLocal = LocalSimulationPolicy.Predicate()
+	local decisions, err = Rewards.StageDecisions(observation, os.time(), { AcceptLocalUserId = acceptLocal })
+	return settle("Stage", observation, decisions, err, acceptLocal)
 end
 
 -- Settles a successful completion from the runtime's frozen CompletionContext. Never yields.
@@ -608,8 +643,10 @@ function AdventureSettlement.SettleCompletion(context: any): Report
 	if not enabled then
 		return disabled("Final", context)
 	end
-	local decisions, err = Rewards.FinalDecisions(context, os.time())
-	return settle("Final", context, decisions, err)
+	-- one decision for both parts: the coins/cert rule and TrophyService see the same predicate
+	local acceptLocal = LocalSimulationPolicy.Predicate()
+	local decisions, err = Rewards.FinalDecisions(context, os.time(), { AcceptLocalUserId = acceptLocal })
+	return settle("Final", context, decisions, err, acceptLocal)
 end
 
 -- Drop-in for SpringVaultService.Start({ OnStage = ... }).
