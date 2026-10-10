@@ -4,6 +4,11 @@
 	production-wiring.md). Lives in ServerScriptService, so clients can neither read nor change it.
 	Read once, by AdventureBoot.Init, at server boot. Every flag ships OFF.
 
+	LocalOnly candidate: when (and only when) CandidateProfile resolves LocalOnly (a validated
+	Studio-only review marker, PlaceId/GameId 0, no DataStore at all), the candidate config's
+	Flags overlay these values at first require. The shipped values below stay false; Production
+	and Refused servers never overlay anything (and a Refused server starts nothing).
+
 	  SpringVault        start SpringVaultService (Mara/Pip arena, remotes, scene). Off: no runtime,
 	                     no ReplicatedStorage.SpringVaultAdventure folder, no scene, no loans; the
 	                     client adapter never starts because that folder never appears.
@@ -27,5 +32,12 @@ local AdventureFlags = {
 	AdventureRewards = false,
 	BroadwaveOrdinary = false,
 }
+
+local candidateFlags = require(script.Parent.CandidateProfile).Flags()
+if candidateFlags then
+	for name, value in candidateFlags do
+		(AdventureFlags :: any)[name] = value
+	end
+end
 
 return AdventureFlags

@@ -10,6 +10,10 @@
 	  lock owned by someone else, or no lock at all (another server took it over and released
 	  it), aborts: the other server owns the truth now.
 	- Studio without API access: in-memory store (warns once).
+	- LocalOnly candidate (CandidateProfile): in-memory store chosen before any storage call; the
+	  StorageGate is never asked, so load, autosave, release and BindToClose touch no DataStore.
+	- Every store acquisition goes through StorageGate (the only module that names the engine
+	  service).
 
 	Replication: every mutation marks top-level keys dirty; once per resumption cycle the service
 	fires DataChanged(delta) with delta = { [TopLevelKey] = <full current value of that key> }.
@@ -25,12 +29,12 @@
 		DataService.Mutate(player, keys, fn(data))   -- in-place edit of several keys
 		DataService.MarkDirty(player, ...keys)
 		DataService.SaveAsync(player): boolean
-		DataService.IsMock(): boolean
+		DataService.IsMock(): boolean      in-memory saves (Studio fallback or LocalOnly candidate)
+		DataService.StorageMode(): "LocalOnly" | "Mock" | "DataStore" | "Unavailable"
 		DataService.PlayerLoaded: Signal<Player, PlayerData>
 		DataService.Changed: Signal<Player, { string }>  (batched keys, after replication)
 ]]
 
-local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -42,6 +46,9 @@ local Remotes = require(Shared.Remotes)
 local Format = require(Shared.Util.Format)
 local Signal = require(Shared.Util.Signal)
 local TableUtil = require(Shared.Util.TableUtil)
+
+local CandidateProfile = require(script.Parent.CandidateProfile)
+local StorageGate = require(script.Parent.StorageGate)
 
 type PlayerData = Types.PlayerData
 
@@ -75,6 +82,7 @@ local SESSION_ID = (if game.JobId ~= "" then game.JobId else "studio-" .. HttpSe
 
 local store: DataStore? = nil
 local useMock = false
+local localOnly = false -- LocalOnly candidate: in memory by profile, not by fallback
 local mockStore: { [string]: any } = {}
 
 local sessions: { [Player]: Session } = {}
@@ -300,8 +308,13 @@ end
 -- Storage ---------------------------------------------------------------------------------------
 
 local function detectStore()
+	if CandidateProfile.IsLocalOnly() then
+		-- decided before any storage call: no acquisition, no probe
+		store, useMock, localOnly = nil, true, true
+		return
+	end
 	local ok, result = pcall(function()
-		return DataStoreService:GetDataStore(Config.DATASTORE_NAME)
+		return StorageGate.GetDataStore(Config.DATASTORE_NAME)
 	end)
 	if not ok then
 		useMock = RunService:IsStudio()
@@ -517,6 +530,17 @@ end
 
 function DataService.IsMock(): boolean
 	return useMock
+end
+
+function DataService.StorageMode(): string
+	if localOnly then
+		return "LocalOnly"
+	elseif useMock then
+		return "Mock"
+	elseif store then
+		return "DataStore"
+	end
+	return "Unavailable"
 end
 
 function DataService.WaitForData(player: Player, timeout: number?): PlayerData?
