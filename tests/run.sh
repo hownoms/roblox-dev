@@ -28,6 +28,7 @@ luau tests/production-wiring.spec.luau || status=1
 luau tests/production-wiring.spec.luau -a on || status=1
 luau tests/production-wiring.spec.luau -a rejoin || status=1
 luau tests/production-wiring.spec.luau -a client || status=1
+luau tests/production-wiring.spec.luau -a client-stream || status=1
 echo "== adventure-entry.spec (flags off / on / invitation / client waypoint) =="
 luau tests/adventure-entry.spec.luau || status=1
 luau tests/adventure-entry.spec.luau -a on || status=1

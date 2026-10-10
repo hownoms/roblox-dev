@@ -4,6 +4,8 @@
 	  luau tests/production-wiring.spec.luau            eligibility rules + Main booted, flags OFF
 	  luau tests/production-wiring.spec.luau -a on      Main booted with every flag ON
 	  luau tests/production-wiring.spec.luau -a rejoin  held-rejoin settlement contract
+	  luau tests/production-wiring.spec.luau -a client  client arbitration (AdventureController)
+	  luau tests/production-wiring.spec.luau -a client-stream  runtime from the remotes before the arena
 	"on" and "rejoin" need Codex's Spring Vault gameplay files (BroadwaveDigBridge, DigBroadwave,
 	held rejoin); without them they print SKIPPED and pass.
 	MOCK COVERAGE ONLY: headless mock, in-memory DataStore, no real clients or devices.
@@ -11,7 +13,10 @@
 
 local Mock = require("./mock/Roblox")
 local mode = ({ ... })[1] or "off"
-Mock.Init(require("../build/test/generated"), if mode == "client" then { Client = true } else nil)
+Mock.Init(
+	require("../build/test/generated"),
+	if mode == "client" or mode == "client-stream" then { Client = true } else nil
+)
 local passes, failures = 0, 0
 local function check(cond, message)
 	if cond then
@@ -541,6 +546,218 @@ if mode == "client" then
 	Mock.Advance(0.5)
 	check(relent.Parent == nil, "respawn destroyed the old Backpack's tool")
 	check(Equip.State().Visible == false and Mock.Actions.BroadwaveEquip == nil, "equip: cleaned up on respawn")
+	check(reasons() == "", "end: no dig pause left on")
+	finish()
+	return
+end
+
+-- Client streaming: remotes before the arena (SpringVaultClient.Start(remotes, nil)) ---------------
+-- A licensed player far from the pocket never has Workspace.SpringVaultAdventure streamed in.
+-- The adapter must start the REAL runtime from the remotes alone, never fake a scene, keep loans
+-- scene-gated (the runtime's own rule) and keep every arena reason scene-bound.
+if mode == "client-stream" then
+	local Enum = Mock.Enum
+	local Remotes = load("ReplicatedStorage/Shared/Remotes")
+	local net = Mock.Env.Instance.new("Folder")
+	net.Name = "Net"
+	for _, name in Remotes.Events do
+		local r = Mock.Env.Instance.new("RemoteEvent")
+		r.Name = name
+		r.Parent = net
+	end
+	net.Parent = byPath["ReplicatedStorage/Shared/Remotes"]
+	local player = Mock.AddLocalPlayer(1001, "Tester")
+	local BEACH = V.new(0, S + 3, 4)
+	Mock.SpawnCharacter(player, BEACH)
+	local Controllers = "StarterPlayer/StarterPlayerScripts/Client/Controllers/"
+	local UI = "StarterPlayer/StarterPlayerScripts/Client/UI/"
+	local Arbiter = load(Controllers .. "InputArbiter")
+	local InputController = load(Controllers .. "InputController")
+	local AdventureController = load(Controllers .. "AdventureController")
+	local AdventureHUD = load(UI .. "AdventureHUD")
+	local Root = load(UI .. "Root")
+	local RS = Mock.Service("ReplicatedStorage")
+	local Workspace = Mock.Service("Workspace")
+	player.PlayerGui.ChildAdded:Connect(function(child)
+		if child:IsA("ScreenGui") then
+			Mock.Internal(child).props.Enabled = true
+		end
+	end)
+	Root.Init()
+	InputController.Init()
+	-- Every SpringVaultAdventure child Workspace ever receives (only this spec may add one).
+	local sceneAdds = 0
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "SpringVaultAdventure" then
+			sceneAdds += 1
+		end
+	end)
+	local function newTool(name, attrs, parent)
+		local t = Mock.Env.Instance.new("Tool")
+		t.Name = name
+		for k, v in attrs do
+			t:SetAttribute(k, v)
+		end
+		t.Parent = parent
+		return t
+	end
+	local function reasons()
+		return table.concat(Arbiter.Reasons(), ",")
+	end
+	local function runtimeGui()
+		return player.PlayerGui:FindFirstChild("SpringVaultAdventureReview")
+	end
+	local function intents(action)
+		local n = 0
+		for _, request in Mock.Remote.ToServer do
+			if request.Name == "Intent" and type(request.Args[1]) == "table" and request.Args[1].action == action then
+				n += 1
+			end
+		end
+		return n
+	end
+	local function noFakeScene()
+		if Workspace:FindFirstChild("SpringVaultAdventure") ~= nil then
+			return false
+		end
+		for _, item in Workspace:GetDescendants() do
+			if item.Name == "ProtectedArenaFloor" or item.Name == "landmark_spring_vault_ball" then
+				return false
+			end
+		end
+		return true
+	end
+	local Q = Mock.Input(Enum.UserInputType.Keyboard, Enum.KeyCode.Q)
+	local function charge(state)
+		local binding = Mock.Actions.SpringVaultBroadwave
+		return binding and binding.Fn("SpringVaultBroadwave", state, Q)
+	end
+	local function surfaceQ()
+		local before = #Mock.Remote.ToServer
+		local result = Mock.Actions.DigSurface.Fn("DigSurface", Enum.UserInputState.Begin, Q)
+		local fired = false
+		for i = before + 1, #Mock.Remote.ToServer do
+			if Mock.Remote.ToServer[i].Name == "ReturnToSurface" then
+				fired = true
+			end
+		end
+		return result, fired
+	end
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+
+	-- Remotes exist, the arena never streamed in.
+	AdventureController.Init()
+	local folder = Mock.Env.Instance.new("Folder")
+	folder.Name = "SpringVaultAdventure"
+	for _, name in { "Intent", "Snapshot", "Effect" } do
+		local remote = Mock.Env.Instance.new("RemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+	end
+	folder.Parent = RS
+	Mock.Advance(1)
+
+	-- 4. Nothing in hand, no scene, not in the arena: nothing runs (the beach shows no panel).
+	check(AdventureController.IsActive(), "stream: adapter active from the remotes alone")
+	check(not AdventureController.IsStarted() and runtimeGui() == nil, "empty hand: runtime not started, no panel")
+	check(Mock.Actions.SpringVaultBroadwave == nil and not Arbiter.ChargeAvailable(), "empty hand: no charge")
+	local r, fired = surfaceQ()
+	check(r == Enum.ContextActionResult.Sink and fired, "empty hand: Q surfaces")
+	check(reasons() == "", "empty hand: no dig pause")
+
+	-- 1. Licensed Broadwave in hand, no scene: the real runtime starts and can charge.
+	local licensed = newTool("Broadwave", { ToolId = "tool_broadwave", LicensedBroadwave = true }, player.Backpack)
+	Mock.Advance(0.3)
+	check(not AdventureController.IsStarted(), "licensed stowed: runtime not started")
+	humanoid:EquipTool(licensed)
+	Mock.Advance(0.05)
+	check(licensed.Parent == player.Character, "licensed: in hand")
+	check(AdventureController.IsStarted() and runtimeGui() ~= nil, "licensed, no scene: runtime started")
+	check(Mock.Actions.SpringVaultBroadwave ~= nil and Arbiter.ChargeAvailable(), "licensed, no scene: charge bound")
+	check(Arbiter.QToCharge(), "licensed, no scene: Q goes to the charge")
+	check(noFakeScene() and sceneAdds == 0, "licensed, no scene: the client created no scene")
+	check(not Arbiter.Has("AdventureArena") and reasons() == "", "licensed, no scene: AdventureArena not suppressed")
+	check(#AdventureHUD.Hidden() == 0, "licensed, no scene: HUD untouched (not in the arena)")
+	local begins, releases = intents("ChargeBegin"), intents("ChargeRelease")
+	r = charge(Enum.UserInputState.Begin)
+	check(
+		r == Enum.ContextActionResult.Sink and intents("ChargeBegin") == begins + 1,
+		"licensed, no scene: Q begins a charge"
+	)
+	charge(Enum.UserInputState.End)
+	check(intents("ChargeRelease") == releases + 1, "licensed, no scene: release sent")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(AdventureController.IsStarted(), "licensed, no scene: runtime kept while in hand")
+
+	-- 2. A loan in hand with no scene: the runtime runs, but the loan stays scene-gated.
+	humanoid:UnequipTools()
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted() and not Arbiter.ChargeAvailable(), "licensed stowed: runtime stopped")
+	local loan = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Character)
+	Mock.Advance(0.05)
+	check(AdventureController.IsStarted(), "loan, no scene: runtime started (Broadwave in hand)")
+	check(Arbiter.ChargeAvailable(), "loan, no scene: charge availability follows the handle")
+	begins = intents("ChargeBegin")
+	r = charge(Enum.UserInputState.Begin)
+	charge(Enum.UserInputState.End)
+	check(r == Enum.ContextActionResult.Pass, "loan, no scene: the runtime passes Q")
+	check(intents("ChargeBegin") == begins, "loan, no scene: no ChargeBegin for a loan without the arena")
+	check(noFakeScene() and sceneAdds == 0 and reasons() == "", "loan, no scene: no scene, no arena reason")
+	loan:Destroy()
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted(), "loan gone: runtime stopped")
+
+	-- 3. Stream-in, then stream-out, with the licensed tool in hand.
+	humanoid:EquipTool(licensed)
+	Mock.Advance(0.05)
+	local gui = runtimeGui()
+	local binding = Mock.Actions.SpringVaultBroadwave
+	check(AdventureController.IsStarted() and gui ~= nil, "stream: runtime started before the arena")
+	local scene = Mock.Env.Instance.new("Model")
+	scene.Name = "SpringVaultAdventure"
+	local floor = Mock.Env.Instance.new("Part")
+	floor.Name = "ProtectedArenaFloor"
+	floor.Size = V.new(100, 2, 140)
+	floor.Position = V.new(-200, 969, 70)
+	floor.Parent = scene
+	scene.Parent = Workspace
+	Mock.Advance(0.3)
+	check(sceneAdds == 1, "stream-in: the only scene is the streamed one")
+	check(runtimeGui() == gui and Mock.Actions.SpringVaultBroadwave == binding, "stream-in: same runtime handle")
+	check(reasons() == "", "stream-in: on the beach, still no arena reason")
+	-- Bound by the runtime itself: a loan can now charge (scene-gated) without a restart.
+	local loan2 = newTool("Broadwave (Adventure Loan)", { AdventureLoan = true }, player.Character)
+	licensed.Parent = player.Backpack
+	Mock.Advance(0.05)
+	begins = intents("ChargeBegin")
+	charge(Enum.UserInputState.Begin)
+	charge(Enum.UserInputState.End)
+	check(intents("ChargeBegin") == begins + 1, "stream-in: the runtime bound the real scene (loan charges)")
+	check(runtimeGui() == gui, "stream-in: still the same runtime handle")
+	loan2:Destroy()
+	humanoid:EquipTool(licensed)
+	Mock.Advance(0.05)
+	-- Stream-out with the licensed tool still in hand.
+	scene.Parent = nil
+	Mock.Advance(0.05)
+	check(AdventureController.IsStarted() and runtimeGui() == gui, "stream-out: runtime kept, same handle")
+	check(Arbiter.ChargeAvailable() and Arbiter.QToCharge(), "stream-out: charge still available")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(AdventureController.IsStarted(), "stream-out: kept past the grace while the tool is in hand")
+	begins = intents("ChargeBegin")
+	charge(Enum.UserInputState.Begin)
+	charge(Enum.UserInputState.End)
+	check(intents("ChargeBegin") == begins + 1, "stream-out: licensed charge still begins")
+	check(reasons() == "" and noFakeScene(), "stream-out: no arena reason, no scene left behind")
+	-- Stow and stay away: stopped after STOP_GRACE.
+	humanoid:UnequipTools()
+	Mock.Advance(0.3)
+	check(AdventureController.IsStarted(), "stowed: runtime kept for the grace period")
+	Mock.Advance(AdventureController.STOP_GRACE + 0.5)
+	check(not AdventureController.IsStarted() and runtimeGui() == nil, "stowed: runtime stopped after the grace")
+	check(Mock.Actions.SpringVaultBroadwave == nil and not Arbiter.ChargeAvailable(), "stowed: charge unbound")
+	r, fired = surfaceQ()
+	check(r == Enum.ContextActionResult.Sink and fired, "stowed: Q surfaces again")
 	check(reasons() == "", "end: no dig pause left on")
 	finish()
 	return
