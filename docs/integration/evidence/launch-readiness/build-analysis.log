@@ -6,7 +6,15 @@ Built project to expansion1-production-candidate.rbxlx
 Built project to expansion1-production-review.rbxlx
 == rojo build adventure
 Built project to adventure.rbxlx
-== sourcemap + analyze (candidate project)
+== sourcemap + luau-lsp analyze (candidate project sourcemap)
 Created sourcemap at build/lr/sourcemap.json
-tools/expansion1/production-candidate/CandidateObserver.server.luau(333,2): TypeError: Function only returns 1 value, but 2 are required here
+tools/expansion1/production-candidate/CandidateObserver.server.luau(236,19): TypeError: Expected this to be '{| [string]: {| Dropped: number, Rows: {{ [string]: any }} |} |}', but got 'nil'
+analyze exit 1
+== stylua --check (changed files)
+stylua OK
+== after typing the snapshot body
 analyze exit 0
+stylua OK
+CANDIDATE STORAGE LocalOnly: 56 passed, 0 failed
+CANDIDATE STORAGE Refusals (15 cases): 220 passed, 0 failed
+CANDIDATE STORAGE Production: 26 passed, 0 failed

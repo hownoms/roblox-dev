@@ -142,12 +142,12 @@ function AdventureOutcome.Describe(outcome: any): Described?
 			table.insert(lines, "Not added yet: they'll be added when your save loads,")
 			table.insert(
 				lines,
-				if isLocal then "if it loads during this session." else "here or the next time you join."
+				if isLocal then "if it loads before this test server closes." else "here or the next time you join."
 			)
 		elseif isLocal then
 			title = "REWARDS NOT CONFIRMED YET"
 			if coins > 0 then
-				table.insert(lines, string.format("+%d Coins (not added yet)", coins))
+				table.insert(lines, string.format("+%d Coins (not confirmed yet)", coins))
 			end
 		else
 			title = "SAVING YOUR REWARDS..."

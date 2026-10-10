@@ -295,7 +295,23 @@ finished. Never operate the same DataModel concurrently.
 | Mutation checks of the new settlement expectations | 7 and 6 failures; restored tree 218/0 | `settlement-expectation-mutations.log` |
 | Codex specs: spring-vault 22, runtime 52, return 111, input 295, initial-stream 29, scene 81, presentation 66, outcome-owner 85, trophy-contract 24, broadwave-dig 24 | all pass | `codex-specs.log` |
 | `rojo build` of default, candidate, production-review and adventure projects; `luau-lsp analyze` of changed sources on the candidate sourcemap; `stylua --check` of changed files | pass | `build-analysis.log` |
-| `tools/adventure/audit-claude-candidate.py` | see the PR description | — |
+| `tools/adventure/audit-claude-candidate.py 25b50e9` (Codex's independent gate check) | exit 0 | `audit-claude-candidate.log` |
 
 Not run: Studio (no DataModel was operated), two clients, devices, real streaming, live
 DataStores.
+
+## 9. Independent review
+
+A separate review agent read the diff and reran the targeted specs (all passing). It found no
+blocking defects. Fixed after the review:
+- **Observer history was unbounded.** It now keeps the latest 20 outcome rows per player with a
+  `Dropped` count. Above 100 kB the snapshot leaves out outcome rows and says so; the console
+  lines still carry every outcome.
+- **Local pending wording.** It now says "+N Coins (not confirmed yet)" (the coins may already be
+  in session data). Local PendingRejoin says "if it loads before this test server closes".
+
+Not changed (noted):
+- Rewards-off players get no explanation: owner decision D4.
+- Local cards can be one line taller (6). The outcome container already let 5-line cards overflow
+  its fixed height without clipping.
+- The bystander check recognises only the known completion strings.

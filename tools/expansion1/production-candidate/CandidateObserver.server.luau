@@ -66,8 +66,13 @@ type History = {
 	FirstLoad: { [string]: any }?,
 	Last: { [string]: any }?, -- latest summary while loaded (DataService may unload before PlayerRemoving reaches us)
 	LastLeave: { [string]: any }?,
-	Outcomes: { { [string]: any } },
+	Outcomes: { { [string]: any } }, -- the latest MAX_OUTCOMES rows; Dropped counts older ones
+	Dropped: number,
 }
+local MAX_OUTCOMES = 20
+-- Attribute strings have a size limit; past this the snapshot leaves out outcome rows (the
+-- console lines still carry every outcome) and says so.
+local MAX_JSON = 100000
 local history: { [number]: History } = {}
 
 local function count(t: any): number
@@ -209,10 +214,10 @@ local function snapshot()
 	end
 	local outcomes = {}
 	for userId, h in history do
-		outcomes[tostring(userId)] = h.Outcomes
+		outcomes[tostring(userId)] = { Rows = h.Outcomes, Dropped = h.Dropped }
 	end
 	seq += 1
-	local body = {
+	local body: { [string]: any } = {
 		Seq = seq,
 		At = stamp(),
 		Commit = folder:GetAttribute("CandidateInstalled"),
@@ -227,6 +232,11 @@ local function snapshot()
 		Outcomes = outcomes,
 	}
 	local ok, json = pcall(HttpService.JSONEncode, HttpService, body)
+	if ok and #json > MAX_JSON then
+		body.Outcomes = nil
+		body.OutcomesOmitted = "snapshot too large; see [CandidateObserver] outcome lines"
+		ok, json = pcall(HttpService.JSONEncode, HttpService, body)
+	end
 	if ok then
 		folder:SetAttribute("Observation", json)
 		folder:SetAttribute("ObservationSeq", seq)
@@ -240,7 +250,7 @@ end
 local function onAdded(player: Player)
 	local h = history[player.UserId]
 	if not h then
-		h = { Name = player.Name, Joins = 0, Leaves = 0, Outcomes = {} }
+		h = { Name = player.Name, Joins = 0, Leaves = 0, Outcomes = {}, Dropped = 0 }
 		history[player.UserId] = h
 	end
 	h.Joins += 1
@@ -312,6 +322,10 @@ Settlement.OutcomeSent:Connect(function(player: Player, outcome: any)
 	}
 	if h then
 		table.insert(h.Outcomes, row)
+		if #h.Outcomes > MAX_OUTCOMES then
+			table.remove(h.Outcomes, 1)
+			h.Dropped += 1
+		end
 	end
 	log(
 		string.format(

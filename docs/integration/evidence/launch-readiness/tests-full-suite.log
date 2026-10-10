@@ -124,7 +124,7 @@ TROPHY WIRED: 60 passed, 0 failed
 == a stale cached profile never overwrites a newer save
 == Unconfirmed grant whose player leaves before it was durable
 == offline final and BindToClose budget (mock clock)
-  worst-case settlement writes resolved after 10.5 s of mock time
+  worst-case settlement writes resolved after 11.0 s of mock time
 == rewards flag off and kill switch
   outcome monitor: 18 Accepted (each durable when told), 2 Pending, 4 Refused
 SETTLEMENT DURABILITY (on): 218 passed, 0 failed
@@ -134,7 +134,7 @@ SETTLEMENT DURABILITY (on): 218 passed, 0 failed
 == a stale cached profile never overwrites a newer save
 == Unconfirmed grant whose player leaves before it was durable
 == offline final and BindToClose budget (mock clock)
-  worst-case settlement writes resolved after 10.4 s of mock time
+  worst-case settlement writes resolved after 10.3 s of mock time
 == rewards flag off and kill switch
   outcome monitor: 9 Accepted (each durable when told), 2 Pending, 0 Refused
 SETTLEMENT DURABILITY (off): 76 passed, 0 failed
