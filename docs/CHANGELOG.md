@@ -11,7 +11,25 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
-## Unreleased: Spring Vault launch readiness (draft PR, not merged, flags off)
+## Unreleased: Spring Vault two-client reward policy (merged `2a272a2`, flags off)
+Branch `claude/spring-vault-two-client` (launch readiness merged with PR #42), 10 October 2026.
+Record: `docs/integration/two-client-acceptance.md`.
+- **Problem:** Studio Server & Clients players get UserIds -1, -2, …, and reward/trophy validation
+  accepts only real positive ids. The LocalOnly two-client run therefore ended in `BadParticipants`
+  with no outcome cards.
+- **Fix:** a guarded `LocalSimulationPolicy` accepts [-64, -1] ids of Players who joined this
+  server. The policy is frozen and server-only, and applies only when all three hold: `IsStudio`,
+  `CandidateProfile.IsLocalOnly()` and `StorageMode() == "LocalOnly"`.
+- **Unchanged:** every eligibility rule. Production, Mock and standalone trophy settlement keep
+  the strict rule.
+- **Never durable:** simulated ids are never queued to an outbox. An unloaded id gets
+  `LocalSimulationNotLoaded`. A failed local save becomes `Unconfirmed` and is retried.
+- **Why:** per-player card acceptance needs real multiplayer settlement. Positive ids would need
+  spoofing or real accounts, and spoofing is ruled out.
+- **Not covered:** rejoin, cross-server durability and the live "SAVED" wording still need the
+  account-backed environment in §4 of the record.
+
+## Unreleased: Spring Vault launch readiness (merged with the two-client policy, flags off)
 Branch `claude/spring-vault-launch-readiness`, 10 October 2026, on default `b4e1b14` (PR #41).
 Record: `docs/integration/launch-readiness.md`.
 - **Settlement tests follow the External outcome contract:** the 11 obsolete broadcast
