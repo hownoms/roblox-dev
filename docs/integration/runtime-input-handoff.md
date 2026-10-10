@@ -1,5 +1,54 @@
 # Runtime input and completion ownership handoff
 
+## Current continuation: accessibility and actual merged runtime (10 October 2026)
+
+Branch `codex/spring-vault-accessibility` starts from fetched default `b4e1b14`.
+This section supersedes earlier open preference/layout and two-client runtime findings;
+the historical contracts below remain reference material. No other chat was messaged.
+
+SpringVaultClient now consumes production `Controllers.State` settings on creation and
+on `Changed("Settings")`: ReducedMotion disables decorative movement and puffs;
+LowGraphics disables puffs. Active effects are retired immediately and panels restored.
+Standalone review still works without State; optional initial preferences and the handle's
+SetPreferences support explicit callers. Arena Options remain session overrides; the next
+production settings change reapplies saved preferences. No controller/boot files changed.
+
+The arena ScreenGui uses layer 3, above GuideEdge's 2 and below production panels/popups
+5/8. Leave/End trial is pinned to the header during scrolling, with reserved header width
+and a 48px target. Other controls retain their stable cells. Actual simulated landscape
+609x337 and 749x388 layouts were inspected; hauling Leave at 609x337 succeeded after
+scrolling and restored the same Garden Trowel object, speed 16, and removed the loan.
+At the extreme 225x179 viewport, End trial remained 55x48 and visible, but the first
+injected click did not cancel; cancellation succeeded after resetting the viewport. Do not
+claim that extreme layout's input acceptance or physical touch/gamepad acceptance closed.
+
+The safe LocalOnly production candidate ran in confirmed unpublished Expansion1Review
+and two child clients. Both earned entry and Pip licenses by ordinary digging, selling,
+buying and trial controls. Three consecutive adventures completed in one server: solo
+with a never-joined bystander; a late unready helper timed out; and a ready late helper
+contributed 45 points while the original participant contributed 20. Neutral completion
+delivery was participant-only. Automatic return restored both original tools/loan state;
+a fourth run tested hauling cancellation and recovery. Input was injected through ordinary
+UI/keyboard controls; movement and camera were assisted. No seeds, prerequisite bypasses,
+resolver shims or direct remote input were used. Accepted unchanged aiming/recovery evidence
+is retained rather than rerun as new physical-device evidence.
+
+**Remaining Claude dependency:** actual local multiplayer settlement rejects Studio IDs
+-1/-2 as BadParticipants (AdventureRewards validates positive IDs, as do trophy rules).
+Consequently no reward outcome cards/grants were observed. Runtime forwards real IDs and
+production validation remains intact. Coordinate a strict LocalOnly simulated-ID policy or
+an authorized account-backed multiplayer environment before final reward-card acceptance.
+See `assets/adventure/verification/accessibility/independent-two-client-settlement-dependency.md`.
+The 11 old settlement test wording/recipient mismatches were reverified; the full suite is
+not green. Claude-owned source/tests were left unchanged.
+
+Evidence and exact gates: `assets/adventure/verification/accessibility/CONTINUATION.md`.
+Targeted regressions, production/review/candidate builds and mapped adventure analysis pass.
+Studio candidate was uninstalled, original parked roots/service properties restored, child
+test windows closed, viewport reset to default, and local injector stopped. No place save,
+publication, upload or merge occurred. Physical devices, uncoached play, performance,
+streaming/rejoin/live durability and merged reward delivery remain release gates.
+
 10 October 2026; Codex branch `codex/spring-vault-input-parity`, based on fetched default
 `d96ac75`. Coordination is through this reviewable ownership boundary document. No other
 chat was messaged. Codex owns runtime/input/presentation; Claude retains boot/controller,

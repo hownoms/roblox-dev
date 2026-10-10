@@ -102,6 +102,10 @@ check(
 	"invitation shows join without later controls"
 )
 check(card.CanvasSize.Y.Offset == 348, "controls reserve stable cells and scroll canvas")
+check(
+	gui.DisplayOrder > 2 and gui.DisplayOrder < 5,
+	"runtime clears guide edge while preserving production panels/popups"
+)
 check(card.Options.Visible and not card.Motionon.Visible, "options accessible while motion controls stay tucked away")
 Mock.FireEvent(card.Options, "Activated")
 Mock.Advance(0.05)
@@ -244,6 +248,17 @@ check(
 )
 send({ joined = false, trialActive = true, trialWave = false, trialComplete = false, trialTargets = {} })
 check(card.Leave.Visible and card.Leave.Text == "End trial", "optional practice has an explicit exit")
+for _, viewport in { { 705, 338 }, { 844, 390 }, { 390, 220 }, { 320, 180 } } do
+	Mock.AllowRestricted = { AbsoluteSize = true }
+	gui.AbsoluteSize = Mock.Env.Vector2.new(viewport[1], viewport[2])
+	Mock.AllowRestricted = nil
+	for _, scroll in { 0, 54, 180 } do
+		card.CanvasPosition = Mock.Env.Vector2.new(0, scroll)
+		check(card.Leave.Position.Y.Offset - scroll == 8, "cancel stays at fixed screen height while scrolling")
+		check(card.Leave.Size.Y.Offset == 48, "short layout keeps cancellation touch target full size")
+		check(card.Size.Y.Offset >= 56, "cancellation fits short simulated viewport")
+	end
+end
 local beforeLeave = requests("Leave")
 Mock.FireEvent(card.Leave, "Activated")
 check(requests("Leave") == beforeLeave + 1, "End trial uses the existing validated Leave action")
