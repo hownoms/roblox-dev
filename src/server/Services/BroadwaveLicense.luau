@@ -4,8 +4,8 @@
 	does nothing until AdventureBoot calls Start() under AdventureFlags.BroadwaveOrdinary.
 
 	  * Evidence: the saved ToolLicenses.tool_broadwave record (AdventureEligibility.Rules). This
-	    module never grants or writes a license; the future q_pip / cert_explorer quest grant owns
-	    that and should call BroadwaveLicense.Sync(player) after writing it.
+	    module never grants or writes a license; PipQuest (q_pip trial completion) writes it and
+	    then calls BroadwaveLicense.Sync(player), so the tool is issued at once.
 	  * Not a shovel: the tool is not in Config.Shovels / OwnedShovels / ShopService. It carries
 	    ToolId = "tool_broadwave" (set here, on the server) and no ShovelId, so ShopService's
 	    shovel refresh never touches it, and selling / rebirth never remove it.

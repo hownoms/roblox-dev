@@ -19,7 +19,8 @@
 	  BroadwaveOrdinary  ordinary (sand-yielding) Broadwave: wire BroadwaveDigBridge as
 	                     OnOrdinaryBroadwave and issue licensed Broadwave tools. Needs SpringVault
 	                     (the runtime owns the charge input). Even when on, a player needs the saved
-	                     ToolLicenses.tool_broadwave license, which nothing in this slice grants.
+	                     ToolLicenses.tool_broadwave license, which PipQuest grants once on completing
+	                     Pip's trial (q_pip). Off: PipQuest is not started; Pip's trial is a demo.
 
 	Kill switch: set the flag to false and publish; new servers boot without the feature. Running
 	servers keep their boot-time value; AdventureBoot.Disable() is the in-server kill switch

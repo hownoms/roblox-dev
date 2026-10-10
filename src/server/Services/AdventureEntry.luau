@@ -36,6 +36,11 @@
 	client's guide beam to the hatch (tag HATCH_TAG, published as a world anchor); the server
 	never reads it back. Stop() clears it.
 
+	Rides: Start() installs a RideService spawn guard refusing ToggleRide from anywhere InPocket
+	("Rides stay on the beach."; the ride's own check is horizontal distance only); Stop() clears
+	it. The hatch refuses seated players, and anyone moved into (or found in) the pocket while a
+	ride exists has it despawned.
+
 	The scene itself (SpringVaultScene) is Codex's and is never edited here.
 ]]
 
@@ -48,6 +53,7 @@ local Workspace = game:GetService("Workspace")
 local DataService = require(script.Parent.DataService)
 local Eligibility = require(script.Parent.AdventureEligibility)
 local Net = require(script.Parent.Net)
+local RideService = require(script.Parent.RideService)
 local StreamingService = require(script.Parent.StreamingService)
 local Config = require(ReplicatedStorage.Shared.Config)
 local World = require(script.Parent.Parent.World)
@@ -88,6 +94,7 @@ AdventureEntry.INVITE_ATTRIBUTE = "SpringVaultInvited"
 AdventureEntry.INVITE_TEXT = "Mara needs diggers: the hatch west of the crate yard."
 AdventureEntry.INVITE_DELAY = 6 -- after load: lets the join popups (offline, daily) settle first
 AdventureEntry.HATCH_TAG = "SpringVaultHatch"
+AdventureEntry.RIDE_REFUSAL = "Rides stay on the beach."
 -- Save keys that can change CanEnter (cert, sale quests, deposit variants) or the tutorial step.
 local INVITE_KEYS: { [string]: boolean } =
 	{ Certifications = true, Quests = true, FindVariants = true, Settings = true }
@@ -260,6 +267,7 @@ local function onEnter(player: Player, hatch: BasePart)
 	end
 	-- Fixed server point by the hatch: the character position is client-owned, never trusted.
 	returnFrame[player] = AdventureEntry.SURFACE_RETURN
+	RideService.Despawn(player) -- defensive: no ride ever follows a player under the slab
 	pivot(player, target)
 	Net.Notify(player, "Info", "Spring Vault: talk to Mara to join, or Pip for a Broadwave trial.")
 end
@@ -409,6 +417,9 @@ local function check()
 			continue
 		end
 		local pos = root.Position
+		if RideService.IsRiding(player) and AdventureEntry.InPocket(pos) then
+			RideService.Despawn(player)
+		end
 		local due = pendingReturn[player]
 		if due and now >= due then
 			pendingReturn[player] = nil
@@ -507,6 +518,13 @@ function AdventureEntry.Start(runtimeHandle: any, pocketOrigin: Vector3): boolea
 	)
 	table.insert(connections, back.Triggered:Connect(onReturn))
 	table.insert(connections, Players.PlayerRemoving:Connect(forget))
+	RideService.SetSpawnGuard(function(player: Player): string?
+		local r = rootOf(player)
+		if r and AdventureEntry.InPocket(r.Position) then
+			return AdventureEntry.RIDE_REFUSAL
+		end
+		return nil
+	end)
 	table.insert(
 		connections,
 		RunService.Heartbeat:Connect(function(dt: number)
@@ -550,6 +568,7 @@ function AdventureEntry.Stop()
 		return
 	end
 	started = false
+	RideService.SetSpawnGuard(nil)
 	for _, c in connections do
 		c:Disconnect()
 	end
