@@ -30,7 +30,8 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
-- **Spring Vault production candidate (draft PR, not merged, not published, flags ship off):**
+- **Spring Vault production candidate (merged to default `01eebba` on owner instruction, 10 October
+  2026, not published, flags ship off):**
   - Fail-closed local-only storage, chosen before any service starts: zero DataStore
     acquisition, refused outside the authorized unpublished Expansion1Review.
   - The runtime starts from the remotes before the arena replicates.

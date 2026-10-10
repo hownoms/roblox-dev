@@ -11,8 +11,9 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
-## Unreleased: Spring Vault production candidate (draft PR, not merged, flags off)
+## Unreleased: Spring Vault production candidate (merged, not published, flags off)
 Branch `claude/spring-vault-production-candidate`, 10 October 2026, on default `d96ac75`.
+**Merged into default on owner instruction** (`01eebba`, no PR: `gh` logged out).
 - **Local-only storage, fail-closed:** `CandidateProfile` is resolved by Main before remotes,
   world or services. `StorageGate` is now the only module that touches `DataStoreService`. A
   LocalOnly candidate makes zero acquisitions or requests across saves, both outboxes, purchase

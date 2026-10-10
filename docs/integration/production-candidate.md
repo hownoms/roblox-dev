@@ -1,7 +1,8 @@
 # Spring Vault production candidate (Expansion1Review, local-only storage)
 
 Branch `claude/spring-vault-production-candidate`, 10 October 2026, on default `d96ac75`.
-**Played and tested commit: `470465f`.** Not merged, published or uploaded. No live save test
+**Played and tested commit: `470465f`.** **Merged into default on owner instruction as `01eebba`**
+(no PR: `gh` and the browser were logged out). Not published or uploaded. No live save test
 was run. Every `AdventureFlags` flag still ships `false`. The candidate turns them on only inside
 the authorized Studio place, through its own server config.
 
@@ -221,3 +222,18 @@ Owner or joint decisions:
 - Codex specs: spring-vault 22, runtime 47, input 293, return 111, scene 81, presentation 53,
   initial-stream 16, broadwave-dig 24, trophy-contract 24.
 - `tools/adventure/audit-claude-candidate.py HEAD`: exit 0.
+
+## Merge record (10 October 2026)
+
+On owner instruction ("push and merge"), `claude/spring-vault-production-candidate` (`6d4e8ba`)
+was merged with `--no-ff` into `claude/pensive-meitner-6jx4u4` as `01eebba`. Default had not
+moved since `d96ac75`, so the merged tree is the tested tree plus docs. Sanity checks on the
+merge result:
+- `candidate-storage` localonly 40 and refusals 179;
+- `pip-quest` 75;
+- `production-wiring` off 37 and client-stream 40;
+- smoke passes;
+- the three `AdventureFlags` still read `= false`;
+- `default.project.json` is unchanged.
+
+No flag was enabled.
