@@ -37,6 +37,11 @@ echo "== production-review.spec (review-only boot gate around the real Main) =="
 luau tests/production-review.spec.luau || status=1
 echo "== broadwave-license.spec (licensed Broadwave contract) =="
 luau tests/broadwave-license.spec.luau || status=1
+echo "== candidate-storage.spec (LocalOnly candidate / refusals / production) =="
+luau tests/candidate-storage.spec.luau -a localonly || status=1
+luau tests/candidate-storage.spec.luau -a refusals || status=1
+luau tests/candidate-storage.spec.luau -a production || status=1
+luau tests/candidate-storage.spec.luau -a production studio || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
