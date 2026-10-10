@@ -39,10 +39,16 @@
 	[SURFACE_Y + MinY, SURFACE_Y + MaxY] -> the vehicle is put back at the last valid pivot;
 	MaxStrikes such resets in a row despawn it. Never seated within SeatTimeout -> despawn.
 
+	Spawn guard: SetSpawnGuard(fn) installs one server-side veto checked before every spawn;
+	fn(player) returns refusal text (shown as a toast, nothing spawns) or nil. AdventureEntry
+	installs one refusing spawns from the Spring Vault pocket (the horizontal distance check alone
+	does not know about the pocket under the slab). This module never requires its installer.
+
 	Public API:
 		RideService.IsRiding(player): boolean
 		RideService.GetVehicle(player): Model?
 		RideService.Despawn(player)
+		RideService.SetSpawnGuard(fn: ((Player) -> string?)?)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -85,6 +91,7 @@ type Ride = {
 local RideService = {}
 
 local rides: { [Player]: Ride } = {}
+local spawnGuard: ((Player) -> string?)? = nil
 local lastToggle: { [Player]: number } = {}
 local folder: Folder? = nil
 local zone = World.GetDigZone()
@@ -134,6 +141,25 @@ function RideService.GetVehicle(player: Player): Model?
 	return if ride then ride.Model else nil
 end
 
+-- One server-side spawn veto (nil clears it): returns refusal text, or nil to allow.
+function RideService.SetSpawnGuard(fn: ((Player) -> string?)?)
+	spawnGuard = fn
+end
+
+-- Refusal text from the installed guard, or nil. A failing guard refuses (fails closed).
+local function guardRefusal(player: Player): string?
+	local guard = spawnGuard
+	if not guard then
+		return nil
+	end
+	local ok, result = pcall(guard, player)
+	if not ok then
+		warn("[RideService] spawn guard failed: " .. tostring(result))
+		return "You can't ride here."
+	end
+	return if type(result) == "string" then result else nil
+end
+
 function RideService.Despawn(player: Player)
 	local ride = rides[player]
 	if not ride then
@@ -163,6 +189,11 @@ local function spawnRide(player: Player)
 		return
 	end
 	assert(data) -- refine for the type checker (guarded above)
+	local refusal = guardRefusal(player)
+	if refusal then
+		Net.NotifyThrottled(player, "Error", refusal, "RideGuard", 3)
+		return
+	end
 	local def = Config.FindRideablePet(data.Pets)
 	if not def then
 		Net.NotifyThrottled(player, "Error", "You need a rideable pet to ride! 🚜", "RideNoPet", 3)

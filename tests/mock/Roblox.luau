@@ -2367,6 +2367,12 @@ classMethods.Player = {
 Mock.DataStores = {} -- name -> { [key] = value }
 Mock.ProductPrices = {} -- v2.3: MarketplaceService:GetProductInfo(id).PriceInRobux
 Mock.DataStoreFail = false
+-- Every DataStoreService touch, in order: "GetService" / "FindService", "<Method> <name>" for
+-- service methods, "<store>.<Method> <key>" for store requests (tests/candidate-storage.spec).
+Mock.DataStoreCalls = {}
+local function dsCall(text)
+	table.insert(Mock.DataStoreCalls, text)
+end
 
 local function asyncYield()
 	if coroutine.isyieldable() then
@@ -2389,6 +2395,7 @@ local function newDataStore(name, ordered)
 	Mock.DataStores[name] = data
 	local store = {}
 	function store:GetAsync(key)
+		dsCall(name .. ".GetAsync " .. tostring(key))
 		asyncYield()
 		if Mock.DataStoreFail then
 			error("502: mock DataStore failure")
@@ -2396,6 +2403,7 @@ local function newDataStore(name, ordered)
 		return deepCopy(data[key])
 	end
 	function store:SetAsync(key, value, _userIds)
+		dsCall(name .. ".SetAsync " .. tostring(key))
 		asyncYield()
 		if Mock.DataStoreFail then
 			error("502: mock DataStore failure")
@@ -2407,6 +2415,7 @@ local function newDataStore(name, ordered)
 		data[key] = deepCopy(value)
 	end
 	function store:UpdateAsync(key, fn)
+		dsCall(name .. ".UpdateAsync " .. tostring(key))
 		if Mock.BeforeDataStoreUpdate then
 			Mock.BeforeDataStoreUpdate(name, key)
 		end
@@ -2426,16 +2435,19 @@ local function newDataStore(name, ordered)
 		return deepCopy(result)
 	end
 	function store:RemoveAsync(key)
+		dsCall(name .. ".RemoveAsync " .. tostring(key))
 		local old = data[key]
 		data[key] = nil
 		return old
 	end
 	function store:IncrementAsync(key, delta)
+		dsCall(name .. ".IncrementAsync " .. tostring(key))
 		data[key] = (data[key] or 0) + (delta or 1)
 		return data[key]
 	end
 	if ordered then
 		function store:GetSortedAsync(ascending, pageSize)
+			dsCall(name .. ".GetSortedAsync")
 			asyncYield()
 			local entries = {}
 			for k, v in data do
@@ -2464,20 +2476,24 @@ end
 
 local dataStoreService = {
 	GetDataStore = function(_s, name)
+		dsCall("GetDataStore " .. tostring(name))
 		if Mock.DataStoreAcquireFail then
 			error("mock DataStore acquisition failure")
 		end
 		return newDataStore(name, false)
 	end,
 	GetOrderedDataStore = function(_s, name)
+		dsCall("GetOrderedDataStore " .. tostring(name))
 		return newDataStore("ordered:" .. name, true)
 	end,
 	-- Mock.DataStoreBudget: number of requests left (default plenty)
 	GetRequestBudgetForRequestType = function(_s, requestType)
+		dsCall("GetRequestBudgetForRequestType " .. tostring(requestType))
 		assert(mockTypeof(requestType) == "EnumItem", "GetRequestBudgetForRequestType expects an Enum.DataStoreRequestType")
 		return Mock.DataStoreBudget or 100
 	end,
 	GetGlobalDataStore = function()
+		dsCall("GetGlobalDataStore")
 		return newDataStore("global", false)
 	end,
 }
@@ -2537,9 +2553,15 @@ local function buildGame()
 			if not classInfo(name) then
 				error("'" .. tostring(name) .. "' is not a valid Service name", 2)
 			end
+			if name == "DataStoreService" then
+				dsCall("GetService")
+			end
 			return getService(name)
 		end,
 		FindService = function(_g, name)
+			if name == "DataStoreService" then
+				dsCall("FindService")
+			end
 			return services[name]
 		end,
 		BindToClose = function(_g, fn)
@@ -3227,6 +3249,12 @@ end
 
 function Mock.Require(inst)
 	return mockRequire(inst)
+end
+
+-- Gives a test-made ModuleScript / Script source (e.g. a Studio-installed config module).
+function Mock.SetSource(inst, src)
+	assert(instances[inst], "SetSource expects an Instance")
+	sourceOf[inst] = src
 end
 
 Mock.RenderSteps = {}

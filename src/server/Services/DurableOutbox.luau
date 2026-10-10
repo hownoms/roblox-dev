@@ -14,14 +14,15 @@
 		   A crash between 2 and 3 re-applies on the next load as a Duplicate, then acknowledges.
 
 	Storage: DataStore <StoreName>, key "Pending_<UserId>", value { Grants = { [receiptId] =
-	entry } }. Studio without DataStore access (DataService.IsMock) uses an in-memory table, like
-	DataService. A live server whose store is unavailable refuses new intents rather than
-	pretending they are durable.
+	entry } }. Studio without DataStore access (DataService.IsMock) and a LocalOnly candidate
+	(CandidateProfile, checked first, so no store is ever acquired) use an in-memory table, like
+	DataService. The store is acquired through StorageGate. A live server whose store is
+	unavailable refuses new intents rather than pretending they are durable.
 ]]
 
-local DataStoreService = game:GetService("DataStoreService")
-
+local CandidateProfile = require(script.Parent.CandidateProfile)
 local DataService = require(script.Parent.DataService)
+local StorageGate = require(script.Parent.StorageGate)
 
 export type Outbox = {
 	StoreName: string,
@@ -110,12 +111,12 @@ function DurableOutbox.new(storeName: string, maxPerUser: number, isValid: (any,
 
 	function outbox.Init()
 		store, memory = nil, nil
-		if DataService.IsMock() then
+		if CandidateProfile.IsLocalOnly() or DataService.IsMock() then
 			memory = {}
 			return
 		end
 		local ok, result = pcall(function()
-			return DataStoreService:GetDataStore(storeName)
+			return StorageGate.GetDataStore(storeName)
 		end)
 		if ok then
 			store = result

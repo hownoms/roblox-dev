@@ -11,6 +11,13 @@
 	    (handle.Destroy) STOP_GRACE seconds after neither holds, and at once when the remotes
 	    folder goes (kill switch). So the beach never shows the adventure panel, a stowed loan
 	    outside the arena binds nothing, and a rebuilt folder starts a fresh client.
+	  * Streaming: the runtime starts from the remotes alone. The arena
+	    (Workspace.SpringVaultAdventure) is passed when it is already there and nil otherwise;
+	    this adapter never creates, clones or fakes it. SpringVaultClient binds the real scene
+	    itself when it streams in and clears it on stream-out, so a licensed Broadwave charges
+	    on ordinary sand far from the pocket while loans stay scene-gated inside the runtime.
+	    A stream-out never stops the runtime while a Broadwave stays in hand. The arena reasons
+	    below stay scene-bound: no scene, never "in the arena".
 	  * Digging pause (InputArbiter, named reasons, recomputed every tick and on every character,
 	    snapshot, scene and remotes change, so none can stay on):
 	      "AdventureArena"    standing in the arena (every Mara / Pip dialogue and prompt, the
@@ -22,7 +29,9 @@
 	    InputArbiter.BroadwaveEquipped() check in DigController, which cannot get stuck either.
 	  * Q: InputArbiter.SetChargeAvailable follows the runtime handle, so Q only passes to the
 	    charge when the charge action really exists.
-	  * One equip control: BroadwaveEquip steps aside while the runtime (and its own button) runs.
+	  * Equip: production BroadwaveEquip always owns equip / stow (started with the loops,
+	    independent of the scene and the runtime); the runtime hides its review-only fallback
+	    button whenever the shared HUD control exists.
 	  * Screen: AdventureHUD hides / moves only Claude HUD pieces that collide with the runtime's
 	    visible elements while in the arena.
 ]]
@@ -88,7 +97,7 @@ local function stopClient()
 	end
 end
 
-local function startClient(folder: Instance, scene: Instance)
+local function startClient(folder: Instance, scene: Instance?)
 	local Adventure = script.Parent.Parent:FindFirstChild("Adventure")
 	local module = Adventure and Adventure:FindFirstChild("SpringVaultClient")
 	if not module or not module:IsA("ModuleScript") then
@@ -131,10 +140,10 @@ local function update()
 	local wanted = active and (arena or InputArbiter.BroadwaveEquipped())
 	if wanted then
 		idle = 0
-		local scene = sceneNow()
 		local folder = remotes
-		if not handle and not starting and scene and folder and failedFor ~= folder then
-			startClient(folder, scene)
+		if not handle and not starting and folder and failedFor ~= folder then
+			-- nil before the arena streams in: the runtime binds the real scene on its own.
+			startClient(folder, sceneNow())
 		end
 	elseif handle and (not active or idle >= AdventureController.STOP_GRACE) then
 		stopClient()
