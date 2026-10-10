@@ -1,0 +1,23 @@
+COMMAND ['D:/Tools/rojo.exe', 'sourcemap', 'adventure.project.json', '-o', 'C:\\Users\\howar\\Documents\\ChatGPT\\Roblox UEFN Dev\\spring-vault-accessibility\\build\\accessibility-independent\\sourcemap.json'] exit=1
+[ERROR rojo] Access is denied. (os error 5)
+
+COMMAND ['D:/Tools/rojo.exe', 'build', 'default.project.json', '-o', 'C:\\Users\\howar\\Documents\\ChatGPT\\Roblox UEFN Dev\\spring-vault-accessibility\\build\\accessibility-independent\\default.project.json.rbxlx'] exit=1
+[ERROR rojo] Access is denied. (os error 5)
+
+COMMAND ['D:/Tools/rojo.exe', 'build', 'adventure.project.json', '-o', 'C:\\Users\\howar\\Documents\\ChatGPT\\Roblox UEFN Dev\\spring-vault-accessibility\\build\\accessibility-independent\\adventure.project.json.rbxlx'] exit=1
+[ERROR rojo] Access is denied. (os error 5)
+
+COMMAND ['D:/Tools/rojo.exe', 'build', 'expansion1-production-candidate.project.json', '-o', 'C:\\Users\\howar\\Documents\\ChatGPT\\Roblox UEFN Dev\\spring-vault-accessibility\\build\\accessibility-independent\\expansion1-production-candidate.project.json.rbxlx'] exit=1
+[ERROR rojo] Access is denied. (os error 5)
+
+COMMAND ['..\\roblox-dev\\.tools\\stylua.exe', '--check', 'src/client/Adventure/SpringVaultClient.luau', 'tests/spring-vault-preferences.spec.luau', 'tests/spring-vault-presentation.spec.luau'] exit=0
+
+COMMAND ['..\\roblox-dev\\.tools\\luau-lsp.exe', 'analyze', '--definitions=..\\roblox-dev\\.tools\\globalTypes.d.luau', '--sourcemap=C:\\Users\\howar\\Documents\\ChatGPT\\Roblox UEFN Dev\\spring-vault-accessibility\\build\\accessibility-independent\\sourcemap.json', '--no-strict-dm-types', 'src/client/Adventure/SpringVaultClient.luau'] exit=1
+Cannot load sourcemap path C:\Users\howar\Documents\ChatGPT\Roblox UEFN Dev\spring-vault-accessibility\build\accessibility-independent\sourcemap.json: failed to read contents
+
+Authorized sandbox retry: SUCCESS exit=0
+rojo sourcemap adventure.project.json -> build/accessibility-independent/sourcemap.json
+rojo build default.project.json -> production.rbxlx
+rojo build adventure.project.json -> review.rbxlx
+rojo build expansion1-production-candidate.project.json -> candidate.rbxlx
+luau-lsp analyze actual changed client with fresh adventure sourcemap -> no diagnostics

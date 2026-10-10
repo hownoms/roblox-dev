@@ -1,0 +1,31 @@
+Independent actual-source headless regressions. Mock evidence, not gameplay input/device acceptance.
+SPEC spring-vault-runtime
+Spring Vault runtime mock: 52 checks passed
+exit=0
+SPEC spring-vault-input
+Spring Vault input: 295 checks passed
+exit=0
+SPEC spring-vault-return
+Spring Vault return mock: 111 checks passed
+exit=0
+SPEC spring-vault-outcome-owner
+Spring Vault outcome ownership mock: 85 checks passed
+exit=0
+SPEC spring-vault-preferences
+spring-vault-preferences: 20 checks passed
+exit=0
+SPEC spring-vault-presentation
+Spring Vault presentation mock: 103 checks passed
+exit=0
+SPEC spring-vault-scene
+Spring Vault scene mock: 81 checks passed
+exit=0
+SPEC spring-vault-initial-stream
+Spring Vault initial stream: 29 checks passed
+exit=0
+SPEC broadwave-dig
+Broadwave DigService integration: 24 checks passed
+exit=0
+SPEC adventure-trophy-contract
+ADVENTURE TROPHY CONTRACT: 24 checks passed
+exit=0

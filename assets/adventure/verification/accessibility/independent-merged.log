@@ -1,0 +1,76 @@
+Actual current-source bundle merged regression modes; headless mocks, not gameplay acceptance.
+SPEC production-wiring args=[] exit=0
+PRODUCTION WIRING (off): 37 passed, 0 failed
+
+SPEC production-wiring args=['on'] exit=0
+PRODUCTION WIRING (on): 42 passed, 0 failed
+
+SPEC production-wiring args=['rejoin'] exit=0
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+
+SPEC production-wiring args=['client'] exit=0
+PRODUCTION WIRING (client): 125 passed, 0 failed
+
+SPEC production-wiring args=['client-stream'] exit=0
+PRODUCTION WIRING (client-stream): 40 passed, 0 failed
+
+SPEC candidate-storage args=['localonly'] exit=0
+CANDIDATE STORAGE LocalOnly: 40 passed, 0 failed
+
+SPEC candidate-storage args=['refusals'] exit=0
+CANDIDATE STORAGE Refusals (15 cases): 179 passed, 0 failed
+
+SPEC pip-quest args=[] exit=0
+MEASURED: ride-area distance from pocket arrival 126.0 studs; nearest arena (presence box) point 0.0 studs at (-248, 2); nearest InPocket point 0.0 studs at (-300, 0); SpawnMaxDistance 40; ride bounds X[-377.0, 377.0] Z[-57.0, 4.0]
+MEASURED: without the guard, ToggleRide from the pocket spawned a ride: true
+PIP QUEST (on): 75 passed, 0 failed
+
+SPEC pip-quest args=['off'] exit=0
+PIP QUEST (off): 25 passed, 0 failed
+
+SPEC settlement-durability args=[] exit=1
+./tests/settlement-durability.spec.luau:1123: SETTLEMENT DURABILITY SPEC FAILED
+stacktrace:
+[C] function error
+./tests/settlement-durability.spec.luau:1123
+== real runtime: crew run with watcher, late helper, disconnect and bystander
+FAIL: Ana receives the completion broadcast
+FAIL: Ben receives the completion broadcast
+FAIL: Cal receives the completion broadcast
+FAIL: Eli receives the completion broadcast
+FAIL: Eli: the broadcast claims no reward
+  runtime review copy contradicting an Accepted card: 0 line(s)
+== real runtime: failed run keeps stage coins, grants no final
+== real runtime with AdventureRewards OFF (SpringVault on): review run, nothing granted
+FAIL: Ana is told rewards are not enabled, nothing claimed
+FAIL: Ben is told rewards are not enabled, nothing claimed
+FAIL: Eli is told rewards are not enabled, nothing claimed
+FAIL: Cal is told rewards are not enabled, nothing claimed
+FAIL: Fin is told rewards are not enabled, nothing claimed
+FAIL: Gus is told rewards are not enabled, nothing claimed
+  rewards off, runtime objective after completion: Ball rescued · 3/3 gates. Leave when you are ready.
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.3 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 18 Accepted (each durable when told), 2 Pending, 4 Refused
+SETTLEMENT DURABILITY (on): 198 passed, 11 failed
+
+SPEC settlement-durability args=['off'] exit=0
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.2 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 9 Accepted (each durable when told), 2 Pending, 0 Refused
+SETTLEMENT DURABILITY (off): 76 passed, 0 failed
+
+SPEC adventure-outcome args=[] exit=0
+ADVENTURE OUTCOME CLIENT: 123 passed, 0 failed

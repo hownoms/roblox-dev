@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"Outcomes\":\"[]\",\"Messages\":\"[{\\\"Message\\\":\\\"Pip: Try a Broadwave on the dark patch, then scoop three targets.\\\"},{\\\"Message\\\":\\\"Broadwave released.\\\"},{\\\"Message\\\":\\\"Practice target cleared.\\\"},{\\\"Message\\\":\\\"Practice target cleared.\\\"},{\\\"Message\\\":\\\"Pip: Excellent! Broadwave trial complete.\\\"},{\\\"Message\\\":\\\"Practice finished. Talk to Mara when you want to join the rescue.\\\"},{\\\"Message\\\":\\\"Joined. Press Begin helping to help with the current objective.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:2\\\"},{\\\"Message\\\":\\\"Spring Vault opens after your Rookie certificate, or once you have sold sand and dug up a deposit.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:2\\\"},{\\\"Message\\\":\\\"Ball rescued.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:2\\\"},{\\\"Message\\\":\\\"Joined. Press Begin helping to help with the current objective.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:3\\\"},{\\\"Message\\\":\\\"Vault open. Left route selected; attach near the ball.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:3\\\"},{\\\"Message\\\":\\\"Attached. Walk along the left channel.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:3\\\"},{\\\"Message\\\":\\\"Ball rescued.\\\",\\\"Event\\\":\\\"14133c2e-7698-4a67-9e59-a0093e107d67:3\\\"}]\",\"Player\":\"Player2\"}"
+    }
+  ],
+  "isError": false
+}
