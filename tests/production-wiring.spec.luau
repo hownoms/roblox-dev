@@ -90,6 +90,7 @@ if mode == "client" then
 	local AdventureHUD = load(UI .. "AdventureHUD")
 	local Root = load(UI .. "Root")
 	local Toasts = load(UI .. "Toasts")
+	local ObjectiveBanner = load(UI .. "ObjectiveBanner")
 	local RS = Mock.Service("ReplicatedStorage")
 	local Workspace = Mock.Service("Workspace")
 	-- The mock defaults ScreenGui.Enabled to false; Roblox defaults it to true and neither the
@@ -350,8 +351,20 @@ if mode == "client" then
 	rideHolder.Visible = true -- RideButton changes its own state meanwhile
 	Mock.Advance(0.3)
 	check(rideGui.Enabled == false, "layout: owner changes do not undo the arena rule")
+	-- The tutorial objective pill under the runtime panel (seen in the Studio production review).
+	ObjectiveBanner.Show("Follow the arrow to the sand", nil, { Step = "1/7" })
+	local pill = ObjectiveBanner.Get() :: any
+	abs(pill, 240, 64, 500, 64)
+	Mock.Advance(0.3)
+	check(ObjectiveBanner.IsSuppressed() and not pill.Visible, "layout: objective pill under the panel suppressed")
+	ObjectiveBanner.Show("Sell your sand", nil, { Step = "2/7" })
+	Mock.Advance(0.3)
+	check(not pill.Visible and ObjectiveBanner.Visible, "layout: a new objective stays off screen but is kept")
 	toBeach()
 	Mock.Advance(0.3)
+	check(not ObjectiveBanner.IsSuppressed() and pill.Visible, "layout: objective pill back on leaving the arena")
+	ObjectiveBanner.Hide()
+	Mock.Advance(1)
 	check(pieces.Depth.Visible and pieces.Timers.Visible, "layout: restored on leaving the arena")
 	check(rideGui.Enabled == true and rideHolder.Visible == true, "layout: Ride restored, owner state kept")
 	rideGui:Destroy()

@@ -25,6 +25,7 @@ local step: TextLabel
 local arrow: AtlasIcon.AtlasIcon
 local arrowTween: Tween? = nil
 local hiding = 0
+local suppressed = false -- SetSuppressed (AdventureHUD)
 
 ObjectiveBanner.Visible = false
 
@@ -135,9 +136,12 @@ function ObjectiveBanner.Show(text: string, iconKey: string?, options: Options?)
 	arrow.Frame.Visible = wantArrow
 	label.Size = UDim2.new(1, (if opts.Step then -110 else -60) - (if wantArrow then 34 else 0), 0.78, 0)
 	step.Position = UDim2.new(1, if wantArrow then -44 else -8, 0.5, 0)
-	pill.Visible = true
 	ObjectiveBanner.Visible = true
 	refreshArrow()
+	if suppressed then
+		return -- shown again by SetSuppressed(false)
+	end
+	pill.Visible = true
 	Style.PopIn(pill, 0.35)
 end
 
@@ -157,6 +161,27 @@ function ObjectiveBanner.Hide()
 			pill.Visible = false
 		end
 	end)
+end
+
+-- Keeps the pill off screen without losing its objective (AdventureHUD: the Spring Vault panel
+-- covers it in the arena). Show/Hide keep tracking ObjectiveBanner.Visible meanwhile.
+function ObjectiveBanner.SetSuppressed(on: boolean)
+	if suppressed == on then
+		return
+	end
+	suppressed = on
+	local pill = frame
+	if pill then
+		hiding += 1
+		pill.Visible = ObjectiveBanner.Visible and not on
+		if pill.Visible then
+			Style.PopIn(pill, 0.35)
+		end
+	end
+end
+
+function ObjectiveBanner.IsSuppressed(): boolean
+	return suppressed
 end
 
 function ObjectiveBanner.Get(): Frame?

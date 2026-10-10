@@ -14,6 +14,9 @@
 	  * Timers, TopRight, Social, Bottom (Dig_HUD), the SurvivalHUD holder (Dig_Survival) and
 	    the Ride buttons (Dig_Ride): hidden only while they actually overlap a visible runtime
 	    element, so a wide desktop keeps its bottom bar and a short phone gets the room it needs.
+	  * Objective banner (tutorial / guide pill): suppressed through ObjectiveBanner.SetSuppressed
+	    while it overlaps a runtime element (it toggles its own Visible, so it is not in PIECES);
+	    its objective is kept and it comes back on leaving.
 	  * Toasts: moved below the runtime panel (Toasts.SetClearance) instead of hidden, so
 	    messages are never lost.
 	Restoring is exact: the listed frames are ones whose Visible their owners never toggle, and
@@ -24,6 +27,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 
+local ObjectiveBanner = require(script.Parent.ObjectiveBanner)
 local Root = require(script.Parent.Root)
 local Toasts = require(script.Parent.Toasts)
 
@@ -188,6 +192,18 @@ function AdventureHUD.Update(inArena: boolean)
 			setHidden(target, hide)
 		end
 	end
+	local pill = ObjectiveBanner.Get()
+	local coverPill = false
+	if inArena and pill then
+		local rect = rectOf(pill)
+		for _, other in obstacles do
+			if overlaps(rect, other) then
+				coverPill = true
+				break
+			end
+		end
+	end
+	ObjectiveBanner.SetSuppressed(coverPill)
 	-- Pieces destroyed or rebuilt meanwhile: forget them.
 	for object in hidden do
 		if object.Parent == nil then
