@@ -34,6 +34,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	local reducedParticles = false
 	local charging = false
 	local chargeCardVisible = false
+	local panelRequested = true
 	local chargeInput: InputObject? = nil
 	local chargeTool: Tool? = nil
 	local chargeStart = 0
@@ -114,6 +115,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	aimHint.Visible = false
 	aimHint.Parent = gui
 	local card = Instance.new("ScrollingFrame")
+	card.Visible = false
 	card.Name = "Panel"
 	card.Size = UDim2.new(0, 330, 0, 330)
 	card.AnchorPoint = Vector2.new(0.5, 0)
@@ -181,6 +183,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	end)
 	local ignore = button("Ignore", 116, 170, function()
 		send("Ignore")
+		panelRequested = false
 		card.Visible = false
 	end)
 	local leave = button("Leave", 220, 170, function()
@@ -339,6 +342,18 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		local part = root()
 		return part ~= nil and (part.Position - frame.Position).Magnitude <= 80
 	end
+	local function inArena(): boolean
+		local floor = scene and scene:FindFirstChild("ProtectedArenaFloor")
+		local part = root()
+		if not sceneAvailable or not floor or not floor:IsA("BasePart") or not part then
+			return false
+		end
+		local relative = floor.CFrame:PointToObjectSpace(part.Position)
+		return math.abs(relative.X) <= floor.Size.X / 2
+			and math.abs(relative.Z) <= floor.Size.Z / 2
+			and relative.Y > -4
+			and relative.Y < 24
+	end
 	local function localEffect(model: Model, frame: CFrame)
 		for _, part in model:GetDescendants() do
 			if part:IsA("BasePart") then
@@ -353,7 +368,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	end
 	local function clearCharge()
 		if charging then
-			card.Visible = chargeCardVisible
+			card.Visible = chargeCardVisible and inArena()
 		end
 		charging = false
 		chargeInput = nil
@@ -460,6 +475,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	table.insert(
 		connections,
 		RunService.RenderStepped:Connect(function()
+			card.Visible = panelRequested and inArena() and not charging
 			local nearest: any = nil
 			local distance = math.huge
 			local characterRoot = root()
@@ -602,6 +618,9 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		connections,
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
 			latestSnapshot = data
+			if data.joined then
+				panelRequested = true
+			end
 			title.Text = if data.outcomeOwner == "Review" then "SPRING VAULT · Dedicated review" else "SPRING VAULT"
 			eventId = data.eventInstanceId
 			if data.joined and data.stage == "complete" then
@@ -677,7 +696,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 					end
 				end
 			end
-			if data.joined then
+			if data.joined and inArena() then
 				if charging then
 					chargeCardVisible = true
 				else
@@ -849,7 +868,8 @@ function Client.Start(remotes: Folder, scene: Instance?)
 			prompt.Parent = part
 		end
 		local triggerConnection = prompt.Triggered:Connect(function()
-			if action == "Talk" then
+			if action == "Talk" and inArena() then
+				panelRequested = true
 				card.Visible = true
 			end
 			send(action, targetId)

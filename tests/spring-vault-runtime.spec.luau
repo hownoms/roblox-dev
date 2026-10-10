@@ -313,6 +313,21 @@ check(
 	ordinary.ReviewPlayer(licensed).Trial.Wave and calls == 1,
 	"licensed tool accepts trial target without also invoking ordinary digging"
 )
+local function clearTrialTargets(service, p)
+	for index = 1, 3 do
+		local targetId = "trial_target_" .. index
+		position(p, service.Scene.Targets[targetId])
+		Mock.Advance(Config.HitCooldownSeconds + 0.01)
+		service.Handle(p, { action = "Excavate", targetId = targetId })
+	end
+	check(service.ReviewPlayer(p).Trial.Cleared == 3, "completion copy follows three validated trial targets")
+end
+clearTrialTargets(ordinary, licensed)
+check(
+	latest(licensed).message
+		== "Pip: Excellent! Broadwave trial complete. No permanent license or trial coins awarded in review.",
+	"dedicated review truthfully retains its non-grant trial label"
+)
 issued.Parent = licensed.Backpack
 ordinary.Destroy()
 check(
@@ -321,6 +336,31 @@ check(
 )
 issued:Destroy()
 original:Destroy()
+-- External ownership says only what the runtime knows. PipQuest independently
+-- decides grants; this isolated service test has no quest, save or grant adapter.
+local external = Service.Start({
+	OutcomeOwner = "External",
+	CanTrial = function()
+		return true
+	end,
+})
+position(licensed, external.Scene.Targets.npc_pip)
+external.Handle(licensed, { action = "Talk", targetId = "npc_pip" })
+local externalLoan = licensed.Backpack:FindFirstChild("Broadwave (Adventure Loan)")
+assert(externalLoan, "external trial issues its normal validated loan")
+externalLoan.Parent = licensed.Character
+position(licensed, external.Scene.Targets.trial_patch + V(0, 0, 6))
+Mock.Advance(3)
+request(external, licensed, "ChargeBegin")
+Mock.Advance(0.9)
+request(external, licensed, "ChargeRelease")
+check(external.ReviewPlayer(licensed).Trial.Wave, "external trial accepts its wave through runtime validation")
+clearTrialTargets(external, licensed)
+check(
+	latest(licensed).message == "Pip: Excellent! Broadwave trial complete.",
+	"external trial completion makes no license, coin, persistence or review-only claim"
+)
+external.Destroy()
 local review = Service.Start({ ReviewSpawn = true })
 check(
 	review.Scene.Model:FindFirstChildWhichIsA("SpawnLocation", true) ~= nil,

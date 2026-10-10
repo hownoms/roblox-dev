@@ -10,6 +10,10 @@ local player = Mock.AddLocalPlayer(9510, "AdventureInput")
 local character = Mock.SpawnCharacter(player, Mock.Vector3.new(0, 3, 6))
 local scene = new("Model", Mock.Service("Workspace"))
 scene.Name = "SpringVaultAdventure"
+local floor = new("Part", scene)
+floor.Name = "ProtectedArenaFloor"
+floor.Size = Mock.Vector3.new(100, 2, 140)
+floor.CFrame = Mock.Env.CFrame.new(0, 0, 0)
 local target = new("Part", scene)
 target:SetAttribute("AdventureAction", "Talk")
 target:SetAttribute("TargetId", "npc_pip")
@@ -175,8 +179,10 @@ check(
 check(count("ChargeBegin") == licensedBegins + 1, "licensed ordinary charge begins without streamed arena")
 Mock.Advance(0.9)
 check(gui.BroadwaveAimHint.Visible, "ordinary charge keeps local aim feedback without arena")
+check(not gui.Panel.Visible, "licensed charge without arena keeps adventure panel hidden")
 action(E.UserInputState.End, q)
 check(latest() == "ChargeRelease", "licensed ordinary charge releases through actual callback")
+check(not gui.Panel.Visible, "ordinary release cannot restore arena panel without scene")
 licensed:SetAttribute("AdventureLoan", true)
 check(
 	action(E.UserInputState.Begin, q) == E.ContextActionResult.Pass,

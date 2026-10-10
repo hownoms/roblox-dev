@@ -688,7 +688,9 @@ function Service.Start(options: Options?)
 			send(
 				player,
 				if trial[player].Cleared == 3
-					then "Pip: Excellent! Broadwave trial complete. No permanent license or trial coins awarded in review."
+					then (if externalOutcome
+						then "Pip: Excellent! Broadwave trial complete."
+						else "Pip: Excellent! Broadwave trial complete. No permanent license or trial coins awarded in review.")
 					else "Practice target cleared."
 			)
 			return
