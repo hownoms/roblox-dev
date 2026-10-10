@@ -91,6 +91,8 @@ and keep it unmerged until the joint review.
 | Flags, eligibility, input arbitration, boot | `production-wiring.md` |
 | Licensed Broadwave contract, equip control, input audit | `licensed-broadwave.md` |
 | Surface entrance, returns, pocket lighting, spawn removal | `adventure-entry.md` |
+| **Production candidate: local-only storage, q_pip license, earned-eligibility Studio run on the final tree** | `production-candidate.md` |
+| q_pip permanent Broadwave license, rides kept out of the pocket | `pip-quest-license.md` |
 | Studio review of the real production boot (review flags, in-memory saves, seeded prerequisites) | `production-review.md` |
 | Earlier review of Codex's polish branch | `codex-polish-review.md` |
 | Raw logs | `evidence/combined-candidate.log`, `evidence/codex-audit-651d1c9.log` |

@@ -30,6 +30,19 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
+- **Spring Vault production candidate (draft PR, not merged, not published, flags ship off):**
+  - Fail-closed local-only storage, chosen before any service starts: zero DataStore
+    acquisition, refused outside the authorized unpublished Expansion1Review.
+  - The runtime starts from the remotes before the arena replicates.
+  - Completing Pip's trial grants the permanent Broadwave license (q_pip).
+  - Rides are refused in the pocket.
+  - Reproducible candidate install and uninstall for Expansion1Review.
+  - On `470465f`, with real Studio input, a fresh save earned eligibility in play and completed
+    the whole journey: refusal, entry, Pip trial and license, licensed digging, Mara run,
+    per-player outcomes (local simulation), return and digging.
+  - Open: Codex panel and copy findings, two clients and devices, streaming radii, live
+    persistence, owner decisions.
+  - Record: [integration/production-candidate.md](integration/production-candidate.md).
 - **Spring Vault player flow (merged to default on owner instruction, 10 October 2026, not
   published, every flag off):**
   - The journey is connected on the real production boot: hatch and invitation, equipped
