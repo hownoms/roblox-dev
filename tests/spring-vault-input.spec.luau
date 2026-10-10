@@ -79,6 +79,29 @@ check(equip.Visible, "dedicated review fallback returns when no shared equip HUD
 Mock.FireEvent(equip, "Activated")
 Mock.Advance(0.01)
 check(loan.Parent == character and equip.Text == "Stow Broadwave", "equip button equips actual owned tool")
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+action(E.UserInputState.Begin, q)
+humanoid.Health = 0
+Mock.Advance(0.01)
+check(latest() == "ChargeCancel", "death cancels held charge before character removal")
+local deathBegins = count("ChargeBegin")
+for _, deadInput in { q, l1, touch1 } do
+	check(
+		action(E.UserInputState.Begin, deadInput) == E.ContextActionResult.Pass,
+		"dead avatar cannot own charge input"
+	)
+end
+check(count("ChargeBegin") == deathBegins, "dead avatar sends no charge begin")
+humanoid.Health = 100
+action(E.UserInputState.Begin, q)
+humanoid.Health = 0
+check(
+	action(E.UserInputState.End, q) == E.ContextActionResult.Pass,
+	"death before rendered frame releases input ownership"
+)
+check(latest() == "ChargeCancel", "death at release cancels instead of releasing work")
+humanoid.Health = 100
+Mock.Remote.ToServer = {}
 action(E.UserInputState.Begin, q)
 check(latest() == "ChargeBegin", "keyboard begins through actual client callback")
 action(E.UserInputState.Begin, l1)

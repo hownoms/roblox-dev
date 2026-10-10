@@ -1,0 +1,18 @@
+PRODUCTION WIRING (off): 37 passed, 0 failed
+PRODUCTION WIRING (on): 42 passed, 0 failed
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+PRODUCTION WIRING (client): 61 passed, 0 failed
+ADVENTURE ENTRY (off): 16 passed, 0 failed
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+NOTE: runtime accepts ResolveTool but declares no Service.Contract marker
+BROADWAVE LICENSE: 61 passed, 0 failed
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+ADVENTURE OUTCOME CLIENT: 23 passed, 0 failed

@@ -274,10 +274,16 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	local function equipped(): Tool?
 		return broadwave(player.Character)
 	end
+	local function alive(): boolean
+		local character = player.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		return humanoid ~= nil and humanoid.Health > 0
+	end
 	local function chargeAvailable(tool: Tool?): boolean
 		-- Permanent production tools also charge on ordinary sand outside the streamed
 		-- arena. These markers only choose input; ResolveTool still validates ownership.
-		return tool ~= nil
+		return alive()
+			and tool ~= nil
 			and (
 				sceneAvailable
 				or tool:GetAttribute("AdventureLoan") ~= true
@@ -373,7 +379,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		clearCharge()
 	end
 	local function ability(_: string, state: Enum.UserInputState, input: InputObject)
-		if charging and equipped() ~= chargeTool then
+		if charging and (equipped() ~= chargeTool or not alive()) then
 			cancelCharge()
 		end
 		if dead or (state ~= Enum.UserInputState.Begin and not charging) then
@@ -527,7 +533,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 			if touch then
 				touch.Visible = chargeAvailable(tool)
 			end
-			if charging and tool ~= chargeTool then
+			if charging and (tool ~= chargeTool or not alive()) then
 				cancelCharge()
 			end
 			if charging then

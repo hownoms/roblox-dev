@@ -1,0 +1,5 @@
+./tests/spring-vault-input.spec.luau:30: death cancels held charge before character removal
+stacktrace:
+[C] function assert
+./tests/spring-vault-input.spec.luau:30 function check
+./tests/spring-vault-input.spec.luau:86
