@@ -84,6 +84,18 @@ local stage = text({
 	Coins = 6,
 })
 check(has(stage, "+6 Coins for clearing the vault anchors"), "stage reward names the stage")
+-- The last stage when the final pays the remainder: saved, nothing granted -> no card at all.
+local emptyStage = {
+	InstanceId = "guid:1",
+	Kind = "Stage",
+	StageId = "ball_return",
+	State = "Accepted",
+	Status = "Saved",
+	Coins = 0,
+	Trophy = false,
+	Stand = false,
+}
+check(Outcome.Describe(emptyStage) == nil, "an empty saved stage shows no card")
 local pending = text(final({ State = "Pending", Status = "Unconfirmed" }))
 check(has(pending, "SAVING") and has(pending, "not saved yet"), "unconfirmed says it is not saved yet")
 check(not has(pending, "SAVED") and not has(pending, "trophy"), "pending never reads as saved or earned")

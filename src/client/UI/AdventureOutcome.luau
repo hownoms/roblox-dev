@@ -164,6 +164,11 @@ function AdventureOutcome.Describe(outcome: any): Described?
 			table.insert(lines, line)
 		end
 		if #lines == 0 then
+			-- A saved stage that granted nothing (the last stage when the final pays the remainder)
+			-- would only sit under the final card as noise (Studio production review).
+			if kind == "Stage" and outcome.Resolved ~= true and not (reason and TROPHY_TEXT[reason]) then
+				return nil
+			end
 			table.insert(lines, "Nothing new this time.")
 		end
 	end
