@@ -192,7 +192,8 @@ following the steps in `settlement-durability.md`:
 **Owner decisions** (unchanged unless noted):
 
 12. Permanent first-sale and deposit evidence. Today the save can produce false negatives for
-    veterans.
+    veterans (about 55% of real deposits roll plain variants). The tutorial-find false positive is
+    fixed (`launch-readiness.md` A1). Exact open decisions D1–D7 are in `launch-readiness.md` §6.
 13. ~~Who grants `ToolLicenses.tool_broadwave`.~~ **Decided (owner):** completing Pip's trial
     (q_pip) grants it once, under `BroadwaveOrdinary` (`pip-quest-license.md`, branch
     `claude/svc-pipquest`). The bible's 150-coin first-clear reward is not implemented.

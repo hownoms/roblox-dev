@@ -5,7 +5,7 @@
 	column (UI/Layout "Toasts" region) in the Toasts layer.
 
 	outcome = { InstanceId, Kind = "Stage" | "Final", StageId?, State = "Accepted" | "Pending" |
-	"Refused", Status, Coins, Trophy, Stand, Certification?, Reason?, Resolved? }
+	"Refused", Status, Coins, Trophy, Stand, Certification?, Reason?, Resolved?, Storage? }
 
 	Truthfulness rules (the server guarantees the State; this module only words it):
 	  * Only State == "Accepted" is ever worded as earned/saved.
@@ -13,6 +13,10 @@
 	    never claims the reward is safe yet: no "saved", no unlock lines, coins marked "not
 	    saved yet", even when the payload's Trophy/Stand/Certification name what is in flight.
 	  * "Refused" always says why (no contribution, disconnected, left, could not be stored).
+	  * Storage ("LocalOnly" / "Mock", sent only when the server's store is not durable): the
+	    rewards are a local simulation that ends with the session, so no line or title says
+	    "saved", and every non-refused card ends with LOCAL_NOTE. Live servers never send it,
+	    so their wording is unchanged.
 	A later outcome for the same run (same InstanceId/Kind/StageId, e.g. Resolved after a
 	Pending) replaces the card on screen instead of stacking.
 
@@ -67,6 +71,10 @@ local REFUSED_TEXT: { [string]: string } = {
 -- any other Status is worded as Pending: nothing reads as saved before it is.
 local DURABLE: { [string]: boolean } = { Saved = true, Queued = true, Duplicate = true }
 
+-- Non-durable stores the server names in outcome.Storage (AdventureSettlement deliver).
+local LOCAL_STORAGE: { [string]: boolean } = { LocalOnly = true, Mock = true }
+AdventureOutcome.LOCAL_NOTE = "Local test only: not saved, gone when this session ends."
+
 local TROPHY_TEXT: { [string]: string } = {
 	TrophyUnavailable = "Trophies are paused right now: no trophy this time.",
 	TrophyRecordLimit = "Your trophy shelf is full: no trophy this time.",
@@ -116,6 +124,7 @@ function AdventureOutcome.Describe(outcome: any): Described?
 		state = "Pending"
 	end
 	local reason = str(outcome.Reason)
+	local isLocal = LOCAL_STORAGE[str(outcome.Storage) or ""] == true
 	local stageText = STAGE_TEXT[str(outcome.StageId) or ""] or "that stage"
 	local lines: { string } = {}
 	local title: string
@@ -131,7 +140,15 @@ function AdventureOutcome.Describe(outcome: any): Described?
 			-- the intent is queued, not granted: never worded "saved" (only Accepted is)
 			title = "REWARDS WAITING"
 			table.insert(lines, "Not added yet: they'll be added when your save loads,")
-			table.insert(lines, "here or the next time you join.")
+			table.insert(
+				lines,
+				if isLocal then "if it loads during this session." else "here or the next time you join."
+			)
+		elseif isLocal then
+			title = "REWARDS NOT CONFIRMED YET"
+			if coins > 0 then
+				table.insert(lines, string.format("+%d Coins (not added yet)", coins))
+			end
 		else
 			title = "SAVING YOUR REWARDS..."
 			if coins > 0 then
@@ -142,15 +159,23 @@ function AdventureOutcome.Describe(outcome: any): Described?
 	else
 		if status == "Duplicate" and coins == 0 and #unlocks(outcome) == 0 then
 			title = "ALREADY COLLECTED"
-			table.insert(lines, "Rewards for this run were saved earlier.")
+			table.insert(
+				lines,
+				if isLocal
+					then "Rewards for this run were given earlier."
+					else "Rewards for this run were saved earlier."
+			)
+			if isLocal then
+				table.insert(lines, AdventureOutcome.LOCAL_NOTE)
+			end
 			return described(title, lines, state)
 		end
 		if outcome.Resolved == true then
 			title = "REWARDS FROM YOUR LAST ADVENTURE"
 		elseif kind == "Final" then
-			title = "ADVENTURE REWARDS SAVED"
+			title = if isLocal then "ADVENTURE REWARDS (LOCAL TEST)" else "ADVENTURE REWARDS SAVED"
 		else
-			title = "STAGE REWARD SAVED"
+			title = if isLocal then "STAGE REWARD (LOCAL TEST)" else "STAGE REWARD SAVED"
 		end
 		if coins > 0 then
 			table.insert(
@@ -174,6 +199,9 @@ function AdventureOutcome.Describe(outcome: any): Described?
 	end
 	if reason and TROPHY_TEXT[reason] then
 		table.insert(lines, TROPHY_TEXT[reason])
+	end
+	if isLocal then
+		table.insert(lines, AdventureOutcome.LOCAL_NOTE)
 	end
 	return described(title, lines, state)
 end

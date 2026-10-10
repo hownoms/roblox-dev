@@ -739,12 +739,15 @@ local function onCarved(player: Player, minV: Vector3, maxV: Vector3, source: st
 		DiscoveryService.Uncover(player, best :: Deposit, minV, maxV)
 		return
 	end
-	-- FTUE: the first find is guaranteed early (a Common from this layer, right here)
+	-- FTUE: the first find is guaranteed early (a Common from this layer, right here). It is not
+	-- an excavated deposit, so like an ambient find it records the plain Normal/None variants:
+	-- a rolled variant here would read as deposit evidence for Spring Vault catch-up entry
+	-- (AdventureEligibility.Rules.HasDepositEvidence) with no deposit ever dug.
 	if sessionDigs[player] == D.FTUE_FIND_DIG and not hasEverFound(data :: Types.PlayerData) then
 		for _, entry in Config.Layers[layerIndex].LootTable do
 			local def = Config.GetTreasure(entry.TreasureId)
 			if def and def.Rarity == "Common" then
-				startExcavation(player, def.Id, emergePoint(centre, minV, maxV))
+				startExcavation(player, def.Id, emergePoint(centre, minV, maxV), "Normal", "None")
 				return
 			end
 		end

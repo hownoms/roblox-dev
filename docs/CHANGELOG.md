@@ -11,6 +11,24 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: Spring Vault launch readiness (draft PR, not merged, flags off)
+Branch `claude/spring-vault-launch-readiness`, 10 October 2026, on default `b4e1b14` (PR #41).
+Record: `docs/integration/launch-readiness.md`.
+- **Settlement tests follow the External outcome contract:** the 11 obsolete broadcast
+  expectations now assert participant-only, neutral completion feedback. Every durability and
+  reward assertion is kept, and mutation checks prove the new ones bite. The full suite is green.
+- **Truthful local cards:** outcomes from a non-durable store carry `Storage`, and the card reads
+  "(LOCAL TEST)" with "not saved, gone when this session ends". Live wording is unchanged.
+- **Catch-up evidence fix (A1):** the guaranteed tutorial find records plain `Normal`/`None`, so
+  it can no longer admit a brand-new player as a "veteran" (24/40 → 0/40 in the mock).
+- **Kill switch (A3):** `AdventureBoot.Disable` always disables settlement, including after a
+  failed start.
+- **Acceptance tooling:**
+  - a committed, read-only, LocalOnly-gated `CandidateObserver` (participants, outcomes,
+    eligibility, rejoin, storage counters, streaming properties);
+  - client `[Candidate] stream` logs;
+  - static and mock tests that it cannot write, grant or touch storage.
+
 ## Unreleased: Spring Vault production candidate (merged, not published, flags off)
 Branch `claude/spring-vault-production-candidate`, 10 October 2026, on default `d96ac75`.
 **Merged into default on owner instruction** (`01eebba`, no PR: `gh` logged out).

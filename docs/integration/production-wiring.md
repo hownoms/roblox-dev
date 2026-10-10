@@ -77,7 +77,9 @@ runtime.
   - **Sale:** a `SellTimes` quest state with `Progress >= 1` or `Claimed`. `RewardsService` adds
     this on every `Sold`.
   - **Excavated deposit:** a `FindVariants` key whose variant is not `Normal` or `None`. Ambient
-    finds record only `Normal`/`None`, so any other variant comes from an excavated deposit.
+    finds and (since `launch-readiness.md` A1) the guaranteed tutorial find record only
+    `Normal`/`None`, so any other variant comes from an excavated deposit. Before that fix the
+    tutorial find rolled a variant and admitted 24 of 40 fresh saves after one sale.
 - Coins, MaxDepth, Rebirths, TotalSandDug, the client-writable `Settings.Tutorial` and owned
   shovels are never used.
 
@@ -100,9 +102,10 @@ this server did not issue never passes. Each of these cases is tested.
 
 **What the save cannot prove today.** There is no permanent first-sale record. Quest progress
 can reset: a ClaimQuest on a new day recreates the state with `Progress = 0`. The save also does
-not separate a scanner-located deposit from one uncovered by digging. So catch-up evidence can
+not separate a scanner-located deposit from one uncovered by digging, and a real deposit that
+rolls plain `Normal`/`None` (about 55% at base luck) leaves no evidence. So catch-up evidence can
 miss real veterans (a false negative). It cannot admit someone without real sale and deposit
-history. See open decision 1.
+history (`tests/adventure-evidence.spec.luau`). See open decision 1 and `launch-readiness.md` D1.
 
 ## 3. Licensed Broadwave equip
 

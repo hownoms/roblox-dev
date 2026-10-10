@@ -127,6 +127,34 @@ local function warned(needle)
 	end
 	return false
 end
+-- The committed read-only acceptance observer (tools/expansion1/production-candidate), run as
+-- the candidate installs it: a Script whose parent is its host folder.
+local CandidateTools = require("../build/test/production-candidate")
+local function runObserver(parent)
+	local observer = env.Instance.new("Script")
+	observer.Name = "CandidateObserver"
+	Mock.SetSource(observer, CandidateTools.Observer)
+	observer.Parent = parent
+	Mock.RunScript(observer)
+	return observer
+end
+local function observerLine(needle)
+	for _, line in Mock.Prints do
+		if has(line, "[CandidateObserver]") and has(line, needle) then
+			return line
+		end
+	end
+	return nil
+end
+local function printedCount(needle)
+	local n = 0
+	for _, line in Mock.Prints do
+		if has(line, needle) then
+			n += 1
+		end
+	end
+	return n
+end
 local BANNER = "[CandidateProfile] LOCAL-ONLY CANDIDATE: in-memory saves, outboxes, purchase history and"
 	.. " leaderboards; no DataStore is acquired. Rewards are local simulation."
 
@@ -185,12 +213,67 @@ if mode == "localonly" then
 	check(Settlement.Outbox.IsAvailable(), "adventure outbox available (memory)")
 	check(Boot.Runtime() ~= nil, "AdventureBoot runtime started from candidate flags")
 	check(RS:FindFirstChild("SpringVaultAdventure") ~= nil, "adventure remotes exist")
+	local candidateFolder = SSS:FindFirstChild("ProductionCandidate")
+	local remotesBefore = #RS:GetDescendants()
+	runObserver(candidateFolder)
+	Mock.Advance(1.5)
+	check(printed("[CandidateObserver]") and printed("active (LocalOnly; read-only)"), "observer active in LocalOnly")
 
 	-- two players, mutations, outbox writes
 	local a = Mock.AddPlayer(7101, "CandA")
 	local b = Mock.AddPlayer(7102, "CandB")
 	Mock.Advance(3)
 	check(DataService.IsLoaded(a) and DataService.IsLoaded(b), "both players load in memory")
+
+	-- a real final settlement in memory: the card payload says the store is not durable
+	do
+		local sent = {}
+		local conn = Settlement.OutcomeSent:Connect(function(player, outcome)
+			sent[player.UserId] = outcome
+		end)
+		local participant = {
+			UserId = 7102,
+			Points = 20,
+			Eligible = true,
+			ActiveSeconds = 90,
+			ObjectiveIds = { "vault_anchor_1" },
+		}
+		local context = table.freeze({
+			BoundaryVersion = 1,
+			EventInstanceId = "cand:local:1",
+			EventId = "event_vault",
+			LandmarkId = "landmark_spring_vault",
+			RegionId = "sunshine_shore",
+			Success = true,
+			ObjectiveIds = { "vault_anchor_1" },
+			CompletedStages = { "excavation", "vault_open", "ball_return" },
+			Participants = { participant },
+		})
+		local accepted
+		env.task.spawn(function()
+			accepted = Settlement.OnCompletion(context)
+		end)
+		Mock.Advance(3)
+		conn:Disconnect()
+		local card = sent[7102]
+		check(accepted == true, "LocalOnly settlement accepted in memory")
+		check(
+			card ~= nil and card.State == "Accepted" and card.Status == "Saved" and card.Storage == "LocalOnly",
+			"LocalOnly outcome keeps its state and says Storage = LocalOnly ("
+				.. tostring(card and card.Status)
+				.. "/"
+				.. tostring(card and card.Storage)
+				.. ")"
+		)
+		check(sent[7101] == nil, "non-participant gets no outcome")
+		check(#Mock.DataStoreCalls == 0, "settlement made no DataStore call")
+		check(
+			printed("outcome CandB: Final") and printed("storage=LocalOnly"),
+			"observer logged the participant's outcome with its storage label"
+		)
+		check(not printed("outcome CandA:"), "observer: no outcome logged for the non-participant")
+	end
+	check(printed("loaded CandA #1") and printed("canEnter=false/NoEvidence"), "observer logs load + real eligibility")
 	DataService.Set(a, "Coins", 1234)
 	DataService.Increment(b, "Coins", 55)
 	DataService.Set(a, "MaxDepth", 40)
@@ -249,6 +332,22 @@ if mode == "localonly" then
 		DataService.IsLoaded(again) and DataService.Get(again).Coins == coinsAfter,
 		"rejoin restores the in-memory save"
 	)
+	check(printed("leave CandA (7101)") and printed("join CandA (7101) #2 REJOIN"), "observer logs leave + rejoin")
+	check(
+		printed("rejoin check CandA: coins " .. coinsAfter .. " -> " .. coinsAfter),
+		"observer compares the save across the same-server rejoin (" .. tostring(observerLine("rejoin check")) .. ")"
+	)
+	local seq = candidateFolder:GetAttribute("ObservationSeq")
+	check(type(seq) == "number" and seq >= 5, "observer snapshots keep publishing (" .. tostring(seq) .. ")")
+	check(type(candidateFolder:GetAttribute("Observation")) == "string", "snapshot published on its own folder")
+	check(not printed("snapshot failed"), "every snapshot encoded (serializable, no errors)")
+	check(#RS:GetDescendants() == remotesBefore, "observer created nothing replicated")
+	for _, p in Players:GetPlayers() do
+		check(
+			p:GetAttribute("Observation") == nil and p:GetAttribute("ObservationSeq") == nil,
+			"observer writes nothing on players"
+		)
+	end
 	Mock.RunBindToClose()
 	Mock.Advance(30)
 
@@ -300,6 +399,68 @@ elseif mode == "refusals" then
 			end
 		end
 		check(srcFiles > 50 and storageGateSeen, "static scan covered src/ and found StorageGate")
+	end
+	do
+		-- The acceptance observer and client label are read-only: no save writes, grants,
+		-- settlement, entry/boot control, storage, remotes or replicated attributes.
+		local observer, client = CandidateTools.Observer, CandidateTools.Client
+		for _, token in
+			{
+				"DataService.Set",
+				"DataService.Mutate",
+				"DataService.Increment",
+				"DataService.Save",
+				"SaveAsync",
+				"UpdateAsync",
+				"DataStoreService",
+				"StorageGate.Get",
+				"OnCompletion(",
+				"OnStage(",
+				"SettleStage",
+				"SetEnabled",
+				"Grant",
+				"Boot.Start",
+				"Boot.Disable",
+				"Entry.Start",
+				"Entry.Stop",
+				"ReturnToSurface",
+				"ConsiderInvite",
+				"PipQuest",
+				'"BroadwaveLicense"',
+				"RegisterIssuedTool",
+				"Fire(",
+				"FireClient",
+				"FireAllClients",
+				"FireServer",
+				"InvokeServer",
+				"Instance.new",
+				":Destroy(",
+				".Parent =",
+				"Handle(",
+			}
+		do
+			check(not has(observer, token), "observer source has no " .. token)
+		end
+		local setters = 0
+		for line in string.gmatch(observer, "[^\n]*SetAttribute[^\n]*") do
+			setters += 1
+			check(has(line, "folder:SetAttribute("), "observer only sets attributes on its own folder: " .. line)
+		end
+		check(setters == 2, "observer sets exactly Observation and ObservationSeq (" .. setters .. ")")
+		check(
+			has(observer, 'ReplicatedStorage:GetAttribute("CandidateProfile") ~= "LocalOnly"'),
+			"observer gates on LocalOnly"
+		)
+		check(has(observer, 'DataService.StorageMode() ~= "LocalOnly"'), "observer re-checks StorageMode")
+		for _, token in { "FireServer", "InvokeServer", "SetAttribute", "DataService" } do
+			check(not has(client, token), "candidate client label has no " .. token)
+		end
+		check(
+			has(CandidateTools.Project, "CandidateObserver.server.luau")
+				and not has(CandidateTools.DefaultProject, "CandidateObserver")
+				and not has(CandidateTools.DefaultProject, "production-candidate"),
+			"observer mapped only by the candidate project"
+		)
 		local Review = require("../build/test/production-review")
 		check(not has(Review.DefaultProject, "ProductionCandidate"), "default.project.json maps no ProductionCandidate")
 		check(not has(Review.DefaultProject, "CandidateConfig"), "default.project.json maps no CandidateConfig")
@@ -513,6 +674,15 @@ elseif mode == "production" then
 	check(not printed("[CandidateProfile]") and not warned("[CandidateProfile]"), "no CandidateProfile output")
 	check(DataService.StorageMode() == "DataStore" and not DataService.IsMock(), "DataService uses the DataStore")
 	check(Boot.Runtime() == nil, "adventure runtime off")
+	do
+		local host = env.Instance.new("Folder")
+		host.Name = "ObserverHost"
+		host.Parent = Mock.Service("ServerStorage")
+		runObserver(host)
+		Mock.Advance(62)
+		check(printed("[CandidateObserver] inert"), "observer is inert outside a LocalOnly candidate")
+		check(host:GetAttribute("Observation") == nil, "inert observer publishes nothing")
+	end
 	for _, name in { "PlayerData_v1", "PurchaseHistory_v1", "TrophyPendingGrants_v1", "AdventureRewardIntents_v1" } do
 		check(called("GetDataStore " .. name), "acquires " .. name)
 		check(Gate.Counters().Acquired["DataStore:" .. name] == 1, "gate counted " .. name)

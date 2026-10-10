@@ -1,0 +1,12 @@
+== rojo build default
+Built project to default.rbxlx
+== rojo build expansion1-production-candidate
+Built project to expansion1-production-candidate.rbxlx
+== rojo build expansion1-production-review
+Built project to expansion1-production-review.rbxlx
+== rojo build adventure
+Built project to adventure.rbxlx
+== sourcemap + analyze (candidate project)
+Created sourcemap at build/lr/sourcemap.json
+tools/expansion1/production-candidate/CandidateObserver.server.luau(333,2): TypeError: Function only returns 1 value, but 2 are required here
+analyze exit 0

@@ -76,6 +76,10 @@ export type Outcome = {
 	Certification: string?, -- newly granted certification id
 	Reason: string?, -- why Refused / Ineligible, or "Trophy<reason>" when only the trophy part failed
 	Resolved: boolean?, -- true: resolves an earlier Pending outcome (retry here or drain on rejoin)
+	-- Set only when this server's store is not durable (DataService.StorageMode() "LocalOnly" for
+	-- the Studio candidate, "Mock" for the Studio in-memory fallback). Status keeps its meaning
+	-- for that store, but nothing outlives the session, so the card must not read as saved.
+	Storage: string?,
 }
 
 export type PlayerResult = {
@@ -294,6 +298,10 @@ local function deliver(userId: number, outcome: Outcome)
 	local player = Players:GetPlayerByUserId(userId)
 	if not player or not player.Parent then
 		return
+	end
+	local storage = DataService.StorageMode()
+	if storage == "LocalOnly" or storage == "Mock" then
+		outcome.Storage = storage
 	end
 	AdventureSettlement.OutcomeSent:Fire(player, outcome)
 	if outcomeSender then

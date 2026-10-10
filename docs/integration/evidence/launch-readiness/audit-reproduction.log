@@ -1,0 +1,37 @@
+# Audit reproduction (scratch spec, mock), before the fixes
+FTUE (no deposit) excavations: 39/40; CanEnter after FTUE find + 1 sale: 24/40
+example: user 7001: reason=CatchUp FindVariants={bottle_cap/Tiny,bottle_cap/None} daily_sell_10.Progress=1 Coins=7
+deposit added:	true
+real excavated deposit Normal/None -> FindVariants={bottle_cap/None,bottle_cap/Normal} HasDeposit=false CanEnter=false
+base-luck P(Size=Normal)=0.620 P(Material=None)=0.880 -> P(no evidence from a real deposit)=0.546
+AUDIT DONE	elig
+runtime:	nil
+after failed Start + Disable(): SettleStage({}).Error =	UnknownEvent
+after explicit second Disable(): SettleStage({}).Error =	UnknownEvent
+AUDIT DONE	failstart
+rewards OFF, ordinary ON: runtime	true	PipQuest running	true	SettleStage err	Disabled
+after Disable()+Start(): runtime	true	entry	true	errors	0
+AUDIT DONE	reenable
+
+# After the fixes
+FTUE (no deposit) excavations: 39/40; CanEnter after FTUE find + 1 sale: 0/40
+example: nil
+deposit added:	true
+real excavated deposit Normal/None -> FindVariants={bottle_cap/None,bottle_cap/Normal} HasDeposit=false CanEnter=false
+base-luck P(Size=Normal)=0.620 P(Material=None)=0.880 -> P(no evidence from a real deposit)=0.546
+AUDIT DONE	elig
+runtime:	nil
+after failed Start + Disable(): SettleStage({}).Error =	Disabled
+after explicit second Disable(): SettleStage({}).Error =	Disabled
+AUDIT DONE	failstart
+rewards OFF, ordinary ON: runtime	true	PipQuest running	true	SettleStage err	Disabled
+after Disable()+Start(): runtime	true	entry	true	errors	0
+AUDIT DONE	reenable
+
+# tests/adventure-evidence.spec.luau run against the unfixed DiscoveryService/AdventureBoot
+FAIL: every tutorial find is plain Normal/None (11/23)
+FAIL: tutorial find + one sale never grants catch-up entry (12/24)
+ADVENTURE EVIDENCE (evidence): 33 passed, 2 failed
+FAIL: failed Start: settlement refuses as Disabled (UnknownEvent)
+FAIL: an explicit kill switch keeps it Disabled
+ADVENTURE EVIDENCE (failstart): 6 passed, 2 failed

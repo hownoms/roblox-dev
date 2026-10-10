@@ -19,6 +19,9 @@
         },
         "CandidateConfig": {
           "$path": "tools/expansion1/production-candidate/CandidateConfig.luau"
+        },
+        "CandidateObserver": {
+          "$path": "tools/expansion1/production-candidate/CandidateObserver.server.luau"
         }
       }
     },

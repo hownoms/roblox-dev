@@ -34,6 +34,9 @@ luau tests/adventure-entry.spec.luau || status=1
 luau tests/adventure-entry.spec.luau -a on || status=1
 luau tests/adventure-entry.spec.luau -a invite || status=1
 luau tests/adventure-entry.spec.luau -a invite-client || status=1
+echo "== adventure-evidence.spec (catch-up deposit evidence / kill switch after a failed start) =="
+luau tests/adventure-evidence.spec.luau || status=1
+luau tests/adventure-evidence.spec.luau -a failstart || status=1
 echo "== production-review.spec (review-only boot gate around the real Main) =="
 luau tests/production-review.spec.luau || status=1
 echo "== broadwave-license.spec (licensed Broadwave contract) =="

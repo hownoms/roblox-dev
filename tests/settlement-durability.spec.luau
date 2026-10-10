@@ -9,7 +9,10 @@
 
 	Default mode flips AdventureFlags.SpringVault / AdventureRewards to true IN THIS TEST PROCESS
 	ONLY, before Main runs (like production-wiring.spec -a on), so the real SpringVaultService
-	drives the stage / completion boundary and its broadcast reaches every player. The shipped
+	drives the stage / completion boundary. Production supplies OnCompletion, so the runtime owns
+	no reward copy ("External" outcome contract, docs/integration/runtime-input-handoff.md): it
+	sends the neutral "Ball rescued." only to connected participants of the captured completion
+	context, and each player's AdventureOutcome card is the only reward statement. The shipped
 	flags stay false (checked first). Without Codex's runtime files the runtime part prints
 	SKIPPED and only the direct-call durability checks run.
 
@@ -298,6 +301,27 @@ local function inThread(fn, ...)
 	assert(done, "call did not finish")
 	return table.unpack(out, 1, out.n)
 end
+-- The runtime's neutral completion line under the External outcome contract, and every line
+-- the runtime or a completion callback could send as completion feedback.
+local RUNTIME_COMPLETION = "Ball rescued."
+local function isCompletionLine(text)
+	return text == RUNTIME_COMPLETION
+		or text == "Completion handoff failed; no rewards confirmed."
+		or text == "Adventure complete. Rewards are not enabled on this server."
+		or (type(text) == "string" and string.find(text, "Adventure complete", 1, true) ~= nil)
+end
+-- Completion lines a player received since `since`, in order.
+local function completionMessages(player, since)
+	local out = {}
+	for i = (since or 0) + 1, #Mock.Remote.ToClient do
+		local e = Mock.Remote.ToClient[i]
+		local data = e.Args and e.Args[1]
+		if e.Name == "Snapshot" and e.Player == player and type(data) == "table" and isCompletionLine(data.message) then
+			table.insert(out, data.message)
+		end
+	end
+	return out
+end
 -- A broadcast is true for every recipient only if it claims nothing about anyone's reward.
 local function claimsReward(text)
 	local t = string.lower(text or "")
@@ -452,6 +476,10 @@ if runtimeOn then
 				and final.Certification == "cert_crew",
 			"A: final +42 (60 - 3 stages), trophy, stand, cert, saved"
 		)
+		check(
+			DataService.StorageMode() == "DataStore" and final and final.Storage == nil,
+			"durable store: the card carries no local-storage label (" .. tostring(final and final.Storage) .. ")"
+		)
 		check(DataService.Get(pa).Coins == coins0 + 60, "A: exactly 60 for the run, coins from elsewhere kept")
 		check(stored(A).Coins == coins0 + 60, "A: the store holds the same total")
 		local c2 = outcomesFor(C, mark2)
@@ -474,19 +502,30 @@ if runtimeOn then
 		check(stored(D).Coins == 6, "disconnected D: the stage coins they earned are saved, no final")
 		check(stored(D).TrophyRecords == nil or stored(D).TrophyRecords[TROPHY] == nil, "disconnected D: no trophy")
 
-		-- The runtime broadcasts OnCompletion's message to EVERY player in the server.
-		for _, p in { pa, pb, pc, pe } do
-			local snap = lastSnapshot(p, mark2)
+		-- External outcome contract: completion feedback goes only to connected participants of
+		-- the captured context (A, the watcher B and the late helper C; D left), and it is the
+		-- neutral "Ball rescued.". OnCompletion's own summary is never shown as anyone's result:
+		-- B was refused while A and C were paid, so one shared line cannot be true for all three.
+		for _, p in { pa, pb, pc } do
+			local said = completionMessages(p, mark2)
 			check(
-				snap ~= nil and snap.message == Settlement.COMPLETION_MESSAGE,
-				p.Name .. " receives the completion broadcast"
+				#said == 1 and said[1] == RUNTIME_COMPLETION,
+				p.Name .. ": one neutral completion message (" .. table.concat(said, " | ") .. ")"
 			)
-			check(snap and not claimsReward(snap.message), p.Name .. ": the broadcast claims no reward")
+			check(#said > 0 and not claimsReward(said[1]), p.Name .. ": the completion message claims no reward")
+		end
+		check(#completionMessages(pe, mark2) == 0, "never-joined bystander Eli: no completion message")
+		for _, p in { pa, pb, pc, pe } do
+			for _, line in completionMessages(p, mark2) do
+				check(
+					line ~= Settlement.COMPLETION_MESSAGE and line ~= Settlement.REFUSED_MESSAGE,
+					p.Name .. ": the settlement summary is not presented as their result"
+				)
+			end
 		end
 		-- What each client sees from the RUNTIME after the completion (status message, objective
-		-- line, objectives list) next to its own final card. Our side: the card is the only
-		-- per-player reward statement. The runtime's review copy is Codex's (blocker B1 in
-		-- settlement-outcomes.md): printed, never failed, so the fix can land independently.
+		-- line, objectives list) next to its own final card. The card is the only per-player
+		-- reward statement, so no runtime line may say the run grants nothing (old blocker B1).
 		local finals = { [A] = final, [B] = b2[3], [C] = c2[3] }
 		local reviewCopy = {}
 		for _, p in { pa, pb, pc, pe } do
@@ -534,6 +573,8 @@ if runtimeOn then
 			end
 		end
 		print(string.format("  runtime review copy contradicting an Accepted card: %d line(s)", contradictions))
+		check(contradictions == 0, "production shows no review-only copy next to an Accepted card")
+		check(count(reviewCopy) == 0, "production shows no review-only copy to anyone after completion")
 		check(
 			Boot.Options(Flags).OutcomeOwner == "External",
 			"rewards on: the runtime is told an external outcome card owns reward copy"
@@ -682,7 +723,7 @@ if runtimeOn then
 		check(progress == nil or (progress.Clears or 0) == 0, "no clear recorded on failure")
 	end)
 
-	section("real runtime with AdventureRewards OFF (SpringVault on): review run, nothing granted")
+	section("real runtime with AdventureRewards OFF (SpringVault on): production run, nothing granted")
 	step("rewards-off run", function()
 		Mock.Advance(2)
 		Boot.Disable()
@@ -690,7 +731,13 @@ if runtimeOn then
 		Boot.Start()
 		local runtime = Boot.Runtime()
 		check(runtime ~= nil, "runtime restarted with rewards off")
-		check(Boot.Options(Flags).OutcomeOwner == nil, "rewards off: the runtime keeps its own review copy")
+		-- Boot sets no explicit OutcomeOwner with rewards off, but it still supplies its refusal
+		-- OnCompletion, so the runtime infers external ownership: this is a production run with
+		-- rewards disabled, not Codex's dedicated review adapter.
+		local offOptions = Boot.Options(Flags)
+		check(offOptions.OutcomeOwner == nil, "rewards off: boot sets no explicit OutcomeOwner")
+		check(type(offOptions.OnCompletion) == "function", "rewards off: boot supplies the refusal OnCompletion")
+		check(offOptions.OnStage == nil, "rewards off: no stage settlement callback")
 		local G = 9507
 		seed(G)
 		local scene = runtime.Scene
@@ -729,15 +776,34 @@ if runtimeOn then
 			end
 		end
 		check(cards == 0, "no outcome card for anyone (" .. cards .. ")")
+		-- Only Gus took part: he gets the neutral completion line and nothing that claims a
+		-- reward; every other connected player (none joined this run) gets no completion line.
+		local said = completionMessages(pg, mark)
+		check(
+			#said == 1 and said[1] == RUNTIME_COMPLETION and not claimsReward(said[1]),
+			"Gus (the only participant): neutral completion, nothing claimed (" .. table.concat(said, " | ") .. ")"
+		)
+		local others = 0
 		for _, p in Mock.Env.game:GetService("Players"):GetPlayers() do
-			local snap = lastSnapshot(p, mark)
-			check(
-				snap ~= nil
-					and snap.message == "Adventure complete. Rewards are not enabled on this server."
-					and not claimsReward(snap.message),
-				p.Name .. " is told rewards are not enabled, nothing claimed"
-			)
+			if p ~= pg then
+				others += 1
+				check(#completionMessages(p, mark) == 0, p.Name .. " (not in this run): no completion message")
+			end
 		end
+		check(others >= 5, "the other connected players were checked (" .. others .. ")")
+		local offCopy = 0
+		for i = mark + 1, #Mock.Remote.ToClient do
+			local ev = Mock.Remote.ToClient[i]
+			local data = ev.Args and ev.Args[1]
+			if ev.Name == "Snapshot" and type(data) == "table" then
+				for _, line in (if type(data.objectives) == "table" then data.objectives else {}) do
+					if string.find(string.lower(tostring(line)), "review only", 1, true) then
+						offCopy += 1
+					end
+				end
+			end
+		end
+		check(offCopy == 0, "rewards off: no dedicated-review copy in production snapshots (" .. offCopy .. ")")
 		local snap = lastSnapshot(pg, mark)
 		print("  rewards off, runtime objective after completion: " .. tostring(snap and snap.objective))
 		check(DataService.Get(pg).Coins == 0 and stored(G).Coins == 0, "no coins granted")
