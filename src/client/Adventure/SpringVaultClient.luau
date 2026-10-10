@@ -274,6 +274,17 @@ function Client.Start(remotes: Folder, scene: Instance)
 	local function equipped(): Tool?
 		return broadwave(player.Character)
 	end
+	local function chargeAvailable(tool: Tool?): boolean
+		-- Permanent production tools also charge on ordinary sand outside the streamed
+		-- arena. These markers only choose input; ResolveTool still validates ownership.
+		return tool ~= nil
+			and (
+				sceneAvailable
+				or tool:GetAttribute("AdventureLoan") ~= true
+					and tool:GetAttribute("ToolId") == "tool_broadwave"
+					and tool:GetAttribute("LicensedBroadwave") == true
+			)
+	end
 	local equip = Instance.new("TextButton")
 	equip.Name = "BroadwaveEquip"
 	equip.AnchorPoint = Vector2.new(0.5, 0)
@@ -371,8 +382,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 		if state == Enum.UserInputState.Begin then
 			if
 				UserInputService:GetFocusedTextBox()
-				or not sceneAvailable
-				or not equipped()
+				or not chargeAvailable(equipped())
 				or os.clock() < cooldownUntil
 				or charging
 			then
@@ -515,7 +525,7 @@ function Client.Start(remotes: Folder, scene: Instance)
 			end
 			equip.Text = if tool then "Stow Broadwave" else "Equip Broadwave"
 			if touch then
-				touch.Visible = sceneAvailable and tool ~= nil
+				touch.Visible = chargeAvailable(tool)
 			end
 			if charging and tool ~= chargeTool then
 				cancelCharge()

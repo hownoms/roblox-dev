@@ -1,0 +1,5 @@
+./tests/spring-vault-input.spec.luau:30: licensed ordinary charge owns Q without streamed arena
+stacktrace:
+[C] function assert
+./tests/spring-vault-input.spec.luau:30 function check
+./tests/spring-vault-input.spec.luau:148
