@@ -1,0 +1,11 @@
+# Runtime startup continuation — 9 October 2026
+
+Separate `codex/spring-vault-runtime-launch` worktree starts at fetched merged PR #38 `966dae5`. Required integration and continuation handoffs were read before edits; independent agents audited merged provisioning and implemented runtime/input work.
+
+SpringVaultClient.Start now accepts an absent initial scene. Runtime input can initialize using actual production remotes before arena replication; permanently marked equipped tools can charge, while loans remain scene-gated. Only the real Workspace arena binds presentation. First stream-in, stream-out cancellation and teardown are regressed. No fake scene, resolver, eligibility or boot wiring is installed. Claude's AdventureController still calls Start only after arena arrival, so adopting this API in that controller is an exact remaining startup dependency.
+
+Studio MCP list returned no connected Studios. No loaded candidate was inspected, modified or played and no ordinary UI input was verified this continuation. Prior review input, trial aiming and two-client recovery evidence is reused; no screenshots are fabricated. Before/after evidence here is source-module headless regression output, not Studio or hardware acceptance.
+
+Merged source still lacks an explicit fail-closed candidate storage profile before DataStore acquisition; DataService probes before memory fallback, and MonetizationService acquires purchase history before checking mock mode. No new candidate provisioning or legitimate permanent Broadwave license grant is merged. Follow launch-blockers/CLAUDE_CANDIDATE_HANDOFF.md. Actual ResolveTool and ReturnFrame exist. Candidate provisioning with normal gameplay eligibility, server flags and isolated storage remains the primary release blocker.
+
+Targeted regressions and actual merged integration checks use API-aware mocks and in-memory stores, without the obsolete patch/resolver fixture. Logs are adjacent. Production/review build and mapped strict analysis are checked. No live persistence, physical device, populated streaming or uncoached flow claim is made. Production entrance, shared equip/restoration, main adventure and per-player reward input acceptance remain open. No production Studio, publication, uploads, live save tests, chat messages or merge occurred.
