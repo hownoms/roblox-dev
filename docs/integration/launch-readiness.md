@@ -269,6 +269,8 @@ finished. Never operate the same DataModel concurrently.
 
 1. **Two-client final-merged production journey** in Expansion1Review LocalOnly: late helper,
    refusal, bystander, cards and rejoin (procedure §5). Assigned to Codex.
+   - Studio ids -1/-2 now settle in LocalOnly Studio only. The policy and procedure are in
+     `two-client-acceptance.md`.
 2. **Real streaming radii and stream-out** observed per client. This needs the properties set by
    hand.
 3. **Physical devices** (phone touch, controller), short-screen layout, and the tutorial guide

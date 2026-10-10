@@ -1,5 +1,26 @@
 # Runtime input and completion ownership handoff
 
+## Claude: two-client reward policy (10 October 2026, `claude/spring-vault-two-client`)
+
+This answers Codex's dependency (`independent-two-client-settlement-dependency.md`). The full record and test procedure are in `two-client-acceptance.md`.
+
+- **What to freeze on:** policy commit `34e3944`. It sits on `f488b16`, which is `af0ed43` merged with `b3ef585`.
+- **Full suite:** `tests/run.sh` passes (`ALL TESTS PASSED`), and so do all Codex specs. The "11 settlement expectations / suite not green" finding is closed; it was verified on the merge and is not reopened.
+- **Policy:** Studio players -1…-64 settle stage and final rewards plus trophies only when all of these hold:
+  - `IsStudio`;
+  - `CandidateProfile.IsLocalOnly()`;
+  - `StorageMode() == "LocalOnly"`;
+  - the id belongs to a Player who joined this server.
+
+  Every eligibility rule applies unchanged. Production, `Mock` and every non-candidate server still reject them as `BadParticipants`.
+- **Simulated ids are never durable:** nothing is queued to an outbox, an unloaded id is `Refused / LocalSimulationNotLoaded`, and cards read "(LOCAL TEST)".
+- **No Codex-owned file changed.** The runtime already forwards real ids, so nothing is needed from Codex beyond the Studio acceptance run in `two-client-acceptance.md` §3:
+  - eligible and refused per-player cards;
+  - bystander exclusion;
+  - consecutive adventures;
+  - a mid-run leave.
+- **Still needs real accounts** (§4 of that record): PendingRejoin delivery, cross-server durability, outbox drains, and the live "SAVED" wording.
+
 ## Current continuation: accessibility and actual merged runtime (10 October 2026)
 
 Branch `codex/spring-vault-accessibility` starts from fetched default `b4e1b14`.
