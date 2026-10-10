@@ -1,0 +1,5 @@
+./tests/spring-vault-outcome-owner.spec.luau:10: external callback cannot claim generic grants
+stacktrace:
+[C] function assert
+./tests/spring-vault-outcome-owner.spec.luau:10 function check
+./tests/spring-vault-outcome-owner.spec.luau:58

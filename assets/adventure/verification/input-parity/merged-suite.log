@@ -1,0 +1,149 @@
+      0 [main] bash (18380) C:\Program Files\Git\bin\..\usr\bin\bash.exe: *** fatal error - NtCreateDirectoryObject(\BaseNamedObjects\msys-2.0S5-1888ae32e00d56aa): 0xC0000022
+8 passed, 0 failed
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== same-server rejoin during delayed final save
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (6/8 spots found something)
+== launch check
+== badges
+== persistence contention and transient failures
+== shutdown
+== report
+
+SMOKE: 2212 passed, 0 failed
+SMOKE TEST PASSED
+== migration (pure)
+== eligibility rule
+== existing save loads through DataService
+== completion settlement
+== adventure CompletionContext adapter
+== disconnect, rejoin, reconnect
+== client cannot grant
+== camp placement
+== existing systems
+== trophy stand requirement
+== authored camp pad: one pad, one owner, hand-over
+== camp display action: prompts, preview cell, status, queue, no pad
+== camp lifecycle and ownership protections
+== cross-server recovery (second mock server)
+TROPHY SPEC: 476 passed, 0 failed
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+ADVENTURE OUTCOME CLIENT: 123 passed, 0 failed
+TROPHY WIRED: 60 passed, 0 failed
+./tests/settlement-durability.spec.luau:1123: SETTLEMENT DURABILITY SPEC FAILED
+stacktrace:
+[C] function error
+./tests/settlement-durability.spec.luau:1123
+== real runtime: crew run with watcher, late helper, disconnect and bystander
+FAIL: Ana receives the completion broadcast
+FAIL: Ben receives the completion broadcast
+FAIL: Cal receives the completion broadcast
+FAIL: Eli receives the completion broadcast
+FAIL: Eli: the broadcast claims no reward
+  runtime review copy contradicting an Accepted card: 0 line(s)
+== real runtime: failed run keeps stage coins, grants no final
+== real runtime with AdventureRewards OFF (SpringVault on): review run, nothing granted
+FAIL: Ana is told rewards are not enabled, nothing claimed
+FAIL: Ben is told rewards are not enabled, nothing claimed
+FAIL: Eli is told rewards are not enabled, nothing claimed
+FAIL: Cal is told rewards are not enabled, nothing claimed
+FAIL: Fin is told rewards are not enabled, nothing claimed
+FAIL: Gus is told rewards are not enabled, nothing claimed
+  rewards off, runtime objective after completion: Ball rescued · 3/3 gates. Leave when you are ready.
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.6 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 18 Accepted (each durable when told), 2 Pending, 4 Refused
+SETTLEMENT DURABILITY (on): 198 passed, 11 failed
+PRODUCTION WIRING (off): 37 passed, 0 failed
+ADVENTURE ENTRY (off): 21 passed, 0 failed
+PRODUCTION REVIEW: 92 passed, 0 failed
+NOTE: runtime accepts ResolveTool but declares no Service.Contract marker
+BROADWAVE LICENSE: 61 passed, 0 failed
+PERSISTENCE BOOT live: PASSED
+== world + remotes
+== client boot
+== panels
+== buttons
+   clicked 162 buttons (HUD)
+   clicked 191 buttons (Index)
+   clicked 191 buttons (Rebirth)
+   clicked 191 buttons (Pets)
+   clicked 191 buttons (Shop)
+   clicked 191 buttons (Settings)
+   clicked 191 buttons (Store)
+   clicked 191 buttons (Daily)
+   clicked 191 buttons (Quests)
+   clicked 191 buttons (Eggs)
+== hud polish
+== prompts
+== streaming
+== dig
+== hole + respawn
+== companions
+== survival
+== shovel pose
+== ride
+== menu gating
+== hatching + compliance
+== status & social
+== rebirth & economy
+== discovery
+== confirmed sell feedback
+== ambient motion
+== trophy camp action
+== report
+   client -> server: BuyBackpack=30, BuyConsumable=75, BuyRebirthPerk=1, BuyShade=23, BuyShovel=41, ClaimDailyReward=10, ClaimQuest=20, Dig=6, DrinkFountain=1, EquipBackpack=10, EquipShovel=11, Excavate=6, FusePets=1, HatchEgg=1, PickUpShade=70, PlaceShade=1, ReturnToSurface=11, RideDig=3, Scan=11, SetSetting=128, ToggleRide=2, Track=122, UnequipPet=10, UseConsumable=1
+
+CLIENT: 1679 passed, 0 failed
+CLIENT SMOKE TEST PASSED
+Spring Vault: 22 tests passed
+Spring Vault runtime mock: 47 checks passed
+Spring Vault input: 293 checks passed
+Spring Vault return mock: 111 checks passed
+Spring Vault scene mock: 81 checks passed
+Spring Vault presentation mock: 60 checks passed
+Spring Vault initial stream: 29 checks passed
+Spring Vault outcome ownership mock: 85 checks passed
+Broadwave DigService integration: 24 checks passed
+ADVENTURE TROPHY CONTRACT: 24 checks passed

@@ -34,6 +34,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	local reducedParticles = false
 	local charging = false
 	local chargeCardVisible = false
+	local panelRequested = true
 	local chargeInput: InputObject? = nil
 	local chargeTool: Tool? = nil
 	local chargeStart = 0
@@ -95,6 +96,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		end
 	end
 	local gui = Instance.new("ScreenGui")
+	-- Compatibility identifier consumed by the production HUD/equip owners, not player-facing copy.
 	gui.Name = "SpringVaultAdventureReview"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -113,6 +115,8 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	aimHint.Visible = false
 	aimHint.Parent = gui
 	local card = Instance.new("ScrollingFrame")
+	card.Visible = false
+	card.Name = "Panel"
 	card.Size = UDim2.new(0, 330, 0, 330)
 	card.AnchorPoint = Vector2.new(0.5, 0)
 	card.Position = UDim2.new(0.5, 0, 0, 12)
@@ -156,7 +160,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		item.Parent = card
 		return item
 	end
-	label("SPRING VAULT", 8, 24)
+	local title = label("SPRING VAULT", 8, 24)
 	local status = label("Help Mara rescue the ball. Pip's trial is optional.", 32, 42)
 	local objective = label("Talk to Mara, then try Pip's Broadwave.", 76, 48)
 	local function button(text: string, x: number, y: number, callback: () -> ()): TextButton
@@ -179,6 +183,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	end)
 	local ignore = button("Ignore", 116, 170, function()
 		send("Ignore")
+		panelRequested = false
 		card.Visible = false
 	end)
 	local leave = button("Leave", 220, 170, function()
@@ -242,17 +247,17 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		motion.Visible = expanded
 		particles.Visible = expanded
 		options.Text = if expanded then "Less" else "Options"
-		local index = 0
-		for _, control in
-			{ join, ignore, start, ready, haul, routeLeft, routeRight, leave, options, motion, particles, resetBall }
+		-- Reserve every control's cell even while hidden. In particular Leave must
+		-- never move under a second Begin/Ready click. Keep the canvas height fixed
+		-- too: shrinking it would clamp scroll position and move targets on screen.
+		for index, control in
+			{ join, ignore, leave, start, ready, options, haul, routeLeft, routeRight, motion, particles, resetBall }
 		do
-			if control.Visible then
-				local column = index % 3
-				control.Position = UDim2.new(column / 3, 12 - column * 6, 0, 132 + math.floor(index / 3) * 54)
-				index += 1
-			end
+			local slot = index - 1
+			local column = slot % 3
+			control.Position = UDim2.new(column / 3, 12 - column * 6, 0, 132 + math.floor(slot / 3) * 54)
 		end
-		cardContentHeight = 138 + math.ceil(index / 3) * 54
+		cardContentHeight = 348
 		fitCard()
 	end
 	layoutControls()
@@ -337,6 +342,18 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		local part = root()
 		return part ~= nil and (part.Position - frame.Position).Magnitude <= 80
 	end
+	local function inArena(): boolean
+		local floor = scene and scene:FindFirstChild("ProtectedArenaFloor")
+		local part = root()
+		if not sceneAvailable or not floor or not floor:IsA("BasePart") or not part then
+			return false
+		end
+		local relative = floor.CFrame:PointToObjectSpace(part.Position)
+		return math.abs(relative.X) <= floor.Size.X / 2
+			and math.abs(relative.Z) <= floor.Size.Z / 2
+			and relative.Y > -4
+			and relative.Y < 24
+	end
 	local function localEffect(model: Model, frame: CFrame)
 		for _, part in model:GetDescendants() do
 			if part:IsA("BasePart") then
@@ -351,7 +368,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	end
 	local function clearCharge()
 		if charging then
-			card.Visible = chargeCardVisible
+			card.Visible = chargeCardVisible and inArena()
 		end
 		charging = false
 		chargeInput = nil
@@ -458,6 +475,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	table.insert(
 		connections,
 		RunService.RenderStepped:Connect(function()
+			card.Visible = panelRequested and inArena() and not charging
 			local nearest: any = nil
 			local distance = math.huge
 			local characterRoot = root()
@@ -600,6 +618,10 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		connections,
 		(remotes:WaitForChild("Snapshot") :: RemoteEvent).OnClientEvent:Connect(function(data: any)
 			latestSnapshot = data
+			if data.joined then
+				panelRequested = true
+			end
+			title.Text = if data.outcomeOwner == "Review" then "SPRING VAULT · Dedicated review" else "SPRING VAULT"
 			eventId = data.eventInstanceId
 			if data.joined and data.stage == "complete" then
 				rescueComplete = true
@@ -674,7 +696,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 					end
 				end
 			end
-			if data.joined then
+			if data.joined and inArena() then
 				if charging then
 					chargeCardVisible = true
 				else
@@ -839,12 +861,15 @@ function Client.Start(remotes: Folder, scene: Instance?)
 			prompt.ActionText = if type(actionText) == "string" then actionText else action
 			prompt.ObjectText = if type(displayName) == "string" then displayName else targetId
 			prompt.MaxActivationDistance = if action == "Talk" then 10 else 12
-			prompt.RequiresLineOfSight = true
+			-- Match server AdventurePrompt settings even before that prompt replicates.
+			-- Covered latch and route targets remain reachable after each scene rebuild.
+			prompt.RequiresLineOfSight = false
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
 			prompt.Parent = part
 		end
 		local triggerConnection = prompt.Triggered:Connect(function()
-			if action == "Talk" then
+			if action == "Talk" and inArena() then
+				panelRequested = true
 				card.Visible = true
 			end
 			send(action, targetId)
