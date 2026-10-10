@@ -458,6 +458,9 @@ export type SettleOptions = {
 	-- The caller writes the player's save right after this call (and calls QueueGrant if that
 	-- write fails), so applied grants do not request their own immediate save.
 	CallerSaves: boolean?,
+	-- LocalOnly Studio candidate only: AdventureSettlement passes LocalSimulationPolicy's
+	-- predicate so Studio test ids (-1, -2, ...) validate (Rules.IsUserId). nil = real ids only.
+	AcceptLocalUserId: ((number) -> boolean)?,
 }
 
 -- Outbox writes owed by a settlement, by user id. Each one yields; run it in its own thread.
@@ -506,7 +509,7 @@ local function prepare(result: any, options: SettleOptions?): (SettlementReport,
 	local seen: { [number]: boolean } = {}
 	for i = 1, #participants do
 		local p = participants[i]
-		if not Rules.IsParticipant(p) or seen[p.UserId] then
+		if not Rules.IsParticipant(p, if options then options.AcceptLocalUserId else nil) or seen[p.UserId] then
 			return fail("BadParticipants", result), writes
 		end
 		seen[p.UserId] = true

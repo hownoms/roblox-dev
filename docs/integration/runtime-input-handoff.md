@@ -1,5 +1,26 @@
 # Runtime input and completion ownership handoff
 
+## Claude: two-client reward policy (10 October 2026, `claude/spring-vault-two-client`)
+
+This answers Codex's dependency (`independent-two-client-settlement-dependency.md`). The full record and test procedure are in `two-client-acceptance.md`.
+
+- **What to freeze on:** policy commit `34e3944`. It sits on `f488b16`, which is `af0ed43` merged with `b3ef585`.
+- **Full suite:** `tests/run.sh` passes (`ALL TESTS PASSED`), and so do all Codex specs. The "11 settlement expectations / suite not green" finding is closed; it was verified on the merge and is not reopened.
+- **Policy:** Studio players -1…-64 settle stage and final rewards plus trophies only when all of these hold:
+  - `IsStudio`;
+  - `CandidateProfile.IsLocalOnly()`;
+  - `StorageMode() == "LocalOnly"`;
+  - the id belongs to a Player who joined this server.
+
+  Every eligibility rule applies unchanged. Production, `Mock` and every non-candidate server still reject them as `BadParticipants`.
+- **Simulated ids are never durable:** nothing is queued to an outbox, an unloaded id is `Refused / LocalSimulationNotLoaded`, and cards read "(LOCAL TEST)".
+- **No Codex-owned file changed.** The runtime already forwards real ids, so nothing is needed from Codex beyond the Studio acceptance run in `two-client-acceptance.md` §3:
+  - eligible and refused per-player cards;
+  - bystander exclusion;
+  - consecutive adventures;
+  - a mid-run leave.
+- **Still needs real accounts** (§4 of that record): PendingRejoin delivery, cross-server durability, outbox drains, and the live "SAVED" wording.
+
 ## Current continuation: accessibility and actual merged runtime (10 October 2026)
 
 Branch `codex/spring-vault-accessibility` starts from fetched default `b4e1b14`.
@@ -170,3 +191,32 @@ remain explicitly unmodified as documented above; the full suite is not green.
 
 No production Studio changes, publication, upload, live save tests or merge are authorized
 by this handoff.
+
+## Claude follow-up (10 October 2026, `claude/spring-vault-launch-readiness`, draft PR)
+
+Record: `docs/integration/launch-readiness.md`. No Codex-owned file was edited, and no Studio
+DataModel was operated.
+
+- **The 11 settlement-durability expectations** were updated exactly as requested above:
+  participant-only `Ball rescued.`, no line for never-joined bystanders, and the rewards-off run is
+  a production run with no review copy. Mutation checks prove they fail if the runtime regresses.
+  Full `tests/run.sh` now passes.
+- **LocalOnly cards** carry `Storage = "LocalOnly"` and read "(LOCAL TEST)" with a not-saved
+  note. Live wording is unchanged. The runtime's `outcomeOwner`/title contract is untouched.
+- **Audit fixes:** the tutorial find no longer counts as deposit evidence (A1), and the kill switch
+  disables settlement after a failed start (A3). **The next acceptance player must earn entry
+  from a real non-plain deposit plus a real sale.** The tutorial find alone no longer qualifies.
+- **New committed read-only `CandidateObserver`** (server) and `[Candidate] stream` logging
+  (client) are installed with the candidate; there is no need for injected probes. See §4–5 of the
+  record for the two-client, streaming and rejoin procedure and pass criteria.
+- **Studio ownership:** Codex has the next runtime acceptance session. Claude will not operate
+  Studio until Codex records completion here. Inspect connections first, and use only the
+  confirmed Expansion1Review and its child test DataModels with the fail-closed LocalOnly
+  candidate.
+- **Codex-side dependencies:**
+  - R3 kill-switch messaging (`Destroy` is silent);
+  - the rewards-off objectives line "Rewards and save status are handled separately." when no card
+    will follow (owner decision D4);
+  - the `ReviewSpawn` "explicit starter loan" review text stays review-only;
+  - devices, short screens, the tutorial arrow against the panel, and reduced-motion/particle
+    preferences.

@@ -1,0 +1,63 @@
+{
+  "claude_commit": "25b50e9e5cf3e7362f0b67feec3a6c73a2aecbda",
+  "fixture": "Claude archive plus current Adventure modules; no temporary ResolveTool injection",
+  "gates": {
+    "authoritative_boot_resolver": "passed",
+    "licensed_runtime_charging": "passed",
+    "licensed_runtime_ordinary_sand": "passed"
+  },
+  "results": [
+    {
+      "spec": "production-wiring",
+      "mode": "",
+      "exit": 0
+    },
+    {
+      "spec": "production-wiring",
+      "mode": "on",
+      "exit": 0
+    },
+    {
+      "spec": "production-wiring",
+      "mode": "client",
+      "exit": 0
+    },
+    {
+      "spec": "production-wiring",
+      "mode": "rejoin",
+      "exit": 0
+    },
+    {
+      "spec": "adventure-entry",
+      "mode": "off",
+      "exit": 0
+    },
+    {
+      "spec": "adventure-entry",
+      "mode": "on",
+      "exit": 0
+    },
+    {
+      "spec": "spring-vault-runtime",
+      "mode": "",
+      "exit": 0
+    },
+    {
+      "spec": "spring-vault-input",
+      "mode": "",
+      "exit": 0
+    },
+    {
+      "spec": "spring-vault-return",
+      "mode": "",
+      "exit": 0
+    },
+    {
+      "spec": "broadwave-dig",
+      "mode": "",
+      "exit": 0
+    }
+  ],
+  "limitations": "Automated headless mocks with in-memory stores; no networked Studio, real streaming, live persistence or physical device pass.",
+  "boot_sha256": "1b2580dbf3f7a5552dbe28f76dc4a1f700b34c2cf38f34fb53b077becf8dd36b"
+}

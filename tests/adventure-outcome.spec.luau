@@ -197,6 +197,93 @@ check(Outcome.Describe(nil) == nil, "nil rejected")
 check(Outcome.Describe(final({ State = "Granted" })) == nil, "unknown state rejected")
 check(Outcome.Describe(final({ Kind = "Bonus" })) == nil, "unknown kind rejected")
 
+-- Non-durable store (Storage = "LocalOnly" candidate / "Mock" Studio fallback): the same truth
+-- table, but nothing may read as saved or as surviving the session, and every non-refused card
+-- says it is a local test. Refusals keep their reasons. Any other Storage value is ignored.
+local function claimsSaved(t)
+	local lower = string.lower(t)
+	local withoutNote = string.gsub(lower, "not saved", "")
+	return string.find(withoutNote, "saved", 1, true) ~= nil
+		or string.find(lower, "saving", 1, true) ~= nil
+		or string.find(lower, "next time you join", 1, true) ~= nil
+end
+local function withoutStorage(fields)
+	local copy = table.clone(fields)
+	copy.Storage = nil
+	return final(copy)
+end
+local localCases = {
+	{ State = "Accepted", Status = "Saved" },
+	{ State = "Accepted", Status = "Queued" },
+	{ State = "Accepted", Status = "Duplicate", Coins = 0, Trophy = false, Stand = false, Certification = false },
+	{ State = "Accepted", Status = "Saved", Reason = "TrophyUnavailable", Trophy = false, Stand = false },
+	{ State = "Pending", Status = "Unconfirmed" },
+	{ State = "Pending", Status = "Applied" },
+	{ State = "Pending", Status = "PendingRejoin", Coins = 0, Trophy = false, Stand = false, Certification = false },
+	{ State = "Accepted", Status = "Applied" },
+	{ State = "Refused", Status = "Ineligible", Reason = "NoContribution", Coins = 0 },
+	{ State = "Refused", Status = "Refused", Reason = "PendingFull", Coins = 0 },
+}
+for _, storage in { "LocalOnly", "Mock" } do
+	for _, case in localCases do
+		for _, kind in { "Final", "Stage" } do
+			for _, resolved in { false, true } do
+				local fields = { Storage = storage, Kind = kind, Resolved = resolved or nil }
+				fields.StageId = if kind == "Stage" then "vault_open" else nil
+				for k, v in case do
+					fields[k] = v
+				end
+				local o = final(fields)
+				local d = Outcome.Describe(o)
+				local live = Outcome.Describe(withoutStorage(fields))
+				local label = string.format(
+					"%s %s/%s %s%s",
+					storage,
+					case.State,
+					case.Status,
+					kind,
+					if resolved then " resolved" else ""
+				)
+				local t = text(o) or ""
+				check(d ~= nil and live ~= nil and d.State == live.State, label .. ": same state as live")
+				check(not claimsSaved(t), label .. ": never reads as saved (" .. string.gsub(t, "\n", " | ") .. ")")
+				if case.State == "Refused" then
+					check(
+						not has(t, Outcome.LOCAL_NOTE) and t == text(withoutStorage(fields)),
+						label .. ": refusal wording unchanged"
+					)
+				else
+					check(has(t, Outcome.LOCAL_NOTE), label .. ": says local test, not saved")
+				end
+			end
+		end
+	end
+end
+local localFinal = text(final({ Storage = "LocalOnly" }))
+check(
+	has(localFinal, "LOCAL TEST")
+		and has(localFinal, "+42 Coins")
+		and has(localFinal, "Spring Vault trophy")
+		and has(localFinal, "Crew certification"),
+	"LocalOnly accepted final still lists what this session granted"
+)
+check(
+	text(final({ Storage = "DataStore" })) == accepted and text(final({ Storage = "Bogus" })) == accepted,
+	"a durable or unknown Storage value leaves the live wording unchanged"
+)
+local localStage = text({
+	InstanceId = "guid:1",
+	Kind = "Stage",
+	StageId = "ball_return",
+	State = "Accepted",
+	Status = "Saved",
+	Coins = 0,
+	Trophy = false,
+	Stand = false,
+	Storage = "LocalOnly",
+})
+check(localStage == nil, "LocalOnly: an empty stage still shows no card")
+
 -- Cards -----------------------------------------------------------------------------------------
 Outcome.Show(final({ State = "Pending", Status = "Unconfirmed" }))
 Mock.Advance(0.5)

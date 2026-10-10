@@ -1,0 +1,20 @@
+# Mutation checks for the updated settlement-durability expectations (runtime source temporarily mutated, then restored)
+## A: runtime sends OnCompletion's summary instead of the neutral line
+FAIL: Ana: one neutral completion message (Adventure complete! Crew members: your reward card shows what you earned.)
+FAIL: Ben: one neutral completion message (Adventure complete! Crew members: your reward card shows what you earned.)
+FAIL: Cal: one neutral completion message (Adventure complete! Crew members: your reward card shows what you earned.)
+FAIL: Ana: the settlement summary is not presented as their result
+FAIL: Ben: the settlement summary is not presented as their result
+FAIL: Cal: the settlement summary is not presented as their result
+FAIL: Gus (the only participant): neutral completion, nothing claimed (Adventure complete. Rewards are not enabled on this server.)
+SETTLEMENT DURABILITY (on): 211 passed, 7 failed
+## B: runtime broadcasts completion to every connected player
+FAIL: never-joined bystander Eli: no completion message
+FAIL: Ana (not in this run): no completion message
+FAIL: Ben (not in this run): no completion message
+FAIL: Eli (not in this run): no completion message
+FAIL: Cal (not in this run): no completion message
+FAIL: Fin (not in this run): no completion message
+SETTLEMENT DURABILITY (on): 213 passed, 6 failed
+## restored
+SETTLEMENT DURABILITY (on): 218 passed, 0 failed

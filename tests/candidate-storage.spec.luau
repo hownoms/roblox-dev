@@ -5,6 +5,10 @@
 	  luau tests/candidate-storage.spec.luau -a refusals             every refusal + static checks
 	  luau tests/candidate-storage.spec.luau -a production           no marker, live server
 	  luau tests/candidate-storage.spec.luau -a production studio    no marker, Studio with access
+	  luau tests/candidate-storage.spec.luau -a localids             Studio test ids (-1, -2) settle in LocalOnly
+	  luau tests/candidate-storage.spec.luau -a localids mock        ... refused: Studio in-memory fallback
+	  luau tests/candidate-storage.spec.luau -a localids production  ... refused: live DataStore server
+	  luau tests/candidate-storage.spec.luau -a localids notstudio   ... refused: LocalOnly, not Studio at use time
 
 	The mock counts every DataStoreService touch (Mock.DataStoreCalls: GetService, every service
 	method, every store request). LocalOnly must make ZERO of them across boot, two players,
@@ -127,6 +131,34 @@ local function warned(needle)
 	end
 	return false
 end
+-- The committed read-only acceptance observer (tools/expansion1/production-candidate), run as
+-- the candidate installs it: a Script whose parent is its host folder.
+local CandidateTools = require("../build/test/production-candidate")
+local function runObserver(parent)
+	local observer = env.Instance.new("Script")
+	observer.Name = "CandidateObserver"
+	Mock.SetSource(observer, CandidateTools.Observer)
+	observer.Parent = parent
+	Mock.RunScript(observer)
+	return observer
+end
+local function observerLine(needle)
+	for _, line in Mock.Prints do
+		if has(line, "[CandidateObserver]") and has(line, needle) then
+			return line
+		end
+	end
+	return nil
+end
+local function printedCount(needle)
+	local n = 0
+	for _, line in Mock.Prints do
+		if has(line, needle) then
+			n += 1
+		end
+	end
+	return n
+end
 local BANNER = "[CandidateProfile] LOCAL-ONLY CANDIDATE: in-memory saves, outboxes, purchase history and"
 	.. " leaderboards; no DataStore is acquired. Rewards are local simulation."
 
@@ -185,12 +217,67 @@ if mode == "localonly" then
 	check(Settlement.Outbox.IsAvailable(), "adventure outbox available (memory)")
 	check(Boot.Runtime() ~= nil, "AdventureBoot runtime started from candidate flags")
 	check(RS:FindFirstChild("SpringVaultAdventure") ~= nil, "adventure remotes exist")
+	local candidateFolder = SSS:FindFirstChild("ProductionCandidate")
+	local remotesBefore = #RS:GetDescendants()
+	runObserver(candidateFolder)
+	Mock.Advance(1.5)
+	check(printed("[CandidateObserver]") and printed("active (LocalOnly; read-only)"), "observer active in LocalOnly")
 
 	-- two players, mutations, outbox writes
 	local a = Mock.AddPlayer(7101, "CandA")
 	local b = Mock.AddPlayer(7102, "CandB")
 	Mock.Advance(3)
 	check(DataService.IsLoaded(a) and DataService.IsLoaded(b), "both players load in memory")
+
+	-- a real final settlement in memory: the card payload says the store is not durable
+	do
+		local sent = {}
+		local conn = Settlement.OutcomeSent:Connect(function(player, outcome)
+			sent[player.UserId] = outcome
+		end)
+		local participant = {
+			UserId = 7102,
+			Points = 20,
+			Eligible = true,
+			ActiveSeconds = 90,
+			ObjectiveIds = { "vault_anchor_1" },
+		}
+		local context = table.freeze({
+			BoundaryVersion = 1,
+			EventInstanceId = "cand:local:1",
+			EventId = "event_vault",
+			LandmarkId = "landmark_spring_vault",
+			RegionId = "sunshine_shore",
+			Success = true,
+			ObjectiveIds = { "vault_anchor_1" },
+			CompletedStages = { "excavation", "vault_open", "ball_return" },
+			Participants = { participant },
+		})
+		local accepted
+		env.task.spawn(function()
+			accepted = Settlement.OnCompletion(context)
+		end)
+		Mock.Advance(3)
+		conn:Disconnect()
+		local card = sent[7102]
+		check(accepted == true, "LocalOnly settlement accepted in memory")
+		check(
+			card ~= nil and card.State == "Accepted" and card.Status == "Saved" and card.Storage == "LocalOnly",
+			"LocalOnly outcome keeps its state and says Storage = LocalOnly ("
+				.. tostring(card and card.Status)
+				.. "/"
+				.. tostring(card and card.Storage)
+				.. ")"
+		)
+		check(sent[7101] == nil, "non-participant gets no outcome")
+		check(#Mock.DataStoreCalls == 0, "settlement made no DataStore call")
+		check(
+			printed("outcome CandB: Final") and printed("storage=LocalOnly"),
+			"observer logged the participant's outcome with its storage label"
+		)
+		check(not printed("outcome CandA:"), "observer: no outcome logged for the non-participant")
+	end
+	check(printed("loaded CandA #1") and printed("canEnter=false/NoEvidence"), "observer logs load + real eligibility")
 	DataService.Set(a, "Coins", 1234)
 	DataService.Increment(b, "Coins", 55)
 	DataService.Set(a, "MaxDepth", 40)
@@ -249,6 +336,22 @@ if mode == "localonly" then
 		DataService.IsLoaded(again) and DataService.Get(again).Coins == coinsAfter,
 		"rejoin restores the in-memory save"
 	)
+	check(printed("leave CandA (7101)") and printed("join CandA (7101) #2 REJOIN"), "observer logs leave + rejoin")
+	check(
+		printed("rejoin check CandA: coins " .. coinsAfter .. " -> " .. coinsAfter),
+		"observer compares the save across the same-server rejoin (" .. tostring(observerLine("rejoin check")) .. ")"
+	)
+	local seq = candidateFolder:GetAttribute("ObservationSeq")
+	check(type(seq) == "number" and seq >= 5, "observer snapshots keep publishing (" .. tostring(seq) .. ")")
+	check(type(candidateFolder:GetAttribute("Observation")) == "string", "snapshot published on its own folder")
+	check(not printed("snapshot failed"), "every snapshot encoded (serializable, no errors)")
+	check(#RS:GetDescendants() == remotesBefore, "observer created nothing replicated")
+	for _, p in Players:GetPlayers() do
+		check(
+			p:GetAttribute("Observation") == nil and p:GetAttribute("ObservationSeq") == nil,
+			"observer writes nothing on players"
+		)
+	end
 	Mock.RunBindToClose()
 	Mock.Advance(30)
 
@@ -300,6 +403,68 @@ elseif mode == "refusals" then
 			end
 		end
 		check(srcFiles > 50 and storageGateSeen, "static scan covered src/ and found StorageGate")
+	end
+	do
+		-- The acceptance observer and client label are read-only: no save writes, grants,
+		-- settlement, entry/boot control, storage, remotes or replicated attributes.
+		local observer, client = CandidateTools.Observer, CandidateTools.Client
+		for _, token in
+			{
+				"DataService.Set",
+				"DataService.Mutate",
+				"DataService.Increment",
+				"DataService.Save",
+				"SaveAsync",
+				"UpdateAsync",
+				"DataStoreService",
+				"StorageGate.Get",
+				"OnCompletion(",
+				"OnStage(",
+				"SettleStage",
+				"SetEnabled",
+				"Grant",
+				"Boot.Start",
+				"Boot.Disable",
+				"Entry.Start",
+				"Entry.Stop",
+				"ReturnToSurface",
+				"ConsiderInvite",
+				"PipQuest",
+				'"BroadwaveLicense"',
+				"RegisterIssuedTool",
+				"Fire(",
+				"FireClient",
+				"FireAllClients",
+				"FireServer",
+				"InvokeServer",
+				"Instance.new",
+				":Destroy(",
+				".Parent =",
+				"Handle(",
+			}
+		do
+			check(not has(observer, token), "observer source has no " .. token)
+		end
+		local setters = 0
+		for line in string.gmatch(observer, "[^\n]*SetAttribute[^\n]*") do
+			setters += 1
+			check(has(line, "folder:SetAttribute("), "observer only sets attributes on its own folder: " .. line)
+		end
+		check(setters == 2, "observer sets exactly Observation and ObservationSeq (" .. setters .. ")")
+		check(
+			has(observer, 'ReplicatedStorage:GetAttribute("CandidateProfile") ~= "LocalOnly"'),
+			"observer gates on LocalOnly"
+		)
+		check(has(observer, 'DataService.StorageMode() ~= "LocalOnly"'), "observer re-checks StorageMode")
+		for _, token in { "FireServer", "InvokeServer", "SetAttribute", "DataService" } do
+			check(not has(client, token), "candidate client label has no " .. token)
+		end
+		check(
+			has(CandidateTools.Project, "CandidateObserver.server.luau")
+				and not has(CandidateTools.DefaultProject, "CandidateObserver")
+				and not has(CandidateTools.DefaultProject, "production-candidate"),
+			"observer mapped only by the candidate project"
+		)
 		local Review = require("../build/test/production-review")
 		check(not has(Review.DefaultProject, "ProductionCandidate"), "default.project.json maps no ProductionCandidate")
 		check(not has(Review.DefaultProject, "CandidateConfig"), "default.project.json maps no CandidateConfig")
@@ -513,6 +678,15 @@ elseif mode == "production" then
 	check(not printed("[CandidateProfile]") and not warned("[CandidateProfile]"), "no CandidateProfile output")
 	check(DataService.StorageMode() == "DataStore" and not DataService.IsMock(), "DataService uses the DataStore")
 	check(Boot.Runtime() == nil, "adventure runtime off")
+	do
+		local host = env.Instance.new("Folder")
+		host.Name = "ObserverHost"
+		host.Parent = Mock.Service("ServerStorage")
+		runObserver(host)
+		Mock.Advance(62)
+		check(printed("[CandidateObserver] inert"), "observer is inert outside a LocalOnly candidate")
+		check(host:GetAttribute("Observation") == nil, "inert observer publishes nothing")
+	end
 	for _, name in { "PlayerData_v1", "PurchaseHistory_v1", "TrophyPendingGrants_v1", "AdventureRewardIntents_v1" } do
 		check(called("GetDataStore " .. name), "acquires " .. name)
 		check(Gate.Counters().Acquired["DataStore:" .. name] == 1, "gate counted " .. name)
@@ -538,6 +712,481 @@ elseif mode == "production" then
 	check(record and record.Data.Coins == 77 and record.Lock == nil, "removal saves and releases the lock")
 	check(count(Gate.Counters().Refused) == 0, "production refuses nothing")
 	finish("Production" .. (if studioProduction then " (Studio)" else ""))
+
+-- Local simulation ids (LocalSimulationPolicy) -----------------------------------------------------
+elseif mode == "localids" then
+	local variant = args[2] or "localonly"
+	local function finalContext(instanceId, participants)
+		return table.freeze({
+			BoundaryVersion = 1,
+			EventInstanceId = instanceId,
+			EventId = "event_vault",
+			LandmarkId = "landmark_spring_vault",
+			RegionId = "sunshine_shore",
+			Success = true,
+			ObjectiveIds = { "vault_anchor_1" },
+			CompletedStages = { "excavation", "vault_open", "ball_return" },
+			Participants = participants,
+		})
+	end
+	local function stageObservation(instanceId, participants)
+		return table.freeze({
+			BoundaryVersion = 1,
+			EventInstanceId = instanceId,
+			EventId = "event_vault",
+			LandmarkId = "landmark_spring_vault",
+			RegionId = "sunshine_shore",
+			StageId = "excavation",
+			CompletedStages = { "excavation" },
+			Participants = participants,
+		})
+	end
+	-- contributor: earns everything; watcher: stayed to the end but earned 0 points (runtime vetoes)
+	local function contributor(id)
+		return { UserId = id, Points = 20, Eligible = true, ActiveSeconds = 90, ObjectiveIds = { "vault_anchor_1" } }
+	end
+	local function watcher(id)
+		return { UserId = id, Points = 0, Eligible = false, ActiveSeconds = 90, ObjectiveIds = {} }
+	end
+	local function stageP(id, points)
+		return { UserId = id, Points = points, ObjectiveIds = {}, Connected = true, Left = false }
+	end
+
+	-- 1. Pure validation (shared modules, no services) -------------------------------------
+	do
+		local Rules = load("ReplicatedStorage/Shared/Trophies/Rules")
+		local Rewards = load("ReplicatedStorage/Shared/Rewards/AdventureRewards")
+		local function yes()
+			return true
+		end
+		local function no()
+			return false
+		end
+		for _, v in { -1, -2, 0, -1.5, -65, 0 / 0, math.huge, -math.huge, "1", 2 ^ 53 + 2 } do
+			check(not Rules.IsUserId(v), "default IsUserId rejects " .. tostring(v))
+		end
+		check(Rules.IsUserId(1) and Rules.IsUserId(7101) and Rules.IsUserId(2 ^ 53), "default accepts real ids")
+		check(
+			Rules.IsUserId(-1, yes) and Rules.IsUserId(-2, yes) and Rules.IsUserId(-64, yes),
+			"policy accepts -1/-2/-64"
+		)
+		for _, v in { 0, -65, -1.5, -1000, 0 / 0, -math.huge, "-1" } do
+			check(not Rules.IsUserId(v, yes), "policy still rejects " .. tostring(v))
+		end
+		check(not Rules.IsUserId(-1, no), "a predicate that refuses keeps -1 rejected")
+		check(Rules.IsUserId(7101, no), "real ids never depend on the predicate")
+		local asked = false
+		Rules.IsUserId(-65, function()
+			asked = true
+			return true
+		end)
+		check(not asked, "the predicate is never asked about an out-of-range id")
+		check(Rules.LOCAL_SIM_MIN_USER_ID == -64, "range floor is -64")
+
+		local function tp(id)
+			return { UserId = id, Points = 20, ActiveSeconds = 90, ObjectiveCompletions = 1, PresentForObjective = true }
+		end
+		check(not Rules.IsParticipant(tp(-1)), "IsParticipant default rejects -1")
+		check(Rules.IsParticipant(tp(-1), yes), "IsParticipant with policy accepts -1")
+		check(Rules.IsParticipant(tp(7101)), "IsParticipant accepts a real id")
+
+		local ctx = finalContext("pure:1", { contributor(-1), watcher(-2) })
+		local d, e = Rewards.FinalDecisions(ctx, 1000)
+		check(
+			d == nil and e == "BadParticipants",
+			"FinalDecisions default: -1/-2 -> BadParticipants (" .. tostring(e) .. ")"
+		)
+		d, e = Rewards.FinalDecisions(ctx, 1000, {})
+		check(d == nil and e == "BadParticipants", "FinalDecisions empty options: BadParticipants")
+		d, e = Rewards.FinalDecisions(ctx, 1000, { AcceptLocalUserId = yes })
+		check(d ~= nil and #d == 2, "FinalDecisions with policy decides both (" .. tostring(e) .. ")")
+		if d then
+			check(d[1].Intent ~= nil and d[1].Intent.UserId == -1, "contributor -1 gets an intent")
+			check(
+				d[2].Intent == nil and d[2].Reason == "LowContribution",
+				"0-point watcher -2 still refused by the normal rules (" .. tostring(d[2].Reason) .. ")"
+			)
+			local receipt = Rewards.ReceiptFor(d[1].Intent)
+			check(receipt == "adv:pure:1:-1:final:v1", "receipt keeps the real negative id: " .. receipt)
+			check(not Rewards.IsIntent(receipt, d[1].Intent), "outbox read-back still rejects simulated ids")
+		end
+		d, e = Rewards.FinalDecisions(
+			finalContext("pure:2", { contributor(-1), watcher(-1) }),
+			1000,
+			{ AcceptLocalUserId = yes }
+		)
+		check(d == nil and e == "BadParticipants", "duplicate -1 still BadParticipants with policy")
+		d, e = Rewards.FinalDecisions(finalContext("pure:3", { contributor(-65) }), 1000, { AcceptLocalUserId = yes })
+		check(d == nil and e == "BadParticipants", "-65 still BadParticipants with policy")
+		d, e = Rewards.FinalDecisions(finalContext("pure:4", { contributor(-1) }), 1000, { AcceptLocalUserId = no })
+		check(d == nil and e == "BadParticipants", "refusing predicate: BadParticipants")
+		for _, bad in { 0, -1.5 } do
+			d, e =
+				Rewards.FinalDecisions(finalContext("pure:5", { contributor(bad) }), 1000, { AcceptLocalUserId = yes })
+			check(d == nil and e == "BadParticipants", tostring(bad) .. " still BadParticipants with policy")
+		end
+		local obs = stageObservation("pure:6", { stageP(-1, 10), stageP(-2, 0) })
+		d, e = Rewards.StageDecisions(obs, 1000)
+		check(d == nil and e == "BadParticipants", "StageDecisions default: BadParticipants")
+		d, e = Rewards.StageDecisions(obs, 1000, { AcceptLocalUserId = yes })
+		check(
+			d ~= nil and d[1].Intent ~= nil and d[2].Reason == "NoContribution",
+			"StageDecisions with policy: contributor granted, 0 points refused"
+		)
+		d, e = Rewards.FinalDecisions(finalContext("pure:7", { contributor(7101), watcher(7102) }), 1000)
+		check(
+			d ~= nil and d[1].Intent ~= nil and d[2].Reason == "LowContribution",
+			"real ids unchanged without options"
+		)
+	end
+
+	-- 2. Real Main, one storage mode per variant -------------------------------------------
+	if variant == "localonly" or variant == "notstudio" then
+		Mock.IsStudio = true
+		install()
+	elseif variant == "mock" then
+		Mock.IsStudio = true
+		Mock.DataStoreFail = true
+	elseif variant == "production" then
+		Mock.IsStudio = false
+	else
+		error("unknown localids variant " .. tostring(variant))
+	end
+	Mock.RunScript(main)
+	Mock.Advance(2)
+	check(#Mock.Errors == 0, "Main boots")
+	local Profile = load(P .. "CandidateProfile")
+	local DataService = load(P .. "DataService")
+	local Settlement = load(P .. "AdventureSettlement")
+	local Policy = load(P .. "LocalSimulationPolicy")
+	local Pending = load(P .. "TrophyPendingStore")
+	local expectStorage = ({
+		localonly = "LocalOnly",
+		notstudio = "LocalOnly",
+		mock = "Mock",
+		production = "DataStore",
+	})[variant]
+	check(
+		DataService.StorageMode() == expectStorage,
+		variant .. ": storage " .. tostring(DataService.StorageMode()) .. " == " .. expectStorage
+	)
+	check(Profile.IsLocalOnly() == (expectStorage == "LocalOnly"), variant .. ": candidate profile")
+
+	local sent = {}
+	Settlement.OutcomeSent:Connect(function(player, outcome)
+		sent[player.UserId] = sent[player.UserId] or {}
+		table.insert(sent[player.UserId], outcome)
+	end)
+	local function lastCard(id)
+		local list = sent[id]
+		return list and list[#list]
+	end
+	local function settleFinal(ctx)
+		local report
+		env.task.spawn(function()
+			report = Settlement.SettleCompletion(ctx)
+		end)
+		Mock.Advance(3)
+		return report
+	end
+	local function settleStage(obs)
+		local report
+		env.task.spawn(function()
+			report = Settlement.SettleStage(obs)
+		end)
+		Mock.Advance(3)
+		return report
+	end
+
+	local a = Mock.AddPlayer(-1, "Player1")
+	local b = Mock.AddPlayer(-2, "Player2")
+	local c = Mock.AddPlayer(-3, "Player3") -- bystander, never joins an adventure
+	Mock.Advance(3)
+	check(DataService.IsLoaded(a) and DataService.IsLoaded(b) and DataService.IsLoaded(c), "negative-id players load")
+	local coinsA0 = DataService.Get(a).Coins
+	local coinsB0 = DataService.Get(b).Coins
+
+	if variant == "notstudio" then
+		Mock.IsStudio = false -- after a valid LocalOnly resolution: the guard is evaluated at use time
+	end
+
+	if variant == "localonly" then
+		check(Policy.IsEnabled(), "policy enabled: Studio + LocalOnly profile + LocalOnly storage")
+		check(Policy.Predicate() ~= nil, "predicate handed out")
+		check(Policy.AcceptsUserId(-1) and Policy.AcceptsUserId(-3), "joined Studio ids accepted")
+		check(not Policy.AcceptsUserId(-9), "an id no Player joined with is not accepted")
+		check(not Policy.AcceptsUserId(-65) and not Policy.AcceptsUserId(0), "out-of-range ids not accepted")
+		check(not Policy.AcceptsUserId(7101), "the policy never vouches for real ids")
+		check(table.isfrozen(Policy), "policy module is frozen")
+		check(not pcall(function()
+			Policy.IsEnabled = function()
+				return true
+			end
+		end), "policy guard cannot be replaced")
+
+		-- stage: contributor granted, 0-point player refused, bystander nothing
+		local sr = settleStage(stageObservation("studio:local:1", { stageP(-1, 10), stageP(-2, 0) }))
+		check(sr and sr.Ok, "stage settles in LocalOnly (" .. tostring(sr and sr.Error) .. ")")
+		local sa, sb = lastCard(-1), lastCard(-2)
+		check(
+			sa and sa.Kind == "Stage" and sa.State == "Accepted" and sa.Storage == "LocalOnly" and sa.Coins > 0,
+			"stage: -1 Accepted card, Storage LocalOnly"
+		)
+		check(sb and sb.State == "Refused" and sb.Reason == "NoContribution", "stage: -2 Refused NoContribution")
+		check(sent[-3] == nil, "stage: bystander gets nothing")
+
+		-- final run 1
+		local r1 = settleFinal(finalContext("studio:local:1", { contributor(-1), watcher(-2) }))
+		check(r1 and r1.Ok and r1.Done, "final run 1 settles (" .. tostring(r1 and r1.Error) .. ")")
+		local ca, cb = lastCard(-1), lastCard(-2)
+		check(
+			ca
+				and ca.Kind == "Final"
+				and ca.InstanceId == "studio:local:1"
+				and ca.State == "Accepted"
+				and ca.Status == "Saved"
+				and ca.Storage == "LocalOnly"
+				and ca.Trophy == true
+				and ca.Stand == true
+				and ca.Certification ~= nil,
+			"run 1: -1 Accepted card with trophy/stand/cert, Storage LocalOnly ("
+				.. tostring(ca and ca.State)
+				.. "/"
+				.. tostring(ca and ca.Status)
+				.. "/"
+				.. tostring(ca and ca.Reason)
+				.. ")"
+		)
+		check(
+			cb and cb.Kind == "Final" and cb.State == "Refused" and cb.Coins == 0 and cb.Trophy == false,
+			"run 1: -2 Refused (" .. tostring(cb and cb.Reason) .. ")"
+		)
+		check(sent[-3] == nil, "run 1: bystander gets nothing")
+		check(DataService.Get(a).Coins > coinsA0, "run 1: coins in -1's in-memory save")
+		check(DataService.Get(b).Coins == coinsB0, "run 1: -2's save unchanged")
+		check(r1 and r1.Trophy and r1.Trophy.Ok, "run 1: TrophyService settled the same context")
+
+		-- final run 2: distinct instance, -2 contributes this time, plus a real-id player
+		local d = Mock.AddPlayer(7101, "RealId")
+		Mock.Advance(3)
+		local before = #sent[-1]
+		local r2 = settleFinal(finalContext("studio:local:2", { contributor(-1), contributor(-2), contributor(7101) }))
+		check(r2 and r2.Ok, "final run 2 settles (" .. tostring(r2 and r2.Error) .. ")")
+		local ca2, cb2, cd2 = lastCard(-1), lastCard(-2), lastCard(7101)
+		check(#sent[-1] == before + 1 and ca2.InstanceId == "studio:local:2", "run 2: -1 gets a new card")
+		check(ca2 and ca2.State == "Accepted" and ca2.Trophy == false, "run 2: -1 Accepted, trophy already owned")
+		check(
+			cb2 and cb2.State == "Accepted" and cb2.Trophy == true and cb2.Storage == "LocalOnly",
+			"run 2: -2 now Accepted with trophy"
+		)
+		check(cd2 and cd2.State == "Accepted" and cd2.Storage == "LocalOnly", "run 2: real id unchanged")
+		check(sent[-3] == nil, "run 2: bystander gets nothing")
+		check(DataService.Get(d) ~= nil, "real-id player loaded")
+
+		-- replaying run 1 is a Duplicate, never a second grant
+		local coinsA1 = DataService.Get(a).Coins
+		local r1b = settleFinal(finalContext("studio:local:1", { contributor(-1), watcher(-2) }))
+		check(r1b and r1b.Ok and lastCard(-1).Status == "Duplicate", "replayed run 1: Duplicate")
+		check(DataService.Get(a).Coins == coinsA1, "replayed run 1: no extra coins")
+
+		-- an id no Player joined with is never vouched for: the whole context is refused
+		local r3 = settleFinal(finalContext("studio:local:3", { contributor(-1), contributor(-9) }))
+		check(r3 and not r3.Ok and r3.Error == "BadParticipants", "unknown -9 -> BadParticipants")
+
+		-- a failed in-memory save for loaded -1: Unconfirmed (truthfully not durable), never
+		-- Queued, and nothing goes to an outbox; the retry then resolves it
+		do
+			local realSave = DataService.SaveAsync
+			local failures = 0
+			DataService.SaveAsync = function(player)
+				if player == a and failures == 0 then
+					failures += 1
+					return false
+				end
+				return realSave(player)
+			end
+			local before6 = #sent[-1]
+			local r6 = settleFinal(finalContext("studio:local:6", { contributor(-1) }))
+			DataService.SaveAsync = realSave
+			local e6 = r6 and r6.ByUserId[-1]
+			local c6 = lastCard(-1)
+			check(failures == 1, "save failure injected once")
+			check(
+				e6 and e6.Status == "Unconfirmed",
+				"failed save: entry Unconfirmed, not Queued (" .. tostring(e6 and e6.Status) .. ")"
+			)
+			check(
+				#sent[-1] == before6 + 1
+					and c6.InstanceId == "studio:local:6"
+					and c6.Status == "Unconfirmed"
+					and c6.State == "Pending"
+					and c6.Storage == "LocalOnly",
+				"failed save: card Unconfirmed/Pending (" .. tostring(c6.Status) .. "/" .. tostring(c6.State) .. ")"
+			)
+			local q6, t6
+			env.task.spawn(function()
+				q6, t6 = Settlement.Outbox.Read(-1), Pending.Read(-1)
+			end)
+			Mock.Advance(1)
+			check(q6 and t6 and count(q6) + count(t6) == 0, "failed save: nothing queued in either outbox for -1")
+			Mock.Advance(Settlement.RetryDelays[1] + 1)
+			local resolved = lastCard(-1)
+			check(
+				resolved.InstanceId == "studio:local:6"
+					and resolved.Resolved == true
+					and resolved.State == "Accepted"
+					and resolved.Status == "Saved",
+				"retry resolves the Unconfirmed grant in memory (" .. tostring(resolved.Status) .. ")"
+			)
+		end
+
+		-- the same failed save for a simulated id on its FIRST eligible final (trophy + stand newly
+		-- granted): the trophy part is Unconfirmed too, never Queued or left Applied
+		do
+			local e = Mock.AddPlayer(-4, "Player4")
+			Mock.Advance(3)
+			check(DataService.IsLoaded(e), "-4 loads")
+			local realSave = DataService.SaveAsync
+			local failures = 0
+			DataService.SaveAsync = function(player)
+				if player == e and failures == 0 then
+					failures += 1
+					return false
+				end
+				return realSave(player)
+			end
+			local r7 = settleFinal(finalContext("studio:local:7", { contributor(-4) }))
+			DataService.SaveAsync = realSave
+			local e7 = r7 and r7.ByUserId[-4]
+			local c7 = lastCard(-4)
+			check(failures == 1, "-4: save failure injected once")
+			check(
+				e7 and e7.TrophyStatus == "Granted" and e7.TrophyGranted == true and e7.StandGranted == true,
+				"-4: trophy and stand newly granted in the live save (" .. tostring(e7 and e7.TrophyStatus) .. ")"
+			)
+			check(
+				e7 and e7.Status == "Unconfirmed" and e7.TrophyDurable == "Unconfirmed",
+				"-4: coins and trophy parts Unconfirmed, not Queued/Applied ("
+					.. tostring(e7 and e7.Status)
+					.. "/"
+					.. tostring(e7 and e7.TrophyDurable)
+					.. ")"
+			)
+			check(
+				c7 and c7.InstanceId == "studio:local:7" and c7.Status == "Unconfirmed" and c7.State == "Pending",
+				"-4: card Unconfirmed/Pending"
+			)
+			local q7, t7
+			env.task.spawn(function()
+				q7, t7 = Settlement.Outbox.Read(-4), Pending.Read(-4)
+			end)
+			Mock.Advance(1)
+			check(q7 and t7 and count(q7) + count(t7) == 0, "-4: nothing queued in either outbox")
+			Mock.Advance(Settlement.RetryDelays[1] + 1)
+			local resolved = lastCard(-4)
+			check(
+				resolved.InstanceId == "studio:local:7"
+					and resolved.Resolved == true
+					and resolved.State == "Accepted"
+					and resolved.Status == "Saved"
+					and resolved.Trophy == true
+					and resolved.Stand == true,
+				"-4: retry resolves both parts with the trophy (" .. tostring(resolved.Status) .. ")"
+			)
+			check(e7.Status == "Saved" and e7.TrophyDurable == "Saved", "-4: both parts Saved after the retry")
+		end
+
+		-- a participant who left is still a known id, judged by the normal rules
+		Mock.RemovePlayer(b)
+		Mock.Advance(3)
+		local r4 = settleFinal(finalContext("studio:local:4", { contributor(-1), watcher(-2) }))
+		check(r4 and r4.Ok, "context with a departed Studio player settles (" .. tostring(r4 and r4.Error) .. ")")
+		check(r4 and r4.ByUserId[-2] and r4.ByUserId[-2].Status == "Ineligible", "departed -2 Ineligible")
+		-- an eligible-but-not-loaded simulated id is refused, never queued in an outbox
+		local r5 = settleFinal(finalContext("studio:local:5", { contributor(-2) }))
+		local e5 = r5 and r5.ByUserId[-2]
+		check(
+			e5 and e5.Status == "Refused" and e5.Reason == "LocalSimulationNotLoaded",
+			"not-loaded simulated id refused truthfully ("
+				.. tostring(e5 and e5.Status)
+				.. "/"
+				.. tostring(e5 and e5.Reason)
+				.. ")"
+		)
+		local t5 = r5 and r5.Trophy and r5.Trophy.ByUserId[-2]
+		check(
+			t5 and t5.Status == "Refused" and t5.Reason == "LocalSimulationNotLoaded",
+			"trophy part names the real reason, not a stale PendingWriteFailed ("
+				.. tostring(t5 and t5.Status)
+				.. "/"
+				.. tostring(t5 and t5.Reason)
+				.. ")"
+		)
+		check(
+			e5 and e5.TrophyStatus == "Refused" and e5.TrophyReason == "LocalSimulationNotLoaded",
+			"entry TrophyReason LocalSimulationNotLoaded (" .. tostring(e5 and e5.TrophyReason) .. ")"
+		)
+		local card5 = lastCard(-2)
+		check(card5 and card5.InstanceId ~= "studio:local:5", "departed -2 gets no card")
+		local qa, qb, ta, tb
+		env.task.spawn(function()
+			qa, qb = Settlement.Outbox.Read(-1), Settlement.Outbox.Read(-2)
+			ta, tb = Pending.Read(-1), Pending.Read(-2)
+		end)
+		Mock.Advance(1)
+		check(
+			qa and qb and ta and tb and count(qa) + count(qb) + count(ta) + count(tb) == 0,
+			"nothing queued for simulated ids"
+		)
+		Mock.RunBindToClose()
+		Mock.Advance(30)
+		check(#Mock.DataStoreCalls == 0, "ZERO DataStoreService calls (got: " .. storeCalls() .. ")")
+	else
+		-- Guard negatives: settlement itself is on, but -1/-2 are still BadParticipants.
+		Settlement.SetEnabled(true)
+		check(not Policy.IsEnabled() and Policy.Predicate() == nil, variant .. ": policy off")
+		check(not Policy.AcceptsUserId(-1), variant .. ": -1 not accepted")
+
+		local sr = settleStage(stageObservation("guard:1", { stageP(-1, 10), stageP(-2, 0) }))
+		check(
+			sr and not sr.Ok and sr.Error == "BadParticipants",
+			variant .. ": stage BadParticipants (" .. tostring(sr and sr.Error) .. ")"
+		)
+		local r1 = settleFinal(finalContext("guard:1", { contributor(-1), watcher(-2) }))
+		check(
+			r1 and not r1.Ok and r1.Error == "BadParticipants",
+			variant .. ": final BadParticipants (" .. tostring(r1 and r1.Error) .. ")"
+		)
+		check(sent[-1] == nil and sent[-2] == nil and sent[-3] == nil, variant .. ": no outcome cards")
+		check(DataService.Get(a).Coins == coinsA0 and DataService.Get(b).Coins == coinsB0, variant .. ": no grants")
+		local qa, ta
+		env.task.spawn(function()
+			qa, ta = Settlement.Outbox.Read(-1), Pending.Read(-1)
+		end)
+		Mock.Advance(1)
+		check(count(qa) == 0 and count(ta) == 0, variant .. ": nothing queued for -1")
+		-- control: the same settlement with a real id is accepted, so the refusal is the id rule
+		local d = Mock.AddPlayer(8101, "Real")
+		Mock.Advance(3)
+		local r2 = settleFinal(finalContext("guard:2", { contributor(8101) }))
+		check(
+			r2 and r2.Ok and lastCard(8101) and lastCard(8101).State == "Accepted",
+			variant .. ": real id control settles (" .. tostring(r2 and r2.Error) .. ")"
+		)
+		check(DataService.Get(d) ~= nil, variant .. ": real id loaded")
+		if variant == "notstudio" then
+			-- same server back in Studio: the use-time guard holds again
+			Mock.IsStudio = true
+			check(Policy.IsEnabled(), "notstudio: guard re-evaluated at use time")
+			local r3 = settleFinal(finalContext("guard:3", { contributor(-1) }))
+			check(
+				r3 and r3.Ok and lastCard(-1) and lastCard(-1).State == "Accepted",
+				"notstudio: settles once Studio again"
+			)
+			Mock.IsStudio = false
+		end
+	end
+	finish("Local ids (" .. variant .. ")")
 else
 	error("unknown mode " .. tostring(mode))
 end

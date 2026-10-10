@@ -226,9 +226,16 @@ end
 
 -- Contexts from the adventure runtime ------------------------------------------------------
 
+-- Server-only options for StageDecisions / FinalDecisions. AcceptLocalUserId: the LocalOnly
+-- Studio candidate's LocalSimulationPolicy predicate (see Trophies.Rules.IsUserId); nil (the
+-- default, and always in production) accepts real UserIds only.
+export type DecisionOptions = {
+	AcceptLocalUserId: ((number) -> boolean)?,
+}
+
 -- Common checks for the runtime's frozen stage observation and completion context. Returns
 -- (rewards) or (nil, error).
-local function validateContext(context: any): (EventRewards?, string?)
+local function validateContext(context: any, options: DecisionOptions?): (EventRewards?, string?)
 	if type(context) ~= "table" then
 		return nil, "Malformed"
 	end
@@ -259,7 +266,7 @@ local function validateContext(context: any): (EventRewards?, string?)
 		if
 			type(i) ~= "number"
 			or type(p) ~= "table"
-			or not isInteger(p.UserId, 1, 2 ^ 53)
+			or not TrophyRules.IsUserId(p.UserId, if options then options.AcceptLocalUserId else nil)
 			or seen[p.UserId]
 			or not isFiniteNonNegative(p.Points)
 			or type(p.ObjectiveIds) ~= "table"
@@ -281,8 +288,8 @@ end
 	stages finished before they did.
 	Returns (decisions) or (nil, error).
 ]]
-function Rewards.StageDecisions(observation: any, now: number): ({ Decision }?, string?)
-	local def, err = validateContext(observation)
+function Rewards.StageDecisions(observation: any, now: number, options: DecisionOptions?): ({ Decision }?, string?)
+	local def, err = validateContext(observation, options)
 	if not def then
 		return nil, err
 	end
@@ -327,8 +334,8 @@ end
 	final grant) AND the trophy contribution rule (Trophies.Rules.IsEligible, bible ch.04).
 	Returns (decisions) or (nil, error).
 ]]
-function Rewards.FinalDecisions(context: any, now: number): ({ Decision }?, string?)
-	local def, err = validateContext(context)
+function Rewards.FinalDecisions(context: any, now: number, options: DecisionOptions?): ({ Decision }?, string?)
+	local def, err = validateContext(context, options)
 	if not def then
 		return nil, err
 	end

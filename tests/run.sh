@@ -34,6 +34,9 @@ luau tests/adventure-entry.spec.luau || status=1
 luau tests/adventure-entry.spec.luau -a on || status=1
 luau tests/adventure-entry.spec.luau -a invite || status=1
 luau tests/adventure-entry.spec.luau -a invite-client || status=1
+echo "== adventure-evidence.spec (catch-up deposit evidence / kill switch after a failed start) =="
+luau tests/adventure-evidence.spec.luau || status=1
+luau tests/adventure-evidence.spec.luau -a failstart || status=1
 echo "== production-review.spec (review-only boot gate around the real Main) =="
 luau tests/production-review.spec.luau || status=1
 echo "== broadwave-license.spec (licensed Broadwave contract) =="
@@ -43,6 +46,11 @@ luau tests/candidate-storage.spec.luau -a localonly || status=1
 luau tests/candidate-storage.spec.luau -a refusals || status=1
 luau tests/candidate-storage.spec.luau -a production || status=1
 luau tests/candidate-storage.spec.luau -a production studio || status=1
+echo "== candidate-storage.spec localids (Studio test ids settle only in LocalOnly Studio) =="
+luau tests/candidate-storage.spec.luau -a localids || status=1
+luau tests/candidate-storage.spec.luau -a localids mock || status=1
+luau tests/candidate-storage.spec.luau -a localids production || status=1
+luau tests/candidate-storage.spec.luau -a localids notstudio || status=1
 echo "== pip-quest.spec (q_pip license grant + rides vs the pocket; ordinary on / off) =="
 luau tests/pip-quest.spec.luau || status=1
 luau tests/pip-quest.spec.luau -a off || status=1

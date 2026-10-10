@@ -210,8 +210,9 @@ function AdventureBoot.Disable()
 		local r = runtime
 		runtime = nil
 		pcall(r.Destroy)
-		AdventureSettlement.SetEnabled(false)
 	end
+	-- Always, even when Start failed before a runtime existed (Start enables settlement first).
+	AdventureSettlement.SetEnabled(false)
 	-- After Destroy (which restores joined players into the arena, then removes it): lift
 	-- everyone still under the slab to the beach in the same frame.
 	AdventureEntry.Stop()

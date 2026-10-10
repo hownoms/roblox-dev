@@ -1,0 +1,236 @@
+== util.spec ==
+8 passed, 0 failed
+== smoke.spec ==
+wrote build\test\generated.luau (836 classes, 544 enums)
+wrote build\test\production-review.luau
+wrote build\test\production-candidate.luau
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== same-server rejoin during delayed final save
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (6/8 spots found something)
+== launch check
+== badges
+== persistence contention and transient failures
+== shutdown
+== report
+
+SMOKE: 2212 passed, 0 failed
+SMOKE TEST PASSED
+== smoke.spec (Studio, no DataStore access) ==
+(mode: Studio without DataStore access)
+== boot
+[budget] surface parts 9710, lights 34, emitters 14
+== terrain
+== protected underground scenery
+== join
+== dig
+   digs: 20 ok, fails: BackpackFull=4
+== sell
+== shop
+== eggs
+== rewards
+== monetization
+== purchases
+== hole
+== rebirth
+== analytics
+== overlapping save and final release
+== leave
+== rejoin
+== full server
+== beach
+== companions
+== survival
+== ride
+== hatching + compliance
+== status & social
+== rebirth & economy
+== stress (v2.3 /stress)
+== discovery
+   find rate: 11 finds in 8 x 45 s of digging (5/8 spots found something)
+== launch check
+== badges
+== shutdown
+== report
+
+SMOKE: 2179 passed, 0 failed
+SMOKE TEST PASSED
+== trophy.spec (mock store) ==
+== migration (pure)
+== eligibility rule
+== existing save loads through DataService
+== completion settlement
+== adventure CompletionContext adapter
+== disconnect, rejoin, reconnect
+== client cannot grant
+== camp placement
+== existing systems
+== trophy stand requirement
+== authored camp pad: one pad, one owner, hand-over
+== camp display action: prompts, preview cell, status, queue, no pad
+== camp lifecycle and ownership protections
+== cross-server recovery (second mock server)
+TROPHY SPEC: 476 passed, 0 failed
+== adventure-settlement.spec (mock store) ==
+== pure rules: validation
+== pure rules: eligibility
+== pure rules: application
+== service: solo first clear
+== per-player outcomes
+== service: crew, late helper, disconnects
+== durability
+== another server (fresh mock game, shared DataStores)
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed
+== adventure-outcome.spec (client card) ==
+ADVENTURE OUTCOME CLIENT: 366 passed, 0 failed
+== trophy-wired.spec (real Main) ==
+TROPHY WIRED: 60 passed, 0 failed
+== settlement-durability.spec (real Main; runtime on in-process / flags off) ==
+== real runtime: crew run with watcher, late helper, disconnect and bystander
+  runtime review copy contradicting an Accepted card: 0 line(s)
+== real runtime: failed run keeps stage coins, grants no final
+== real runtime with AdventureRewards OFF (SpringVault on): production run, nothing granted
+  rewards off, runtime objective after completion: Ball rescued · 3/3 gates. Leave when you are ready.
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.9 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 18 Accepted (each durable when told), 2 Pending, 4 Refused
+SETTLEMENT DURABILITY (on): 218 passed, 0 failed
+== trophy display failure cannot abort a settlement
+== drain retries: unreadable outbox and failed drain save
+== outbox acknowledgement keeps intents from a newer server version
+== a stale cached profile never overwrites a newer save
+== Unconfirmed grant whose player leaves before it was durable
+== offline final and BindToClose budget (mock clock)
+  worst-case settlement writes resolved after 10.5 s of mock time
+== rewards flag off and kill switch
+  outcome monitor: 9 Accepted (each durable when told), 2 Pending, 0 Refused
+SETTLEMENT DURABILITY (off): 76 passed, 0 failed
+== production-wiring.spec (flags off / on) ==
+PRODUCTION WIRING (off): 37 passed, 0 failed
+PRODUCTION WIRING (on): 42 passed, 0 failed
+PRODUCTION WIRING (rejoin): 13 passed, 0 failed
+PRODUCTION WIRING (client): 125 passed, 0 failed
+PRODUCTION WIRING (client-stream): 40 passed, 0 failed
+== adventure-entry.spec (flags off / on / invitation / client waypoint) ==
+ADVENTURE ENTRY (off): 21 passed, 0 failed
+ADVENTURE ENTRY (on): 69 passed, 0 failed
+ADVENTURE ENTRY (invite): 54 passed, 0 failed
+ADVENTURE ENTRY (invite-client): 9 passed, 0 failed
+== adventure-evidence.spec (catch-up deposit evidence / kill switch after a failed start) ==
+ADVENTURE EVIDENCE (evidence): 35 passed, 0 failed
+ADVENTURE EVIDENCE (failstart): 8 passed, 0 failed
+== production-review.spec (review-only boot gate around the real Main) ==
+PRODUCTION REVIEW: 92 passed, 0 failed
+== broadwave-license.spec (licensed Broadwave contract) ==
+NOTE: runtime accepts ResolveTool but declares no Service.Contract marker
+BROADWAVE LICENSE: 61 passed, 0 failed
+== candidate-storage.spec (LocalOnly candidate / refusals / production) ==
+CANDIDATE STORAGE LocalOnly: 56 passed, 0 failed
+CANDIDATE STORAGE Refusals (15 cases): 220 passed, 0 failed
+CANDIDATE STORAGE Production: 26 passed, 0 failed
+CANDIDATE STORAGE Production (Studio): 26 passed, 0 failed
+== candidate-storage.spec localids (Studio test ids settle only in LocalOnly Studio) ==
+CANDIDATE STORAGE Local ids (localonly): 96 passed, 0 failed
+CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+== pip-quest.spec (q_pip license grant + rides vs the pocket; ordinary on / off) ==
+MEASURED: ride-area distance from pocket arrival 126.0 studs; nearest arena (presence box) point 0.0 studs at (-248, 2); nearest InPocket point 0.0 studs at (-300, 0); SpawnMaxDistance 40; ride bounds X[-377.0, 377.0] Z[-57.0, 4.0]
+MEASURED: without the guard, ToggleRide from the pocket spawned a ride: true
+PIP QUEST (on): 75 passed, 0 failed
+PIP QUEST (off): 25 passed, 0 failed
+== persistence boot failure (live / Studio) ==
+PERSISTENCE BOOT live: PASSED
+PERSISTENCE BOOT Studio: PASSED
+== client.spec ==
+== world + remotes
+== client boot
+== panels
+== buttons
+   clicked 162 buttons (HUD)
+   clicked 191 buttons (Index)
+   clicked 191 buttons (Rebirth)
+   clicked 191 buttons (Pets)
+   clicked 191 buttons (Shop)
+   clicked 191 buttons (Settings)
+   clicked 191 buttons (Store)
+   clicked 191 buttons (Daily)
+   clicked 191 buttons (Quests)
+   clicked 191 buttons (Eggs)
+== hud polish
+== prompts
+== streaming
+== dig
+== hole + respawn
+== companions
+== survival
+== shovel pose
+== ride
+== menu gating
+== hatching + compliance
+== status & social
+== rebirth & economy
+== discovery
+== confirmed sell feedback
+== ambient motion
+== trophy camp action
+== report
+   client -> server: BuyBackpack=30, BuyConsumable=75, BuyRebirthPerk=1, BuyShade=23, BuyShovel=41, ClaimDailyReward=10, ClaimQuest=20, Dig=6, DrinkFountain=1, EquipBackpack=10, EquipShovel=11, Excavate=6, FusePets=1, HatchEgg=1, PickUpShade=70, PlaceShade=1, ReturnToSurface=11, RideDig=3, Scan=11, SetSetting=128, ToggleRide=2, Track=122, UnequipPet=10, UseConsumable=1
+
+CLIENT: 1679 passed, 0 failed
+CLIENT SMOKE TEST PASSED
+== world + remotes
+== client boot
+CLIENT tutorial-loop: 14 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-resume-full: 13 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-resume-sold: 12 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-complete: 10 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-veteran: 10 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-scan-used: 14 passed, 0 failed
+== world + remotes
+== client boot
+CLIENT tutorial-short-coins: 16 passed, 0 failed
+ALL TESTS PASSED

@@ -1,0 +1,6 @@
+CANDIDATE STORAGE Local ids (localonly): 96 passed, 0 failed
+CANDIDATE STORAGE Local ids (mock): 55 passed, 0 failed
+CANDIDATE STORAGE Local ids (production): 55 passed, 0 failed
+CANDIDATE STORAGE Local ids (notstudio): 57 passed, 0 failed
+TROPHY SPEC: 476 passed, 0 failed
+ADVENTURE SETTLEMENT SPEC: 275 passed, 0 failed

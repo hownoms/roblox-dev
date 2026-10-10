@@ -84,6 +84,9 @@ refusal run (`evidence/production-candidate/refusal-run.md`) started nothing.
      `Shared`, `Client`, `ProductionCandidate.CandidateConfig`, and a small non-interactive label
      ("LOCAL CANDIDATE: in-memory storage only; rewards are local simulation") that logs each
      `AdventureOutcome` payload.
+   - Since `launch-readiness.md`, it also installs the read-only `CandidateObserver` (server
+     `Observation` snapshot and `[CandidateObserver]` log lines). The label script adds
+     `[Candidate] stream` lines.
 3. Press Play.
 4. Afterwards, run `tools/expansion1/uninstall-production-candidate.luau`. It removes the
    candidate, restores every parked instance and property, and leaves one undo waypoint. It was

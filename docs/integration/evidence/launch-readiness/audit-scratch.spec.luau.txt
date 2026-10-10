@@ -1,0 +1,120 @@
+--!nocheck
+local Mock = require("./mock/Roblox")
+local mode = ({ ... })[1] or "elig"
+Mock.Init(require("../build/test/generated"))
+local byPath = Mock.ByPath
+local function load(path) return Mock.Require(byPath[path]) end
+local V = Mock.Vector3
+local Config = load("ReplicatedStorage/Shared/Config")
+for _, category in { Config.Monetization.GamePasses, Config.Monetization.Products, Config.Badges } do
+	for _, item in category do item.Id = 0 end
+end
+local S = Config.SURFACE_Y
+local function save(userId, mutate)
+	local data = Config.NewPlayerData()
+	data.Version = Config.DATA_VERSION
+	if mutate then mutate(data) end
+	Mock.DataStores[Config.DATASTORE_NAME] = Mock.DataStores[Config.DATASTORE_NAME] or {}
+	Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. userId] = { Data = data, SavedAt = 1 }
+end
+local Flags = load("ServerScriptService/Server/Services/AdventureFlags")
+
+if mode == "elig" then
+	local N = 40
+	for i = 1, N + 1 do save(7000 + i) end
+	Mock.RunScript(byPath["ServerScriptService/Server/Main"])
+	Mock.Advance(20)
+	local Data = load("ServerScriptService/Server/Services/DataService")
+	local Elig = load("ServerScriptService/Server/Services/AdventureEligibility")
+	local Signals = load("ServerScriptService/Server/Services/ServerSignals")
+	local Disc = load("ServerScriptService/Server/Services/DiscoveryService")
+	local Econ = load("ServerScriptService/Server/Services/EconomyService")
+	local admitted, ftueFinds = 0, 0
+	local example
+	for i = 1, N do
+		local p = Mock.AddPlayer(7000 + i, "P" .. i)
+		Mock.Advance(0.5)
+		Mock.SpawnCharacter(p, V.new(0, S + 3, 40))
+		Mock.Advance(2)
+		-- 6 shovel carves somewhere with no deposit chunk at all (above the surface)
+		for _ = 1, Config.Discovery.FTUE_FIND_DIG do
+			Signals.Carved:Fire(p, V.new(0, S + 30, 0), V.new(2, S + 32, 2), "Shovel", 1)
+		end
+		local ex = Disc.GetExcavation(p)
+		if ex then
+			ftueFinds += 1
+			Disc.Resolve(p, ex.Id, nil)
+		end
+		local d = Data.Get(p)
+		d.Sand = 5
+		Econ.Sell(p, "Audit")
+		Mock.Advance(0.2)
+		local ok, why = Elig.Rules.CanEnter(d)
+		if ok then
+			admitted += 1
+			if not example then
+				local keys = {}
+				for k in d.FindVariants do table.insert(keys, k) end
+				example = string.format("user %d: reason=%s FindVariants={%s} daily_sell_10.Progress=%s Coins=%s",
+					p.UserId, why, table.concat(keys, ","), tostring(d.Quests.daily_sell_10 and d.Quests.daily_sell_10.Progress), tostring(d.Coins))
+			end
+		end
+	end
+	print(string.format("FTUE (no deposit) excavations: %d/%d; CanEnter after FTUE find + 1 sale: %d/%d", ftueFinds, N, admitted, N))
+	print("example: " .. tostring(example))
+	-- real deposit, Normal/None outcome
+	local p = Mock.AddPlayer(7000 + N + 1, "Dep")
+	Mock.Advance(0.5)
+	Mock.SpawnCharacter(p, V.new(0, S + 3, 40))
+	Mock.Advance(2)
+	local d = Data.Get(p)
+	d.Index = { bottle_cap = true } -- not FTUE
+	local zone = load("ServerScriptService/Server/World").GetDigZone()
+	local dep = Disc.AddDeposit(zone.CFrame.Position - V.new(0, 6, 0), "bottle_cap")
+	print("deposit added:", dep ~= nil)
+	local id = dep and Disc.Uncover(p, dep, nil, nil, "Normal", "None")
+	if id then Disc.Resolve(p, id, nil) end
+	d.Sand = 5
+	Econ.Sell(p, "Audit")
+	local keys = {}
+	for k in d.FindVariants do table.insert(keys, k) end
+	print("real excavated deposit Normal/None -> FindVariants={" .. table.concat(keys, ",") .. "} HasDeposit=" ..
+		tostring(Elig.Rules.HasDepositEvidence(d)) .. " CanEnter=" .. tostring((Elig.Rules.CanEnter(d))))
+	local Finds = load("ReplicatedStorage/Shared/Util/Finds")
+	local pn, pnone = 0, 0
+	for _, o in Finds.VariantOdds("Size", 1) do if o.Id == "Normal" then pn = o.Chance end end
+	for _, o in Finds.VariantOdds("Material", 1) do if o.Id == "None" then pnone = o.Chance end end
+	print(string.format("base-luck P(Size=Normal)=%.3f P(Material=None)=%.3f -> P(no evidence from a real deposit)=%.3f", pn, pnone, pn * pnone))
+elseif mode == "failstart" then
+	Flags.SpringVault, Flags.AdventureRewards, Flags.BroadwaveOrdinary = true, true, false
+	local svc = byPath["ServerScriptService/Server/Adventure/SpringVaultService"]
+	local SVS = Mock.Require(svc)
+	SVS.Start = function() error("simulated runtime start failure") end
+	Mock.RunScript(byPath["ServerScriptService/Server/Main"])
+	Mock.Advance(10)
+	local Boot = load("ServerScriptService/Server/Services/AdventureBoot")
+	local Settlement = load("ServerScriptService/Server/Services/AdventureSettlement")
+	print("runtime:", Boot.Runtime())
+	local r = Settlement.SettleStage({})
+	print("after failed Start + Disable(): SettleStage({}).Error =", r and r.Error)
+	Boot.Disable()
+	r = Settlement.SettleStage({})
+	print("after explicit second Disable(): SettleStage({}).Error =", r and r.Error)
+elseif mode == "reenable" then
+	Flags.SpringVault, Flags.AdventureRewards, Flags.BroadwaveOrdinary = true, false, true
+	Mock.RunScript(byPath["ServerScriptService/Server/Main"])
+	Mock.Advance(10)
+	local Boot = load("ServerScriptService/Server/Services/AdventureBoot")
+	local PipQuest = load("ServerScriptService/Server/Services/PipQuest")
+	local Settlement = load("ServerScriptService/Server/Services/AdventureSettlement")
+	print("rewards OFF, ordinary ON: runtime", Boot.Runtime() ~= nil, "PipQuest running", PipQuest.IsRunning(),
+		"SettleStage err", (Settlement.SettleStage({}) or {}).Error)
+	Boot.Disable()
+	Mock.Advance(1)
+	Boot.Start()
+	Mock.Advance(2)
+	print("after Disable()+Start(): runtime", Boot.Runtime() ~= nil, "entry", load("ServerScriptService/Server/Services/AdventureEntry").IsStarted(),
+		"errors", #Mock.Errors)
+end
+for _, e in Mock.Errors do print("  error: " .. tostring(e)) end
+print("AUDIT DONE", mode)

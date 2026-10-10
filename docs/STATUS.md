@@ -30,6 +30,15 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
   passed; see [Studio review](../assets/expansion1/verification/STUDIO_REVIEW.md).
   Beach-ball panel polish, moving scoop/device review, image uploads and gameplay/reward
   integration remain pending. No expansion was published or enabled.
+- **Spring Vault launch readiness (draft PR `claude/spring-vault-launch-readiness`, not merged):**
+  - settlement tests aligned to the External outcome contract, and the full suite is green;
+  - LocalOnly cards no longer say "saved";
+  - the tutorial find can't grant catch-up entry;
+  - the kill switch disables settlement after a failed start;
+  - a read-only acceptance observer exists for the two-client, streaming and rejoin run.
+
+  Codex has the next Studio acceptance session. Gates and owner decisions D1–D7:
+  [launch-readiness.md](integration/launch-readiness.md).
 - **Spring Vault production candidate (merged to default `01eebba` on owner instruction, 10 October
   2026, not published, flags ship off):**
   - Fail-closed local-only storage, chosen before any service starts: zero DataStore
