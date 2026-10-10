@@ -10,7 +10,9 @@ local Config = require(ReplicatedStorage.Shared.Adventure.SpringVaultConfig)
 local BallVisual = require(ReplicatedStorage.Shared.Adventure.BeachBallVisual)
 
 local Client = {}
-function Client.Start(remotes: Folder, scene: Instance?)
+export type Preferences = { ReducedMotion: boolean?, ReducedParticles: boolean? }
+
+function Client.Start(remotes: Folder, scene: Instance?, preferences: Preferences?)
 	local player = Players.LocalPlayer
 	local connections: { RBXScriptConnection } = {}
 	local instances: { Instance } = {}
@@ -30,8 +32,9 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	local rescueComplete = false
 	local dead = false
 	local eventId: string? = nil
-	local reducedMotion = false
-	local reducedParticles = false
+	local reducedMotion = preferences ~= nil and preferences.ReducedMotion == true
+	local reducedParticles = preferences ~= nil and preferences.ReducedParticles == true
+	local settingsConnection: any = nil
 	local charging = false
 	local chargeCardVisible = false
 	local panelRequested = true
@@ -100,6 +103,9 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	gui.Name = "SpringVaultAdventureReview"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	-- GuideEdge uses layer 2; production panels/popups use 5/8. Keep the guide
+	-- behind the opaque arena panel while preserving access to menus/settings.
+	gui.DisplayOrder = 3
 	gui.Parent = player:WaitForChild("PlayerGui")
 	table.insert(instances, gui)
 	local aimHint = Instance.new("TextLabel")
@@ -189,6 +195,13 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	local leave = button("Leave", 220, 170, function()
 		send("Leave")
 	end)
+	leave.ZIndex = 3
+	local function pinCancellation()
+		-- Compensate only this target for scrolling: cancellation remains reachable
+		-- at the same screen position even when the other controls scroll away.
+		leave.Position = UDim2.new(2 / 3, 0, 0, 8 + card.CanvasPosition.Y)
+	end
+	table.insert(connections, card:GetPropertyChangedSignal("CanvasPosition"):Connect(pinCancellation))
 	local start = button("Start", 12, 224, function()
 		if latestSnapshot.canStart then
 			beginRequested = eventId
@@ -202,18 +215,53 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		send("PushBall")
 	end)
 	local motion: TextButton
-	motion = button("Motion: on", 12, 278, function()
-		reducedMotion = not reducedMotion
+	local particles: TextButton
+	local function setPreferences(values: Preferences)
+		if dead then
+			return
+		end
+		if values.ReducedMotion ~= nil then
+			reducedMotion = values.ReducedMotion == true
+		end
+		if values.ReducedParticles ~= nil then
+			reducedParticles = values.ReducedParticles == true
+		end
 		if reducedMotion then
 			restorePanels()
 		end
+		-- A live accessibility change also retires effects already playing.
+		if reducedMotion or reducedParticles then
+			for model in effects do
+				model:Destroy()
+				effects[model] = nil
+			end
+		end
 		motion.Text = if reducedMotion then "Motion: low" else "Motion: on"
-	end)
-	local particles: TextButton
-	particles = button("Puffs: on", 116, 278, function()
-		reducedParticles = not reducedParticles
 		particles.Text = if reducedParticles then "Puffs: off" else "Puffs: on"
+	end
+	motion = button("Motion: on", 12, 278, function()
+		setPreferences({ ReducedMotion = not reducedMotion })
 	end)
+	particles = button("Puffs: on", 116, 278, function()
+		setPreferences({ ReducedParticles = not reducedParticles })
+	end)
+	setPreferences({})
+	-- Production has State; the isolated review adapter intentionally does not.
+	-- Consume its existing contract without taking ownership of controller wiring.
+	local controllers = script.Parent.Parent:FindFirstChild("Controllers")
+	local stateModule = if controllers then controllers:FindFirstChild("State") else nil
+	if stateModule and stateModule:IsA("ModuleScript") then
+		local State = require(stateModule) :: any
+		local function syncPreferences()
+			local lowMotion = State.GetSetting("ReducedMotion", false) == true
+			setPreferences({
+				ReducedMotion = lowMotion,
+				ReducedParticles = lowMotion or State.GetSetting("LowGraphics", false) == true,
+			})
+		end
+		syncPreferences()
+		settingsConnection = State.Changed("Settings"):Connect(syncPreferences)
+	end
 	local resetBall = button("Reset ball", 220, 278, function()
 		send("ResetBall")
 	end)
@@ -259,6 +307,10 @@ function Client.Start(remotes: Folder, scene: Instance?)
 		end
 		cardContentHeight = 348
 		fitCard()
+		pinCancellation()
+		-- Reserve the header's right column for the fixed cancellation target.
+		title.Size = UDim2.new(if leave.Visible then 2 / 3 else 1, -24, 0, 24)
+		status.Size = UDim2.new(if leave.Visible then 2 / 3 else 1, -24, 0, 42)
 	end
 	layoutControls()
 	-- These markers only select presentation controls. The server resolves issued tools
@@ -729,10 +781,14 @@ function Client.Start(remotes: Folder, scene: Instance?)
 			if typeof(frame) ~= "CFrame" or not visible(frame) then
 				return
 			end
-			if data.kind == "Wave" and waves < 2 then
+			if data.kind == "Wave" and not reducedParticles and waves < 2 then
 				waves += 1
 				task.spawn(function()
 					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
+					if reducedParticles then
+						waves -= 1
 						return
 					end
 					local model = Kit.AbilityEffect(0, reducedMotion)
@@ -769,6 +825,10 @@ function Client.Start(remotes: Folder, scene: Instance?)
 				lastPuff = os.clock()
 				task.spawn(function()
 					if dead or not sceneAvailable or generation ~= sceneGeneration then
+						return
+					end
+					if reducedParticles then
+						puffActive = false
 						return
 					end
 					local model = Kit.BallEffect(reducedMotion)
@@ -968,6 +1028,7 @@ function Client.Start(remotes: Folder, scene: Instance?)
 	)
 	send("Sync")
 	local handle = {}
+	handle.SetPreferences = setPreferences
 	function handle.Destroy()
 		restorePanels()
 		if dead then
@@ -977,6 +1038,9 @@ function Client.Start(remotes: Folder, scene: Instance?)
 			send("ChargeCancel", "trial_patch")
 		end
 		dead = true
+		if settingsConnection then
+			settingsConnection:Disconnect()
+		end
 		clearCharge()
 		clearScene()
 		ContextActionService:UnbindAction("SpringVaultBroadwave")

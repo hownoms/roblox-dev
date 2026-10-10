@@ -1,0 +1,20 @@
+{
+  "ReducedMotion": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Runtime\":true,\"Puffs\":\"Puffs: off\",\"Panel\":false,\"Motion\":\"Motion: low\"}"
+      }
+    ],
+    "isError": false
+  },
+  "LowGraphics": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"Runtime\":true,\"Puffs\":\"Puffs: off\",\"Panel\":false,\"Motion\":\"Motion: on\"}"
+      }
+    ],
+    "isError": false
+  }
+}

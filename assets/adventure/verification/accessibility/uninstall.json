@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"Removed\":{\"1\":\"ReplicatedStorage.Shared\",\"3\":\"ServerScriptService.ProductionCandidate\",\"2\":\"ServerScriptService.Server\",\"5\":\"StarterPlayer.StarterPlayerScripts.ProductionCandidateClient\",\"4\":\"StarterPlayer.StarterPlayerScripts.Client\"},\"Properties\":{\"1\":\"SoundService.RespectFilteringEnabled=false\",\"3\":\"Workspace.StreamingEnabled=false\",\"2\":\"Workspace.FilteringEnabled=true\"},\"Restored\":{\"1\":\"ServerScriptService.AdventureReview\",\"3\":\"ServerScriptService.Adventure\",\"2\":\"ServerScriptService.ExpansionReview\",\"5\":\"StarterPlayer.StarterPlayerScripts.AdventureReview\",\"4\":\"ReplicatedStorage.SpringVaultClient\",\"6\":\"ReplicatedStorage.Shared\"}}"
+    }
+  ],
+  "isError": false
+}

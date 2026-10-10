@@ -1,0 +1,14 @@
+Before: b4e1b14 SpringVaultClient actual source in isolated headless mock bundle. Current new regression specs, not input/device acceptance.
+SPEC spring-vault-preferences exit=1
+./tests/spring-vault-preferences.spec.luau:30: initial saved reduced motion is applied
+stacktrace:
+[C] function assert
+./tests/spring-vault-preferences.spec.luau:30 function check
+./tests/spring-vault-preferences.spec.luau:39
+
+SPEC spring-vault-presentation exit=1
+./tests/spring-vault-presentation.spec.luau:55: runtime clears guide edge while preserving production panels/popups
+stacktrace:
+[C] function assert
+./tests/spring-vault-presentation.spec.luau:55 function check
+./tests/spring-vault-presentation.spec.luau:105

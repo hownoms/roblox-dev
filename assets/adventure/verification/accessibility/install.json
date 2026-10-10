@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"Applied\":{\"1\":\"Workspace.StreamingIntegrityMode FAILED StreamingIntegrityMode is not a valid member of Workspace \\\"Workspace\\\"\",\"8\":\"Lighting.Technology FAILED The current thread cannot write 'Technology' (lacking capability RobloxScript)\",\"3\":\"Workspace.StreamingMinRadius FAILED StreamingMinRadius is not a valid member of Workspace \\\"Workspace\\\"\",\"2\":\"Workspace.StreamingTargetRadius FAILED StreamingTargetRadius is not a valid member of Workspace \\\"Workspace\\\"\",\"5\":\"Workspace.StreamOutBehavior FAILED StreamOutBehavior is not a valid member of Workspace \\\"Workspace\\\"\",\"4\":\"Workspace.FilteringEnabled\",\"7\":\"SoundService.RespectFilteringEnabled\",\"6\":\"Workspace.StreamingEnabled\"},\"Parked\":{\"1\":\"ServerScriptService.AdventureReview\",\"3\":\"ServerScriptService.Adventure\",\"2\":\"ServerScriptService.ExpansionReview\",\"5\":\"StarterPlayer.StarterPlayerScripts.AdventureReview\",\"4\":\"ReplicatedStorage.SpringVaultClient\",\"6\":\"ReplicatedStorage.Shared\"},\"MainEnabled\":true,\"Commit\":\"b4e1b148c033e78347e4c4ebd7b734e07f170aa2\",\"Instances\":223}"
+    }
+  ],
+  "isError": false
+}
