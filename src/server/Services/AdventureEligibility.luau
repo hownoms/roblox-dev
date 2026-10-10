@@ -12,8 +12,8 @@
 	                                  excavated-deposit variant (FindVariants beyond Normal/None)
 	  Rules.CanTrial(data)            q_pip's prerequisite: owns a priced (bought) shovel
 	  Rules.HasBroadwaveLicense(data) saved ToolLicenses.tool_broadwave record (bible ch.04
-	                                  DataVersion 4 name); only a future q_pip/cert_explorer quest
-	                                  grant writes it. Nothing in this slice does.
+	                                  DataVersion 4 name); only PipQuest writes it (q_pip trial
+	                                  completion, under BroadwaveOrdinary). Not this module.
 
 	  CanEnter(player) / CanTrial(player)    SpringVaultService.Start options
 	  CanUseBroadwave(player, tool)          BroadwaveDigBridge CanUse: ordinary Broadwave enabled

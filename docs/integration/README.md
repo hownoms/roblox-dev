@@ -6,6 +6,10 @@
 > fallback prompts that require line of sight, the buttons that reflow under the cursor, and the
 > last line of B1.
 
+> **Pip license (claude/svc-pipquest):** completing Pip's trial now grants the permanent
+> Broadwave license under `BroadwaveOrdinary`, and rides can no longer be called from the pocket.
+> See `pip-quest-license.md`.
+
 Branch `claude/spring-vault-production-integration`, 9 October 2026. It starts from default
 `520575d` and is now merged with default `7df3a73`, which contains Codex's PR #33 and PR #34.
 **Every `AdventureFlags` flag is still `false`.** Nothing was uploaded or published, no flag was
@@ -187,8 +191,9 @@ following the steps in `settlement-durability.md`:
 
 12. Permanent first-sale and deposit evidence. Today the save can produce false negatives for
     veterans.
-13. Who grants `ToolLicenses.tool_broadwave`. Nothing writes it yet, so the licensed path is
-    never reached in production.
+13. ~~Who grants `ToolLicenses.tool_broadwave`.~~ **Decided (owner):** completing Pip's trial
+    (q_pip) grants it once, under `BroadwaveOrdinary` (`pip-quest-license.md`, branch
+    `claude/svc-pipquest`). The bible's 150-coin first-clear reward is not implemented.
 14. The kill-switch trigger: an admin command or a cross-server message.
 15. How far the rewards flag reaches.
 16. **New:** should the hatch also admit players who are eligible for Pip's trial but not yet for
