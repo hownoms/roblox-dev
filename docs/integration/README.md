@@ -1,5 +1,9 @@
 # Spring Vault production integration: joint review packet
 
+> **Latest:** `claude/adventure-player-flow` connects the player journey end to end; read
+> `player-flow.md` first (Studio evidence, fixes, and two new Codex blockers: fallback prompts
+> that require line of sight, and contextual buttons that reflow under the cursor).
+
 Branch `claude/spring-vault-production-integration`, 9 October 2026. It starts from default
 `520575d` and is now merged with default `7df3a73`, which contains Codex's PR #33 and PR #34.
 **Every `AdventureFlags` flag is still `false`.** Nothing was uploaded or published, no flag was
