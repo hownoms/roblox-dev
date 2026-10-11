@@ -33,7 +33,7 @@ Anything else goes to **Post-launch** at the bottom. Polish waits until after la
 | [ ] 1.3 | Music and ambience: pick licensed Creator Store tracks for `MusicBeach`, `MusicDeep`, `Ambience`, wire ids in `Config/Sounds.luau`, check volume and the settings toggles | Claude picks, **owner approves** | Plays in Studio and the toggles work |
 | [ ] 1.4 | Badges: 5 of 15 have ids. Art exists for 5 more (`marketing/badges/06`–`10`: FrozenAbyss, MagmaChamber, AlienHive, TheCore, FirstRebirth). The other 5 (MythicLuck, Collector, AncientRuins, BeachRegular, CoreBreaker) need art or get cut from the store copy | **Owner creates** in Creator Hub, Claude makes missing art and pastes ids | No `Id = 0` badge is promised anywhere |
 | [x] 1.5 | Core first-session blocker sweep on a fresh save: LAUNCH.md §1 checklist (chat vs Shop, toast order, off-screen arrow, Reduced Motion, full bag, upgrade) | Codex | Report of blockers only; each blocker fixed in its own PR. **Sweep reported 11 Oct**: no confirmed 1.5 blocker; evidence limits in [CORE_LAUNCH_SWEEP.md](CORE_LAUNCH_SWEEP.md) |
-| [ ] 1.6 | Purchase and save sweep: every pass/product grants once, survives rejoin, BindToClose saves on shutdown, no error spam with API access in Studio | Codex | Report and fixes merged |
+| [x] 1.6 | Purchase and save sweep: every pass/product grants once, survives rejoin, BindToClose saves on shutdown, no error spam with API access in Studio | Codex | Report and fixes merged. **Done 11 Oct**: one blocker fixed (PR #43, `3676be9`); the real-DataStore check moved to Phase 2 |
 | [ ] 1.7 | Green CI, preflight, and a v18 build from default | Claude | Commit hash recorded below |
 
 ## Phase 2: v18 on the Limited audience (owner + Claude)
@@ -43,6 +43,10 @@ Anything else goes to **Post-launch** at the bottom. Polish waits until after la
 - [ ] Owner + at least one friend play 20 minutes together: **one phone, one PC**, same server.
 - [ ] One person who has never played, watched without coaching. Write down where they stall.
 - [ ] Developer Console clean, with no `[LaunchCheck]` warnings.
+- [ ] Real persistence (1.6 leftover, needs the published place): owner buys the cheapest product
+      once, leaves, rejoins on another server, and checks it was delivered exactly once and coins/bag/finds kept.
+- [ ] Watch the newcomer for chat covering the Shop button (Codex logged it as post-launch; it becomes
+      a blocker if they can't find the upgrade unaided).
 - [ ] Fix only the blockers this finds, then republish.
 
 ## Phase 3: public (owner, with Claude's click-list)
@@ -75,4 +79,5 @@ controller hardware test, sponsored ads, more regions from the game bible.
 |---|---|---|
 | 11 Oct 2026 | Claude | Plan written; expansion frozen; Phase 1 tasks assigned |
 | 11 Oct 2026 | Claude | **1.1 done** (merged `58109ef`). Blocker found and fixed: the flags-off boot still built the TROPHY CAMP pad on the plaza with live "Display trophy" prompts and a status card. World now builds it only with `AdventureRewards`. New inertness checks in `production-wiring.spec` (off): no camp/adventure parts, prompts, remote folders or tools; a fresh session writes no outbox key and grants nothing; no expansion output. Full suite green. Studio Play of a `default.project.json` build: 0 pads, nothing stray, console has no `[Adventure]`/`[Trophy]` lines (only the known LaunchCheck list). Remaining by design: the empty `AdventureOutcome`/camp remotes and empty save containers (`TrophyRecords`, `CampLayout`, `Certifications`, `AdventureProgress`) that the load reconcile adds. Next Claude task: 1.2 |
+| 11 Oct 2026 | Claude | Reviewed Codex's PR #43 (receipt markers saved with the grant; legacy saves reconciled; rebirth keeps markers; failed save on leave replays exactly once). Full suite green on `802fa0e`. Ticked 1.6; live persistence and chat-vs-Shop added to Phase 2. Next Claude task: 1.2 |
 | 11 Oct 2026 | Codex | Swept 1.5 then 1.6. One confirmed blocker: paid receipts could acknowledge failed saves or regrant after the history-write crash window. Fix and regressions in [PR #43](https://github.com/hownoms/roblox-dev/pull/43); live API persistence remains pending a test place. Evidence/limits and unfixed post-launch findings: CORE_LAUNCH_SWEEP.md. |
