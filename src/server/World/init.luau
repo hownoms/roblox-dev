@@ -22,7 +22,9 @@
 	                                             -- (workspace attribute "WorldReady" mirrors it)
 	  World.IsProtected(position, margin?)       -- XZ inside a protected footprint (trophy camp
 	                                             -- pad + rim, grown by margin), at any depth;
-	                                             -- DigService refuses digs there
+	                                             -- DigService refuses digs there. The footprint is
+	                                             -- reserved even when the pad is not built (it is
+	                                             -- built only with AdventureFlags.AdventureRewards)
 	Workspace attributes for clients: "DigZoneCFrame" (CFrame), "DigZoneSize" (Vector3).
 ]]
 
@@ -37,6 +39,8 @@ local Decor = require(script.Decor)
 local LightingBuilder = require(script.Lighting)
 local Underground = require(script.Underground)
 local CampPad = require(script.CampPad)
+-- Expansion (frozen for launch): the camp pad exists only where trophies can be earned.
+local AdventureFlags = require(script.Parent.Services.AdventureFlags)
 
 export type DigZone = { CFrame: CFrame, Size: Vector3 }
 
@@ -95,9 +99,11 @@ function World.Build()
 	step("hub", function()
 		Hub.Build(hubFolder)
 	end)
-	step("trophy camp pad", function()
-		CampPad.Build(hubFolder)
-	end)
+	if AdventureFlags.AdventureRewards then
+		step("trophy camp pad", function()
+			CampPad.Build(hubFolder)
+		end)
+	end
 	step("boardwalk", function()
 		Boardwalk.Build(boardwalkFolder)
 	end)

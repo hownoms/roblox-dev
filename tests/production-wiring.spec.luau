@@ -1030,6 +1030,63 @@ if mode == "off" then
 	local accepted = opts.OnCompletion({})
 	check(accepted == false, "rewards off: completion refused truthfully")
 	check(opts.Origin == Boot.POCKET_ORIGIN and opts.CanEnter and opts.CanTrial, "admission callbacks wired")
+
+	-- Go-live 1.1: the shipped boot is inert (docs/GO_LIVE_PLAN.md). No camp pad, prompt or
+	-- adventure remote folder; settlement is unreachable (only the runtime, never started, calls it); a
+	-- fresh player's full session (join, play,
+	-- leave, shutdown) writes no outbox key and grants nothing; no expansion output.
+	fake:Destroy() -- the test's own planted tool above
+	check(#Mock.Tagged("TrophyCampPad") == 0, "inert: no trophy camp pad built")
+	local stray = {}
+	for _, d in Workspace:GetDescendants() do
+		if d:IsA("ProximityPrompt") and (d.ObjectText == "Trophy Camp" or d.Name:find("Camp")) then
+			table.insert(stray, d:GetFullName())
+		end
+		local n = d.Name
+		if n:find("SpringVault") or n:find("TrophyCamp") or n:find("Broadwave") or n == "AdventureEntry" then
+			table.insert(stray, d:GetFullName())
+		end
+	end
+	for _, d in ReplicatedStorage:GetChildren() do
+		if d.Name:find("SpringVault") or d.Name:find("Adventure") then
+			table.insert(stray, d:GetFullName())
+		end
+	end
+	check(#stray == 0, "inert: no expansion parts, prompts or remote folders (" .. tostring(stray[1]) .. ")")
+	local fresh = add(USER_FRESH, "Fresh")
+	Mock.Advance(5)
+	Mock.RemovePlayer(fresh)
+	Mock.RemovePlayer(lic)
+	Mock.Advance(5)
+	Mock.RunBindToClose()
+	Mock.Advance(5)
+	for _, store in { "AdventureRewardIntents_v1", "TrophyPendingGrants_v1" } do
+		check(next(Mock.DataStores[store] or {}) == nil, "inert: no key written to " .. store)
+	end
+	local saved = Mock.DataStores[Config.DATASTORE_NAME]["Player_" .. USER_FRESH]
+	local d = saved and saved.Data or {}
+	check(saved ~= nil, "fresh player's save written as usual")
+	check(next(d.TrophyRecords or {}) == nil, "inert: no trophy granted")
+	check(next(d.Certifications or {}) == nil, "inert: no certification granted")
+	check(next(d.ToolLicenses or {}) == nil, "inert: no tool license granted")
+	check(next(d.CampLayout and d.CampLayout.Placements or {}) == nil, "inert: no camp placement")
+	local progress = d.AdventureProgress or {}
+	check(
+		next(progress.Events or {}) == nil and next(progress.QuestCredit or {}) == nil,
+		"inert: no adventure progress"
+	)
+	local noisy = {}
+	for _, list in { Mock.Prints, Mock.Warnings } do
+		for _, line in list do
+			local text = tostring(line)
+			for _, tag in { "[Adventure", "[SpringVault", "[Trophy", "[PipQuest", "[Broadwave", "[DurableOutbox" } do
+				if text:find(tag, 1, true) then
+					table.insert(noisy, text)
+				end
+			end
+		end
+	end
+	check(#noisy == 0, "inert: no expansion output at boot or in play (" .. tostring(noisy[1]) .. ")")
 	finish()
 	return
 end
