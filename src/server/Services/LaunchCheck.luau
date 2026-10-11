@@ -60,6 +60,8 @@ function LaunchCheck.Report(): Report
 		table.insert(missing, ("Badge ids (%d): %s"):format(#badges, table.concat(badges, ", ")))
 	end
 
+	-- No group is a valid launch choice (group bonus simply off); only an enabled group-only
+	-- code without a group is a problem, since it tells players to join a group that isn't there.
 	if Config.GROUP_ID == 0 then
 		local groupCodes = {}
 		for _, code in Config.Codes do
@@ -67,12 +69,9 @@ function LaunchCheck.Report(): Report
 				table.insert(groupCodes, code.Code)
 			end
 		end
-		table.insert(
-			missing,
-			"GROUP_ID (group sand bonus off"
-				.. (if #groupCodes > 0 then "; group-only codes unusable: " .. table.concat(groupCodes, ", ") else "")
-				.. ")"
-		)
+		if #groupCodes > 0 then
+			table.insert(missing, "GROUP_ID (group-only codes unusable: " .. table.concat(groupCodes, ", ") .. ")")
+		end
 	end
 
 	local sounds = {}
