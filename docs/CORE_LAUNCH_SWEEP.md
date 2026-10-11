@@ -1,6 +1,6 @@
 # Core launch sweep — 11 October 2026
 
-Base: `claude/pensive-meitner-6jx4u4` at `f10c832`. Classification follows
+Base: `claude/pensive-meitner-6jx4u4` at `e7b0d5e` (rebased after the sweep). Classification follows
 `GO_LIVE_PLAN.md`. Order: 1.5 first, then 1.6. No publishing performed.
 
 ## Launch blockers
@@ -10,6 +10,8 @@ The receipt processor ignored `DataService.SaveAsync`'s false result, recorded
 delivery, and returned `PurchaseGranted`. If the server died before a later save,
 Roblox would no longer retry the missing paid reward. A second crash window between
 saving the reward and recording separate purchase history could grant twice on replay.
+
+Fix: [PR #43](https://github.com/hownoms/roblox-dev/pull/43).
 
 A focused regression reproduced the failed-save acknowledgment before the fix.
 The fix saves `PurchaseReceipts` alongside rewards, requires a successful save,
