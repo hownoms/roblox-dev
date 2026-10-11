@@ -7,10 +7,11 @@
 	  "not configured" and always read as not owned; we never prompt id 0.
 	- Replicated to the client via GetOwnedPasses() and Player attributes "Pass_<Key>" (bool),
 	  plus "Premium" (bool) and "VIP" (bool, for chat tags / name colour).
-	- ProcessReceipt: idempotent via the PurchaseHistory DataStore (key = PurchaseId, acquired
-	  through StorageGate) plus an in-server guard; grants Config.Monetization.Products[key].Grant
-	  through the grant handler (RewardsService.Grant, wired by Main) and saves the player's data
-	  before acknowledging. With in-memory saves (DataService.IsMock: Studio fallback or a
+	- ProcessReceipt: saves PurchaseReceipts markers atomically with player rewards before
+	  acknowledging. PurchaseHistory (acquired through StorageGate) preserves legacy dedupe
+	  and audit records; a failed player save or history write is retried without a second grant.
+	  Grants Config.Monetization.Products[key].Grant through the handler wired by Main.
+	  With in-memory saves (DataService.IsMock: Studio fallback or a
 	  LocalOnly candidate) the history is in memory and the store is never acquired.
 	- v2.2 policy: PromptPass / PromptProduct refuse PaidRandom items (Config.IsPaidRandom) for
 	  players PolicyService marks ArePaidRandomItemsRestricted. ProcessReceipt never checks the
@@ -58,7 +59,6 @@ local owned: { [Player]: { [string]: boolean } } = {}
 local grantHandler: GrantHandler? = nil
 local historyStore: DataStore? = nil
 local mockHistory: { [string]: boolean } = {}
-local grantedThisServer: { [string]: boolean } = {}
 local processing: { [string]: boolean } = {}
 
 local function passKeys(): { string }
@@ -199,9 +199,6 @@ end
 
 local function isRecorded(purchaseId: string): (boolean, boolean)
 	-- returns (lookupOk, alreadyGranted)
-	if grantedThisServer[purchaseId] then
-		return true, true
-	end
 	if not historyStore then
 		return true, mockHistory[purchaseId] == true
 	end
@@ -251,7 +248,8 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 	if not player then
 		return Enum.ProductPurchaseDecision.NotProcessedYet -- Roblox retries when they rejoin
 	end
-	if not DataService.WaitForData(player, 20) then
+	local data = DataService.WaitForData(player, 20)
+	if not data then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
@@ -261,10 +259,16 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 	processing[purchaseId] = true
 
 	local decision = Enum.ProductPurchaseDecision.NotProcessedYet
-	local lookupOk, already = isRecorded(purchaseId)
+	-- A marker in this player's save means the grant has already been applied, but
+	-- may still need saving. Legacy history remains authoritative for older receipts.
+	local applied = data.PurchaseReceipts[purchaseId] == true
+	local lookupOk, already = true, false
+	if not applied then
+		lookupOk, already = isRecorded(purchaseId)
+	end
 	if lookupOk and already then
 		decision = Enum.ProductPurchaseDecision.PurchaseGranted
-	elseif lookupOk then
+	elseif lookupOk and not applied then
 		local granted = false
 		if grantHandler then
 			local ok, result = pcall(grantHandler :: GrantHandler, player, grant, "Product:" .. productKey)
@@ -276,15 +280,16 @@ local function processReceipt(info: { [any]: any }): Enum.ProductPurchaseDecisio
 			warn("[MonetizationService] no grant handler registered")
 		end
 		if granted then
-			grantedThisServer[purchaseId] = true
+			data.PurchaseReceipts[purchaseId] = true
+			DataService.MarkDirty(player, "PurchaseReceipts")
+			applied = true
 			Analytics.PurchaseCompleted(player, "Product:" .. productKey)
-			DataService.SaveAsync(player)
-			if record(purchaseId, info, productKey) then
-				decision = Enum.ProductPurchaseDecision.PurchaseGranted
-			end
-			-- If recording failed we answer NotProcessedYet; grantedThisServer prevents a second
-			-- grant when Roblox retries on this server.
 		end
+	end
+	-- Reward and marker share one player-data write. A failed save remains pending;
+	-- retries (including after rejoin) save the existing grant instead of applying it again.
+	if applied and DataService.SaveAsync(player) and record(purchaseId, info, productKey) then
+		decision = Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
 	processing[purchaseId] = nil
