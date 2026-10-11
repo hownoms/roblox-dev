@@ -3383,7 +3383,11 @@ do
 	local text = LaunchCheck.Format(report)
 	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
 	check(string.find(text, "Badge ids (" .. #Config.Badges .. ")", 1, true) ~= nil, "launch check lists unset badge ids")
-	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
+	check(string.find(text, "MusicBeach", 1, true) == nil, "licensed music ids are set: not listed")
+	local savedMusic = Config.Sounds.MusicBeach.Id
+	Config.Sounds.MusicBeach.Id = ""
+	check(string.find(LaunchCheck.Format(LaunchCheck.Report()), "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
+	Config.Sounds.MusicBeach.Id = savedMusic
 	check(string.find(text, "GROUP_ID", 1, true) == nil, "no group and no enabled group-only code: not listed")
 	local digdeep = Config.GetCode("DIGDEEP")
 	digdeep.Enabled = true

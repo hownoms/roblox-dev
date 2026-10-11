@@ -11,6 +11,14 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: go-live 1.3, music and ambience
+11 October 2026. Owner approved three licensed Creator Store tracks, now in `Config/Sounds.luau`:
+`MusicBeach` = APM "Walking On The Beach" (`1845913205`), `MusicDeep` = APM "Discovery"
+(`1848350082`), `Ambience` = Pro Sound Effects "British Surf Birds 2" (`9112751340`, a loop). The
+ambience is about 10x louder than the music at the same volume, so it plays at 0.1 instead of 0.25.
+Checked in a Studio Play of a `default.project.json` build: beach music and ambience play at the surface; the
+Music toggle stops the music and the SFX toggle stops the ambience. Tests now cover a set id and an empty one.
+
 ## Unreleased: go-live 1.4, badges 6–10 live (merged `826d0fb`)
 11 October 2026. The owner created Frozen Abyss, Magma Chamber, Alien Hive, The Core and First
 Rebirth in Creator Hub. Their ids are now in `Config/Badges.luau`, so 10 of 15 are configured.
