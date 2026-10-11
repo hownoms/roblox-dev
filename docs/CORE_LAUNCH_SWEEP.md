@@ -11,7 +11,7 @@ delivery, and returned `PurchaseGranted`. If the server died before a later save
 Roblox would no longer retry the missing paid reward. A second crash window between
 saving the reward and recording separate purchase history could grant twice on replay.
 
-Fix: [PR #43](https://github.com/hownoms/roblox-dev/pull/43).
+Fix: [PR #43](https://github.com/hownoms/roblox-dev/pull/43), merged as `3676be9`; all four CI runs passed.
 
 A focused regression reproduced the failed-save acknowledgment before the fix.
 The fix saves `PurchaseReceipts` alongside rewards, requires a successful save,
@@ -45,7 +45,12 @@ shutdown saving coins, sand, finds and receipts. Failure tests cover failed play
 save, failed history write, fresh processor after rejoin and legacy history.
 Server smoke passed 2,212 checks; Studio fallback smoke passed 2,179 checks.
 Strict typecheck has no errors (two existing deprecation warnings); Rojo build passes.
-Live API-enabled Studio persistence is pending an existing test place. Mock results
+Live API-enabled Studio persistence remains pending. With owner authorization,
+opened existing `roblox-dev/build/DigTest.rbxl` in a separate Studio window without
+starting Play. It also reports PlaceId 0, GameId 0 and PlaceVersion 0. A read-only
+`GetAsync("ApiProbe")` in isolated store `CodexCoreLaunch_20261011`, scope
+`IsolatedVerification`, failed: "You must publish this place to the web to access
+DataStore." No save writes, API setting changes or publishing were performed. Mock results
 do not claim real purchases, real cross-server rejoin or live shutdown.
 
 ## Post-launch — no fixes
