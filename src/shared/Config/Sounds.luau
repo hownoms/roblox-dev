@@ -40,10 +40,12 @@ local Sounds: { [string]: Types.SoundDef } = {
 	ExcavateHit = sound("rbxasset://sounds/clickfast.wav", 0.7, 1.3),
 	ExcavatePerfect = sound("rbxasset://sounds/electronicpingshort.wav", 0.7, 1.8),
 	FindEmerge = sound("rbxasset://sounds/action_footsteps_plastic.mp3", 0.9, 0.55),
-	-- Placeholders: paste licensed rbxassetid:// ids (music is not shipped as a built-in).
-	MusicBeach = sound("", 0.3, 1, true),
-	MusicDeep = sound("", 0.3, 1, true),
-	Ambience = sound("", 0.25, 1, true),
+	-- Licensed Creator Store audio (owner-approved 11 Oct 2026). APM Music: "Walking On The Beach"
+	-- (111 s ukulele) and "Discovery" (185 s). Pro Sound Effects: "British Surf Birds 2" (36 s loop,
+	-- about 10x louder than the music at equal volume, hence 0.1).
+	MusicBeach = sound("rbxassetid://1845913205", 0.3, 1, true),
+	MusicDeep = sound("rbxassetid://1848350082", 0.3, 1, true),
+	Ambience = sound("rbxassetid://9112751340", 0.1, 1, true),
 }
 
 return Sounds

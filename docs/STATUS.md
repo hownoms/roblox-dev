@@ -9,7 +9,8 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
 is frozen with its flags off. The plan, task owners and owner queue are in
 [GO_LIVE_PLAN.md](GO_LIVE_PLAN.md). Task 1.1 is done (`58109ef`): the flags-off boot is proven
 inert, and the trophy camp pad no longer ships on the plaza. 1.5/1.6 (Codex) and 1.4 (badges 6–10
-live, ids in config) are done too.
+live, ids in config) are done too. 1.3 is done: licensed music and ambience ids are wired (owner-approved),
+so the preflight lists only badges 11–15. Launch reach: Public 16+ only for now (owner chose the free route).
 
 ## Where we are
 

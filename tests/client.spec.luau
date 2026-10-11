@@ -840,7 +840,11 @@ do
 	do
 		local SoundController = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/SoundController"])
 		local SharedConfig = Mock.Require(byPath["ReplicatedStorage/Shared/Config"])
+		local savedId = SharedConfig.Sounds.Ambience.Id
+		SharedConfig.Sounds.Ambience.Id = ""
+		SoundController.SetAmbience(true)
 		check(not SoundController.Playing().Ambience, "no ambience while its id is empty")
+		SoundController.SetAmbience(false)
 		local savedSfx = State.GetSetting("SFX", true)
 		SharedConfig.Sounds.Ambience.Id = "rbxassetid://1"
 		SoundController.SetAmbience(true)
@@ -854,7 +858,7 @@ do
 		SoundController.SetAmbience(false)
 		check(not SoundController.Playing().Ambience, "ambience stops underground")
 		State.SetSetting("SFX", savedSfx)
-		SharedConfig.Sounds.Ambience.Id = ""
+		SharedConfig.Sounds.Ambience.Id = savedId
 		Mock.Advance(0.3)
 	end
 

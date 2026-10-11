@@ -39,7 +39,7 @@ when 1.7 is cut; otherwise they go in the first update. Nothing waits on them.
 |---|---|---|---|
 | [x] 1.1 | Prove the expansion is inert in the shipped boot: flags off, no adventure remotes/UI/parts reachable, no DataStore keys written | Claude | Test/assert in the suite and a Studio boot with no `[Adventure]` output. **Done 11 Oct** (`58109ef`): camp pad was shipping, now gated |
 | [ ] 1.2 | Map overhaul mobile performance: emulate a low-end phone in Studio, measure frame time and memory at spawn and pier, and cut or stream scenery if over the [PERFORMANCE.md](PERFORMANCE.md) budget | **Codex** (moved 11 Oct: critical path, Codex is free) | Numbers recorded and within budget |
-| [ ] 1.3 | Music and ambience: pick licensed Creator Store tracks for `MusicBeach`, `MusicDeep`, `Ambience`, wire ids in `Config/Sounds.luau`, check volume and the settings toggles | Claude picks, **owner approves** | Plays in Studio and the toggles work. Not a blocker: ships with v18 only if approved before 1.7 |
+| [x] 1.3 | Music and ambience: pick licensed Creator Store tracks for `MusicBeach`, `MusicDeep`, `Ambience`, wire ids in `Config/Sounds.luau`, check volume and the settings toggles | Claude picks, **owner approves** | Plays in Studio and the toggles work. Not a blocker: ships with v18 only if approved before 1.7. **Done 11 Oct**: owner approved the ★ picks (Beach `1845913205`, Deep `1848350082`, Ambience `9112751340` at 0.1); toggles checked in Studio |
 | [x] 1.4 | Badges: 5 of 15 have ids. Art exists for 5 more (`marketing/badges/06`–`10`: FrozenAbyss, MagmaChamber, AlienHive, TheCore, FirstRebirth). The other 5 (MythicLuck, Collector, AncientRuins, BeachRegular, CoreBreaker) need art or get cut from the store copy | **Owner creates** in Creator Hub, Claude makes missing art and pastes ids | No `Id = 0` badge is promised anywhere. **Done 11 Oct** (`826d0fb`): owner made 6–10, ids pasted; the live description and badge page promise nothing else. All 15 arts exist; 11–15 get created on a later day's free quota (5/day) |
 | [x] 1.5 | Core first-session blocker sweep on a fresh save: LAUNCH.md §1 checklist (chat vs Shop, toast order, off-screen arrow, Reduced Motion, full bag, upgrade) | Codex | Report of blockers only; each blocker fixed in its own PR. **Sweep reported 11 Oct**: no confirmed 1.5 blocker; evidence limits in [CORE_LAUNCH_SWEEP.md](CORE_LAUNCH_SWEEP.md) |
 | [x] 1.6 | Purchase and save sweep: every pass/product grants once, survives rejoin, BindToClose saves on shutdown, no error spam with API access in Studio | Codex | Report and fixes merged. **Done 11 Oct**: one blocker fixed (PR #43, `3676be9`); the real-DataStore check moved to Phase 2 |
@@ -60,8 +60,8 @@ when 1.7 is cut; otherwise they go in the first update. Nothing waits on them.
 
 ## Phase 3: public (owner, with Claude's click-list)
 
-- [ ] Owner: ID verification + 2-step verification, and decide the 1,000 R$ refundable fee vs Premium
-      (**start now**; only needed for under-16 reach, see the click-list).
+- [x] Owner decision (11 Oct): **free route.** Launch Public to 16+ only; no 1,000 R$ fee and no Premium.
+      Under-16 reach (Kids/Select) is Post-launch. ID verification and 2FA are free, so doing them now saves time later, but they unlock nothing alone.
 - [x] Claude: recheck current Roblox public-launch rules and give the owner an exact click-list. **Done 11 Oct**, below.
 - [ ] Owner: maturity questionnaire, devices, genre, description checked against the game.
       Group skipped for launch (11 Oct): `DIGDEEP` is off, and the live description promises no group, code or badges.
@@ -88,7 +88,7 @@ DevForum: [Kids and Select global launch](https://devforum.roblox.com/t/roblox-k
   and the DevForum disagree on its price, so check the Reach page if you want it).
 - Max 5 never-public games may go public per account per day (not an issue for us).
 
-**A. Before launch day (do now)**
+**A. Before launch day** (owner chose the free route: only step 1 is needed now; 2–4 are for under-16 reach later)
 1. Check eligibility: open `create.roblox.com/settings/eligibility/publishing-permissions`. It shows
    which requirements are met.
 2. ID verification: roblox.com → **Settings → Account Info → Verify My Age** → government ID + selfie.
@@ -124,14 +124,15 @@ DevForum: [Kids and Select global launch](https://devforum.roblox.com/t/roblox-k
 
 ## Owner queue (only you can do these)
 
-1. ID verification + 2FA on the Roblox account, and the 1,000 R$ fee vs Premium decision (click-list A).
+1. ~~Fee vs Premium~~ decided: free route, Public 16+ first. Optional: ID verification + 2FA now (free, saves time later).
 2. ~~Badges 6–10~~ done (typo fixed, descriptions added). Claude creates 11–15 on 12 Oct's free quota.
-3. Approve the music picks (Claude sends three candidates per slot).
+3. ~~Approve the music picks~~ done (★ picks wired).
 4. Line up one friend with a phone and one person who has never played.
 5. Say "publish v18" and "go public" when ready.
 
 ## Post-launch (not now)
 
+Under-16 reach (Kids/Select: ID + 2FA + 1,000 R$ refundable fee or 2 months of Premium, then 250 engaged players in 60 days),
 Spring Vault adventure and its open gates (see [integration/README.md](integration/README.md)),
 camp/trophy UI, audio SFX swap from `assets/audio/original-v1`, native gameplay screenshots,
 controller hardware test, sponsored ads, more regions from the game bible.
@@ -147,3 +148,4 @@ controller hardware test, sponsored ads, more regions from the game bible.
 | 11 Oct 2026 | Claude | **1.4 done** (merged `826d0fb`): ids for the 5 badges the owner created (Frozen Abyss, Magma Chamber, Alien Hive, The Core, First Rebirth). Today's 5 free creations are used (next costs 100 R$, balance 85), so 11–15 wait. Live description checked: promises no badges, group or `DIGDEEP`, so the group is optional for launch |
 | 11 Oct 2026 | Claude | Badge page: "Magma Chamber" typo fixed and descriptions added for 6–10 (owner OK). Group skipped: `DIGDEEP` off, LaunchCheck lists `GROUP_ID` only with an enabled group code (`3d1665b`). Preflight shows only badges 11–15 + music. Critical path written; 1.2 moved to Codex. Claude next: Phase 3 click-list, music picks, badges 11–15 (12 Oct), 1.7 |
 | 11 Oct 2026 | Claude | **Phase 3 click-list written** (rules rechecked against the live docs). Key change: Public only needs the age check + questionnaire we already have, but that reaches **16+ only**. Under-16 (Kids/Select) also needs ID + 2FA + 1,000 R$ refundable fee or 2 months of Premium, plus 250 highly engaged players in a 60-day trial. Paid random items stays **Yes** (coin packs buy egg currency; odds already shown). Music: 3 candidates per slot loaded and level-checked in Studio, sent to the owner for approval. Badges 11–15 wait for 12 Oct GMT; 1.7 waits for Codex's 1.2 |
+| 11 Oct 2026 | Claude | **1.3 done**: owner approved the ★ music picks; ids wired, ambience at 0.1, toggles checked in Studio, full suite green, preflight lists only badges 11–15. Owner chose the free route: Public 16+ first, Kids/Select moved to Post-launch |
