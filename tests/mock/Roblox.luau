@@ -2524,10 +2524,11 @@ local marketplace = {
 		assert(type(id) == "number" and id > 0, "PromptProductPurchase with invalid id " .. tostring(id))
 		table.insert(Mock.Prompts, { Kind = "Product", Player = player, Id = id })
 	end,
-	UserOwnsGamePassAsync = function(_s, _userId, id)
+	UserOwnsGamePassAsync = function(_s, userId, id)
 		assert(type(id) == "number" and id > 0, "UserOwnsGamePassAsync with invalid id " .. tostring(id))
 		asyncYield()
-		return false
+		local passes = Mock.OwnedGamePasses and Mock.OwnedGamePasses[userId]
+		return passes ~= nil and passes[id] == true
 	end,
 	GetProductInfo = function(_s, id, _infoType)
 		asyncYield()

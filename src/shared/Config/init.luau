@@ -533,6 +533,7 @@ function Config.NewPlayerData(): Types.PlayerData
 		LastDailyClaim = 0,
 		Quests = {},
 		RedeemedCodes = {},
+		PurchaseReceipts = {},
 		Settings = {},
 		Boosts = {},
 		Consumables = {},

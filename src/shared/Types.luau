@@ -564,6 +564,7 @@ export type PlayerData = {
 	LastDailyClaim: number, -- unix
 	Quests: { [string]: QuestProgress },
 	RedeemedCodes: { [string]: boolean },
+	PurchaseReceipts: { [string]: boolean }, -- paid grants, saved atomically with their rewards; never reset
 	Settings: { [string]: any },
 	Boosts: { [string]: number }, -- boostId -> expires unix
 	Consumables: { [string]: number }, -- v2: consumable id -> count

@@ -57,6 +57,10 @@ luau tests/pip-quest.spec.luau -a off || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
+echo "== purchase-durability.spec =="
+luau tests/purchase-durability.spec.luau || status=1
+echo "== core-purchase-sweep.spec =="
+luau tests/core-purchase-sweep.spec.luau || status=1
 echo "== client.spec =="
 luau tests/client.spec.luau -a "$@" || status=1
 for scenario in tutorial-loop tutorial-resume-full tutorial-resume-sold tutorial-complete tutorial-veteran tutorial-scan-used tutorial-short-coins; do
