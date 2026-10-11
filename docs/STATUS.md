@@ -8,7 +8,8 @@ in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such a
 **Priority (11 October 2026):** go public. Only launch blockers get worked on, and Spring Vault
 is frozen with its flags off. The plan, task owners and owner queue are in
 [GO_LIVE_PLAN.md](GO_LIVE_PLAN.md). Task 1.1 is done (`58109ef`): the flags-off boot is proven
-inert, and the trophy camp pad no longer ships on the plaza.
+inert, and the trophy camp pad no longer ships on the plaza. 1.5/1.6 (Codex) and 1.4 (badges 6–10
+live, ids in config) are done too.
 
 ## Where we are
 

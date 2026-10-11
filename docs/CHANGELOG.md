@@ -11,6 +11,11 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
+## Unreleased: go-live 1.4, badges 6–10 live (merged `826d0fb`)
+11 October 2026. The owner created Frozen Abyss, Magma Chamber, Alien Hive, The Core and First
+Rebirth in Creator Hub. Their ids are now in `Config/Badges.luau`, so 10 of 15 are configured.
+Badges 11–15 have art and wait for the next day's free creation quota.
+
 ## Unreleased: go-live 1.1, the shipped boot is inert (merged `58109ef`)
 Branch `claude/go-live-1.1-inert`, 11 October 2026. Plan: `docs/GO_LIVE_PLAN.md`.
 - **Problem:** with every `AdventureFlags` flag off, World still built the frozen trophy camp pad
