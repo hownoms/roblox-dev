@@ -1,7 +1,14 @@
 --!strict
 -- Roblox badges. Create each badge in Creator Hub (art in marketing/badges/) and paste its id.
 -- Id 0 = not configured; the server skips it.
-export type BadgeKind = "FirstDig" | "FirstPet" | "ReachLayer" | "Rebirth" | "FindRarity" | "CompleteLayer" | "DailyStreak"
+export type BadgeKind =
+	"FirstDig"
+	| "FirstPet"
+	| "ReachLayer"
+	| "Rebirth"
+	| "FindRarity"
+	| "CompleteLayer"
+	| "DailyStreak"
 
 export type BadgeDef = {
 	Key: string,
@@ -31,11 +38,23 @@ local Badges: { BadgeDef } = {
 		Kind = "ReachLayer",
 		Layer = "Crystal Caverns",
 	},
-	{ Key = "FrozenAbyss", Id = 0, Name = "Underground Ice Age", Kind = "ReachLayer", Layer = "Frozen Abyss" },
-	{ Key = "MagmaChamber", Id = 0, Name = "Too Hot to Handle", Kind = "ReachLayer", Layer = "Magma Chamber" },
-	{ Key = "AlienHive", Id = 0, Name = "Close Encounter", Kind = "ReachLayer", Layer = "Alien Hive" },
-	{ Key = "TheCore", Id = 0, Name = "I Reached the Core!", Kind = "ReachLayer", Layer = "The Core" },
-	{ Key = "FirstRebirth", Id = 0, Name = "Born Again", Kind = "Rebirth", Count = 1 },
+	{
+		Key = "FrozenAbyss",
+		Id = 3294537673144413,
+		Name = "Underground Ice Age",
+		Kind = "ReachLayer",
+		Layer = "Frozen Abyss",
+	},
+	{
+		Key = "MagmaChamber",
+		Id = 4342566770012422,
+		Name = "Too Hot to Handle",
+		Kind = "ReachLayer",
+		Layer = "Magma Chamber",
+	},
+	{ Key = "AlienHive", Id = 3932048807273111, Name = "Close Encounter", Kind = "ReachLayer", Layer = "Alien Hive" },
+	{ Key = "TheCore", Id = 967710008775938, Name = "I Reached the Core!", Kind = "ReachLayer", Layer = "The Core" },
+	{ Key = "FirstRebirth", Id = 4487477431146154, Name = "Born Again", Kind = "Rebirth", Count = 1 },
 	-- Wave 2 (art: marketing/badges/11..15)
 	{ Key = "MythicLuck", Id = 0, Name = "Mythic Luck", Kind = "FindRarity", Rarity = "Mythic" },
 	{ Key = "Collector", Id = 0, Name = "Collector", Kind = "CompleteLayer" },
