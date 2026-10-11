@@ -107,7 +107,7 @@ local Config = {
 	GOLDEN_DIG_SPEED = 1.25, -- a Golden digging pet digs 1.25x as often (Interval / 1.25)
 
 	-- Social -------------------------------------------------------------------------------
-	GROUP_ID = 0, -- OWNER: paste the Roblox group id; members get GROUP_SAND_MULTIPLIER
+	GROUP_ID = 0, -- 0 = no group (skipped for launch). Set it, then enable DIGDEEP in Codes
 	GROUP_SAND_MULTIPLIER = 1.1,
 	FRIEND_BONUS_PER_FRIEND = 0.05, -- +5% sand per friend in the same server...
 	FRIEND_BONUS_MAX = 0.2, -- ...up to +20%

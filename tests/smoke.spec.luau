@@ -3384,6 +3384,11 @@ do
 	check(string.find(text, "GamePasses ids", 1, true) ~= nil and string.find(text, "VIP", 1, true) ~= nil, "launch check lists unset pass ids")
 	check(string.find(text, "Badge ids (" .. #Config.Badges .. ")", 1, true) ~= nil, "launch check lists unset badge ids")
 	check(string.find(text, "MusicBeach", 1, true) ~= nil, "launch check lists missing owned audio")
+	check(string.find(text, "GROUP_ID", 1, true) == nil, "no group and no enabled group-only code: not listed")
+	local digdeep = Config.GetCode("DIGDEEP")
+	digdeep.Enabled = true
+	check(string.find(LaunchCheck.Format(LaunchCheck.Report()), "GROUP_ID", 1, true) ~= nil, "enabled group code without a group is listed")
+	digdeep.Enabled = false
 	MonetizationService.STUDIO_GRANT_ALL_PASSES = true
 	check(#LaunchCheck.Report().Blocking == 1, "Studio grant-all switch is blocking")
 	MonetizationService.STUDIO_GRANT_ALL_PASSES = false

@@ -27,10 +27,10 @@ local Codes: { Types.CodeDef } = {
 	{
 		Code = "DIGDEEP",
 		Reward = { Boost = "LuckBoost", BoostSeconds = 900, Egg = "beach_egg", EggCount = 1 },
-		Enabled = true,
+		Enabled = false, -- off: the owner skipped the Roblox group for launch (11 Oct 2026)
 		Expires = nil,
 		GroupOnly = true,
-		Note = "Group code: post it in the Roblox group and Discord.",
+		Note = "Group code: enable with GROUP_ID, then post it in the Roblox group and Discord.",
 	},
 	{
 		Code = "1KLIKES",
