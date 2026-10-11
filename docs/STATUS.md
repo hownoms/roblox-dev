@@ -5,6 +5,10 @@ place; don't add dated "current status" blocks to other docs. Measurements and o
 in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such as
 [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md).
 
+**Priority (11 October 2026):** go public. Only launch blockers get worked on, and Spring Vault
+is frozen with its flags off. The plan, task owners and owner queue are in
+[GO_LIVE_PLAN.md](GO_LIVE_PLAN.md).
+
 ## Where we are
 
 - **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 17**
