@@ -1,13 +1,14 @@
 # Project status: Dig to the Core! Beach Simulator
 
-**Last updated:** 10 October 2026. This is the only page that tracks current state. Update it in
+**Last updated:** 11 October 2026. This is the only page that tracks current state. Update it in
 place; don't add dated "current status" blocks to other docs. Measurements and observations go
 in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such as
 [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md).
 
 **Priority (11 October 2026):** go public. Only launch blockers get worked on, and Spring Vault
 is frozen with its flags off. The plan, task owners and owner queue are in
-[GO_LIVE_PLAN.md](GO_LIVE_PLAN.md).
+[GO_LIVE_PLAN.md](GO_LIVE_PLAN.md). Task 1.1 is done (`58109ef`): the flags-off boot is proven
+inert, and the trophy camp pad no longer ships on the plaza.
 
 ## Where we are
 

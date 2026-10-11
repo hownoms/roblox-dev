@@ -11,7 +11,19 @@ Related docs: `README.md` (setup), `docs/GDD.md` (original design),
 
 ---
 
-## Unreleased: Spring Vault two-client reward policy (merged `2a272a2`, flags off)
+## Unreleased: go-live 1.1, the shipped boot is inert (merged `58109ef`)
+Branch `claude/go-live-1.1-inert`, 11 October 2026. Plan: `docs/GO_LIVE_PLAN.md`.
+- **Problem:** with every `AdventureFlags` flag off, World still built the frozen trophy camp pad
+  ("TROPHY CAMP" sign, deck, live "Display trophy" / "Put trophy away" prompts and a status card)
+  on the plaza. Nobody can earn a trophy before the adventure ships.
+- **Fix:** World builds the pad only when `AdventureFlags.AdventureRewards` is on. The protected
+  footprint stays reserved. LocalOnly review candidates with rewards on still get it.
+- **Proof:** `production-wiring.spec` (off) now asserts no camp/adventure parts, prompts, remote
+  folders or tools; a fresh session (join, leave, shutdown) writes no `AdventureRewardIntents_v1` /
+  `TrophyPendingGrants_v1` key and grants nothing; no expansion output. Studio Play of a
+  `default.project.json` build agreed.
+
+ reward policy (merged `2a272a2`, flags off)
 Branch `claude/spring-vault-two-client` (launch readiness merged with PR #42), 10 October 2026.
 Record: `docs/integration/two-client-acceptance.md`.
 - **Problem:** Studio Server & Clients players get UserIds -1, -2, …, and reward/trophy validation

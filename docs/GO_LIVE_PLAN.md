@@ -28,13 +28,13 @@ Anything else goes to **Post-launch** at the bottom. Polish waits until after la
 
 | # | Task | Who | Done when |
 |---|---|---|---|
-| 1.1 | Prove the expansion is inert in the shipped boot: flags off, no adventure remotes/UI/parts reachable, no DataStore keys written | Claude | Test/assert in the suite and a Studio boot with no `[Adventure]` output |
-| 1.2 | Map overhaul mobile performance: emulate a low-end phone in Studio, measure frame time and memory at spawn and pier, and cut or stream scenery if over the [PERFORMANCE.md](PERFORMANCE.md) budget | Claude | Numbers recorded and within budget |
-| 1.3 | Music and ambience: pick licensed Creator Store tracks for `MusicBeach`, `MusicDeep`, `Ambience`, wire ids in `Config/Sounds.luau`, check volume and the settings toggles | Claude picks, **owner approves** | Plays in Studio and the toggles work |
-| 1.4 | Badges: 5 of 15 have ids. Art exists for 5 more (`marketing/badges/06`–`10`: FrozenAbyss, MagmaChamber, AlienHive, TheCore, FirstRebirth). The other 5 (MythicLuck, Collector, AncientRuins, BeachRegular, CoreBreaker) need art or get cut from the store copy | **Owner creates** in Creator Hub, Claude makes missing art and pastes ids | No `Id = 0` badge is promised anywhere |
-| 1.5 | Core first-session blocker sweep on a fresh save: LAUNCH.md §1 checklist (chat vs Shop, toast order, off-screen arrow, Reduced Motion, full bag, upgrade) | Codex | Report of blockers only; each blocker fixed in its own PR |
-| 1.6 | Purchase and save sweep: every pass/product grants once, survives rejoin, BindToClose saves on shutdown, no error spam with API access in Studio | Codex | Report and fixes merged |
-| 1.7 | Green CI, preflight, and a v18 build from default | Claude | Commit hash recorded below |
+| [x] 1.1 | Prove the expansion is inert in the shipped boot: flags off, no adventure remotes/UI/parts reachable, no DataStore keys written | Claude | Test/assert in the suite and a Studio boot with no `[Adventure]` output. **Done 11 Oct** (`58109ef`): camp pad was shipping, now gated |
+| [ ] 1.2 | Map overhaul mobile performance: emulate a low-end phone in Studio, measure frame time and memory at spawn and pier, and cut or stream scenery if over the [PERFORMANCE.md](PERFORMANCE.md) budget | Claude | Numbers recorded and within budget |
+| [ ] 1.3 | Music and ambience: pick licensed Creator Store tracks for `MusicBeach`, `MusicDeep`, `Ambience`, wire ids in `Config/Sounds.luau`, check volume and the settings toggles | Claude picks, **owner approves** | Plays in Studio and the toggles work |
+| [ ] 1.4 | Badges: 5 of 15 have ids. Art exists for 5 more (`marketing/badges/06`–`10`: FrozenAbyss, MagmaChamber, AlienHive, TheCore, FirstRebirth). The other 5 (MythicLuck, Collector, AncientRuins, BeachRegular, CoreBreaker) need art or get cut from the store copy | **Owner creates** in Creator Hub, Claude makes missing art and pastes ids | No `Id = 0` badge is promised anywhere |
+| [ ] 1.5 | Core first-session blocker sweep on a fresh save: LAUNCH.md §1 checklist (chat vs Shop, toast order, off-screen arrow, Reduced Motion, full bag, upgrade) | Codex | Report of blockers only; each blocker fixed in its own PR |
+| [ ] 1.6 | Purchase and save sweep: every pass/product grants once, survives rejoin, BindToClose saves on shutdown, no error spam with API access in Studio | Codex | Report and fixes merged |
+| [ ] 1.7 | Green CI, preflight, and a v18 build from default | Claude | Commit hash recorded below |
 
 ## Phase 2: v18 on the Limited audience (owner + Claude)
 
@@ -50,6 +50,8 @@ Anything else goes to **Post-launch** at the bottom. Polish waits until after la
 - [ ] Owner: finish ID verification and 2-step verification (**start now**; it can take time).
 - [ ] Claude: recheck current Roblox public-launch rules and give the owner an exact click-list.
 - [ ] Owner: maturity questionnaire, devices, genre, description checked against the game.
+      `GROUP_ID` is not set, so the group +10% Sand bonus and the `DIGDEEP` code don't work. Either
+      create the group and send Claude the id, or make sure the description doesn't promise them.
 - [ ] Owner: set the experience **Public**. Friday afternoon US time is the suggested slot.
 - [ ] First 72 h: Claude reads Analytics (funnel, D1, session length, errors) and lists fixes.
 
@@ -72,3 +74,4 @@ controller hardware test, sponsored ads, more regions from the game bible.
 | Date | Who | What moved |
 |---|---|---|
 | 11 Oct 2026 | Claude | Plan written; expansion frozen; Phase 1 tasks assigned |
+| 11 Oct 2026 | Claude | **1.1 done** (merged `58109ef`). Blocker found and fixed: the flags-off boot still built the TROPHY CAMP pad on the plaza with live "Display trophy" prompts and a status card. World now builds it only with `AdventureRewards`. New inertness checks in `production-wiring.spec` (off): no camp/adventure parts, prompts, remote folders or tools; a fresh session writes no outbox key and grants nothing; no expansion output. Full suite green. Studio Play of a `default.project.json` build: 0 pads, nothing stray, console has no `[Adventure]`/`[Trophy]` lines (only the known LaunchCheck list). Remaining by design: the empty `AdventureOutcome`/camp remotes and empty save containers (`TrophyRecords`, `CampLayout`, `Certifications`, `AdventureProgress`) that the load reconcile adds. Next Claude task: 1.2 |
