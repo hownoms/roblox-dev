@@ -48,6 +48,8 @@ legacy.Coins = 4242
 legacy.Version = 3
 Mock.DataStores[Config.DATASTORE_NAME] = { ["Player_" .. USER] = { Data = legacy, SavedAt = 1 } }
 
+-- The camp pad is built only with AdventureRewards on (frozen for launch); this process only.
+Mock.Require(byPath["ServerScriptService/Server/Services/AdventureFlags"]).AdventureRewards = true
 Mock.RunScript(byPath["ServerScriptService/Server/Main"])
 Mock.Advance(1)
 check(#Mock.Errors == 0, "Main boots with TrophyService wired")

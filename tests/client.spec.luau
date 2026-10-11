@@ -3667,6 +3667,8 @@ do
 	local sent0 = #Mock.Remote.ToServer
 	local CampAction = Mock.Require(byPath["ReplicatedStorage/Shared/Trophies/CampAction"])
 	local Camp = Mock.Require(byPath["StarterPlayer/StarterPlayerScripts/Client/Controllers/CampDisplayController"])
+	-- the shipped map has no pad (frozen for launch); build the rewards-on one
+	Mock.Require(byPath["ServerScriptService/Server/World/CampPad"]).Build(Mock.Service("Workspace").Map.Hub)
 	Camp.Init() -- Main starts it once the integration patch is applied; Init is idempotent
 	Mock.Advance(0.2)
 	local deck = Mock.Tagged("TrophyCampPad")[1]

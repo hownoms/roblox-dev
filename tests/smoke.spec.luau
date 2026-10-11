@@ -138,10 +138,13 @@ do
 	check(#Mock.Tagged(t) > 0, "map places tag " .. t)
 end
 do
-	-- trophy camp pad: one authored 24x24 deck, tagged, on the hub sand, clear of every other
-	-- map part (stations, paths, lamps, spawns) and of the dig zone
+	-- trophy camp pad: frozen for launch, so the shipped map (AdventureRewards off) has none.
+	-- Built here as the rewards-on map would: one authored 24x24 deck, tagged, on the hub sand,
+	-- clear of every other map part (stations, paths, lamps, spawns) and of the dig zone.
+	check(#Mock.Tagged("TrophyCampPad") == 0, "shipped map builds no trophy camp pad")
+	Mock.Require(byPath["ServerScriptService/Server/World/CampPad"]).Build(workspace.Map.Hub)
 	local pads = Mock.Tagged("TrophyCampPad")
-	check(#pads == 1, "map builds exactly one trophy camp pad (" .. #pads .. ")")
+	check(#pads == 1, "rewards-on map builds exactly one trophy camp pad (" .. #pads .. ")")
 	local deck = pads[1]
 	if deck then
 		local Layout = Mock.Require(byPath["ServerScriptService/Server/World/Layout"])

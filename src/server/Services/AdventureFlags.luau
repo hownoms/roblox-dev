@@ -16,6 +16,8 @@
 	                     settlements. Off (with SpringVault on): the runtime still runs, settlement is
 	                     disabled and refuses every new stage/final (no coins, trophy, stand or cert).
 	                     Outbox drains of already-accepted grants continue either way.
+	                     Also gates the trophy camp pad: World builds it only when this is on, so
+	                     the shipped map has no camp pad, prompts or status card.
 	  BroadwaveOrdinary  ordinary (sand-yielding) Broadwave: wire BroadwaveDigBridge as
 	                     OnOrdinaryBroadwave and issue licensed Broadwave tools. Needs SpringVault
 	                     (the runtime owns the charge input). Even when on, a player needs the saved
