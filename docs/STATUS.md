@@ -1,6 +1,6 @@
 # Project status: Dig to the Core! Beach Simulator
 
-**Last updated:** 11 October 2026. This is the only page that tracks current state. Update it in
+**Last updated:** 13 October 2026. This is the only page that tracks current state. Update it in
 place; don't add dated "current status" blocks to other docs. Measurements and observations go
 in [PLAYTEST_EVIDENCE.md](PLAYTEST_EVIDENCE.md) or a dated session record such as
 [PLAYTEST_2026-10-08_PM.md](PLAYTEST_2026-10-08_PM.md).
@@ -14,9 +14,11 @@ so the preflight lists only badges 11–15. Launch reach: Public 16+ only for no
 
 ## Where we are
 
-- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 17**
-  ("Second-minute fixes - source 375625c"). All 157 published scripts were verified byte-identical
-  to the merged source by opening v17 from Version History. Later commits are docs only.
+- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 19**
+  ("v18 release candidate - source 19a91ba", published 13 Oct 2026 13:22 local, owner-approved). Before
+  publishing, all 206 scripts in the Rojo-synced Team Create place matched a fresh `rojo build` of `19a91ba`
+  (per-script length + hash). Access unchanged: Limited. **Rollback: place version 17** ("Second-minute fixes -
+  source 375625c"); versions 16 and 18 are autosaves.
 - **Store page:** revised bacon-hair artwork from `marketing/publish-kit-bacon-v3/` uploaded.
   Icon is now visibly approved/displayed; main digging thumbnail is Active on Home. Revised
   digging, rare-find and depth images lead the detail-page gallery; prior images remain afterward.
