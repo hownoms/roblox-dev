@@ -59,6 +59,7 @@ local DataService = require(Services.DataService)
 local PolicyService = require(Services.PolicyService)
 local Analytics = require(Services.Analytics)
 local MonetizationService = require(Services.MonetizationService)
+local LiveConfig = require(Services.LiveConfig) -- owner switches from Experience configs
 local EventService = require(Services.EventService)
 local MultiplierService = require(Services.MultiplierService)
 local SettingsService = require(Services.SettingsService)
@@ -100,6 +101,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "PolicyService", Module = PolicyService :: any }, -- v2.2: paid random item policy
 	{ Name = "Analytics", Module = Analytics :: any },
 	{ Name = "MonetizationService", Module = MonetizationService :: any },
+	{ Name = "LiveConfig", Module = LiveConfig :: any }, -- before everything it can switch off
 	{ Name = "EventService", Module = EventService :: any },
 	{ Name = "MultiplierService", Module = MultiplierService :: any },
 	{ Name = "SettingsService", Module = SettingsService :: any },

@@ -52,6 +52,7 @@ local Stats = require(Shared.Util.Stats)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local MonetizationService = require(script.Parent.MonetizationService)
 local MultiplierService = require(script.Parent.MultiplierService)
 local Net = require(script.Parent.Net)
@@ -497,7 +498,9 @@ end
 -- AutoDig ---------------------------------------------------------------------------------------
 
 local function autoDigEnabled(player: Player): boolean
-	return SettingsService.Get(player, "AutoDig") == true and MonetizationService.OwnsPass(player, "AutoDig")
+	return SettingsService.Get(player, "AutoDig") == true
+		and MonetizationService.OwnsPass(player, "AutoDig")
+		and not LiveConfig.IsPaused("AutoDig")
 end
 
 local function autoDigStep(player: Player)

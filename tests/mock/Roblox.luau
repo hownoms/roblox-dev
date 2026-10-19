@@ -2503,6 +2503,18 @@ local dataStoreService = {
 Mock.Prompts = {} -- { Kind, Player, Id }
 Mock.BadgeAwards = {} -- { UserId, Id }
 Mock.BadgeFailures = 0 -- the next N AwardBadge calls throw (throttling / outage)
+-- ConfigService (Experience configs): GetConfigAsync returns a snapshot over Mock.ConfigValues.
+-- Mock.ConfigFail makes GetConfigAsync throw (Studio without configs / outage). Mock.SetConfig
+-- replaces the published values and fires UpdateAvailable on every snapshot (Refresh copies them).
+Mock.ConfigValues = {}
+Mock.ConfigFail = false
+Mock.ConfigSnapshots = {}
+function Mock.SetConfig(values)
+	Mock.ConfigValues = values
+	for _, snapshot in Mock.ConfigSnapshots do
+		snapshot.UpdateAvailable:_fire()
+	end
+end
 Mock.Analytics = {}
 -- AnalyticsService customFields: nil or { CustomField01..03 = string }.
 function Mock.CheckAnalyticsFields(fields)
@@ -2702,6 +2714,22 @@ local function buildGame()
 				AreAdsAllowed = true,
 				IsSubjectToChinaPolicies = false,
 			}
+		end,
+	}
+	classMethods.ConfigService = {
+		GetConfigAsync = function(_s)
+			if Mock.ConfigFail then
+				error("mock ConfigService unavailable")
+			end
+			local snapshot = { _values = table.clone(Mock.ConfigValues), UpdateAvailable = newSignal("UpdateAvailable") }
+			function snapshot:GetValue(key)
+				return self._values[key]
+			end
+			function snapshot:Refresh()
+				self._values = table.clone(Mock.ConfigValues)
+			end
+			table.insert(Mock.ConfigSnapshots, snapshot)
+			return snapshot
 		end,
 	}
 	classMethods.BadgeService = {
