@@ -24,7 +24,7 @@ so the preflight lists only badges 11–15. Launch reach: Public 16+ only for no
   digging, rare-find and depth images lead the detail-page gallery; prior images remain afterward.
   Live name is **Dig to the Core!**, with a saved 591-character discovery-led description and
   genre **Simulation → Incremental Simulator**. Evidence and exact description are in that kit.
-- **Access:** Limited. **Playtesters on, Friends off.** Audience reach is "Ages 16+ and trusted
+- **Access (19 Oct 2026):** **Public**, ages 16+ (Kids/Select not started). Earlier: Limited. **Playtesters on, Friends off.** Audience reach was "Ages 16+ and trusted
   friends". **Max Players is 16**, saved and rechecked under the owner's publishing-cleanup
   authorization. Account publishing eligibility lists Identity verification and 2-step
   verification as Start; camera age check is Done. Broader reach remains an owner step.

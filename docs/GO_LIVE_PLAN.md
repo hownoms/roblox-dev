@@ -64,9 +64,9 @@ when 1.7 is cut; otherwise they go in the first update. Nothing waits on them.
 - [x] Owner decision (11 Oct): **free route.** Launch Public to 16+ only; no 1,000 R$ fee and no Premium.
       Under-16 reach (Kids/Select) is Post-launch. ID verification and 2FA are free, so doing them now saves time later, but they unlock nothing alone.
 - [x] Claude: recheck current Roblox public-launch rules and give the owner an exact click-list. **Done 11 Oct**, below.
-- [ ] Owner: maturity questionnaire, devices, genre, description checked against the game.
+- [x] Owner: maturity questionnaire, devices, genre, description checked against the game. **Checked 19 Oct**: questionnaire completed, label Minimal, no descriptors; genre Simulation → Incremental Simulator; 591-char description; all 8 passes listed with prices.
       Group skipped for launch (11 Oct): `DIGDEEP` is off, and the live description promises no group, code or badges.
-- [ ] Owner: set the experience **Public**. Friday afternoon US time is the suggested slot.
+- [x] Owner: set the experience **Public**. **Public by 19 Oct 2026** (found already saved as Public, Friends limit off; game page shows "Minimal • Ages 16+" and a Play button). Live build is still place version 19 (v18); the Phase 2 playtest happens on the public game.
 - [ ] First 72 h: Claude reads Analytics (funnel, D1, session length, errors) and lists fixes.
 
 ### Click-list for going public (rules rechecked 11 Oct 2026)
@@ -155,3 +155,4 @@ controller hardware test, sponsored ads, more regions from the game bible.
 | 13 Oct 2026 | Claude | **1.7 done, v18 published** (owner said "publish"). Codex's 1.2 Studio emulation had stalled since 11 Oct with nothing committed, so the phone measurement moved into Phase 2. Full suite green and preflight 0 blocking on `19a91ba`. Rojo-synced into the Team Create place, 206/206 scripts matched the fresh build, published as Roblox place version 19. Rollback is version 17. Access unchanged (Limited). Next: owner's Phase 2 playtest, then Public |
 | 19 Oct 2026 | Claude | Owner goal: a game that runs about six months hands-off. Wrote [SIX_MONTH_PLAN.md](SIX_MONTH_PLAN.md): live config switches (Experience configs), a dated content calendar shipped in one build, endgame past Rebirth 10. Going public stays step one. Nothing changed in Phase 2 since 13 Oct |
 | 19 Oct 2026 | Claude | SIX_MONTH_PLAN part B built on `claude/live-config` (owner: "go public first, start on B"). `LiveConfig` reads Experience configs: codes on/off and extra codes, events off, bonus event, pauses for hatching / Auto Dig / leaderboards, announcement. Empty or failed config = game as published. New `live-config.spec` (configs set / ConfigService down); full suite green. Owner guide: LIVE_CONFIG.md. Not published, not merged |
+| 19 Oct 2026 | Claude | Owner said "go public". Creator Dashboard → Manage audience already showed **Public** (Friends limit off) and "available to players ages 16+"; content rating Minimal, questionnaire complete; public game page live with Play button; 8 passes listed. Nothing was changed or saved (a mis-click on the Friends box in the dialog was cancelled, and the saved state rechecked as Public). Release candidate `9a7f556` (with live switches) passes preflight and boots clean in Studio; not published yet. Phase 2 playtest now runs on the public game |
