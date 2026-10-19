@@ -14,11 +14,12 @@ so the preflight lists only badges 11–15. Launch reach: Public 16+ only for no
 
 ## Where we are
 
-- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 19**
-  ("v18 release candidate - source 19a91ba", published 13 Oct 2026 13:22 local, owner-approved). Before
-  publishing, all 206 scripts in the Rojo-synced Team Create place matched a fresh `rojo build` of `19a91ba`
-  (per-script length + hash). Access unchanged: Limited. **Rollback: place version 17** ("Second-minute fixes -
-  source 375625c"); versions 16 and 18 are autosaves.
+- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 20**
+  (published 19 Oct 2026 19:03 local, owner said "publish" after their playtest). Source `ec75979`
+  (= `9a7f556` + docs): v18 plus the live switches (`LiveConfig`, docs/LIVE_CONFIG.md). Before
+  publishing, all 207 scripts in the Rojo-synced place matched a fresh `rojo build` (per-script
+  length + hash, digest `b64a6850`). ConfigService connects on the real place. **Rollback: place
+  version 19** (v18, source `19a91ba`).
 - **Store page:** revised bacon-hair artwork from `marketing/publish-kit-bacon-v3/` uploaded.
   Icon is now visibly approved/displayed; main digging thumbnail is Active on Home. Revised
   digging, rare-find and depth images lead the detail-page gallery; prior images remain afterward.
