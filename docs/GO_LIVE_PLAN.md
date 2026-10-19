@@ -133,6 +133,8 @@ DevForum: [Kids and Select global launch](https://devforum.roblox.com/t/roblox-k
 
 ## Post-launch (not now)
 
+The post-launch path is now [SIX_MONTH_PLAN.md](SIX_MONTH_PLAN.md) (owner goal 19 Oct: run about six months hands-off).
+
 Under-16 reach (Kids/Select: ID + 2FA + 1,000 R$ refundable fee or 2 months of Premium, then 250 engaged players in 60 days),
 Spring Vault adventure and its open gates (see [integration/README.md](integration/README.md)),
 camp/trophy UI, audio SFX swap from `assets/audio/original-v1`, native gameplay screenshots,
@@ -151,3 +153,5 @@ controller hardware test, sponsored ads, more regions from the game bible.
 | 11 Oct 2026 | Claude | **Phase 3 click-list written** (rules rechecked against the live docs). Key change: Public only needs the age check + questionnaire we already have, but that reaches **16+ only**. Under-16 (Kids/Select) also needs ID + 2FA + 1,000 R$ refundable fee or 2 months of Premium, plus 250 highly engaged players in a 60-day trial. Paid random items stays **Yes** (coin packs buy egg currency; odds already shown). Music: 3 candidates per slot loaded and level-checked in Studio, sent to the owner for approval. Badges 11–15 wait for 12 Oct GMT; 1.7 waits for Codex's 1.2 |
 | 11 Oct 2026 | Claude | **1.3 done**: owner approved the ★ music picks; ids wired, ambience at 0.1, toggles checked in Studio, full suite green, preflight lists only badges 11–15. Owner chose the free route: Public 16+ first, Kids/Select moved to Post-launch |
 | 13 Oct 2026 | Claude | **1.7 done, v18 published** (owner said "publish"). Codex's 1.2 Studio emulation had stalled since 11 Oct with nothing committed, so the phone measurement moved into Phase 2. Full suite green and preflight 0 blocking on `19a91ba`. Rojo-synced into the Team Create place, 206/206 scripts matched the fresh build, published as Roblox place version 19. Rollback is version 17. Access unchanged (Limited). Next: owner's Phase 2 playtest, then Public |
+| 19 Oct 2026 | Claude | Owner goal: a game that runs about six months hands-off. Wrote [SIX_MONTH_PLAN.md](SIX_MONTH_PLAN.md): live config switches (Experience configs), a dated content calendar shipped in one build, endgame past Rebirth 10. Going public stays step one. Nothing changed in Phase 2 since 13 Oct |
+| 19 Oct 2026 | Claude | SIX_MONTH_PLAN part B built on `claude/live-config` (owner: "go public first, start on B"). `LiveConfig` reads Experience configs: codes on/off and extra codes, events off, bonus event, pauses for hatching / Auto Dig / leaderboards, announcement. Empty or failed config = game as published. New `live-config.spec` (configs set / ConfigService down); full suite green. Owner guide: LIVE_CONFIG.md. Not published, not merged |

@@ -362,9 +362,19 @@ local function buildTimers(canvas: Frame)
 		end
 		local now = Progress.Now()
 		local anyActive = false
+		-- events the owner switched off in live config (server attribute "EventsOff")
+		local offText = workspace:GetAttribute("EventsOff")
+		local off = if type(offText) == "string" then "," .. offText .. "," else ""
+		local function isOff(id: string): boolean
+			return string.find(off, "," .. id .. ",", 1, true) ~= nil
+		end
 		for _, event in Config.Events do
 			local active = State.IsEventActive(event.Id)
-				or (#State.ActiveEvents == 0 and Config.GetSecondsUntilEvent(event.Id, now) == 0)
+				or (
+					#State.ActiveEvents == 0
+					and not isOff(event.Id)
+					and Config.GetSecondsUntilEvent(event.Id, now) == 0
+				)
 			if active then
 				anyActive = true
 				order += 1
@@ -387,7 +397,7 @@ local function buildTimers(canvas: Frame)
 			local soonestIn = math.huge
 			for _, event in Config.Events do
 				local wait = Config.GetSecondsUntilEvent(event.Id, now)
-				if wait < soonestIn then
+				if wait < soonestIn and not isOff(event.Id) then
 					soonestIn = wait
 					soonest = event.Id
 				end

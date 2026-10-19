@@ -43,6 +43,7 @@ local TableUtil = require(Shared.Util.TableUtil)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local MonetizationService = require(script.Parent.MonetizationService)
 local MultiplierService = require(script.Parent.MultiplierService)
 local Net = require(script.Parent.Net)
@@ -160,6 +161,10 @@ local function onHatchEgg(player: Player, eggId: any, count: any)
 	end
 	assert(data) -- refine for the type checker (guarded above)
 	assert(egg) -- refine for the type checker (guarded above)
+	if LiveConfig.IsPaused("Hatching") then
+		Net.Notify(player, "Info", "Egg hatching is paused for a moment. Try again soon!")
+		return
+	end
 	if count > 1 and not MonetizationService.OwnsPass(player, "TripleHatch") then
 		Net.Notify(player, "Error", "Get Triple Hatch to open 3 at once!")
 		return

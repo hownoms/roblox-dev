@@ -46,6 +46,7 @@ local Week = require(Shared.Util.Week)
 
 local CandidateProfile = require(script.Parent.CandidateProfile)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local StorageGate = require(script.Parent.StorageGate)
 local ServerSignals = require(script.Parent.ServerSignals)
 
@@ -723,7 +724,9 @@ function LeaderboardService.Start()
 		task.wait(5) -- let the first players load
 		while true do
 			local ok, err = pcall(function(): any
-				LeaderboardService.Refresh()
+				if not LiveConfig.IsPaused("Leaderboards") then -- owner switch: no store traffic
+					LeaderboardService.Refresh()
+				end
 				return nil
 			end)
 			if not ok then
@@ -754,6 +757,10 @@ end
 
 function LeaderboardService.OnPlayerRemoving(player: Player)
 	-- Final writes while data is still in memory (DataService releases after us).
+	if LiveConfig.IsPaused("Leaderboards") then
+		sessions[player] = nil
+		return
+	end
 	for _, board in boards do
 		task.spawn(writeAllTime, board, player)
 	end

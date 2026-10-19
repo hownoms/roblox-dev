@@ -54,6 +54,9 @@ luau tests/candidate-storage.spec.luau -a localids notstudio || status=1
 echo "== pip-quest.spec (q_pip license grant + rides vs the pocket; ordinary on / off) =="
 luau tests/pip-quest.spec.luau || status=1
 luau tests/pip-quest.spec.luau -a off || status=1
+echo "== live-config.spec (Experience configs set / ConfigService down) =="
+luau tests/live-config.spec.luau || status=1
+luau tests/live-config.spec.luau -a fail || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1

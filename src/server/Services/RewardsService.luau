@@ -29,6 +29,7 @@ local Format = require(Shared.Util.Format)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Net = require(script.Parent.Net)
 local PetService = require(script.Parent.PetService)
@@ -249,8 +250,8 @@ local function onRedeemCode(player: Player, code: any)
 		return
 	end
 	assert(data) -- refine for the type checker (guarded above)
-	local def = Config.GetCode(code)
-	if not def or not def.Enabled or (def.Expires ~= nil and os.time() > def.Expires) then
+	local def = LiveConfig.FindCode(code) -- shipped codes plus the owner's live on/off and extra codes
+	if not def then
 		Net.Notify(player, "Error", "That code doesn't work.")
 		return
 	end

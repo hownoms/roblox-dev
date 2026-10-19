@@ -19,6 +19,10 @@
 			is already running it is extended to last at least `seconds` more. Returns false for
 			an unknown id or a non-positive duration.
 		EventService.GetSecondsLeft(eventId): number   (0 when inactive)
+
+	Live config (LiveConfig): events in `events_off` never run (scheduled or started early), and
+	Workspace attribute "EventsOff" lists them for the HUD. `bonus_event` runs that event on every
+	server until `bonus_event_ends`, the same way as StartEarly; removing it ends the bonus.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +32,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Signal = require(Shared.Util.Signal)
 
+local LiveConfig = require(script.Parent.LiveConfig)
 local Net = require(script.Parent.Net)
 
 local EventService = {}
@@ -37,18 +42,22 @@ EventService.Changed = Signal.new() :: Signal.Signal<{ string }>
 local activeIds: { string } = {}
 local activeKey = ""
 local forcedUntil: { [string]: number } = {} -- event id -> unix end time (StartEarly)
+local bonus: { Id: string, Ends: number }? = nil -- the live-config bonus event in forcedUntil
 
 local function compute(): ({ string }, string)
 	local now = os.time()
 	local ids = {}
+	local off = LiveConfig.Get().EventsOff
 	for _, event in Config.GetActiveEvents(now) do
-		table.insert(ids, event.Id)
+		if not off[event.Id] then
+			table.insert(ids, event.Id)
+		end
 	end
 	for id, ends in forcedUntil do
 		if ends <= now then
 			forcedUntil[id] = nil
 			Workspace:SetAttribute("EventEnds_" .. id, nil)
-		elseif not table.find(ids, id) then
+		elseif not off[id] and not table.find(ids, id) then
 			table.insert(ids, id)
 		end
 	end
@@ -114,8 +123,39 @@ function EventService.StartEarly(eventId: string, seconds: number): boolean
 	return true
 end
 
+local function applyLive(snap: LiveConfig.Snapshot)
+	local offList = {}
+	for id in snap.EventsOff do
+		table.insert(offList, id)
+	end
+	table.sort(offList)
+	Workspace:SetAttribute("EventsOff", table.concat(offList, ","))
+	local wanted = snap.BonusEvent
+	local wantedEnds = snap.BonusEventEnds
+	local current = bonus
+	if current and (current.Id ~= wanted or current.Ends ~= wantedEnds) then
+		-- end the old bonus, unless something else (server goal) has pushed it further
+		if forcedUntil[current.Id] == current.Ends then
+			forcedUntil[current.Id] = nil
+			Workspace:SetAttribute("EventEnds_" .. current.Id, nil)
+		end
+		bonus = nil
+	end
+	if wanted and wantedEnds and wantedEnds > os.time() and not bonus then
+		local ends = math.max(wantedEnds, forcedUntil[wanted] or 0)
+		forcedUntil[wanted] = ends
+		Workspace:SetAttribute("EventEnds_" .. wanted, ends)
+		bonus = { Id = wanted, Ends = ends }
+	end
+end
+
 function EventService.Init()
 	Workspace:SetAttribute("ActiveEvents", "")
+	applyLive(LiveConfig.Get())
+	LiveConfig.Changed:Connect(function(snap: LiveConfig.Snapshot)
+		applyLive(snap)
+		update(true)
+	end)
 	update(false)
 end
 
