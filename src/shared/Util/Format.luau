@@ -20,7 +20,9 @@ function Format.Abbreviate(n: number): string
 		then string.format("%d", math.floor(scaled))
 		elseif scaled >= 10 then string.format("%.1f", math.floor(scaled * 10) / 10)
 		else string.format("%.2f", math.floor(scaled * 100) / 100)
-	text = (text:gsub("%.?0+$", ""))
+	if string.find(text, ".", 1, true) then
+		text = (text:gsub("%.?0+$", "")) -- "1.50" -> "1.5", "2.00" -> "2"; never touches "370"
+	end
 	return sign .. text .. SUFFIXES[tier + 1]
 end
 

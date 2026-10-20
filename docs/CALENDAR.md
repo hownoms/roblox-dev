@@ -84,6 +84,6 @@ in config:
 - **New Year** has no egg of its own: it runs inside Winter Beach, so the Gift Egg covers it.
 - **Limited finds have no Index page yet.** They are saved in the player's Index, but the book still
   only shows layer sets. A "Limited" tab is a small follow-up.
-- The pop-up egg stand sits at `Layout.SEASON_STAND` = (-20, 1024, 19). Its spot was picked from the
-  map plan, not checked in Studio. Look at it once in a Studio Play session (set `bonus_event` =
-  `WinterBeach` to see it now) and move it if it clips anything.
+- The pop-up egg stand sits at `Layout.SEASON_STAND` = (-58, 1024, 26), on clear sand by the
+  crate yard. Checked in a Studio Play session on 20 Oct 2026 with Winter Beach forced on. The first
+  spot (-20, 19) overlapped plaza props.

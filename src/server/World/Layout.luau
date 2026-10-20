@@ -93,10 +93,11 @@ Layout.EGG_ARC_CENTER = Vector3.new(-50, S, 92)
 Layout.EGG_ARC_RADIUS = 19
 Layout.EGG_ARC_DEGREES = 110
 Layout.TITLE_SIGN = Vector3.new(0, S, 118)
--- Content calendar pop-up egg stand (CalendarService): open sand between the boardwalk's inland
--- edge (z 12), the Sell pad (x -8..8 from z ~17.5) and the Shovel hut (-36, 34), on the walk from
--- the west spawn to the plaza. Only built while a drop with a limited egg runs.
-Layout.SEASON_STAND = Vector3.new(-20, S, 19)
+-- Content calendar pop-up egg stand (CalendarService): open sand west of the Shovel hut (-36, 34),
+-- beside the crate yard and the boardwalk. Checked in Studio on 20 Oct 2026: the first spot (-20, 19)
+-- overlapped the plaza flagpole, signpost, lamp and the Sell stand's awning post; this one is clear.
+-- Only built while a drop with a limited egg runs.
+Layout.SEASON_STAND = Vector3.new(-58, S, 26)
 
 -- Trophy camp pad (bible ch.02 "Camps and trophies"; TrophyCampDisplay borrows it). One
 -- 24x24 display deck on open sand between the Rebirth shrine and the Beach Shop: >= 10 studs
