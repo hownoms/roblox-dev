@@ -14,12 +14,13 @@ so the preflight lists only badges 11–15. Launch reach: Public 16+ only for no
 
 ## Where we are
 
-- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 20**
-  (published 19 Oct 2026 19:03 local, owner said "publish" after their playtest). Source `ec75979`
-  (= `9a7f556` + docs): v18 plus the live switches (`LiveConfig`, docs/LIVE_CONFIG.md). Before
-  publishing, all 207 scripts in the Rojo-synced place matched a fresh `rojo build` (per-script
-  length + hash, digest `b64a6850`). ConfigService connects on the real place. **Rollback: place
-  version 19** (v18, source `19a91ba`).
+- **Live on Roblox:** experience `10769863381`, start place `135511260983800`, **place version 21**
+  (published 20 Oct 2026 11:04 local, owner said "publish the current default branch"). Source `cb3eb05`:
+  v20 + part C (content calendar from 26 Nov, endgame C1-C3: rebirth milestones 12/15/16/17/18 with
+  rebirths 13-16 at x1.5, Rainbow pets, Index mastery) + the Abbreviate fix (100K showed as 1K).
+  Before publishing, all 211 scripts in the Rojo-synced place matched a fresh `rojo build`
+  (per-script FNV-1a, digest `b39b2c80`). Studio-checked with Winter Beach forced via `bonus_event`.
+  **Rollback: place version 20** (source `ec75979`).
 - **Store page:** revised bacon-hair artwork from `marketing/publish-kit-bacon-v3/` uploaded.
   Icon is now visibly approved/displayed; main digging thumbnail is Active on Home. Revised
   digging, rare-find and depth images lead the detail-page gallery; prior images remain afterward.
