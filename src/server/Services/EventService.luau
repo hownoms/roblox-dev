@@ -1,6 +1,7 @@
 --!strict
 --[[
-	EventService — server-wide timed events (Config.Events: High Tide, Golden Hour).
+	EventService — server-wide timed events (Config.Events: High Tide, Golden Hour, and the
+	content calendar's drops and modifiers, Config/Calendar.luau).
 	Events are deterministic from os.time() (Config.GetActiveEvents), so every server agrees.
 	When the active set changes the service:
 	  - sets Workspace attribute "ActiveEvents" = comma separated ids ("" when none),
@@ -21,7 +22,10 @@
 		EventService.GetSecondsLeft(eventId): number   (0 when inactive)
 
 	Live config (LiveConfig): events in `events_off` never run (scheduled or started early), and
-	Workspace attribute "EventsOff" lists them for the HUD. `bonus_event` runs that event on every
+	Workspace attribute "EventsOff" lists them for the HUD. An entry may also be an event group
+	(EventDef.Group: a drop id such as "WinterBeach", or "WeekendFest"), which stops every event
+	of that group; a drop id stops the drop's own event too, and with it the drop's egg, finds and
+	decorations (they all follow EventService.IsActive(dropId)). `bonus_event` runs that event on every
 	server until `bonus_event_ends`, the same way as StartEarly; removing it ends the bonus.
 ]]
 
@@ -49,15 +53,16 @@ local function compute(): ({ string }, string)
 	local ids = {}
 	local off = LiveConfig.Get().EventsOff
 	for _, event in Config.GetActiveEvents(now) do
-		if not off[event.Id] then
+		if not Config.IsEventOff(event, off) then
 			table.insert(ids, event.Id)
 		end
 	end
 	for id, ends in forcedUntil do
+		local def = Config.GetEvent(id)
 		if ends <= now then
 			forcedUntil[id] = nil
 			Workspace:SetAttribute("EventEnds_" .. id, nil)
-		elseif not off[id] and not table.find(ids, id) then
+		elseif def and not Config.IsEventOff(def, off) and not table.find(ids, id) then
 			table.insert(ids, id)
 		end
 	end
@@ -103,11 +108,7 @@ function EventService.GetSecondsLeft(eventId: string): number
 	end
 	local now = os.time()
 	local forced = forcedUntil[eventId]
-	local scheduled = 0
-	local def = Config.GetEvent(eventId)
-	if def and Config.GetSecondsUntilEvent(eventId, now) == 0 then
-		scheduled = def.DurationSeconds - (now + def.OffsetSeconds) % def.IntervalSeconds
-	end
+	local scheduled = Config.GetEventSecondsLeft(eventId, now)
 	return math.max(scheduled, if forced then forced - now else 0)
 end
 

@@ -104,6 +104,30 @@ do
 	check(Endgame.CountMastered({ [layer1.Id] = true, junk = true, [Config.Layers[2].Id] = false }) == 1, "CountMastered ignores junk")
 	check(Endgame.CountMastered(nil) == 0, "CountMastered(nil)")
 
+	-- Seasonal (content calendar) finds never count toward mastery
+	local seasonalIds = {}
+	for _, t in Config.Treasures do
+		if t.Seasonal == true then
+			table.insert(seasonalIds, t.Id)
+			check(Endgame.IsSeasonal(t.Id), "seasonal treasure left out of mastery: " .. t.Id)
+		end
+	end
+	check(#seasonalIds > 0, "there are seasonal treasures to test with")
+	for _, layer in Config.Layers do
+		for _, entry in layer.LootTable do
+			check(not Endgame.IsSeasonal(entry.TreasureId), "LootTable treasure counts for mastery: " .. entry.TreasureId)
+		end
+	end
+	local fakeLayer = { Id = "seasonal_test", LootTable = table.clone(layer1.LootTable) }
+	table.insert(fakeLayer.LootTable, { TreasureId = seasonalIds[1], Weight = 1 })
+	local realLayer1 = Config.Layers[1]
+	Config.Layers[1] = setmetatable(fakeLayer, { __index = realLayer1 })
+	variants[layer1.LootTable[1].TreasureId .. "/Crystal"] = true
+	local h2, t2 = Endgame.MasteryProgress(1, variants)
+	check(Endgame.IsLayerMastered(1, variants), "seasonal entry in a LootTable does not block mastery")
+	check(h2 == t2 and t2 == #layer1.LootTable * #Endgame.MASTERY_VARIANTS, "seasonal entry not in mastery total")
+	Config.Layers[1] = realLayer1
+
 	-- skin keeps the shovel's shape
 	local shovel = Config.Shovels[5]
 	local look = Endgame.ApplySkin(shovel.Look, "starforged")

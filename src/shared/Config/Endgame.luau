@@ -30,6 +30,7 @@
 local Types = require(script.Parent.Parent.Types)
 local Layers = require(script.Parent.Layers)
 local Pets = require(script.Parent.Pets)
+local Treasures = require(script.Parent.Treasures)
 
 local rgb = Color3.fromRGB
 
@@ -206,6 +207,15 @@ local function variantKey(treasureId: string, variant: string): string
 	return treasureId .. "/" .. variant
 end
 
+-- Content-calendar finds (Seasonal = true) are limited-time, so they never count toward mastery,
+-- even if one is ever listed in a LootTable. Otherwise a layer could become impossible to master.
+local seasonal: { [string]: boolean } = {}
+for _, treasure in Treasures do
+	if (treasure :: any).Seasonal == true then
+		seasonal[treasure.Id] = true
+	end
+end
+
 -- Is every treasure of layer `layerIndex` found in every MASTERY_VARIANTS variant?
 function Endgame.IsLayerMastered(layerIndex: number, variants: { [string]: boolean }?): boolean
 	local layer = Layers[layerIndex]
@@ -213,14 +223,18 @@ function Endgame.IsLayerMastered(layerIndex: number, variants: { [string]: boole
 		return false
 	end
 	local seen = variants :: { [string]: boolean }
+	local counted = 0
 	for _, entry in layer.LootTable do
-		for _, variant in Endgame.MASTERY_VARIANTS do
-			if seen[variantKey(entry.TreasureId, variant)] ~= true then
-				return false
+		if not seasonal[entry.TreasureId] then
+			counted += 1
+			for _, variant in Endgame.MASTERY_VARIANTS do
+				if seen[variantKey(entry.TreasureId, variant)] ~= true then
+					return false
+				end
 			end
 		end
 	end
-	return true
+	return counted > 0
 end
 
 -- (variants found, variants needed) for a layer's mastery progress bar.
@@ -232,14 +246,21 @@ function Endgame.MasteryProgress(layerIndex: number, variants: { [string]: boole
 	local seen: { [string]: boolean } = if type(variants) == "table" then variants else {}
 	local have, total = 0, 0
 	for _, entry in layer.LootTable do
-		for _, variant in Endgame.MASTERY_VARIANTS do
-			total += 1
-			if seen[variantKey(entry.TreasureId, variant)] == true then
-				have += 1
+		if not seasonal[entry.TreasureId] then
+			for _, variant in Endgame.MASTERY_VARIANTS do
+				total += 1
+				if seen[variantKey(entry.TreasureId, variant)] == true then
+					have += 1
+				end
 			end
 		end
 	end
 	return have, total
+end
+
+-- For tests: is this treasure left out of mastery?
+function Endgame.IsSeasonal(treasureId: string): boolean
+	return seasonal[treasureId] == true
 end
 
 -- Recorded mastered layers that still exist (tolerates junk / removed layers in old saves).

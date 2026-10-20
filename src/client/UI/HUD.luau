@@ -30,6 +30,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Format = require(Shared:WaitForChild("Util"):WaitForChild("Format"))
+local Types = require(Shared:WaitForChild("Types"))
 
 local Root = require(script.Parent.Root)
 local Style = require(script.Parent.Components.Style)
@@ -345,7 +346,11 @@ local function buildTimers(canvas: Frame)
 	end
 	local timeHex = "#" .. C.Time:ToHex()
 	local function timed(name: string, seconds: number): string
-		return name .. ' <font color="' .. timeHex .. '">' .. Format.Time(seconds) .. "</font>"
+		-- calendar drops run for days: "12d 4h" instead of "292:00:00"
+		local text = if seconds >= 86400
+			then string.format("%dd %dh", seconds // 86400, (seconds % 86400) // 3600)
+			else Format.Time(seconds)
+		return name .. ' <font color="' .. timeHex .. '">' .. text .. "</font>"
 	end
 
 	local function update()
@@ -365,23 +370,28 @@ local function buildTimers(canvas: Frame)
 		-- events the owner switched off in live config (server attribute "EventsOff")
 		local offText = workspace:GetAttribute("EventsOff")
 		local off = if type(offText) == "string" then "," .. offText .. "," else ""
-		local function isOff(id: string): boolean
-			return string.find(off, "," .. id .. ",", 1, true) ~= nil
+		local function isOff(event: Types.EventDef): boolean
+			local function listed(id: string): boolean
+				return string.find(off, "," .. id .. ",", 1, true) ~= nil
+			end
+			return listed(event.Id) or (event.Group ~= nil and listed(event.Group :: string))
 		end
 		for _, event in Config.Events do
 			local active = State.IsEventActive(event.Id)
-				or (
-					#State.ActiveEvents == 0
-					and not isOff(event.Id)
-					and Config.GetSecondsUntilEvent(event.Id, now) == 0
-				)
+				or (#State.ActiveEvents == 0 and not isOff(event) and Config.GetSecondsUntilEvent(event.Id, now) == 0)
 			if active then
-				anyActive = true
+				-- the "next event" teaser only waits on the short repeating events (High Tide...),
+				-- not on a calendar drop that runs for days
+				if event.IntervalSeconds then
+					anyActive = true
+				end
 				order += 1
 				local key = "Event_" .. event.Id
 				seen[key] = true
-				local phase = (now + event.OffsetSeconds) % event.IntervalSeconds
-				local left = if phase < event.DurationSeconds then event.DurationSeconds - phase else 0
+				local left = Config.GetEventSecondsLeft(event.Id, now)
+				if left == math.huge then
+					left = 0
+				end
 				-- v2.2: started early on this server (server dig goal) -> its real end time
 				local forcedEnd = workspace:GetAttribute("EventEnds_" .. event.Id)
 				if typeof(forcedEnd) == "number" then
@@ -397,7 +407,7 @@ local function buildTimers(canvas: Frame)
 			local soonestIn = math.huge
 			for _, event in Config.Events do
 				local wait = Config.GetSecondsUntilEvent(event.Id, now)
-				if wait < soonestIn and not isOff(event.Id) then
+				if event.IntervalSeconds and wait < soonestIn and not isOff(event) then
 					soonestIn = wait
 					soonest = event.Id
 				end

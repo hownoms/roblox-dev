@@ -5,14 +5,15 @@
 	HatchEgg(eggId, count): count 1, or Config.TRIPLE_HATCH_COUNT with the TripleHatch pass.
 	Coins/Tokens eggs only (Robux eggs are granted through their developer product; asking to
 	hatch one prompts the product). Egg must be unlocked (Config.IsEggUnlocked by MaxDepth),
-	inventory must have room (Config.PET_INVENTORY_LIMIT). Luck (LuckBoost,
+	inventory must have room (Config.PET_INVENTORY_LIMIT). A limited calendar egg (EggDef.Drop)
+	sells only while its drop's event runs (Config.IsEggOnSale with EventService.IsActive). Luck (LuckBoost,
 	High Tide) multiplies the weight of non-Common pets. New pets auto-equip while slots are free.
 	Fires EggHatched({petId...}) to the hatcher; Legendary/Mythic hatches are announced.
 
 	Equip/Unequip/Delete by uid; equip slots = PlayerData.PetSlots + ExtraPets pass.
 
 	v2.2:
-	  - TRUE ODDS: every roll is Stats.RollHatch(egg, Stats.GetLuck(ctx), data.Pity[egg.Id], r),
+	  - TRUE ODDS: every roll is Stats.RollHatch(egg, Stats.GetHatchLuck(ctx), data.Pity[egg.Id], r),
 	    which picks from Stats.GetHatchOddsList, the same function the egg panel displays.
 	    EggHatched(results, { EggId, Chances = {probability of each result}, Pity = {bool} }).
 	  - PITY: data.Pity[eggId] counts hatches in a row without a Rare+ pet; at EggDef.PityAt the
@@ -48,6 +49,7 @@ local TableUtil = require(Shared.Util.TableUtil)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+local EventService = require(script.Parent.EventService) -- limited calendar eggs
 local LiveConfig = require(script.Parent.LiveConfig)
 local MonetizationService = require(script.Parent.MonetizationService)
 local MultiplierService = require(script.Parent.MultiplierService)
@@ -107,7 +109,7 @@ end
 -- Rolls `count` pets from an egg and grants them. No cost / unlock / inventory checks.
 local function hatch(player: Player, egg: Types.EggDef, count: number): { string }
 	local ctx = MultiplierService.GetContext(player)
-	local luck = if ctx then Stats.GetLuck(ctx) else 1
+	local luck = if ctx then Stats.GetHatchLuck(ctx) else 1 -- Luck + Hatch events (calendar)
 	local data = DataService.Get(player)
 	local pityTable: { [string]: number } = if data then data.Pity else {}
 	local results = {}
@@ -178,6 +180,11 @@ local function onHatchEgg(player: Player, eggId: any, count: any)
 		if egg.ProductKey then
 			MonetizationService.PromptProduct(player, egg.ProductKey)
 		end
+		return
+	end
+	if not Config.IsEggOnSale(egg.Id, EventService.IsActive) then
+		-- a content calendar egg outside its drop (Config/Calendar.luau)
+		Net.Notify(player, "Error", "That limited egg isn't available right now!")
 		return
 	end
 	if not Config.IsEggUnlocked(egg.Id, data.MaxDepth) then

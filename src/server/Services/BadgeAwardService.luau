@@ -46,7 +46,7 @@ end
 -- Treasures per layer, excluding Relics (matches the Index panel's "x / y found").
 local layerTreasures: { [number]: { string } } = {}
 for _, treasure in Config.Treasures do
-	if treasure.Rarity ~= "Relic" then
+	if treasure.Rarity ~= "Relic" and not treasure.Seasonal then -- calendar finds: not a layer set
 		layerTreasures[treasure.Layer] = layerTreasures[treasure.Layer] or {}
 		table.insert(layerTreasures[treasure.Layer], treasure.Id)
 	end

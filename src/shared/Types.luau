@@ -195,6 +195,9 @@ export type EggDef = {
 	-- v2.2 pity: after this many hatches in a row without a Rare-or-better pet, the next hatch is
 	-- guaranteed Rare+ (Stats.GetHatchOdds). nil = no pity (every entry is already Rare+).
 	PityAt: number?,
+	-- Content calendar (Config/Calendar.luau): a limited egg sold only while this drop (an event
+	-- id in Config.Events) is active. Free hatches (codes, advent) skip the check.
+	Drop: string?,
 }
 
 -- Treasure ---------------------------------------------------------------------------------
@@ -235,6 +238,9 @@ export type TreasureDef = {
 	-- v3 Relics: value = ScaledValue seconds of income (RewardScale of the player's deepest layer)
 	-- instead of SellValue; findable in any deposit of layer >= Layer (Config.Discovery).
 	ScaledValue: number?,
+	-- Content calendar: a limited find (seasonal drop or monthly mythic, Config/Calendar.luau).
+	-- Never in a layer LootTable and not counted in the Index "x / y found" per layer.
+	Seasonal: boolean?,
 }
 
 -- v3 discovery slice (docs/design/Discovery.md) ------------------------------------------------
@@ -342,13 +348,16 @@ export type CodeDef = {
 	Reward: Reward,
 	Enabled: boolean,
 	Expires: number?, -- unix time; nil = never
+	Starts: number?, -- unix time; redeemable from then on (content calendar codes); nil = always
 	GroupOnly: boolean?, -- requires membership of Config.GROUP_ID
 	Note: string,
 }
 
 -- Boosts & events --------------------------------------------------------------------------
 
-export type BoostKind = "Sand" | "Luck" | "Coins" | "Speed"
+-- Content calendar kinds (events only): "Hatch" = egg luck only (Stats.GetHatchLuck),
+-- "Material" = find material luck only (Stats.GetMaterialLuck), "Season" = no modifier (a drop).
+export type BoostKind = "Sand" | "Luck" | "Coins" | "Speed" | "Hatch" | "Material" | "Season"
 
 export type BoostDef = {
 	Id: string,
@@ -365,9 +374,19 @@ export type EventDef = {
 	Description: string,
 	Kind: BoostKind,
 	Multiplier: number,
-	IntervalSeconds: number, -- event is active while (os.time() + OffsetSeconds) % IntervalSeconds < DurationSeconds
-	DurationSeconds: number,
-	OffsetSeconds: number,
+	-- Schedule (Config/Schedule.luau). Every field is optional and they combine (all must hold):
+	-- periodic: active while (os.time() + OffsetSeconds) % IntervalSeconds < DurationSeconds
+	IntervalSeconds: number?,
+	DurationSeconds: number?,
+	OffsetSeconds: number?,
+	Starts: number?, -- unix (UTC), inclusive
+	Ends: number?, -- unix (UTC), exclusive
+	Weekend: boolean?, -- Saturday 00:00 .. Monday 00:00 UTC only
+	WeekCycle: number?, -- with WeekSlot: only weeks where Schedule.WeekIndex % WeekCycle == WeekSlot
+	WeekSlot: number?,
+	-- Live config: an `events_off` entry naming this group also stops the event (a drop id, or
+	-- "WeekendFest"). Drops are events themselves (Config.Calendar.Drops).
+	Group: string?,
 	Color: Color3,
 }
 
@@ -581,6 +600,9 @@ export type PlayerData = {
 	IndexMastered: { [string]: boolean }, -- endgame C3: layer id -> mastery recorded (never reset)
 	PlayTime: number, -- seconds
 	FirstJoin: number, -- unix
+	-- Content calendar state (CalendarService): "AdventDay" = last UTC day number an advent gift
+	-- was found. Kept small and generic so later drops can add keys without a migration.
+	Calendar: { [string]: number },
 	Version: number,
 }
 

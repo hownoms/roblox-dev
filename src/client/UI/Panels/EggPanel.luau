@@ -144,10 +144,10 @@ local function factorText(value: number): string
 	return "x" .. text
 end
 
--- The player's luck right now (same Stats.GetLuck the server rolls with) and its modifiers.
+-- The player's egg luck right now (same Stats.GetHatchLuck the server rolls with) and its modifiers.
 local function currentLuck(): (number, { Stats.Factor })
 	local ctx = State.GetStatsContext()
-	return Stats.GetLuck(ctx), Stats.GetLuckFactors(ctx)
+	return Stats.GetHatchLuck(ctx), Stats.GetHatchLuckFactors(ctx)
 end
 
 local function pityCount(egg: Types.EggDef): number
@@ -197,6 +197,9 @@ end
 
 -- Robux eggs are only listed while one of their products may be offered (policy).
 local function isListed(egg: Types.EggDef): boolean
+	if egg.Drop and not State.IsEventActive(egg.Drop :: string) then
+		return false -- a content calendar egg outside its drop (Config/Calendar.luau)
+	end
 	if egg.Currency ~= "Robux" then
 		return true
 	end
@@ -474,7 +477,8 @@ local function build()
 			Parent = card.Face,
 		})
 		local price = Style.Label({
-			Text = priceText(egg, 1) .. (if isCrate(egg) then "  ·  Crate" else ""),
+			Text = priceText(egg, 1)
+				.. (if isCrate(egg) then "  ·  Crate" elseif egg.Drop then "  ·  LIMITED" else ""),
 			Size = UDim2.new(1, -66, 0, 22),
 			Position = UDim2.fromOffset(58, 32),
 			TextColor = C.Sand,

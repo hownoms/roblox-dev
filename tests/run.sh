@@ -59,6 +59,9 @@ luau tests/live-config.spec.luau || status=1
 luau tests/live-config.spec.luau -a fail || status=1
 echo "== endgame.spec (rebirth milestones / Rainbow fusion / Index mastery + pauses) =="
 luau tests/endgame.spec.luau || status=1
+echo "== calendar.spec (dated content calendar: pure walk / real Main on calendar dates) =="
+luau tests/calendar.spec.luau || status=1
+luau tests/calendar.spec.luau -a main || status=1
 echo "== persistence boot failure (live / Studio) =="
 luau tests/persistence-boot.spec.luau || status=1
 luau tests/persistence-boot.spec.luau -a studio || status=1
