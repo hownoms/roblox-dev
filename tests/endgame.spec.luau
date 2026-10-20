@@ -6,8 +6,9 @@
 	  - C2 fusion: not enough copies, duplicate / repeated requests, equipped copies used last,
 	    Rainbow can't fuse, Rainbow copies don't count as Golden, multiplier, attributes,
 	    pause_fusing.
-	  - C1 milestones: an old save past rebirth 15 gets r12 + r15 on join, exactly once (rejoin,
-	    more rebirths), the skin at 20, SetShovelSkin validation, pause_milestones holds grants
+	  - C1 milestones: an old save at rebirth 15 gets r12 + r15 on join, exactly once (rejoin,
+	    more rebirths), the skin at 16, the title at 17, the Wyrm at 18, SetShovelSkin validation,
+	    pause_milestones holds grants
 	    back until it is lifted.
 	  - C3 mastery: recorded once, bonus applied once (re-trigger, rejoin), pause_index_rewards.
 	MOCK COVERAGE ONLY: headless mock, in-memory DataStore, mock ConfigService.
@@ -45,14 +46,17 @@ local Enum = Mock.Env.Enum
 do
 	check(Endgame.TitleFor(11) == nil, "no milestone title below 12 rebirths")
 	check(Endgame.TitleFor(12) == "Reborn Veteran", "12: Reborn Veteran")
-	check(Endgame.TitleFor(24) == "Reborn Veteran" and Endgame.TitleFor(25) == "Eternal Digger", "25: Eternal Digger")
-	check(#Endgame.Reached(14) == 1 and #Endgame.Reached(30) == #Endgame.Milestones, "Reached")
-	check(Endgame.NextMilestone(15).Rebirths == 20 and Endgame.NextMilestone(30) == nil, "NextMilestone")
+	check(Endgame.TitleFor(16) == "Reborn Veteran" and Endgame.TitleFor(17) == "Eternal Digger", "17: Eternal Digger")
+	check(#Endgame.Reached(14) == 1 and #Endgame.Reached(18) == #Endgame.Milestones, "Reached")
+	check(Endgame.NextMilestone(15).Rebirths == 16 and Endgame.NextMilestone(18) == nil, "NextMilestone")
 	local rebirthsSeen = {}
 	for _, m in Endgame.Milestones do
 		rebirthsSeen[m.Rebirths] = m.Kind
 	end
-	check(rebirthsSeen[12] and rebirthsSeen[15] and rebirthsSeen[20] and rebirthsSeen[25] and rebirthsSeen[30], "milestones at 12, 15, 20, 25, 30")
+	check(
+		rebirthsSeen[12] == "Title" and rebirthsSeen[15] == "Pet" and rebirthsSeen[16] == "Skin" and rebirthsSeen[17] == "Title" and rebirthsSeen[18] == "Pet",
+		"milestones: 12 title, 15 pet, 16 skin, 17 title, 18 pet"
+	)
 	for _, m in Endgame.Milestones do
 		if m.PetId then
 			local pet = Config.GetPet(m.PetId)
@@ -132,7 +136,7 @@ Mock.DataStores[Config.DATASTORE_NAME]["Player_6001"] = {
 	Data = {
 		Version = Config.DATA_VERSION,
 		Coins = 123,
-		Rebirths = 16,
+		Rebirths = 15,
 		Pets = {},
 		PetSlots = 3,
 		Index = {},
@@ -323,10 +327,10 @@ do
 	local p = Mock.AddPlayer(6001, "Veteran")
 	Mock.Advance(2)
 	local d = DataService.Get(p)
-	check(d ~= nil and d.Coins == 123 and d.Rebirths == 16, "old save loads")
-	check(d.Milestones.r12 == true and d.Milestones.r15 == true and d.Milestones.r20 == nil, "r12 + r15 granted on join")
+	check(d ~= nil and d.Coins == 123 and d.Rebirths == 15, "old save loads")
+	check(d.Milestones.r12 == true and d.Milestones.r15 == true and d.Milestones.r16 == nil, "r12 + r15 granted on join")
 	check(count(d, "reborn_phoenix") == 1, "Reborn Phoenix granted once")
-	check(d.ShovelSkin == "", "no skin before rebirth 20")
+	check(d.ShovelSkin == "", "no skin before rebirth 16")
 	check(d.IndexMastered[Config.Layers[1].Id] == true and Endgame.CountMastered(d.IndexMastered) == 1, "layer 1 mastery recorded on join")
 	check(math.abs((factor(p, "Mastery") or 0) - (1 + Endgame.INDEX_MASTER_BONUS)) < 1e-9, "Mastery sand factor +3%")
 	local mult = p:GetAttribute("SandMultiplier")
@@ -338,12 +342,17 @@ do
 	check(notifies(p, mark, "MASTERED") == 0 and notifies(p, mark, "MILESTONE") == 0, "no repeated toasts")
 	check(p:GetAttribute("SandMultiplier") == mult, "bonus applied once")
 
-	-- rebirth up to 20: skin, no duplicates
-	for _ = 1, 4 do
+	-- rebirth 16: skin; 17: title; 18: Eternal Wyrm; no duplicates
+	RebirthService.DoRebirth(p, true)
+	Mock.Advance(0.5)
+	check(d.Rebirths == 16 and d.Milestones.r16 == true and d.ShovelSkin == "starforged", "rebirth 16: skin granted and worn")
+	check(d.Milestones.r17 == nil and count(d, "eternal_wyrm") == 0, "nothing past 16 yet")
+	for _ = 1, 2 do
 		RebirthService.DoRebirth(p, true)
 		Mock.Advance(0.5)
 	end
-	check(d.Rebirths == 20 and d.Milestones.r20 == true and d.ShovelSkin == "starforged", "rebirth 20: skin granted and worn")
+	check(d.Rebirths == 18 and d.Milestones.r17 == true and d.Milestones.r18 == true, "rebirth 17 + 18 granted")
+	check(count(d, "eternal_wyrm") == 1, "rebirth 18: Eternal Wyrm granted once")
 	check(count(d, "reborn_phoenix") == 1, "still one Reborn Phoenix after more rebirths")
 	check(d.IndexMastered[Config.Layers[1].Id] == true and d.Milestones.r12 == true, "endgame fields survive rebirth")
 
@@ -366,8 +375,8 @@ do
 	p = Mock.AddPlayer(6001, "Veteran")
 	Mock.Advance(2)
 	d = DataService.Get(p)
-	check(d ~= nil and d.Rebirths == 20, "rejoin loads")
-	check(count(d, "reborn_phoenix") == 1 and d.ShovelSkin == "starforged", "rejoin: no duplicate pet, skin kept")
+	check(d ~= nil and d.Rebirths == 18, "rejoin loads")
+	check(count(d, "reborn_phoenix") == 1 and count(d, "eternal_wyrm") == 1 and d.ShovelSkin == "starforged", "rejoin: no duplicate pets, skin kept")
 	check(Endgame.CountMastered(d.IndexMastered) == 1 and math.abs((factor(p, "Mastery") or 0) - 1.03) < 1e-9, "rejoin: mastery once")
 	Mock.RemovePlayer(p)
 	Mock.Advance(3)

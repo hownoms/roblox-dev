@@ -80,6 +80,8 @@ local Skins: { SkinDef } = {
 	},
 }
 
+-- 12 / 15 / 16 / 17 / 18: past ~12 each rebirth costs x3.3 while the multiplier grows +0.5, so
+-- the economy sim puts 15 at ~46 h and 18 at ~1,300 h of play (owner moved 20/25/30 down, 20 Oct).
 local Milestones: { MilestoneDef } = {
 	{
 		Id = "r12",
@@ -90,16 +92,16 @@ local Milestones: { MilestoneDef } = {
 		TitleColor = rgb(200, 150, 255),
 	},
 	{ Id = "r15", Rebirths = 15, Kind = "Pet", Name = "Pet: Reborn Phoenix", PetId = "reborn_phoenix" },
-	{ Id = "r20", Rebirths = 20, Kind = "Skin", Name = "Shovel skin: Starforged", SkinId = "starforged" },
+	{ Id = "r16", Rebirths = 16, Kind = "Skin", Name = "Shovel skin: Starforged", SkinId = "starforged" },
 	{
-		Id = "r25",
-		Rebirths = 25,
+		Id = "r17",
+		Rebirths = 17,
 		Kind = "Title",
 		Name = "Title: Eternal Digger",
 		Title = "Eternal Digger",
 		TitleColor = rgb(255, 215, 90),
 	},
-	{ Id = "r30", Rebirths = 30, Kind = "Pet", Name = "Pet: Eternal Wyrm", PetId = "eternal_wyrm" },
+	{ Id = "r18", Rebirths = 18, Kind = "Pet", Name = "Pet: Eternal Wyrm", PetId = "eternal_wyrm" },
 }
 table.sort(Milestones, function(a: MilestoneDef, b: MilestoneDef): boolean
 	return a.Rebirths < b.Rebirths

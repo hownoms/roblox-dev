@@ -2681,7 +2681,7 @@ do
 	other:SetAttribute("RebirthCount", 12)
 	check(StatusController.Describe(other).Title == "Reborn Veteran", "12 rebirths: milestone title")
 	other:SetAttribute("RebirthCount", 27)
-	check(StatusController.Describe(other).Title == "Eternal Digger", "25+ rebirths: highest milestone title")
+	check(StatusController.Describe(other).Title == "Eternal Digger", "17+ rebirths: highest milestone title")
 	other:SetAttribute("RebirthCount", 0)
 
 	-- a reveal headline sits where your own plate floats: it hides only yours, only meanwhile
@@ -2924,7 +2924,7 @@ do
 	Mock.Advance(0.3)
 
 	-- endgame C1: Milestones tab
-	Mock.FireClientEvent("DataChanged", { Milestones = { r12 = true, r15 = true, r20 = true }, ShovelSkin = "" })
+	Mock.FireClientEvent("DataChanged", { Milestones = { r12 = true, r15 = true, r16 = true }, ShovelSkin = "" })
 	Mock.Advance(0.4)
 	Panel.CloseAll()
 	Mock.Advance(0.3)
@@ -2945,17 +2945,17 @@ do
 		return label and label.Text
 	end
 	check(actionText("r12") == "Unlocked", "granted milestone shows Unlocked")
-	check(actionText("r25") == "Rebirth 25", "locked milestone shows its rebirth")
-	check(actionText("r20") == "Wear", "unlocked skin offers Wear")
+	check(actionText("r17") == "Rebirth 17", "locked milestone shows its rebirth")
+	check(actionText("r16") == "Wear", "unlocked skin offers Wear")
 	local s3 = #Mock.Remote.ToServer
-	click(mList:FindFirstChild("r20"):FindFirstChild("Action", true):FindFirstChild("Face"))
+	click(mList:FindFirstChild("r16"):FindFirstChild("Action", true):FindFirstChild("Face"))
 	local skins = sent("SetShovelSkin", s3)
 	check(#skins == 1 and skins[1][1] == "starforged", "Wear sends SetShovelSkin(skinId)")
 	Mock.FireClientEvent("DataChanged", { ShovelSkin = "starforged" })
 	Mock.Advance(0.4)
-	check(actionText("r20") == "Take off", "worn skin offers Take off")
+	check(actionText("r16") == "Take off", "worn skin offers Take off")
 	local s4 = #Mock.Remote.ToServer
-	click(mList:FindFirstChild("r20"):FindFirstChild("Action", true):FindFirstChild("Face"))
+	click(mList:FindFirstChild("r16"):FindFirstChild("Action", true):FindFirstChild("Face"))
 	local offs = sent("SetShovelSkin", s4)
 	check(#offs == 1 and offs[1][1] == "", "Take off sends SetShovelSkin(\"\")")
 	Mock.FireClientEvent("DataChanged", { Milestones = {}, ShovelSkin = "" })

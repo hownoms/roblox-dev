@@ -7,8 +7,8 @@
 	           with a second-tap confirm, and the Skip Rebirth product.
 	  Perks:   one UpgradeRow per Config.RebirthPerks entry: current level -> next level, and a
 	           token price button (green affordable / grey not / MAX). Fires BuyRebirthPerk(id).
-	  Milestones (endgame C1): one row per Config.Endgame.Milestones entry (rebirth 12 / 15 / 20 /
-	           25 / 30): the reward, "Rebirth N" while locked, "Unlocked" once granted; the skin
+	  Milestones (endgame C1): one row per Config.Endgame.Milestones entry (rebirth 12 / 15 / 16 /
+	           17 / 18): the reward, "Rebirth N" while locked, "Unlocked" once granted; the skin
 	           row toggles the skin (remote SetShovelSkin).
 	Open with Panel.Open("Rebirth", { Tab = "Rebirth" | "Perks" | "Milestones" }).
 ]]

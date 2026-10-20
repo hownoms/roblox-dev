@@ -77,15 +77,15 @@ event modifier, a code, and a small beach decoration swap.
 Endgame, in the same release — C1–C3 built 20 Oct on `claude/endgame-b88fb4` (not merged, not
 published). Numbers in `src/shared/Config/Endgame.luau`; each has a pause switch in
 [LIVE_CONFIG.md](LIVE_CONFIG.md); tests in `tests/endgame.spec.luau`.
-- [x] C1. Rebirth milestones at 12, 15, 20, 25, 30, granted once (`PlayerData.Milestones`), also to
+- [x] C1. Rebirth milestones at 12, 15, 16, 17, 18, granted once (`PlayerData.Milestones`), also to
   players already past them on their next join: 12 title "Reborn Veteran", 15 pet Reborn Phoenix
-  (Mythic, x16, exclusive), 20 shovel skin "Starforged" (recolours any shovel, on/off in the Rebirth
-  panel's new Milestones tab), 25 title "Eternal Digger", 30 pet Eternal Wyrm (Mythic, x20,
+  (Mythic, x16, exclusive), 16 shovel skin "Starforged" (recolours any shovel, on/off in the Rebirth
+  panel's new Milestones tab), 17 title "Eternal Digger", 18 pet Eternal Wyrm (Mythic, x20,
   exclusive). Titles replace the layer title on the nameplate. Switch: `pause_milestones`.
-  **Owner decision:** on today's cost curve (x3.3 per rebirth, linear multiplier) the economy sim
-  puts rebirth 12 at ~5 h of play, 15 at ~46 h, 18 at ~1,300 h, so 20 / 25 / 30 are out of reach
-  in six months. Either move those milestones down (e.g. 16 / 17 / 18; ids stay, the change is a
-  Config edit) or soften the cost growth past rebirth 12. Neither was changed here.
+  The plan said 20 / 25 / 30, but on today's cost curve (x3.3 per rebirth, linear multiplier) those
+  were out of reach, so the owner lowered them to 16 / 17 / 18 (20 Oct). Economy sim (typical perk
+  plan, real-time estimate): rebirth 12 ~5 h of play, 15 ~46 h, 16 ~136 h, 17 ~414 h, 18 ~1,280 h,
+  so 17 and 18 stay a long-haul chase for the most dedicated players; the cost curve is unchanged.
 - [x] C2. Rainbow pets: 5 Golden copies of a pet fuse into 1 Rainbow (FusePets on a Golden pet; same
   rules as Golden: equipped copies are used last and the result stays equipped if one was).
   Rainbow: sand bonus x2.25 (Golden x1.5), digs 1.5x as often (Golden 1.25x), multi-hue sparkling

@@ -32,7 +32,7 @@ Times are always **UTC**. 8 pm US Eastern on a Friday in winter is `Sat 01:00 UT
 | `pause_autodig` | boolean | `true` | The Auto Dig pass stops digging until you set it back to `false` |
 | `pause_leaderboards` | boolean | `true` | Stops all leaderboard DataStore traffic (boards show this server only) |
 | `pause_fusing` | boolean | `true` | Pet fusion (5 → Golden and 5 Golden → Rainbow) refuses with "paused for a moment". Pets already fused stay |
-| `pause_milestones` | boolean | `true` | Rebirth milestone rewards (rebirth 12 / 15 / 20 / 25 / 30) are held back. Nothing is lost: players get them when they rejoin or rebirth after you set it back to `false` (online players get them within about a minute) |
+| `pause_milestones` | boolean | `true` | Rebirth milestone rewards (rebirth 12 / 15 / 16 / 17 / 18) are held back. Nothing is lost: players get them when they rejoin or rebirth after you set it back to `false` (online players get them within about a minute) |
 | `pause_index_rewards` | boolean | `true` | No new Index mastery is recorded. Players keep the +3% bonuses they already have; new ones are recorded once you set it back to `false` |
 
 Shipped codes today: `RELEASE`, `SANDY` (on), `DIGDEEP` (group only, off), `1KLIKES` (off).
