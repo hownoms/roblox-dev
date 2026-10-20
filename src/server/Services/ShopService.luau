@@ -56,13 +56,13 @@ end
 
 -- Tool ------------------------------------------------------------------------------------------
 
-local function buildTool(shovelId: string): Tool?
+local function buildTool(shovelId: string, skinId: string?): Tool?
 	local def = Config.GetShovel(shovelId)
 	if not def then
 		return nil
 	end
 	assert(def) -- refine for the type checker (guarded above)
-	local ok, model = pcall(Models.Shovel, shovelId)
+	local ok, model = pcall(Models.Shovel, shovelId, skinId) -- endgame C1: rebirth milestone skin
 	if not ok or typeof(model) ~= "Instance" or not (model :: Instance):IsA("Model") then
 		warn("[ShopService] Models.Shovel failed for " .. shovelId .. ": " .. tostring(model))
 		return nil
@@ -152,7 +152,7 @@ function ShopService.GiveShovelTool(player: Player)
 	removeShovelTools(backpack)
 	removeShovelTools(character)
 
-	local tool = buildTool(data.Shovel)
+	local tool = buildTool(data.Shovel, data.ShovelSkin)
 	if not tool or not backpack then
 		if tool then
 			tool:Destroy()

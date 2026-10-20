@@ -2361,7 +2361,7 @@ step("hatching + compliance", function()
 	check(math.abs(Stats.GetPetMultiplier(MultiplierService.GetContext(hp)) - expected) < 1e-9, "Golden pet: sand bonus x1.5")
 	Mock.FireServer("FusePets", hp, goldenUid)
 	Mock.Advance(0.4)
-	check(hd.Pets[goldenUid] ~= nil and countPets("sandy_crab", true) == 1, "Golden pets can't be fused again")
+	check(hd.Pets[goldenUid] ~= nil and countPets("sandy_crab", true) == 1, "a lone Golden pet can't fuse (Rainbow needs 5 Golden copies)")
 	-- golden digging pet digs faster
 	local truck = PetService.GrantPet(hp, "toy_truck", true)
 	hd.Pets[truck].Golden = true

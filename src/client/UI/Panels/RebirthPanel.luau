@@ -7,7 +7,10 @@
 	           with a second-tap confirm, and the Skip Rebirth product.
 	  Perks:   one UpgradeRow per Config.RebirthPerks entry: current level -> next level, and a
 	           token price button (green affordable / grey not / MAX). Fires BuyRebirthPerk(id).
-	Open with Panel.Open("Rebirth", { Tab = "Rebirth" | "Perks" }).
+	  Milestones (endgame C1): one row per Config.Endgame.Milestones entry (rebirth 12 / 15 / 20 /
+	           25 / 30): the reward, "Rebirth N" while locked, "Unlocked" once granted; the skin
+	           row toggles the skin (remote SetShovelSkin).
+	Open with Panel.Open("Rebirth", { Tab = "Rebirth" | "Perks" | "Milestones" }).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,13 +34,14 @@ local PurchaseController = require(script.Parent.Parent.Parent.Controllers.Purch
 
 local RebirthPerksConfig = require(Shared:WaitForChild("Config"):WaitForChild("RebirthPerks"))
 local Perks = Config.RebirthPerks
+local Endgame = Config.Endgame
 
 local RebirthPanel = {}
 
 local C = Style.Colors
 local TAB_H = 58
 
-type Tab = string -- "Rebirth" | "Perks"
+type Tab = string -- "Rebirth" | "Perks" | "Milestones"
 
 local panel: Panel.Panel
 local built = false
@@ -54,6 +58,8 @@ local rebirthButton: Button.Button
 local skipButton: Button.Button
 local walletLabel: TextLabel
 local perkRows: { [string]: UpgradeRow.UpgradeRow } = {}
+local milestoneRows: { [string]: UpgradeRow.UpgradeRow } = {}
+local milestoneLabel: TextLabel
 
 -- Pure helpers (also used by tests) ---------------------------------------------------------------
 
@@ -129,7 +135,64 @@ function RebirthPanel.PerkStat(id: string, level: number): UpgradeRow.Stat
 	return { Main = "Level " .. level }
 end
 
+-- Endgame C1: the stat box for a milestone reward.
+function RebirthPanel.MilestoneStat(m: any): UpgradeRow.Stat
+	if m.Kind == "Title" then
+		return { Main = m.Title or "Title", Sub = "nameplate title" }
+	elseif m.Kind == "Pet" then
+		local pet = Config.GetPet(m.PetId or "")
+		return {
+			Main = if pet then pet.Name else "Pet",
+			Sub = if pet then string.format("x%g sand · exclusive", pet.Multiplier) else "exclusive pet",
+		}
+	end
+	local skin = Endgame.GetSkin(m.SkinId or "")
+	return { Main = if skin then skin.Name else "Skin", Sub = "shovel skin" }
+end
+
 -- Refresh -----------------------------------------------------------------------------------------
+
+local function refreshMilestones()
+	local data = State.Data
+	local rebirths = data.Rebirths or 0
+	local granted: { [string]: boolean } = data.Milestones or {}
+	local nextM = Endgame.NextMilestone(rebirths)
+	milestoneLabel.Text = if nextM
+		then string.format("Rebirths: %d   ·   next milestone at %d", rebirths, nextM.Rebirths)
+		else string.format("Rebirths: %d   ·   every milestone reached!", rebirths)
+	for _, m in Endgame.Milestones do
+		local row = milestoneRows[m.Id]
+		if not row then
+			continue
+		end
+		local button = row.Button
+		row:SetStats({ Main = "Rebirth " .. m.Rebirths, Sub = tostring(m.Kind) }, RebirthPanel.MilestoneStat(m))
+		if granted[m.Id] == true then
+			row.Card:SetHighlight(C.Gold)
+			row:SetTag("UNLOCKED", C.Gold)
+			if m.Kind == "Skin" then
+				local wearing = data.ShovelSkin == m.SkinId
+				button:SetIcon(if wearing then "Check" else "Dig")
+				button:SetText(if wearing then "Take off" else "Wear")
+				button:SetColor(if wearing then C.Warning else C.Success)
+				button:SetEnabled(true)
+			else
+				button:SetIcon("Check")
+				button:SetText("Unlocked")
+				button:SetColor(C.Disabled)
+				button:SetEnabled(false)
+			end
+		else
+			row.Card:SetHighlight(nil)
+			row:SetTag(nil)
+			button:SetIcon(if rebirths >= m.Rebirths then "Check" else "Lock")
+			-- reached but not granted yet: pause_milestones is on (granted when it lifts)
+			button:SetText(if rebirths >= m.Rebirths then "Soon!" else "Rebirth " .. m.Rebirths)
+			button:SetColor(C.Disabled)
+			button:SetEnabled(false)
+		end
+	end
+end
 
 local function refreshPerks()
 	local data = State.Data
@@ -189,6 +252,7 @@ local function refresh()
 	skipButton:SetVisible(PurchaseController.IsProductConfigured("SkipRebirth"))
 	skipButton:SetText("Skip R$ " .. PurchaseController.GetPrice("Product", "SkipRebirth"))
 	refreshPerks()
+	refreshMilestones()
 	local perkBadge = false
 	for _, def in Perks.List do
 		local nextCost = Perks.NextCost(data.RebirthPerks, def.Id)
@@ -395,6 +459,54 @@ local function buildPerksPage(page: Frame)
 	end
 end
 
+local function buildMilestonesPage(page: Frame)
+	milestoneLabel = Style.Label({
+		Name = "MilestoneHeader",
+		Text = "",
+		Size = UDim2.new(1, 0, 0, 26),
+		TextColor = C.Gold,
+		StrokeThickness = 2.5,
+		MaxTextSize = 22,
+		ZIndex = 6,
+		Parent = page,
+	})
+	local scroller = Panel.Scroller(page, UDim2.new(1, 0, 1, -32), UDim2.fromOffset(0, 32))
+	scroller.Name = "MilestoneList"
+	Style.List(scroller, Enum.FillDirection.Vertical, 10)
+	for order, m in Endgame.Milestones do
+		local row = UpgradeRow.new({
+			Name = m.Id,
+			Title = m.Name,
+			LayoutOrder = order,
+			Parent = scroller,
+			StageColors = { C.Gold, Style.Darken(C.Purple, 0.4) },
+			ActionWidth = 150,
+			OnClick = function()
+				if m.Kind == "Skin" and m.SkinId then
+					local wearing = State.Data.ShovelSkin == m.SkinId
+					Remotes.Get("SetShovelSkin"):FireServer(if wearing then "" else m.SkinId)
+				end
+			end,
+		})
+		local stage = row.Card.Face:FindFirstChild("Preview")
+		if stage then
+			AtlasIcon.new({
+				Name = "MilestoneIcon",
+				Icon = if m.Kind == "Pet"
+					then "pets|🐾"
+					elseif m.Kind == "Skin" then "shovel|⛏️"
+					else "rebirth|♻️",
+				Size = UDim2.fromScale(0.78, 0.78),
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				ZIndex = 5,
+				Parent = stage,
+			})
+		end
+		milestoneRows[m.Id] = row
+	end
+end
+
 local function build()
 	if built then
 		return
@@ -408,12 +520,12 @@ local function build()
 	tabRow.ZIndex = 5
 	tabRow.Parent = body
 	Style.List(tabRow, Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Left)
-	for i, tab in { "Rebirth", "Perks" } do
+	for i, tab in { "Rebirth", "Perks", "Milestones" } do
 		tabs[tab] = Button.new({
 			Name = tab .. "Tab",
 			Text = tab,
-			Icon = if tab == "Rebirth" then "Rebirth" else "Tokens",
-			Size = UDim2.fromOffset(200, 54),
+			Icon = if tab == "Rebirth" then "Rebirth" elseif tab == "Perks" then "Tokens" else "Star",
+			Size = UDim2.fromOffset(if tab == "Milestones" then 230 else 200, 54),
 			Color = C.NavyCard,
 			LayoutOrder = i,
 			ZIndex = 5,
@@ -432,8 +544,10 @@ local function build()
 		pages[tab] = page
 		if tab == "Rebirth" then
 			buildRebirthPage(page)
-		else
+		elseif tab == "Perks" then
 			buildPerksPage(page)
+		else
+			buildMilestonesPage(page)
 		end
 	end
 	selectTab(currentTab)
@@ -450,12 +564,15 @@ function RebirthPanel.Init()
 	panel.Opened:Connect(function(args: any)
 		build()
 		confirm = false
-		if typeof(args) == "table" and (args.Tab == "Rebirth" or args.Tab == "Perks") then
+		if typeof(args) == "table" and (args.Tab == "Rebirth" or args.Tab == "Perks" or args.Tab == "Milestones") then
 			selectTab(args.Tab)
 		end
 		refresh()
 	end)
-	State.ObserveMany({ "Coins", "Rebirths", "RebirthTokens", "RebirthPerks", "MaxDepth" }, refresh)
+	State.ObserveMany(
+		{ "Coins", "Rebirths", "RebirthTokens", "RebirthPerks", "MaxDepth", "Milestones", "ShovelSkin" },
+		refresh
+	)
 	State.Changed("Rebirths"):Connect(function(new: any, old: any)
 		if typeof(new) == "number" and typeof(old) == "number" and new > old then
 			panel:Close()

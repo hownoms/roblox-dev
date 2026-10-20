@@ -62,6 +62,9 @@ local Rebirths: Types.RebirthConfig = {
 		"PlayTime",
 		"FirstJoin",
 		"RebirthPerks",
+		"Milestones",
+		"ShovelSkin",
+		"IndexMastered",
 		"LastOnline",
 	},
 	Cost = function(rebirths: number): number

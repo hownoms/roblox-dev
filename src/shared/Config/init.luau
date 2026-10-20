@@ -41,6 +41,7 @@ local RebirthPerks = require(script.RebirthPerks) -- v2.2 rebirth token perk sho
 local Titles = require(script.Titles) -- v2.2 nameplate titles (Status & Social agent)
 local Social = require(script.Social) -- v2.2 announcements / leaderboard scopes / server goal
 local Discovery = require(script.Discovery) -- v3 buried finds / detector / excavation (Discovery agent)
+local Endgame = require(script.Endgame) -- six-month plan C1-C3: milestones, Rainbow pets, Index mastery
 
 local TOTAL_DEPTH = Layers[#Layers].DepthEnd
 
@@ -71,6 +72,7 @@ local Config = {
 	Titles = Titles,
 	Social = Social,
 	Discovery = Discovery,
+	Endgame = Endgame,
 
 	-- World --------------------------------------------------------------------------------
 	-- One shared dig zone along the shoreline (World.GetDigZone); no plots.
@@ -286,13 +288,20 @@ end
 
 -- Additive pet bonus: 1 + sum(Multiplier - 1). Unknown ids are ignored.
 -- v2.2: golden[i] = true marks petIds[i] as a Golden pet (bonus x GOLDEN_SAND_BONUS).
-function Config.PetMultiplier(petIds: { string }, golden: { [number]: boolean }?): number
+-- Endgame C2: rainbow[i] = true marks a Rainbow pet (bonus x Endgame.RAINBOW_SAND_BONUS instead).
+function Config.PetMultiplier(
+	petIds: { string },
+	golden: { [number]: boolean }?,
+	rainbow: { [number]: boolean }?
+): number
 	local total = 1
 	for i, id in petIds do
 		local pet = petById[id]
 		if pet then
 			local bonus = pet.Multiplier - 1
-			if golden and golden[i] then
+			if rainbow and rainbow[i] then
+				bonus *= Endgame.RAINBOW_SAND_BONUS
+			elseif golden and golden[i] then
 				bonus *= Config.GOLDEN_SAND_BONUS
 			end
 			total += bonus
@@ -301,9 +310,9 @@ function Config.PetMultiplier(petIds: { string }, golden: { [number]: boolean }?
 	return total
 end
 
--- v2.2: one pet's own multiplier (1 + bonus), Golden included. Unknown id -> 1.
-function Config.PetEffectiveMultiplier(petId: string, golden: boolean?): number
-	return Config.PetMultiplier({ petId }, { golden == true })
+-- v2.2: one pet's own multiplier (1 + bonus), Golden / Rainbow included. Unknown id -> 1.
+function Config.PetEffectiveMultiplier(petId: string, golden: boolean?, rainbow: boolean?): number
+	return Config.PetMultiplier({ petId }, { golden == true }, { rainbow == true })
 end
 
 -- Flat Coins + ScaledCoins * RewardScale of the layer at maxDepth. Rounded down.
@@ -394,12 +403,14 @@ function Config.GetPetDig(petId: string): Types.PetDigDef?
 end
 
 -- v2.2: seconds between digs for this pet; Golden pets dig GOLDEN_DIG_SPEED x as often.
-function Config.GetPetDigInterval(petId: string, golden: boolean?): number?
+-- Endgame C2: Rainbow pets dig Endgame.RAINBOW_DIG_SPEED x as often.
+function Config.GetPetDigInterval(petId: string, golden: boolean?, rainbow: boolean?): number?
 	local dig = Config.GetPetDig(petId)
 	if not dig then
 		return nil
 	end
-	return (dig :: Types.PetDigDef).Interval / (if golden then Config.GOLDEN_DIG_SPEED else 1)
+	local speed = if rainbow then Endgame.RAINBOW_DIG_SPEED elseif golden then Config.GOLDEN_DIG_SPEED else 1
+	return (dig :: Types.PetDigDef).Interval / speed
 end
 
 -- Compliance (v2.2) -----------------------------------------------------------------------------
@@ -542,6 +553,9 @@ function Config.NewPlayerData(): Types.PlayerData
 		LastOnline = 0,
 		Pity = {},
 		RebirthPerks = {},
+		Milestones = {}, -- endgame C1
+		ShovelSkin = "", -- endgame C1
+		IndexMastered = {}, -- endgame C3
 		PlayTime = 0,
 		FirstJoin = os.time(),
 		Version = Config.DATA_VERSION,
@@ -608,6 +622,15 @@ do
 		end
 		assert(product.Grant.Egg == nil, "Config: no paid eggs (product " .. key .. ")")
 		assert(not (boostDef and boostDef.Kind == "Luck"), "Config: no paid luck (product " .. key .. ")")
+	end
+	for _, variant in Endgame.MASTERY_VARIANTS do
+		local known = false
+		for _, group in { Discovery.SIZES, Discovery.MATERIALS } do
+			for _, v in group do
+				known = known or v.Id == variant
+			end
+		end
+		assert(known, "Config: unknown Endgame.MASTERY_VARIANTS entry " .. variant)
 	end
 	assert(#Titles == #Layers, "Config: one title per layer")
 	for i, title in Titles do

@@ -17,8 +17,18 @@
 	felt right away. Capacity / coins / luck / pet slots come from Stats; Sell Anywhere from
 	EconomyService; Long Nap from OfflineService.
 
+	Endgame C1 milestones (Config.Endgame.Milestones): every milestone with Rebirths <= the
+	player's rebirths is granted ONCE (PlayerData.Milestones[id] = true, saved with the reward):
+	after each rebirth, on join (players already past a milestone) and when pause_milestones is
+	lifted. A Pet milestone grants its Exclusive pet (auto-equipped if a slot is free); a Skin
+	milestone puts the skin on (PlayerData.ShovelSkin); a Title milestone only needs the toast
+	(the nameplate reads the title from "RebirthCount"). Remote SetShovelSkin(skinId | "") turns
+	an unlocked skin on / off.
+
 	Public API:
 		RebirthService.DoRebirth(player, free): boolean   (free = Skip Rebirth product)
+		RebirthService.GrantMilestones(player): { string } (ids granted now)
+		RebirthService.SetShovelSkin(player, skinId): boolean
 		RebirthService.BuyPerk(player, perkId): boolean
 		RebirthService.HasSellAnywhere(player): boolean  (the Sell Anywhere perk)
 ]]
@@ -33,12 +43,15 @@ local Types = require(Shared.Types)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local Net = require(script.Parent.Net)
 local BeachService = require(script.Parent.BeachService)
+local PetService = require(script.Parent.PetService)
 local ServerSignals = require(script.Parent.ServerSignals)
 local ShopService = require(script.Parent.ShopService)
 
 local Perks = Config.RebirthPerks
+local Endgame = Config.Endgame
 
 local RebirthService = {}
 
@@ -82,6 +95,68 @@ local function applyHeadStartShovel(player: Player, data: Types.PlayerData): boo
 		end
 	end)
 	return equip
+end
+
+-- Endgame C1 --------------------------------------------------------------------------------------
+
+-- Grants every reached, not yet granted milestone. Returns the ids granted by this call.
+function RebirthService.GrantMilestones(player: Player): { string }
+	local granted: { string } = {}
+	local data = DataService.Get(player)
+	if not data or LiveConfig.IsPaused("Milestones") then
+		return granted
+	end
+	assert(data) -- refine for the type checker (guarded above)
+	if type(data.Milestones) ~= "table" then
+		data.Milestones = {}
+	end
+	local skinChanged = false
+	for _, m in Endgame.Reached(data.Rebirths) do
+		if data.Milestones[m.Id] == true then
+			continue
+		end
+		if m.Kind == "Pet" then
+			if not (m.PetId and PetService.GrantPet(player, m.PetId)) then
+				continue -- not granted (no data / unknown pet): try again next time
+			end
+		elseif m.Kind == "Skin" and m.SkinId then
+			data.ShovelSkin = m.SkinId
+			skinChanged = true
+		end
+		data.Milestones[m.Id] = true
+		table.insert(granted, m.Id)
+		Net.Notify(player, "Reward", string.format("REBIRTH %d MILESTONE! %s", m.Rebirths, m.Name))
+		Analytics.Custom(player, "RebirthMilestone", m.Id)
+	end
+	if #granted > 0 then
+		DataService.MarkDirty(player, "Milestones", "ShovelSkin")
+		if skinChanged then
+			ShopService.GiveShovelTool(player)
+		end
+	end
+	return granted
+end
+
+-- skinId "" takes the skin off. A skin is usable once its milestone was granted.
+function RebirthService.SetShovelSkin(player: Player, skinId: string): boolean
+	local data = DataService.Get(player)
+	if not data then
+		return false
+	end
+	assert(data) -- refine for the type checker (guarded above)
+	if skinId ~= "" then
+		local m = Endgame.SkinMilestone(skinId)
+		if not m or type(data.Milestones) ~= "table" or data.Milestones[(m :: any).Id] ~= true then
+			Net.Notify(player, "Error", "You haven't unlocked that skin yet!")
+			return false
+		end
+	end
+	if data.ShovelSkin == skinId then
+		return true
+	end
+	DataService.Set(player, "ShovelSkin", skinId)
+	ShopService.GiveShovelTool(player)
+	return true
 end
 
 function RebirthService.HasSellAnywhere(player: Player): boolean
@@ -154,6 +229,7 @@ function RebirthService.DoRebirth(player: Player, free: boolean): boolean
 		)
 	)
 	ServerSignals.Rebirthed:Fire(player, data.Rebirths)
+	RebirthService.GrantMilestones(player)
 	busy[player] = nil
 	return true
 end
@@ -216,14 +292,30 @@ function RebirthService.Init()
 		end
 		RebirthService.BuyPerk(player, perkId)
 	end, { Rate = 4, Window = 2 })
+	Net.On("SetShovelSkin", function(player: Player, skinId: any)
+		if type(skinId) ~= "string" or #skinId > 40 then -- "" = take the skin off
+			return
+		end
+		RebirthService.SetShovelSkin(player, skinId)
+	end, { Rate = 2, Window = 2 })
 end
 
 function RebirthService.Start()
 	-- Apply perks on load: clean the table, make sure the Head Start shovel is owned.
 	DataService.PlayerLoaded:Connect(function(player: Player, data: Types.PlayerData)
 		sanitizePerks(data)
+		if type(data.ShovelSkin) ~= "string" or (data.ShovelSkin ~= "" and not Endgame.GetSkin(data.ShovelSkin)) then
+			data.ShovelSkin = "" -- junk / removed skin
+		end
 		if applyHeadStartShovel(player, data) then
 			ShopService.GiveShovelTool(player)
+		end
+		RebirthService.GrantMilestones(player)
+	end)
+	-- pause_milestones lifted: grant what was held back
+	LiveConfig.Changed:Connect(function()
+		for _, player in DataService.GetLoadedPlayers() do
+			RebirthService.GrantMilestones(player)
 		end
 	end)
 end

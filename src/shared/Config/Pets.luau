@@ -631,6 +631,35 @@ local Pets: { Types.PetDef } = {
 			Glow = true,
 		},
 	},
+	-- Endgame C1 rebirth milestone pets (Config/Endgame.luau): never in an egg.
+	{
+		Id = "reborn_phoenix",
+		Name = "Reborn Phoenix",
+		Rarity = "Mythic",
+		Multiplier = 16, -- rebirth 15: a step above the Galaxy Dragon (15)
+		Exclusive = true,
+		Look = {
+			BodyColor = rgb(255, 120, 40),
+			AccentColor = rgb(200, 150, 255),
+			Shape = "Bird",
+			Size = 1.6,
+			Glow = true,
+		},
+	},
+	{
+		Id = "eternal_wyrm",
+		Name = "Eternal Wyrm",
+		Rarity = "Mythic",
+		Multiplier = 20, -- rebirth 30: the strongest creature pet
+		Exclusive = true,
+		Look = {
+			BodyColor = rgb(30, 20, 60),
+			AccentColor = rgb(255, 215, 90),
+			Shape = "Dragon",
+			Size = 1.6,
+			Glow = true,
+		},
+	},
 
 	-- v2.1 vehicle pets (Construction Crates). Dig % = share of the same-Power shovel's active
 	-- sand/second (see docs/design/Companions.md). Ex-Garage diggers keep their ids (save migration).

@@ -76,6 +76,7 @@ local RELEVANT_KEYS = {
 	Rebirths = true,
 	Boosts = true,
 	Index = true,
+	IndexMastered = true, -- endgame C3 mastery bonus
 	RebirthPerks = true, -- v2.2 perks change capacity, coins and pet slots
 }
 

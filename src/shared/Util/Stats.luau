@@ -93,7 +93,11 @@ end
 
 -- Equipped pet ids, capped at `maxSlots` (sorted by uid so the cap is deterministic).
 -- v2.2: second result golden[i] = true when ids[i] is a Golden pet (Config.PetMultiplier).
-function Stats.GetEquippedPetIds(data: Types.PlayerData, maxSlots: number): ({ string }, { [number]: boolean })
+-- Endgame C2: third result rainbow[i] = true when ids[i] is a Rainbow pet.
+function Stats.GetEquippedPetIds(
+	data: Types.PlayerData,
+	maxSlots: number
+): ({ string }, { [number]: boolean }, { [number]: boolean })
 	local uids = {}
 	for uid, pet in data.Pets do
 		if pet.Equipped then
@@ -103,6 +107,7 @@ function Stats.GetEquippedPetIds(data: Types.PlayerData, maxSlots: number): ({ s
 	table.sort(uids)
 	local ids = {}
 	local golden: { [number]: boolean } = {}
+	local rainbow: { [number]: boolean } = {}
 	for i, uid in uids do
 		if i > maxSlots then
 			break
@@ -111,12 +116,21 @@ function Stats.GetEquippedPetIds(data: Types.PlayerData, maxSlots: number): ({ s
 		if data.Pets[uid].Golden == true then
 			golden[#ids] = true
 		end
+		if data.Pets[uid].Rainbow == true then
+			rainbow[#ids] = true
+		end
 	end
-	return ids, golden
+	return ids, golden, rainbow
+end
+
+-- Endgame C2: 0 = normal, 1 = Golden, 2 = Rainbow.
+function Stats.PetTier(pet: Types.PetInstance): number
+	return if pet.Rainbow == true then 2 elseif pet.Golden == true then 1 else 0
 end
 
 -- v2.2: equipped pets (valid ids) in the order of the "EquippedPets" attribute: by Id, normal
--- before Golden. PetService (attributes), PetDigService (slots) and the client all use this.
+-- before Golden before Rainbow. PetService (attributes), PetDigService (slots) and the client
+-- all use this.
 function Stats.SortEquipped(pets: { [string]: Types.PetInstance }): { Types.PetInstance }
 	local list: { Types.PetInstance } = {}
 	for _, pet in pets do
@@ -128,7 +142,7 @@ function Stats.SortEquipped(pets: { [string]: Types.PetInstance }): { Types.PetI
 		if a.Id ~= b.Id then
 			return a.Id < b.Id
 		end
-		return a.Golden ~= true and b.Golden == true
+		return Stats.PetTier(a) < Stats.PetTier(b)
 	end)
 	return list
 end
@@ -184,10 +198,11 @@ end
 
 -- Sand ----------------------------------------------------------------------------------------
 
--- Additive pet bonus of the equipped pets (Golden pets count x GOLDEN_SAND_BONUS).
+-- Additive pet bonus of the equipped pets (Golden pets count x GOLDEN_SAND_BONUS, Rainbow x
+-- Endgame.RAINBOW_SAND_BONUS).
 function Stats.GetPetMultiplier(ctx: Context): number
-	local ids, golden = Stats.GetEquippedPetIds(ctx.Data, Stats.GetPetSlots(ctx))
-	return Config.PetMultiplier(ids, golden)
+	local ids, golden, rainbow = Stats.GetEquippedPetIds(ctx.Data, Stats.GetPetSlots(ctx))
+	return Config.PetMultiplier(ids, golden, rainbow)
 end
 
 function Stats.GetSandFactors(ctx: Context): { Factor }
@@ -212,6 +227,11 @@ function Stats.GetSandFactors(ctx: Context): { Factor }
 	local completed = Config.CountCompletedIndexLayers(data.Index)
 	if completed > 0 then
 		table.insert(factors, { Name = "Index", Value = 1 + completed * Config.INDEX_LAYER_BONUS })
+	end
+	-- Endgame C3: mastered layers recorded by the server (DiscoveryService)
+	local mastered = Config.Endgame.CountMastered(data.IndexMastered)
+	if mastered > 0 then
+		table.insert(factors, { Name = "Mastery", Value = 1 + mastered * Config.Endgame.INDEX_MASTER_BONUS })
 	end
 	addTimed(ctx, "Sand", factors)
 	return factors

@@ -21,9 +21,14 @@
 	  - FUSION: FusePets(uid) turns Config.GOLDEN_FUSE_COUNT (5) identical non-golden copies (the
 	    selected one + unequipped copies first) into ONE Golden pet (PetInstance.Golden), which
 	    stays equipped if any fused copy was. Golden: sand bonus x GOLDEN_SAND_BONUS, digs
-	    GOLDEN_DIG_SPEED x as often. Golden pets can't be fused again.
+	    GOLDEN_DIG_SPEED x as often.
+	  - Endgame C2 RAINBOW: FusePets(uid) on a Golden pet turns Config.Endgame.RAINBOW_FUSE_COUNT (5)
+	    Golden copies (same rules: the selected one, then unequipped, then equipped copies) into ONE
+	    Rainbow pet (Golden = true, Rainbow = true). Rainbow pets can't be fused again. Both fusions
+	    are refused while LiveConfig pause_fusing is on.
 	  - Attributes: "EquippedPets" (ids in Stats.SortEquipped order) and "EquippedGolden"
-	    (comma-separated 1-based slots of Golden pets in that list).
+	    (comma-separated 1-based slots of Golden pets in that list); endgame C2 adds
+	    "EquippedRainbow" (slots of Rainbow pets, which are also listed in EquippedGolden).
 
 	Public API:
 		PetService.GrantPet(player, petId, autoEquip?): string?  (uid)
@@ -262,6 +267,7 @@ local function onDelete(player: Player, uid: any)
 end
 
 -- v2.2 duplicate fusion: GOLDEN_FUSE_COUNT identical non-golden copies -> one Golden pet.
+-- Endgame C2: RAINBOW_FUSE_COUNT identical Golden (not Rainbow) copies -> one Rainbow pet.
 local function onFuse(player: Player, uid: any)
 	local data, pet = findPet(player, uid)
 	if not data or not pet then
@@ -270,23 +276,39 @@ local function onFuse(player: Player, uid: any)
 	assert(data) -- refine for the type checker (guarded above)
 	assert(pet) -- refine for the type checker (guarded above)
 	local maybeDef = Config.GetPet(pet.Id)
-	if not maybeDef or pet.Golden == true then
-		Net.Notify(player, "Error", "Golden pets can't be fused again.")
+	if not maybeDef then
+		return
+	end
+	if pet.Rainbow == true then
+		Net.Notify(player, "Error", "Rainbow pets can't be fused again.")
+		return
+	end
+	if LiveConfig.IsPaused("Fusing") then
+		Net.Notify(player, "Info", "Pet fusing is paused for a moment. Try again soon!")
 		return
 	end
 	local def = maybeDef :: Types.PetDef
+	local tier = Stats.PetTier(pet) -- 0 = normal -> Golden, 1 = Golden -> Rainbow
+	local need = if tier == 1 then Config.Endgame.RAINBOW_FUSE_COUNT else Config.GOLDEN_FUSE_COUNT
+	local resultName = if tier == 1 then "RAINBOW" else "GOLDEN"
 	-- the selected pet first, then unequipped copies, then equipped ones (stable by uid)
 	local copies: { string } = {}
 	for otherUid, other in data.Pets do
-		if otherUid ~= uid and other.Id == pet.Id and other.Golden ~= true then
+		if otherUid ~= uid and other.Id == pet.Id and Stats.PetTier(other) == tier then
 			table.insert(copies, otherUid)
 		end
 	end
-	if #copies + 1 < Config.GOLDEN_FUSE_COUNT then
+	if #copies + 1 < need then
 		Net.Notify(
 			player,
 			"Error",
-			string.format("You need %d %s to fuse a Golden one!", Config.GOLDEN_FUSE_COUNT, def.Name)
+			string.format(
+				"You need %d %s%s to fuse a %s one!",
+				need,
+				if tier == 1 then "Golden " else "",
+				def.Name,
+				if tier == 1 then "Rainbow" else "Golden"
+			)
 		)
 		return
 	end
@@ -298,7 +320,7 @@ local function onFuse(player: Player, uid: any)
 		return a < b
 	end)
 	local fused: { string } = { uid :: string }
-	for i = 1, Config.GOLDEN_FUSE_COUNT - 1 do
+	for i = 1, need - 1 do
 		table.insert(fused, copies[i])
 	end
 	local wasEquipped = false
@@ -307,9 +329,22 @@ local function onFuse(player: Player, uid: any)
 		data.Pets[fusedUid] = nil
 	end
 	local newUid = HttpService:GenerateGUID(false)
-	data.Pets[newUid] = { Id = def.Id, Equipped = wasEquipped, Golden = true }
+	data.Pets[newUid] =
+		{ Id = def.Id, Equipped = wasEquipped, Golden = true, Rainbow = if tier == 1 then true else nil }
 	DataService.MarkDirty(player, "Pets")
-	Net.Notify(player, "Success", string.format("Fused %d %s into a GOLDEN %s!", #fused, def.Name, def.Name))
+	Net.Notify(
+		player,
+		"Success",
+		string.format(
+			"Fused %d %s%s into a %s %s!",
+			#fused,
+			if tier == 1 then "Golden " else "",
+			def.Name,
+			resultName,
+			def.Name
+		)
+	)
+	Analytics.Custom(player, if tier == 1 then "FusedRainbow" else "FusedGolden", def.Id)
 end
 
 -- If slots shrank (e.g. pass refunded), unequip extras so the stored state matches the stats.
@@ -354,14 +389,19 @@ local function publishEquipped(player: Player)
 	assert(data) -- refine for the type checker (guarded above)
 	local ids = {}
 	local golden = {}
+	local rainbow = {}
 	for i, pet in Stats.SortEquipped(data.Pets) do
 		table.insert(ids, pet.Id)
 		if pet.Golden == true then
 			table.insert(golden, tostring(i))
 		end
+		if pet.Rainbow == true then
+			table.insert(rainbow, tostring(i))
+		end
 	end
 	player:SetAttribute("EquippedPets", table.concat(ids, ","))
 	player:SetAttribute("EquippedGolden", table.concat(golden, ","))
+	player:SetAttribute("EquippedRainbow", table.concat(rainbow, ","))
 end
 
 function PetService.Start()

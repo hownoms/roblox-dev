@@ -74,11 +74,29 @@ event modifier, a code, and a small beach decoration swap.
 | Every weekend | Rotating Weekend Dig Fest (sand / luck / coin / hatch speed, picked by week number) |
 | Every 4 weeks | A "monthly mythic" in the dig-zone loot table, so returning players have a new chase |
 
-Endgame, in the same release:
-- C1. Rebirth milestones at 12, 15, 20, 25, 30 with a title, a pet or a shovel skin each.
-- C2. Rainbow pets: fuse 5 Golden into 1 Rainbow (one more tier above Golden).
-- C3. Index rewards: finishing a layer's treasure set (with variants) gives a permanent small bonus and a badge.
-- C4. Badges 11–15 created and wired (needs the owner on a free-quota day).
+Endgame, in the same release — C1–C3 built 20 Oct on `claude/endgame-b88fb4` (not merged, not
+published). Numbers in `src/shared/Config/Endgame.luau`; each has a pause switch in
+[LIVE_CONFIG.md](LIVE_CONFIG.md); tests in `tests/endgame.spec.luau`.
+- [x] C1. Rebirth milestones at 12, 15, 20, 25, 30, granted once (`PlayerData.Milestones`), also to
+  players already past them on their next join: 12 title "Reborn Veteran", 15 pet Reborn Phoenix
+  (Mythic, x16, exclusive), 20 shovel skin "Starforged" (recolours any shovel, on/off in the Rebirth
+  panel's new Milestones tab), 25 title "Eternal Digger", 30 pet Eternal Wyrm (Mythic, x20,
+  exclusive). Titles replace the layer title on the nameplate. Switch: `pause_milestones`.
+  **Owner decision:** on today's cost curve (x3.3 per rebirth, linear multiplier) the economy sim
+  puts rebirth 12 at ~5 h of play, 15 at ~46 h, 18 at ~1,300 h, so 20 / 25 / 30 are out of reach
+  in six months. Either move those milestones down (e.g. 16 / 17 / 18; ids stay, the change is a
+  Config edit) or soften the cost growth past rebirth 12. Neither was changed here.
+- [x] C2. Rainbow pets: 5 Golden copies of a pet fuse into 1 Rainbow (FusePets on a Golden pet; same
+  rules as Golden: equipped copies are used last and the result stays equipped if one was).
+  Rainbow: sand bonus x2.25 (Golden x1.5), digs 1.5x as often (Golden 1.25x), multi-hue sparkling
+  look, "RAINBOW" tag. Rainbow can't fuse again. Switch: `pause_fusing` (pauses both fusions).
+- [x] C3. Index mastery: a layer whose 3 treasures are all found in all 7 variants (4 sizes + Golden /
+  Fossilized / Crystal, i.e. every Index pill lit) is recorded once (`PlayerData.IndexMastered`) and
+  gives +3% sand forever (max +45%), on top of the old +2% "layer complete" bonus. The Index shows
+  "Mastery n/21" per layer and a ★ on mastered tabs. At luck 1 the rarest pill (Crystal on the
+  ~5% treasure) is about 1 in 1,300 finds, so this is a long chase. Switch: `pause_index_rewards`.
+  Badge "Index Master" is in Config/Badges with `Id = 0` (TODO, see C4).
+- [ ] C4. Badges 11–15 created and wired, plus "Index Master" (needs the owner on a free-quota day).
 
 **Spring Vault** stays out of C unless it passes its own gates first. If it does, it goes in behind a
 config switch as the "month 3" surprise. It is never switched on by date alone.

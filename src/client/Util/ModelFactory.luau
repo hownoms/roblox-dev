@@ -104,6 +104,55 @@ function ModelFactory.MakeGolden(model: Model): Model
 	return model
 end
 
+-- Endgame C2 Rainbow pets (PetInstance.Rainbow): every part gets its own hue around the colour
+-- wheel (kept a little of its own colour so the pet stays readable), more shine than Golden and
+-- white-violet sparkles. Distinct from Golden at a glance. Client-side only. Idempotent.
+local RAINBOW_SPARKLE = Color3.fromRGB(235, 200, 255)
+
+function ModelFactory.MakeRainbow(model: Model): Model
+	if model:GetAttribute("Rainbow") == true then
+		return model
+	end
+	model:SetAttribute("Rainbow", true)
+	local parts: { BasePart } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 then
+			table.insert(parts, d)
+		end
+	end
+	table.sort(parts, function(a: BasePart, b: BasePart): boolean
+		return a.Position.Y < b.Position.Y -- hues climb the pet bottom to top
+	end)
+	local biggest: BasePart? = nil
+	local biggestVolume = -1
+	for i, part in parts do
+		local hue = ((i - 1) / math.max(#parts, 1)) % 1
+		part.Color = part.Color:Lerp(Color3.fromHSV(hue, 0.75, 1), 0.7)
+		part.Reflectance = math.max(part.Reflectance, 0.35)
+		local volume = part.Size.X * part.Size.Y * part.Size.Z
+		if volume > biggestVolume then
+			biggest, biggestVolume = part, volume
+		end
+	end
+	if biggest then
+		local sparkles = Instance.new("Sparkles")
+		sparkles.Name = "RainbowSparkles"
+		sparkles.SparkleColor = RAINBOW_SPARKLE
+		sparkles.Parent = biggest
+	end
+	return model
+end
+
+-- Golden or Rainbow look for a pet instance's tier (Stats.PetTier: 1 Golden, 2 Rainbow).
+function ModelFactory.ApplyTier(model: Model, golden: boolean?, rainbow: boolean?): Model
+	if rainbow then
+		return ModelFactory.MakeRainbow(model)
+	elseif golden then
+		return ModelFactory.MakeGolden(model)
+	end
+	return model
+end
+
 function ModelFactory.Egg(id: string): Model
 	return build(Models.Egg, id, function()
 		local def = Config.GetEgg(id)
