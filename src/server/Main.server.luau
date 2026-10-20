@@ -71,6 +71,7 @@ local DigService = require(Services.DigService)
 local DiscoveryService = require(Services.DiscoveryService) -- v3 buried finds / detector / excavation
 local RebirthService = require(Services.RebirthService)
 local RewardsService = require(Services.RewardsService)
+local CalendarService = require(Services.CalendarService) -- content calendar: egg stand, decor, advent
 local LeaderboardService = require(Services.LeaderboardService)
 local StatusService = require(Services.StatusService) -- v2.2 nameplate attributes + worn backpack
 local ServerGoalService = require(Services.ServerGoalService) -- v2.2 server-wide dig goal
@@ -113,6 +114,7 @@ local ordered: { { Name: string, Module: Service } } = {
 	{ Name = "DiscoveryService", Module = DiscoveryService :: any }, -- v3 discovery slice
 	{ Name = "RebirthService", Module = RebirthService :: any },
 	{ Name = "RewardsService", Module = RewardsService :: any },
+	{ Name = "CalendarService", Module = CalendarService :: any }, -- after Event + Rewards
 	{ Name = "LeaderboardService", Module = LeaderboardService :: any },
 	{ Name = "StatusService", Module = StatusService :: any },
 	{ Name = "ServerGoalService", Module = ServerGoalService :: any },

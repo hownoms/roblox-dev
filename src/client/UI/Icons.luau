@@ -124,6 +124,20 @@ Icons.BoostKinds = {
 Icons.Events = {
 	HighTide = "🌊",
 	GoldenHour = "🌅",
+	HarvestDig = "🌽",
+	HarvestWeekend = "🌾",
+	WinterBeach = "❄️",
+	FrozenTide = "🧊",
+	NewYear = "🎉",
+	Fireworks = "🎆",
+	LunarLove = "🏮",
+	LanternNight = "🏮",
+	LuckyDig = "🍀",
+	SpringHatch = "🐣",
+	FestSand = "⛱️",
+	FestLuck = "🍀",
+	FestCoins = "💰",
+	FestHatch = "🥚",
 } :: { [string]: string }
 
 function Icons.Layer(id: string): string

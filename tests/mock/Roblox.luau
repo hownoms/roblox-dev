@@ -64,7 +64,7 @@ end
 
 local FRAME = 1 / 30
 local clock = 1000 -- os.clock()
-local EPOCH = 1_790_000_000 -- os.time() at clock 1000
+local EPOCH = 1_790_000_000 -- os.time() at clock 1000 (moved by Mock.SetUnixTime)
 local queue = {} -- { At, Seq, Thread, Args }
 local seq = 0
 
@@ -158,6 +158,15 @@ end
 
 function Mock.Now()
 	return clock
+end
+
+-- Jumps the wall clock (os.time / tick) to `unix` without running the scheduler (calendar tests).
+function Mock.SetUnixTime(unix)
+	EPOCH = unix - (clock - 1000)
+end
+
+function Mock.UnixTime()
+	return math.floor(EPOCH + clock - 1000)
 end
 
 local mockOs = setmetatable({

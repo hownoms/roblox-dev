@@ -31,6 +31,8 @@ local Badges = require(script.Badges)
 local Monetization = require(script.Monetization)
 local Boosts = require(script.Boosts)
 local Events = require(script.Events)
+local Calendar = require(script.Calendar) -- content calendar drops (docs/CALENDAR.md)
+local Schedule = require(script.Schedule) -- pure UTC date math for event schedules
 local Sounds = require(script.Sounds)
 local Theme = require(script.Theme)
 local Heat = require(script.Heat)
@@ -61,6 +63,8 @@ local Config = {
 	Monetization = Monetization,
 	Boosts = Boosts,
 	Events = Events,
+	Calendar = Calendar,
+	Schedule = Schedule,
 	Sounds = Sounds,
 	Theme = Theme,
 	Heat = Heat,
@@ -330,29 +334,141 @@ function Config.GetDailyReward(streak: number): Types.DailyRewardDef
 	return DailyRewards[index]
 end
 
--- Events active at unix time `now` (defaults to os.time()).
+-- Events active at unix time `now` (defaults to os.time()). Schedules: Config/Schedule.luau.
 function Config.GetActiveEvents(now: number?): { Types.EventDef }
 	local t = now or os.time()
 	local active = {}
 	for _, event in Events do
-		if (t + event.OffsetSeconds) % event.IntervalSeconds < event.DurationSeconds then
+		if Schedule.IsActive(event, t) then
 			table.insert(active, event)
 		end
 	end
 	return active
 end
 
--- Seconds until the event next starts (0 if active now).
+-- Seconds until the event next starts (0 if active now, math.huge if never again).
 function Config.GetSecondsUntilEvent(eventId: string, now: number?): number
 	local event = eventById[eventId]
 	if not event then
 		return math.huge
 	end
-	local phase = ((now or os.time()) + event.OffsetSeconds) % event.IntervalSeconds
-	if phase < event.DurationSeconds then
+	return Schedule.SecondsUntil(event, now or os.time())
+end
+
+-- Seconds until a scheduled event stops (0 when its schedule is not active now).
+function Config.GetEventSecondsLeft(eventId: string, now: number?): number
+	local event = eventById[eventId]
+	if not event then
 		return 0
 	end
-	return event.IntervalSeconds - phase
+	return Schedule.SecondsLeft(event, now or os.time())
+end
+
+-- Content calendar (Config/Calendar.luau) ----------------------------------------------------
+
+local dropById: { [string]: Calendar.Drop } = {}
+for _, drop in Calendar.Drops do
+	dropById[drop.Id] = drop
+end
+local eventGroups: { [string]: boolean } = { [Calendar.MonthlyMythic.Group] = true }
+for _, event in Events do
+	if event.Group then
+		eventGroups[event.Group] = true
+	end
+end
+
+-- The drop with this id (also its event id), or nil.
+function Config.GetDrop(id: string): Calendar.Drop?
+	return dropById[id]
+end
+
+-- Is `name` a group that live config's `events_off` can switch off as a whole (a drop id with
+-- modifiers, "WeekendFest", "MonthlyMythic")?
+function Config.IsEventGroup(name: string): boolean
+	return eventGroups[name] == true
+end
+
+-- Is this event switched off by an `events_off` set (its own id or its group)?
+function Config.IsEventOff(event: Types.EventDef, off: { [string]: boolean }): boolean
+	return off[event.Id] == true or (event.Group ~= nil and off[event.Group :: string] == true)
+end
+
+-- Can this egg be bought right now? `isActive(eventId)` = is that event running (server:
+-- EventService.IsActive, client: State.IsEventActive). Ordinary eggs always can.
+function Config.IsEggOnSale(eggId: string, isActive: (string) -> boolean): boolean
+	local egg = eggById[eggId]
+	if not egg then
+		return false
+	end
+	return egg.Drop == nil or isActive(egg.Drop :: string)
+end
+
+-- The monthly mythic at `now`: (treasureId, unix time it rotates out), or nil before the epoch.
+function Config.GetMonthlyMythic(now: number): (string?, number)
+	local mm = Calendar.MonthlyMythic
+	if now < mm.Epoch or #mm.Treasures == 0 then
+		return nil, mm.Epoch
+	end
+	local period = mm.PeriodDays * 86400
+	local index = (now - mm.Epoch) // period
+	return mm.Treasures[index % #mm.Treasures + 1], mm.Epoch + (index + 1) * period
+end
+
+export type SeasonalFind = { TreasureId: string, Chance: number }
+
+-- Limited finds that new deposits in this layer may hold right now, in a fixed order: active
+-- drops' Finds (date order), then the monthly mythic. `isActive(dropId)` as for IsEggOnSale;
+-- `off` = live config events_off (a drop that is off never reaches isActive on the server, the
+-- set is checked here too so the function is safe on its own).
+function Config.GetSeasonalFinds(
+	layerIndex: number,
+	now: number,
+	isActive: (string) -> boolean,
+	off: { [string]: boolean }?
+): { SeasonalFind }
+	local list: { SeasonalFind } = {}
+	local offSet = off or {}
+	for _, drop in Calendar.Drops do
+		if not offSet[drop.Id] and isActive(drop.Id) then
+			for _, find in drop.Finds do
+				if layerIndex >= find.MinLayer and layerIndex <= find.MaxLayer then
+					table.insert(list, { TreasureId = find.TreasureId, Chance = find.Chance })
+				end
+			end
+		end
+	end
+	local mythic = Config.GetMonthlyMythic(now)
+	if mythic and not offSet[Calendar.MonthlyMythic.Group] then
+		table.insert(list, { TreasureId = mythic, Chance = Calendar.MonthlyMythic.Chance })
+	end
+	return list
+end
+
+-- One deposit's limited find: `roll` in [0, 1) walks the chances in order; nil = an ordinary
+-- deposit (the layer's LootTable as before).
+function Config.RollSeasonalFind(
+	layerIndex: number,
+	now: number,
+	isActive: (string) -> boolean,
+	off: { [string]: boolean }?,
+	roll: number
+): string?
+	local acc = 0
+	for _, find in Config.GetSeasonalFinds(layerIndex, now, isActive, off) do
+		acc += find.Chance
+		if roll < acc then
+			return find.TreasureId
+		end
+	end
+	return nil
+end
+
+-- Advent: (reward, day index from the drop's first day) for a gift found at `now`.
+function Config.GetAdventReward(now: number): (Types.Reward, number)
+	local advent = Calendar.Advent
+	local drop = dropById[advent.Drop]
+	local day = math.max(0, Schedule.Day(now) - Schedule.Day(drop.Starts))
+	return advent.Special[day] or advent.Cycle[day % #advent.Cycle + 1], day
 end
 
 function Config.GetGamePassKeyById(id: number): string?
@@ -544,6 +660,7 @@ function Config.NewPlayerData(): Types.PlayerData
 		RebirthPerks = {},
 		PlayTime = 0,
 		FirstJoin = os.time(),
+		Calendar = {},
 		Version = Config.DATA_VERSION,
 	}
 end
@@ -619,6 +736,68 @@ do
 			assert(dig.Power > 0 and dig.Interval > 0 and dig.Radius > 0, "Config: bad Dig stats on " .. pet.Id)
 		end
 	end
+	-- content calendar (Config/Calendar.luau)
+	local inLootTable: { [string]: boolean } = {}
+	for _, layer in Layers do
+		for _, entry in layer.LootTable do
+			inLootTable[entry.TreasureId] = true
+		end
+	end
+	local function checkSeasonal(id: string, where: string)
+		local def = treasureById[id]
+		assert(def, "Config: unknown treasure " .. id .. " in " .. where)
+		assert(def.Seasonal == true, "Config: " .. id .. " (" .. where .. ") needs Seasonal = true")
+	end
+	for _, treasure in Treasures do
+		if treasure.Seasonal then
+			assert(not inLootTable[treasure.Id], "Config: seasonal treasure in a LootTable " .. treasure.Id)
+			assert(treasure.Rarity ~= "Relic", "Config: seasonal treasures can't be Relics " .. treasure.Id)
+		end
+	end
+	local previousStart = -math.huge
+	for _, drop in Calendar.Drops do
+		local event = eventById[drop.Id]
+		assert(event, "Config: drop without an event " .. drop.Id)
+		assert(event.Starts == drop.Starts and event.Ends == drop.Ends, "Config: drop event dates differ " .. drop.Id)
+		assert(drop.Ends > drop.Starts and drop.Starts >= previousStart, "Config: drops out of date order " .. drop.Id)
+		previousStart = drop.Starts
+		if drop.Egg then
+			local egg = eggById[drop.Egg]
+			assert(egg and egg.Drop == drop.Id, "Config: drop egg must have Drop = " .. drop.Id)
+		end
+		if drop.Code then
+			local code = codeByCode[string.upper(drop.Code)]
+			assert(code and code.Starts == drop.Starts, "Config: drop code must start with " .. drop.Id)
+		end
+		for _, find in drop.Finds do
+			checkSeasonal(find.TreasureId, drop.Id)
+			assert(find.Chance > 0 and find.Chance < 0.5, "Config: bad seasonal chance in " .. drop.Id)
+		end
+	end
+	for _, egg in Eggs do
+		if egg.Drop then
+			assert(dropById[egg.Drop], "Config: egg " .. egg.Id .. " names an unknown drop " .. egg.Drop)
+		end
+	end
+	for _, event in Events do
+		if event.Group then
+			assert(
+				dropById[event.Group] or event.Group == Calendar.WEEKEND_FEST_GROUP,
+				"Config: unknown event group " .. event.Group
+			)
+		end
+		if event.IntervalSeconds then
+			assert(event.DurationSeconds and event.DurationSeconds > 0, "Config: periodic event needs a duration")
+		end
+	end
+	for _, id in Calendar.MonthlyMythic.Treasures do
+		checkSeasonal(id, "MonthlyMythic")
+	end
+	for _, reward in Calendar.Advent.Cycle do
+		assert(reward.Egg == nil or eggById[reward.Egg], "Config: unknown advent egg")
+	end
+	assert(dropById[Calendar.Advent.Drop], "Config: advent drop missing")
+
 	for _, egg in Eggs do
 		if egg.Kind == "Crate" then
 			for _, entry in egg.Pets do

@@ -8,7 +8,9 @@
 	a scan or a test looks at it: Finds.Density(layer) deposits (fraction = chance of one more,
 	never more than CHUNK_CAP), each at a random point in solid, undug sand at least MIN_DEPTH
 	below the surface, holding a treasure rolled from the layer's LootTable (or a Relic). Chunks
-	below their target regrow one deposit every RESPAWN_SECONDS; chunks nobody touched for
+	below their target regrow one deposit every RESPAWN_SECONDS; content calendar: while a drop
+	runs (or the monthly mythic), a new deposit may hold one of its limited finds instead
+	(Config.RollSeasonalFind, own Random so the ordinary rolls keep their sequence); chunks nobody touched for
 	EVICT_SECONDS (and no player near) are forgotten and re-seeded fresh later (the tide refilled
 	them anyway). The whole server never holds more than SERVER_CAP deposits (oldest chunks go).
 
@@ -71,6 +73,8 @@ local Finds = require(Shared.Util.Finds)
 local Analytics = require(script.Parent.Analytics)
 local BeachService = require(script.Parent.BeachService)
 local DataService = require(script.Parent.DataService)
+local EventService = require(script.Parent.EventService) -- content calendar drops
+local LiveConfig = require(script.Parent.LiveConfig)
 local MultiplierService = require(script.Parent.MultiplierService)
 local Net = require(script.Parent.Net)
 local ServerSignals = require(script.Parent.ServerSignals)
@@ -129,6 +133,7 @@ local NY = math.ceil(TOTAL_DEPTH / D.CHUNK_Y)
 local DiscoveryService = {}
 
 local rng = Random.new()
+local seasonRng = Random.new() -- content calendar finds only (keeps rng's sequence unchanged)
 local chunks: { [number]: Chunk } = {}
 local chunkCount = 0
 local depositTotal = 0
@@ -221,6 +226,15 @@ local function growOne(chunk: Chunk): Deposit?
 	end
 	local layerIndex = Config.GetLayerIndexAtDepth(depthOf(pos :: Vector3))
 	local treasureId = Finds.RollTreasure(layerIndex, rng:NextNumber(), rng:NextNumber())
+	-- content calendar: active drops' limited finds and the monthly mythic (Config/Calendar.luau)
+	local seasonal = Config.RollSeasonalFind(
+		layerIndex,
+		os.time(),
+		EventService.IsActive,
+		LiveConfig.Get().EventsOff,
+		seasonRng:NextNumber()
+	)
+	treasureId = seasonal or treasureId
 	return if treasureId then addTo(chunk, pos :: Vector3, treasureId) else nil
 end
 
@@ -380,6 +394,7 @@ end
 
 function DiscoveryService.SetSeed(seed: number)
 	rng = Random.new(seed)
+	seasonRng = Random.new(seed + 1)
 end
 
 -- Respawn + eviction pass (every MAINTAIN_INTERVAL seconds).
@@ -482,6 +497,12 @@ local function luckOf(player: Player): number
 	return if ctx then Stats.GetLuck(ctx :: Stats.Context) else 1
 end
 
+-- Luck for the Material variant: Luck x "Material" calendar events (Lucky Dig).
+local function materialLuckOf(player: Player): number
+	local ctx = MultiplierService.GetContext(player)
+	return if ctx then Stats.GetMaterialLuck(ctx :: Stats.Context) else 1
+end
+
 local function startExcavation(
 	player: Player,
 	treasureId: string,
@@ -509,7 +530,7 @@ local function startExcavation(
 			else Finds.RollVariant("Size", luck, rng:NextNumber()),
 		Material = if forceMaterial and Finds.IsMaterial(forceMaterial)
 			then forceMaterial :: string
-			else Finds.RollVariant("Material", luck, rng:NextNumber()),
+			else Finds.RollVariant("Material", materialLuckOf(player), rng:NextNumber()),
 		Position = position,
 		Started = os.clock(),
 		Model = nil,

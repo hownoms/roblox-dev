@@ -43,6 +43,9 @@ local oddsLabel: TextLabel
 
 local byLayer: { [number]: { Types.TreasureDef } } = {}
 for _, treasure in Config.Treasures do
+	if treasure.Seasonal then
+		continue -- content calendar finds aren't part of a layer's set
+	end
 	local list = byLayer[treasure.Layer]
 	if not list then
 		list = {}
@@ -114,9 +117,14 @@ function IndexPanel.OddsText(): string
 		return Stats.GetLuck(State.GetStatsContext())
 	end)
 	local l = if ok and type(luck) == "number" then luck else 1
+	-- Lucky Dig (a "Material" calendar event) lifts only the material odds, as on the server
+	local okM, materialLuck = pcall(function(): number
+		return Stats.GetMaterialLuck(State.GetStatsContext())
+	end)
+	local lm = if okM and type(materialLuck) == "number" then materialLuck else l
 	local parts = {}
 	for _, group in { "Size", "Material" } do
-		for _, o in Finds.VariantOdds(group, l) do
+		for _, o in Finds.VariantOdds(group, if group == "Material" then lm else l) do
 			if o.Id ~= "Normal" and o.Id ~= "None" then
 				local pct = o.Chance * 100
 				table.insert(

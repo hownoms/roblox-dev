@@ -24,10 +24,10 @@ public is still step one.
 | Weekly leaderboards | Yes | A new key each ISO week, so they reset by themselves |
 | Server goal → Golden Hour, friend bonus | Yes | |
 | Save safety: session lock, migrations, BindToClose, receipt replay | Yes | Real-DataStore check is still a Phase 2 item |
-| Codes | **No** | Turning on `1KLIKES` etc. needs a republish |
-| Anything seasonal or limited-time | **Missing** | Nothing changes from month to month |
+| Codes | Yes (B) | Live switches since 19 Oct; calendar codes switch on by date (C) |
+| Anything seasonal or limited-time | Built (C), not published | Content calendar Nov–Apr, weekend fests, monthly mythics ([CALENDAR.md](CALENDAR.md)) |
 | Endgame after Rebirth 10 | **Thin** | More rebirths only add +0.5 each; perks max out |
-| Live switches / kill switches | **Missing** | A broken feature means opening Studio and republishing |
+| Live switches / kill switches | Yes (B) | [LIVE_CONFIG.md](LIVE_CONFIG.md): codes, events, pauses, banner from the Creator Hub |
 
 **How long the content lasts** (`tools/sim/economy.luau`, real config, typical perk plan): Rebirth 5
 at about 2.2 h of play. Rebirth costs then grow ×3.3 each, so the Core Breaker at Rebirth 10 takes
@@ -58,6 +58,13 @@ live servers pick them up in about a minute, with no republish
 - [x] B4. Tests for the fallback and the clamps; the inert-expansion checks stay green.
 
 ### C. Content calendar, shipped once (about 2–3 weeks, Claude, after ~2 weeks of live data)
+
+**Calendar built 20 Oct 2026** on `claude/content-calendar-9a732a` (not merged, not published). The
+owner guide is [CALENDAR.md](CALENDAR.md). All drops below are in, driven by `Config/Calendar.luau`
+and overridable through `events_off` / `bonus_event` / `codes_off` (no new switch). Numbers are first
+guesses: retune egg price, pet power and find chances once ~2 weeks of live data are in. Changes from
+the table: hatch-speed weekend → Hatch Fest (1.5× egg luck), clover material → Four-Leaf Clover find,
+New Year has no egg of its own. The endgame items C1–C4 are a separate branch.
 
 Everything is built into one "autopilot" release and turns on by date (UTC), with B's switches as
 an override. Each drop: a limited egg (4 procedural pets, the rare one never comes back), a themed

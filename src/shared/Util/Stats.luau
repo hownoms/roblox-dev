@@ -24,6 +24,8 @@
 	(v2.2 Rebirth perks, Config.RebirthPerks: Pet Den adds pet slots, Lucky Digger multiplies the
 	treasure chance only.)
 	Speed        = pass SpeedMultiplier x Speed boosts x Speed events (cooldown is divided by it)
+	Hatch luck   = Luck x Hatch events (content calendar: Spring Hatch, Hatch Fest). Eggs only.
+	Material luck = Luck x Material events (content calendar: Lucky Dig). Find materials only.
 
 	v2.2 TRUE ODDS (Roblox policy: paid random items show their real, modified odds):
 	Stats.GetHatchOdds(egg, luck, pityCount?) -> ({ [petId]: probability }, pityActive)
@@ -251,6 +253,26 @@ end
 
 function Stats.GetLuck(ctx: Context): number
 	return Stats.Product(Stats.GetLuckFactors(ctx))
+end
+
+-- Egg luck: Luck plus "Hatch" events (content calendar). PetService rolls and the egg panel
+-- shows odds with this, so displayed odds stay the true odds.
+function Stats.GetHatchLuckFactors(ctx: Context): { Factor }
+	local factors = Stats.GetLuckFactors(ctx)
+	addTimed(ctx, "Hatch", factors)
+	return factors
+end
+
+function Stats.GetHatchLuck(ctx: Context): number
+	return Stats.Product(Stats.GetHatchLuckFactors(ctx))
+end
+
+-- Find material luck (Golden / Fossilized / Crystal): Luck plus "Material" events (Lucky Dig).
+-- DiscoveryService rolls the Material variant and the Index shows its odds with this.
+function Stats.GetMaterialLuck(ctx: Context): number
+	local factors = Stats.GetLuckFactors(ctx)
+	addTimed(ctx, "Material", factors)
+	return Stats.Product(factors)
 end
 
 -- Chance (0..MAX_TREASURE_CHANCE) that a successful dig in this layer finds a treasure.

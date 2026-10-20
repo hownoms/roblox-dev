@@ -14,7 +14,10 @@
 		extra_codes         JSON     { "CODE": { "reward": <menu id>, "expires": "YYYY-MM-DD[ HH:MM]" } }
 		                             reward menu: LiveConfig.REWARD_MENU; max MAX_EXTRA_CODES codes;
 		                             a shipped code with the same name always wins
-		events_off          string   comma list of event ids that never run (e.g. "HighTide")
+		events_off          string   comma list of event ids that never run (e.g. "HighTide"); also
+		                             event groups (Config.IsEventGroup): a calendar drop id
+		                             ("WinterBeach" = its egg, finds, decor and events),
+		                             "WeekendFest", "MonthlyMythic"
 		bonus_event         string   an event id to run on every server until bonus_event_ends
 		bonus_event_ends    string   "YYYY-MM-DD HH:MM" (UTC), at most MAX_BONUS_DAYS ahead
 		pause_hatching      boolean  egg hatching (the HatchEgg remote) refuses with a message
@@ -272,7 +275,7 @@ function LiveConfig.Parse(read: (string) -> any, now: number): (Snapshot, { stri
 
 	-- events
 	local function isEvent(item: string): boolean
-		return Config.GetEvent(item) ~= nil
+		return Config.GetEvent(item) ~= nil or Config.IsEventGroup(item)
 	end
 	snap.EventsOff = commaSet(safeRead("events_off"), "events_off", warnings, isEvent)
 
@@ -331,7 +334,8 @@ function LiveConfig.IsPaused(feature: Feature): boolean
 	return current.Paused[feature] == true
 end
 
--- A redeemable code right now, or nil (unknown, off, or expired). Group-only is left to the caller.
+-- A redeemable code right now, or nil (unknown, off, not started yet or expired). Group-only is
+-- left to the caller.
 function LiveConfig.FindCode(code: string, now: number?): Types.CodeDef?
 	local t = now or os.time()
 	local key = normalizeCode(code)
@@ -347,7 +351,7 @@ function LiveConfig.FindCode(code: string, now: number?): Types.CodeDef?
 	if current.CodesOff[shippedKey] then
 		enabled = false
 	end
-	if not enabled or (def.Expires ~= nil and t > def.Expires) then
+	if not enabled or (def.Expires ~= nil and t > def.Expires) or (def.Starts ~= nil and t < def.Starts) then
 		return nil
 	end
 	return def
