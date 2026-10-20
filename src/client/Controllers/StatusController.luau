@@ -6,7 +6,8 @@
 	Nameplates are client-rendered (decision: no server GUI traffic, and each viewer can hide them
 	with the "ShowNameplates" setting). Built from replicated Player attributes set by the
 	server's StatusService / MonetizationService:
-		TitleLayer   -> title + colour (Config.GetTitle; deepest layer ever reached)
+		TitleLayer   -> title + colour (Config.GetTitle; deepest layer ever reached), replaced by a
+		                rebirth milestone title once RebirthCount reaches one (Config.Endgame.TitleFor)
 		RebirthCount -> gold stars: "★★★" up to Config.Social.Nameplate.StarsInline, then "★x12"
 		VIP / Premium -> small tag pill before the name (VIP wins)
 	One BillboardGui "Nameplate" per character (kept in PlayerGui.Nameplates, Adornee = Head):
@@ -84,6 +85,11 @@ end
 function StatusController.Describe(player: Player): Description
 	local layer = math.max(numberAttr(player, "TitleLayer"), 1)
 	local title, color = Config.GetTitle(layer)
+	-- endgame C1: a rebirth milestone title (12+ rebirths) replaces the layer title
+	local milestoneTitle, milestoneColor = Config.Endgame.TitleFor(numberAttr(player, "RebirthCount"))
+	if milestoneTitle then
+		title, color = milestoneTitle, milestoneColor or color
+	end
 	local tag: string? = nil
 	if player:GetAttribute("VIP") == true then
 		tag = "VIP"

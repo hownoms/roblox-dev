@@ -11,6 +11,10 @@
 	copies enables "Fuse 5 -> Golden" (remote FusePets(uid), validated by PetService). Golden pets
 	(PetInstance.Golden) get a gold outline + "GOLDEN" tag, a gold-tinted sparkling preview
 	(ModelFactory.MakeGolden), x1.5 sand bonus and 1.25x dig speed in their stats.
+	Endgame C2 RAINBOW: selecting a Golden pet with >= Config.Endgame.RAINBOW_FUSE_COUNT (5) Golden
+	copies enables "Fuse 5 -> Rainbow" (same remote). Rainbow pets (PetInstance.Rainbow) get a
+	pink outline + a rainbow-gradient "RAINBOW" tag, a multi-hue sparkling preview
+	(ModelFactory.MakeRainbow) and their own bonus / dig speed in their stats.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -57,20 +61,45 @@ local fuseButton: Button.Button
 local emptyLabel: TextLabel
 local shownModelFor: string? = nil
 
--- v2.2: this pet's own multiplier, Golden included.
+local RAINBOW = Color3.fromRGB(255, 120, 220) -- endgame C2: Rainbow outline / name colour
+
+-- v2.2: this pet's own multiplier, Golden / Rainbow included.
 local function multOf(pet: Types.PetInstance): number
-	return Config.PetEffectiveMultiplier(pet.Id, pet.Golden == true)
+	return Config.PetEffectiveMultiplier(pet.Id, pet.Golden == true, pet.Rainbow == true)
 end
 
--- Non-golden copies of petId in the inventory (the fusion count).
-local function copiesOf(petId: string): number
+-- 0 normal, 1 Golden, 2 Rainbow (same rule as the server's Stats.PetTier).
+local function tierOf(pet: Types.PetInstance): number
+	return if pet.Rainbow == true then 2 elseif pet.Golden == true then 1 else 0
+end
+
+-- Copies of petId at `tier` in the inventory (the fusion count: tier 0 -> Golden, 1 -> Rainbow).
+local function copiesOf(petId: string, tier: number?): number
+	local want = tier or 0
 	local n = 0
 	for _, pet in State.Data.Pets or {} :: { [string]: Types.PetInstance } do
-		if pet.Id == petId and pet.Golden ~= true then
+		if pet.Id == petId and tierOf(pet) == want then
 			n += 1
 		end
 	end
 	return n
+end
+
+-- Copies needed to fuse up from `tier` (nil: Rainbow, can't fuse).
+local function fuseNeed(tier: number): number?
+	return if tier == 0 then Config.GOLDEN_FUSE_COUNT elseif tier == 1 then Config.Endgame.RAINBOW_FUSE_COUNT else nil
+end
+
+-- A horizontal rainbow on a label's text (endgame C2 tags).
+local function rainbowGradient(parent: Instance)
+	local keys = {}
+	for i = 0, 6 do
+		table.insert(keys, ColorSequenceKeypoint.new(i / 6, Color3.fromHSV(i / 7, 0.65, 1)))
+	end
+	local gradient = Instance.new("UIGradient")
+	gradient.Name = "Rainbow"
+	gradient.Color = ColorSequence.new(keys)
+	gradient.Parent = parent
 end
 
 local function petIcon(def: Types.PetDef): string
@@ -83,14 +112,14 @@ local function rarityOrder(def: Types.PetDef): number
 end
 
 -- "⛏ digs to Pirate Cove · every 3.0s · x2.25 sand" (nil for pets that don't dig)
-local function digInfo(def: Types.PetDef, golden: boolean?): string?
+local function digInfo(def: Types.PetDef, golden: boolean?, rainbow: boolean?): string?
 	local dig = def.Dig
 	if not dig then
 		return nil
 	end
 	assert(dig) -- refine for the type checker (guarded above)
 	local layer = Config.Layers[Config.GetMaxLayerIndexForPower(dig.Power)]
-	local interval = Config.GetPetDigInterval(def.Id, golden) or dig.Interval
+	local interval = Config.GetPetDigInterval(def.Id, golden, rainbow) or dig.Interval
 	return string.format("digs to %s · every %.1fs · x%g sand", layer.Name, interval, dig.SandMultiplier)
 end
 
@@ -166,31 +195,35 @@ local function refreshDetail()
 	local p = pet :: Types.PetInstance
 	local d = def :: Types.PetDef
 	local golden = p.Golden == true
+	local rainbow = p.Rainbow == true
+	local tier = tierOf(p)
 	if shownModelFor ~= uid then
 		shownModelFor = uid
-		local model = ModelFactory.Pet(d.Id)
-		view:SetModel(if golden then ModelFactory.MakeGolden(model) else model)
+		view:SetModel(ModelFactory.ApplyTier(ModelFactory.Pet(d.Id), golden, rainbow))
 		Style.Pop(view.Frame, 0.15)
 	end
 	local rarity = Config.GetRarity(d.Rarity)
-	nameLabel.Text = (if golden then "Golden " else "") .. d.Name
-	nameLabel.TextColor3 = if golden then C.Gold elseif rarity then rarity.Color else C.Text
+	nameLabel.Text = (if rainbow then "Rainbow " elseif golden then "Golden " else "") .. d.Name
+	nameLabel.TextColor3 = if rainbow then RAINBOW elseif golden then C.Gold elseif rarity then rarity.Color else C.Text
 	infoLabel.Text = d.Rarity
 		.. "  ·  x"
 		.. string.format("%.2f", multOf(p))
 		.. " sand"
 		.. (if d.Rideable then "  ·  Rideable!" else "")
-	digLabel.Text = digInfo(d, golden) or ""
+	digLabel.Text = digInfo(d, golden, rainbow) or ""
 	-- v2.2 fusion: N identical non-golden copies -> one Golden pet
-	fuseButton:SetVisible(not golden)
-	if not golden then
-		local copies = copiesOf(d.Id)
-		local need = Config.GOLDEN_FUSE_COUNT
+	-- endgame C2: N identical Golden copies -> one Rainbow pet
+	local need = fuseNeed(tier)
+	fuseButton:SetVisible(need ~= nil)
+	if need then
+		local copies = copiesOf(d.Id, tier)
+		local target = if tier == 1 then "Rainbow" else "Golden"
 		fuseButton:SetEnabled(copies >= need)
+		fuseButton:SetColor(if tier == 1 then RAINBOW else C.Gold)
 		fuseButton:SetText(
 			if copies >= need
-				then string.format("Fuse %d → Golden", need)
-				else string.format("Golden: %d/%d copies", copies, need)
+				then string.format("Fuse %d → %s", need, target)
+				else string.format("%s: %d/%d %scopies", target, copies, need, if tier == 1 then "Golden " else "")
 		)
 	end
 	equipButton:SetVisible(true)
@@ -233,10 +266,27 @@ local function refreshGrid()
 		})
 		if entry.Uid == selectedUid then
 			card:SetHighlight(C.Gold)
+		elseif entry.Pet.Rainbow then
+			card.Stroke.Color = RAINBOW
 		elseif entry.Pet.Golden then
 			card.Stroke.Color = C.Gold
 		end
-		if entry.Pet.Golden then
+		if entry.Pet.Rainbow then
+			local tag = Style.Label({
+				Name = "RainbowTag",
+				Text = "RAINBOW",
+				Size = UDim2.new(1, -8, 0, 16),
+				Position = UDim2.new(0.5, 0, 0.62, 0),
+				AnchorPoint = Vector2.new(0.5, 1),
+				TextColor = Color3.new(1, 1, 1),
+				StrokeThickness = 2,
+				MaxTextSize = 14,
+				ZIndex = 9,
+				Parent = card.Face,
+			})
+			rainbowGradient(tag)
+			tag.Rotation = -6
+		elseif entry.Pet.Golden then
 			local tag = Style.Label({
 				Name = "GoldenTag",
 				Text = "GOLDEN",
@@ -482,7 +532,8 @@ local function build()
 		OnClick = function()
 			local uid = selectedUid
 			local pet = if uid then State.Data.Pets[uid] else nil
-			if uid and pet and pet.Golden ~= true and copiesOf(pet.Id) >= Config.GOLDEN_FUSE_COUNT then
+			local need = if pet then fuseNeed(tierOf(pet)) else nil
+			if uid and pet and need and copiesOf(pet.Id, tierOf(pet)) >= need then
 				Remotes.Get("FusePets"):FireServer(uid)
 			end
 		end,

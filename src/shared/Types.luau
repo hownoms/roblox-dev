@@ -164,6 +164,9 @@ export type PetInstance = {
 	-- v2.2: fused from Config.GOLDEN_FUSE_COUNT identical copies (PetService "FusePets"):
 	-- x Config.GOLDEN_SAND_BONUS on its sand bonus, digs Config.GOLDEN_DIG_SPEED x as often.
 	Golden: boolean?,
+	-- Endgame C2: fused from Config.Endgame.RAINBOW_FUSE_COUNT Golden copies. Keeps Golden = true;
+	-- x Endgame.RAINBOW_SAND_BONUS instead of the Golden bonus, digs RAINBOW_DIG_SPEED x as often.
+	Rainbow: boolean?,
 }
 
 export type EggCurrency = "Coins" | "Tokens" | "Robux"
@@ -573,6 +576,9 @@ export type PlayerData = {
 	Pity: { [string]: number }, -- v2.2: eggId -> hatches in a row without a Rare+ pet (EggDef.PityAt)
 	LastOnline: number, -- v2.2: unix time last seen online (OfflineService), 0 = never
 	RebirthPerks: { [string]: number }, -- v2.2: Config.RebirthPerks id -> level (never reset)
+	Milestones: { [string]: boolean }, -- endgame C1: Config.Endgame milestone id -> granted (never reset)
+	ShovelSkin: string, -- endgame C1: equipped Config.Endgame skin id, "" = none (never reset)
+	IndexMastered: { [string]: boolean }, -- endgame C3: layer id -> mastery recorded (never reset)
 	PlayTime: number, -- seconds
 	FirstJoin: number, -- unix
 	Version: number,

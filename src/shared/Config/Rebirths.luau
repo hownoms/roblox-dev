@@ -8,6 +8,11 @@
 	                n = EARLY_REBIRTHS, so the late game (Core Breaker at 10 rebirths) is unchanged:
 	                  n < 4 : BaseCost * EARLY_GROWTH^n      500K, 2.8M, 15M, 85M  (EARLY_GROWTH ~5.55)
 	                  n >= 4: Cost(4) * CostGrowth^(n - 4)   470M, 1.6B, 5.2B, 17B, 56B, 190B ...
+	                Endgame (20 Oct, owner): rebirths 1-12 (n <= 11) are exactly as above; rebirths
+	                13-16 (n = 12..15) grow by MID_GROWTH (x1.5) instead of x3.3, and from rebirth
+	                17 (n >= 16) the x3.3 growth resumes, so the rebirth 16 / 17 / 18 milestones
+	                (Config/Endgame) land at ~15 / ~27 / ~64 h of play in tools/sim/economy.luau:
+	                  n = 11..17: 2.0T | 3.0T, 4.5T, 6.8T, 10T | 34T, 110T
 	                (tools/sim/economy.luau simulates it; docs/design/Rebirth.md has the numbers.)
 	Multiplier(n) = 1 + MultiplierPerRebirth * n   (applies to sand per dig AND backpack capacity)
 	Tokens(n)     = BaseTokens + floor(n / 2)      (tokens for the NEXT rebirth: 2, 2, 3, 3, 4 ...;
@@ -35,6 +40,11 @@ local EARLY_REBIRTHS = 4
 local COST_GROWTH = 3.3
 local LATE_BASE = 4_000_000 -- the pre-v2.2 curve (4M x 3.3^n) that rebirth 5+ still follows
 local EARLY_GROWTH = (LATE_BASE * COST_GROWTH ^ EARLY_REBIRTHS / BASE_COST) ^ (1 / EARLY_REBIRTHS)
+-- Endgame: rebirths after LIVE_REBIRTHS (12, what live players could reach on the old curve)
+-- grow by MID_GROWTH for MID_REBIRTHS rebirths, then by COST_GROWTH again.
+local LIVE_REBIRTHS = 12
+local MID_GROWTH = 1.5
+local MID_REBIRTHS = 4
 local MULTIPLIER_PER_REBIRTH = 0.5
 local BASE_TOKENS = 2
 
@@ -62,12 +72,22 @@ local Rebirths: Types.RebirthConfig = {
 		"PlayTime",
 		"FirstJoin",
 		"RebirthPerks",
+		"Milestones",
+		"ShovelSkin",
+		"IndexMastered",
 		"LastOnline",
 	},
 	Cost = function(rebirths: number): number
 		local n = math.max(rebirths, 0)
 		local early = math.min(n, EARLY_REBIRTHS)
-		return roundSig(BASE_COST * EARLY_GROWTH ^ early * COST_GROWTH ^ (n - early), 2)
+		if n < LIVE_REBIRTHS then
+			return roundSig(BASE_COST * EARLY_GROWTH ^ early * COST_GROWTH ^ (n - early), 2)
+		end
+		-- n = rebirths already done; Cost(LIVE_REBIRTHS - 1) is the last live-curve cost (rebirth 12)
+		local live = BASE_COST * EARLY_GROWTH ^ EARLY_REBIRTHS * COST_GROWTH ^ (LIVE_REBIRTHS - 1 - EARLY_REBIRTHS)
+		local past = n - (LIVE_REBIRTHS - 1)
+		local mid = math.min(past, MID_REBIRTHS)
+		return roundSig(live * MID_GROWTH ^ mid * COST_GROWTH ^ (past - mid), 2)
 	end,
 	Multiplier = function(rebirths: number): number
 		return 1 + MULTIPLIER_PER_REBIRTH * math.max(rebirths, 0)

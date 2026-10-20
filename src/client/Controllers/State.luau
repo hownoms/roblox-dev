@@ -244,13 +244,15 @@ end
 function State.GetPetMultiplier(): number
 	local ids = {}
 	local golden: { [number]: boolean } = {}
+	local rainbow: { [number]: boolean } = {}
 	for _, pet in State.Data.Pets or {} :: { [string]: Types.PetInstance } do
 		if pet.Equipped then
 			table.insert(ids, pet.Id)
 			golden[#ids] = pet.Golden == true
+			rainbow[#ids] = pet.Rainbow == true
 		end
 	end
-	return Config.PetMultiplier(ids, golden)
+	return Config.PetMultiplier(ids, golden, rainbow)
 end
 
 -- v2.2: a Util/Stats context from the replicated state (same inputs the server uses), for true

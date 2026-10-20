@@ -19,8 +19,15 @@ local DataService = require(script.Parent.DataService)
 
 local BadgeAwardService = {}
 
-local RELEVANT_KEYS =
-	{ TotalSandDug = true, Pets = true, MaxDepth = true, Rebirths = true, Index = true, DailyStreak = true }
+local RELEVANT_KEYS = {
+	TotalSandDug = true,
+	Pets = true,
+	MaxDepth = true,
+	Rebirths = true,
+	Index = true,
+	DailyStreak = true,
+	IndexMastered = true, -- endgame C3
+}
 
 BadgeAwardService.RETRY_DELAYS = { 30, 120, 600 }
 
@@ -91,6 +98,8 @@ local function earned(badge: any, data: Types.PlayerData): boolean
 		return completedAnyLayer(data)
 	elseif badge.Kind == "DailyStreak" then
 		return data.DailyStreak >= (badge.Count or 7)
+	elseif badge.Kind == "MasterLayer" then
+		return Config.Endgame.CountMastered(data.IndexMastered) >= 1
 	end
 	return false
 end

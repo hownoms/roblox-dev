@@ -2537,10 +2537,43 @@ do
 	check(goldenTile2 and goldenTile2:FindFirstChild("GoldenTag", true) ~= nil, "Golden pet tile is tagged GOLDEN")
 	click(goldenTile2:FindFirstChild("Face", true))
 	Mock.Advance(0.5)
-	check(not fuse.Visible, "no Fuse button on a Golden pet")
+	-- endgame C2: a lone Golden pet shows Rainbow progress (needs 5 Golden copies), disabled
+	check(fuse.Visible and string.find(fuseText.Text, "Rainbow: 1/5", 1, true) ~= nil, "Golden pet shows Rainbow progress: " .. fuseText.Text)
+	local s1 = #Mock.Remote.ToServer
+	click(fuse)
+	Mock.Advance(0.3)
+	check(#sent("FusePets", s1) == 0, "Rainbow fuse not sent without 5 Golden copies")
 	local viewport = petsWindow:FindFirstChild("Detail", true):FindFirstChildWhichIsA("ViewportFrame", true)
 	local model = viewport and viewport:FindFirstChildWhichIsA("Model", true)
 	check(model and model:GetAttribute("Golden") == true, "Golden pet preview is gold-tinted")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	-- endgame C2: 5 Golden copies offer "Fuse 5 -> Rainbow"; a Rainbow pet is tagged and can't fuse
+	local tierPets = {}
+	for i = 1, 5 do
+		tierPets[string.format("{F1000000-0000-4000-8000-00000000000%d}", i)] = { Id = "seagull", Equipped = false, Golden = true }
+	end
+	tierPets["{F1000000-0000-4000-8000-000000000009}"] = { Id = "sandy_crab", Equipped = true, Golden = true, Rainbow = true }
+	Mock.FireClientEvent("DataChanged", { Pets = tierPets })
+	Mock.Advance(0.5)
+	Panel.Open("Pets", {})
+	Mock.Advance(1)
+	click(petsWindow:FindFirstChild("{F1000000-0000-4000-8000-000000000003}", true):FindFirstChild("Face", true))
+	Mock.Advance(0.5)
+	check(fuse.Visible and string.find(fuseText.Text, "Fuse 5 → Rainbow", 1, true) ~= nil, "Fuse 5 -> Rainbow offered with 5 Golden copies: " .. fuseText.Text)
+	local s2 = #Mock.Remote.ToServer
+	click(fuse)
+	Mock.Advance(0.5)
+	local rainbowFuses = sent("FusePets", s2)
+	check(#rainbowFuses == 1 and rainbowFuses[1][1] == "{F1000000-0000-4000-8000-000000000003}", "Rainbow fuse sends FusePets(uid)")
+	local rainbowTile = petsWindow:FindFirstChild("{F1000000-0000-4000-8000-000000000009}", true)
+	check(rainbowTile and rainbowTile:FindFirstChild("RainbowTag", true) ~= nil and rainbowTile:FindFirstChild("GoldenTag", true) == nil, "Rainbow tile tagged RAINBOW (not GOLDEN)")
+	click(rainbowTile:FindFirstChild("Face", true))
+	Mock.Advance(0.5)
+	check(not fuse.Visible, "no Fuse button on a Rainbow pet")
+	local rbView = petsWindow:FindFirstChild("Detail", true):FindFirstChildWhichIsA("ViewportFrame", true)
+	local rbModel = rbView and rbView:FindFirstChildWhichIsA("Model", true)
+	check(rbModel and rbModel:GetAttribute("Rainbow") == true and rbModel:GetAttribute("Golden") ~= true, "Rainbow preview uses the rainbow look, not gold")
 	Panel.CloseAll()
 	-- followers: EquippedGolden marks the slot
 	player:SetAttribute("EquippedPets", "sandy_crab,toy_truck")
@@ -2554,6 +2587,18 @@ do
 	end
 	check(goldenOk, "Golden follower rendered gold (and only it)")
 	check(visuals[2] and visuals[2].Model:FindFirstChild("GoldenSparkles", true) ~= nil, "Golden follower sparkles")
+	-- endgame C2: EquippedRainbow marks Rainbow followers
+	player:SetAttribute("EquippedRainbow", "2")
+	Mock.Advance(0.5)
+	visuals = PetFollowController.GetVisuals(player)
+	local rainbowOk = #visuals == 2
+	for _, v in visuals do
+		local want = v.Id == "toy_truck"
+		rainbowOk = rainbowOk and v.Rainbow == want and (v.Model:GetAttribute("Rainbow") == true) == want
+	end
+	check(rainbowOk, "Rainbow follower rendered rainbow (and only it)")
+	check(visuals[2] and visuals[2].Model:FindFirstChild("RainbowSparkles", true) ~= nil, "Rainbow follower sparkles")
+	player:SetAttribute("EquippedRainbow", "")
 	player:SetAttribute("EquippedGolden", "")
 	player:SetAttribute("EquippedPets", "")
 	Mock.Advance(0.3)
@@ -2632,6 +2677,12 @@ do
 	check(otherPlate ~= nil and otherPlate.Title.Text == "Core Breaker", "other players get nameplates too")
 	local d = StatusController.Describe(other)
 	check(d.Title == "Core Breaker" and d.Stars == "" and d.Tag == nil, "Describe(other)")
+	-- endgame C1: rebirth milestone titles replace the layer title
+	other:SetAttribute("RebirthCount", 12)
+	check(StatusController.Describe(other).Title == "Reborn Veteran", "12 rebirths: milestone title")
+	other:SetAttribute("RebirthCount", 27)
+	check(StatusController.Describe(other).Title == "Eternal Digger", "17+ rebirths: highest milestone title")
+	other:SetAttribute("RebirthCount", 0)
 
 	-- a reveal headline sits where your own plate floats: it hides only yours, only meanwhile
 	do
@@ -2869,6 +2920,46 @@ do
 	Panel.Open("Rebirth", { Tab = "Perks" })
 	Mock.Advance(0.4)
 	check(perksPage.Visible, "Panel.Open(Rebirth, { Tab = Perks })")
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+
+	-- endgame C1: Milestones tab
+	Mock.FireClientEvent("DataChanged", { Milestones = { r12 = true, r15 = true, r16 = true }, ShovelSkin = "" })
+	Mock.Advance(0.4)
+	Panel.CloseAll()
+	Mock.Advance(0.3)
+	Panel.Open("Rebirth", { Tab = "Milestones" })
+	Mock.Advance(0.4)
+	local milestonesPage = window:FindFirstChild("MilestonesPage", true)
+	check(milestonesPage ~= nil and milestonesPage.Visible, "Panel.Open(Rebirth, { Tab = Milestones })")
+	local mList = milestonesPage:FindFirstChild("MilestoneList", true)
+	local mRows = 0
+	for _, m in Config.Endgame.Milestones do
+		if mList:FindFirstChild(m.Id) then
+			mRows += 1
+		end
+	end
+	check(mRows == #Config.Endgame.Milestones, "one row per milestone (" .. mRows .. ")")
+	local function actionText(id)
+		local label = mList:FindFirstChild(id):FindFirstChild("Action", true):FindFirstChild("Label", true)
+		return label and label.Text
+	end
+	check(actionText("r12") == "Unlocked", "granted milestone shows Unlocked")
+	check(actionText("r17") == "Rebirth 17", "locked milestone shows its rebirth")
+	check(actionText("r16") == "Wear", "unlocked skin offers Wear")
+	local s3 = #Mock.Remote.ToServer
+	click(mList:FindFirstChild("r16"):FindFirstChild("Action", true):FindFirstChild("Face"))
+	local skins = sent("SetShovelSkin", s3)
+	check(#skins == 1 and skins[1][1] == "starforged", "Wear sends SetShovelSkin(skinId)")
+	Mock.FireClientEvent("DataChanged", { ShovelSkin = "starforged" })
+	Mock.Advance(0.4)
+	check(actionText("r16") == "Take off", "worn skin offers Take off")
+	local s4 = #Mock.Remote.ToServer
+	click(mList:FindFirstChild("r16"):FindFirstChild("Action", true):FindFirstChild("Face"))
+	local offs = sent("SetShovelSkin", s4)
+	check(#offs == 1 and offs[1][1] == "", "Take off sends SetShovelSkin(\"\")")
+	Mock.FireClientEvent("DataChanged", { Milestones = {}, ShovelSkin = "" })
+	Mock.Advance(0.4)
 	Panel.CloseAll()
 	Mock.Advance(0.3)
 
@@ -3442,7 +3533,8 @@ do
 	local swayNow = sway:GetPivot()
 	check(near(swayNow.Position, origin + Vector3.new(-10, 0, 0)), "sway keeps the pivot position")
 	local tilt = math.deg(math.acos(math.clamp(swayNow.UpVector.Y, -1, 1)))
-	check(tilt > 0.01 and tilt <= 10.01, "sway tilts within SwayDegrees (" .. tilt .. ")")
+	-- AmbientController rocks X by SwayDegrees and Z by 0.7 x SwayDegrees at once: max tilt ~1.22 x
+	check(tilt > 0.01 and tilt <= 10 * math.sqrt(1 + 0.7 ^ 2) + 0.01, "sway tilts within SwayDegrees (" .. tilt .. ")")
 
 	-- Drift: on the from -> to segment, facing travel; can carry Bob too
 	local from, to = origin + Vector3.new(-50, 0, -30), origin + Vector3.new(50, 0, -30)

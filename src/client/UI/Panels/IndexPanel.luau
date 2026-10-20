@@ -8,6 +8,9 @@
 	Gold/Fos/Cry) lit once found (PlayerData.FindVariants), and the header shows the TRUE variant
 	odds with your current luck (Util/Finds.VariantOdds, the same function the server rolls
 	with). Relics are listed in their layer but do not count towards layer completion.
+	Endgame C3: the layer title shows MASTERY progress (every treasure in every
+	Config.Endgame.MASTERY_VARIANTS variant); mastered layers (PlayerData.IndexMastered, recorded by
+	the server) get a ★ on their tab and add +Endgame.INDEX_MASTER_BONUS sand each (bonus line).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -141,7 +144,15 @@ local function renderLayer()
 	end
 	local layer = Config.Layers[selectedLayer]
 	local have, total = found(selectedLayer)
-	titleLabel.Text = layer.Name .. "  —  " .. have .. "/" .. total .. " found"
+	local masteryHave, masteryTotal = Config.Endgame.MasteryProgress(selectedLayer, State.Data.FindVariants)
+	local mastered = type(State.Data.IndexMastered) == "table" and State.Data.IndexMastered[layer.Id] == true
+	titleLabel.Text = layer.Name
+		.. "  —  "
+		.. have
+		.. "/"
+		.. total
+		.. " found  ·  "
+		.. (if mastered then "MASTERED ★" else "Mastery " .. masteryHave .. "/" .. masteryTotal)
 	titleLabel.TextColor3 = Color3.new(1, 1, 1):Lerp(layer.Color, 0.5)
 	local reached = State.Data.MaxDepth >= layer.DepthStart
 	local treasures: { Types.TreasureDef } = byLayer[selectedLayer] or EMPTY
@@ -248,6 +259,12 @@ local function refresh()
 		.. " layers complete, +"
 		.. math.floor(Config.INDEX_LAYER_BONUS * 100 + 0.5)
 		.. "% each)"
+	local masteredCount = Config.Endgame.CountMastered(State.Data.IndexMastered)
+	if masteredCount > 0 then
+		bonusLabel.Text ..= "  ·  Mastery +" .. math.floor(
+			masteredCount * Config.Endgame.INDEX_MASTER_BONUS * 100 + 0.5
+		) .. "%"
+	end
 	for i, button in layerButtons do
 		local layer = Config.Layers[i]
 		local have, total = found(i)
@@ -255,7 +272,8 @@ local function refresh()
 		button:SetIcon(
 			if have == total and total > 0 then "Check" elseif reached then "Layers." .. layer.Id else "Lock"
 		)
-		button:SetText(layer.Name .. " " .. have .. "/" .. total)
+		local layerMastered = type(State.Data.IndexMastered) == "table" and State.Data.IndexMastered[layer.Id] == true
+		button:SetText(layer.Name .. " " .. have .. "/" .. total .. (if layerMastered then " ★" else ""))
 	end
 	renderLayer()
 end
@@ -340,11 +358,14 @@ function IndexPanel.Init()
 		selectedLayer = Config.GetLayerIndexAtDepth(State.Data.MaxDepth)
 		refresh()
 	end)
-	State.ObserveMany({ "Index", "Treasures", "Finds", "FindVariants", "MaxDepth", "Passes", "Boosts" }, function()
-		if built and panel.IsOpen then
-			refresh()
+	State.ObserveMany(
+		{ "Index", "Treasures", "Finds", "FindVariants", "IndexMastered", "MaxDepth", "Passes", "Boosts" },
+		function()
+			if built and panel.IsOpen then
+				refresh()
+			end
 		end
-	end)
+	)
 end
 
 return IndexPanel

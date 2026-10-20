@@ -34,11 +34,14 @@ Remotes.Events = table.freeze({
 	"ToggleRide", -- () spawn + sit in your rideable pet, or get out
 	"RideDig", -- () scoop in front of your vehicle (server picks the point)
 	-- v2.2 duplicate fusion: (uid: string) fuse Config.GOLDEN_FUSE_COUNT copies into a Golden pet
+	-- (endgame C2: on a Golden pet, RAINBOW_FUSE_COUNT Golden copies into a Rainbow pet)
 	"FusePets",
 	-- v2.2 analytics: (name: string, a: any?, b: any?) whitelisted UI events (Analytics.OnTrack)
 	"Track",
 	-- v2.2 rebirth perks: (perkId: string) buy the next level with Rebirth Tokens (RebirthService)
 	"BuyRebirthPerk",
+	-- endgame C1: (skinId: string, "" = off) wear an unlocked rebirth-milestone shovel skin
+	"SetShovelSkin",
 	-- v3 discovery (DiscoveryService): () start a detector scan; (id: string, errors: {number})
 	-- answer an excavation with per-ring timing errors in seconds (-1 = no tap)
 	"Scan",

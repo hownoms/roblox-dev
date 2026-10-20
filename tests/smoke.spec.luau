@@ -2361,7 +2361,7 @@ step("hatching + compliance", function()
 	check(math.abs(Stats.GetPetMultiplier(MultiplierService.GetContext(hp)) - expected) < 1e-9, "Golden pet: sand bonus x1.5")
 	Mock.FireServer("FusePets", hp, goldenUid)
 	Mock.Advance(0.4)
-	check(hd.Pets[goldenUid] ~= nil and countPets("sandy_crab", true) == 1, "Golden pets can't be fused again")
+	check(hd.Pets[goldenUid] ~= nil and countPets("sandy_crab", true) == 1, "a lone Golden pet can't fuse (Rainbow needs 5 Golden copies)")
 	-- golden digging pet digs faster
 	local truck = PetService.GrantPet(hp, "toy_truck", true)
 	hd.Pets[truck].Golden = true
@@ -2708,8 +2708,30 @@ step("rebirth & economy", function()
 	check(Perks.MaxLevel("PetDen") == 2, "Pet Den has 2 levels")
 	check(Perks.Get("SellAnywhere") ~= nil and Perks.MaxLevel("SellAnywhere") == 1, "Sell Anywhere is a single unlock")
 	check(Config.RebirthCost(0) < 4_000_000 and Config.RebirthCost(4) == 470_000_000, "cheaper first rebirths, same late curve")
-	for n = 0, 12 do
+	for n = 0, 10 do
 		check(Config.RebirthCost(n + 1) > Config.RebirthCost(n) * 2, "rebirth cost keeps climbing at " .. n)
+	end
+	-- endgame: rebirths 1-12 unchanged (live players), 13-16 grow x1.5, x3.3 again from 17
+	local function oldCost(n)
+		local early = math.min(n, 4)
+		local growth = (4_000_000 * 3.3 ^ 4 / 500_000) ^ (1 / 4)
+		local x = 500_000 * growth ^ early * 3.3 ^ (n - early)
+		local magnitude = 10 ^ (math.floor(math.log10(x)) - 1)
+		return math.floor(x / magnitude + 0.5) * magnitude
+	end
+	local sameLive = true
+	for n = 0, 11 do
+		sameLive = sameLive and Config.RebirthCost(n) == oldCost(n)
+	end
+	check(sameLive, "rebirths 1-12 cost exactly what they cost before the endgame change")
+	check(Config.RebirthCost(11) == 2_000_000_000_000, "rebirth 12 still costs 2.0T")
+	for n = 12, 15 do
+		local ratio = Config.RebirthCost(n) / Config.RebirthCost(n - 1)
+		check(ratio > 1.4 and ratio < 1.6, "rebirths 13-16 grow about x1.5 at " .. n .. " (" .. ratio .. ")")
+	end
+	for n = 16, 18 do
+		local ratio = Config.RebirthCost(n) / Config.RebirthCost(n - 1)
+		check(ratio > 3.1 and ratio < 3.5, "x3.3 growth resumes from rebirth 17 at " .. n .. " (" .. ratio .. ")")
 	end
 	check(Perks.Level({ GoldenTouch = 99 }, "GoldenTouch") == 5, "Level clamps to max")
 	check(Perks.Level({ GoldenTouch = "x" } :: any, "GoldenTouch") == 0, "Level ignores junk")

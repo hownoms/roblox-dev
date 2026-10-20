@@ -16,6 +16,7 @@
 	- Pets, eggs, treasures, backpacks are welded to Root too (inert while anchored).
 ]]
 
+local Config = require(script.Parent.Config)
 local Shovels = require(script.Shovels)
 local Pets = require(script.Pets)
 local Eggs = require(script.Eggs)
@@ -29,7 +30,13 @@ local Rides = require(script.Rides)
 
 local Models = {}
 
-function Models.Shovel(shovelId: string): Model
+function Models.Shovel(shovelId: string, skinId: string?): Model
+	if skinId and skinId ~= "" then
+		local def = Config.GetShovel(shovelId)
+		if def and Config.Endgame.GetSkin(skinId) then
+			return Shovels.FromLook(shovelId, Config.Endgame.ApplySkin(def.Look, skinId)) -- endgame C1 skin
+		end
+	end
 	return Shovels.Build(shovelId)
 end
 

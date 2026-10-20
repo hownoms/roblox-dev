@@ -20,6 +20,10 @@
 		pause_hatching      boolean  egg hatching (the HatchEgg remote) refuses with a message
 		pause_autodig       boolean  the AutoDig pass stops digging
 		pause_leaderboards  boolean  no leaderboard DataStore reads or writes
+		pause_fusing        boolean  pet fusion (Golden and Rainbow, the FusePets remote) refuses
+		pause_milestones    boolean  rebirth milestone rewards are not granted (granted on a later
+		                             join / rebirth once the pause is lifted)
+		pause_index_rewards boolean  no NEW Index mastery is recorded (recorded bonuses stay)
 		announcement        string   banner text shown to everyone (max MAX_ANNOUNCEMENT chars)
 
 	API:
@@ -28,7 +32,8 @@
 		LiveConfig.Changed: Signal<Snapshot>  after every applied change
 		LiveConfig.Parse(read, now)           pure: (key -> raw value) -> (Snapshot, warnings)
 		LiveConfig.FindCode(code, now?)       a redeemable CodeDef (shipped + overrides + extras) or nil
-		LiveConfig.IsPaused(feature)          "Hatching" | "AutoDig" | "Leaderboards"
+		LiveConfig.IsPaused(feature)          "Hatching" | "AutoDig" | "Leaderboards" | "Fusing"
+		                                      | "Milestones" | "IndexRewards"
 		LiveConfig.ParseUtc(text)             "YYYY-MM-DD" (end of day) / "YYYY-MM-DD HH:MM" -> unix
 		LiveConfig.OnPlayerAdded(player)      shows the announcement ANNOUNCE_DELAY s after joining
 
@@ -45,7 +50,7 @@ local Types = require(Shared.Types)
 
 local Net = require(script.Parent.Net)
 
-export type Feature = "Hatching" | "AutoDig" | "Leaderboards"
+export type Feature = "Hatching" | "AutoDig" | "Leaderboards" | "Fusing" | "Milestones" | "IndexRewards"
 
 export type Snapshot = {
 	CodesOn: { [string]: boolean },
@@ -80,6 +85,9 @@ local PAUSE_KEYS: { [string]: Feature } = {
 	pause_hatching = "Hatching",
 	pause_autodig = "AutoDig",
 	pause_leaderboards = "Leaderboards",
+	pause_fusing = "Fusing", -- endgame C2 (and the v2.2 Golden fusion)
+	pause_milestones = "Milestones", -- endgame C1
+	pause_index_rewards = "IndexRewards", -- endgame C3
 }
 
 LiveConfig.Changed = Signal.new() :: Signal.Signal<Snapshot>

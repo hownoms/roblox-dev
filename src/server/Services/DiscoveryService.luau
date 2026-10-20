@@ -37,6 +37,12 @@
 	their sky beam is visible to the whole server) and is removed after REVEAL_SECONDS
 	(SPECTACLE_SECONDS for Server / Spectacle tiers). Rarities with Announce brag to the server.
 
+	INDEX MASTERY (endgame C3, Config.Endgame): whenever FindVariants changes (and on join, and
+	when pause_index_rewards is lifted) every layer whose treasures all have every
+	Endgame.MASTERY_VARIANTS variant is recorded ONCE in PlayerData.IndexMastered[layerId]; each
+	recorded layer is +Endgame.INDEX_MASTER_BONUS sand forever (Stats "Mastery" factor). While
+	pause_index_rewards is on nothing new is recorded (recorded layers keep their bonus).
+
 	DETECTOR: Scan() starts a SCAN_SECONDS scan (SCAN_COOLDOWN between starts). Every
 	PING_INTERVAL the owner gets DetectorPing(Types.DetectorPing) for the nearest deposit within
 	DETECTOR_RANGE: a distance band, a compass sector, Down/Level/Up and the signal colour only.
@@ -54,6 +60,7 @@
 		DiscoveryService.Maintain(now?)                  -- respawn / evict pass
 		DiscoveryService.PingFor(player): Types.DetectorPing
 		DiscoveryService.SetSeed(seed)                   -- deterministic rolls (tests)
+		DiscoveryService.CheckMastery(player): { string } -- records new mastered layers (ids)
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -71,6 +78,7 @@ local Finds = require(Shared.Util.Finds)
 local Analytics = require(script.Parent.Analytics)
 local BeachService = require(script.Parent.BeachService)
 local DataService = require(script.Parent.DataService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local MultiplierService = require(script.Parent.MultiplierService)
 local Net = require(script.Parent.Net)
 local ServerSignals = require(script.Parent.ServerSignals)
@@ -592,6 +600,39 @@ local function afterFind(player: Player, info: Types.FindInfo)
 	ServerSignals.TreasureFound:Fire(player, info.TreasureId)
 end
 
+-- Endgame C3: record every newly mastered layer once. Returns the layer ids recorded now.
+function DiscoveryService.CheckMastery(player: Player): { string }
+	local recorded: { string } = {}
+	local data = DataService.Get(player)
+	if not data or LiveConfig.IsPaused("IndexRewards") then
+		return recorded
+	end
+	assert(data) -- refine for the type checker (guarded above)
+	if type(data.IndexMastered) ~= "table" then
+		data.IndexMastered = {}
+	end
+	for i, layer in Config.Layers do
+		if data.IndexMastered[layer.Id] ~= true and Config.Endgame.IsLayerMastered(i, data.FindVariants) then
+			data.IndexMastered[layer.Id] = true
+			table.insert(recorded, layer.Id)
+			Net.Notify(
+				player,
+				"Reward",
+				string.format(
+					"%s MASTERED! +%d%% sand forever",
+					layer.Name,
+					math.floor(Config.Endgame.INDEX_MASTER_BONUS * 100 + 0.5)
+				)
+			)
+			Analytics.Custom(player, "IndexMastered", layer.Id)
+		end
+	end
+	if #recorded > 0 then
+		DataService.MarkDirty(player, "IndexMastered")
+	end
+	return recorded
+end
+
 function DiscoveryService.GetExcavation(player: Player): Excavation?
 	return excavations[player]
 end
@@ -835,6 +876,20 @@ function DiscoveryService.Init()
 end
 
 function DiscoveryService.Start()
+	-- Endgame C3 Index mastery
+	DataService.PlayerLoaded:Connect(function(player: Player)
+		DiscoveryService.CheckMastery(player)
+	end)
+	DataService.Changed:Connect(function(player: Player, keys: { string })
+		if table.find(keys, "FindVariants") then
+			DiscoveryService.CheckMastery(player)
+		end
+	end)
+	LiveConfig.Changed:Connect(function()
+		for _, player in DataService.GetLoadedPlayers() do
+			DiscoveryService.CheckMastery(player)
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(D.PING_INTERVAL)

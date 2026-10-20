@@ -25,6 +25,11 @@ Owner: Rebirth & Economy agent. The numbers live in `src/shared/Config/Rebirths.
 exactly on the old `4M x 3.3^n` curve. Everything after that is unchanged, so the Core Breaker
 (10 rebirths) still needs about the same late-game grind.
 
+Endgame (20 Oct 2026, owner): rebirths 1–12 keep that curve; rebirths 13–16 grow x1.5 instead of
+x3.3 (3.0T, 4.5T, 6.8T, 10T) and x3.3 resumes from rebirth 17 (34T, 110T, ...), so the rebirth
+milestones at 16 / 17 / 18 (Config/Endgame.luau) land at ~15 / ~27 / ~64 h of play in
+`tools/sim/economy.luau`.
+
 ### Simulation (`tools/sim/economy.luau`)
 Run it with `python3 tests/tools/bundle.py && luau tools/sim/economy.luau` (add `-a verbose` for
 every purchase). It loads the real Config through the test mock and plays a "cheapest useful

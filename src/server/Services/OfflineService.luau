@@ -81,11 +81,11 @@ function OfflineService.Estimate(ctx: Stats.Context, awaySeconds: number): Estim
 	local rate = 0
 	local bestId: string? = nil
 	local bestRate = -1
-	local ids, golden = Stats.GetEquippedPetIds(data, Stats.GetPetSlots(calm))
+	local ids, golden, rainbow = Stats.GetEquippedPetIds(data, Stats.GetPetSlots(calm))
 	for i, id in ids do
 		local dig = Config.GetPetDig(id)
 		if dig then
-			local interval = Config.GetPetDigInterval(id, golden[i]) or dig.Interval
+			local interval = Config.GetPetDigInterval(id, golden[i], rainbow[i]) or dig.Interval
 			local layerIndex = math.min(Config.GetMaxLayerIndexForPower(dig.Power), reached)
 			local layer = Config.Layers[layerIndex]
 			local perDig = layer.SandValue * sandMultiplier / shovelFactor * dig.SandMultiplier

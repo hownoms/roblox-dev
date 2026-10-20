@@ -25,9 +25,10 @@
 	Far-away players' pets are hidden; LowGraphics hides other players' pets entirely.
 	v2.2: Player attribute "EquippedGolden" (comma-separated 1-based slots in "EquippedPets") marks
 	Golden pets; they render gold-tinted with sparkles (ModelFactory.MakeGolden).
+	Endgame C2: "EquippedRainbow" (same format) marks Rainbow pets (ModelFactory.MakeRainbow).
 
 	Public (tests): PetFollowController.GetVisuals(player)
-	  -> { { Id, Golden, Slot, Model, Vehicle: boolean, Digging: boolean, Parked: boolean } }
+	  -> { { Id, Golden, Rainbow, Slot, Model, Vehicle: boolean, Digging: boolean, Parked: boolean } }
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -50,6 +51,7 @@ local PetFollowController = {}
 
 local ATTRIBUTE = "EquippedPets"
 local GOLDEN_ATTRIBUTE = "EquippedGolden" -- v2.2: slots (1-based) of Golden pets in ATTRIBUTE
+local RAINBOW_ATTRIBUTE = "EquippedRainbow" -- endgame C2: slots of Rainbow pets in ATTRIBUTE
 local RENDER_DISTANCE = 220
 local FLYING_SHAPES = { Bird = true, Dragon = true, Star = true, Squid = true, Fish = true }
 
@@ -97,6 +99,7 @@ type Park = {
 type PetVisual = {
 	Id: string,
 	Golden: boolean,
+	Rainbow: boolean,
 	Slot: number, -- 1-based index in the owner's equipped list (= PetDug slot)
 	Model: Model,
 	Offset: Vector3, -- pivot -> bottom correction
@@ -210,12 +213,19 @@ local function parseGolden(value: any): { [number]: boolean }
 	return slots
 end
 
--- ids in "EquippedPets" order (Stats.SortEquipped: by id, normal before Golden); golden[slot].
-local function setPets(player: Player, ids: { string }, golden: { [number]: boolean }?)
+-- "*" Golden, "**" Rainbow: models are reused only for the same pet AND tier.
+local function tierSuffix(golden: boolean, rainbow: boolean): string
+	return if rainbow then "**" elseif golden then "*" else ""
+end
+
+-- ids in "EquippedPets" order (Stats.SortEquipped: by id, normal before Golden before Rainbow);
+-- golden[slot], rainbow[slot].
+local function setPets(player: Player, ids: { string }, golden: { [number]: boolean }?, rainbow: { [number]: boolean }?)
 	local goldenSlots: { [number]: boolean } = golden or {}
+	local rainbowSlots: { [number]: boolean } = rainbow or {}
 	local keyParts: { string } = {}
 	for i, id in ids do
-		keyParts[i] = id .. (if goldenSlots[i] then "*" else "")
+		keyParts[i] = id .. tierSuffix(goldenSlots[i] == true, rainbowSlots[i] == true)
 	end
 	local key = table.concat(keyParts, ",")
 	local entry = entries[player]
@@ -231,14 +241,15 @@ local function setPets(player: Player, ids: { string }, golden: { [number]: bool
 	-- keep models (and their position) for pets that stay equipped
 	local old: { [string]: { PetVisual } } = {}
 	for _, pet in e.Pets do
-		local oldKey = pet.Id .. (if pet.Golden then "*" else "")
+		local oldKey = pet.Id .. tierSuffix(pet.Golden, pet.Rainbow)
 		old[oldKey] = old[oldKey] or {}
 		table.insert(old[oldKey], pet)
 	end
 	local fresh: { PetVisual } = {}
 	for i, id in ids do
 		local isGolden = goldenSlots[i] == true
-		local reuseKey = id .. (if isGolden then "*" else "")
+		local isRainbow = rainbowSlots[i] == true
+		local reuseKey = id .. tierSuffix(isGolden, isRainbow)
 		local reuse = old[reuseKey] and table.remove(old[reuseKey], 1)
 		if reuse then
 			reuse.Slot = i
@@ -247,9 +258,7 @@ local function setPets(player: Player, ids: { string }, golden: { [number]: bool
 		end
 		local def = Config.GetPet(id)
 		local model = ModelFactory.Pet(id)
-		if isGolden then
-			ModelFactory.MakeGolden(model)
-		end
+		ModelFactory.ApplyTier(model, isGolden, isRainbow)
 		ModelFactory.MakeVisualOnly(model, false)
 		model.Name = player.Name .. "_" .. id
 		local boxCFrame, size = model:GetBoundingBox()
@@ -260,6 +269,7 @@ local function setPets(player: Player, ids: { string }, golden: { [number]: bool
 		table.insert(fresh, {
 			Id = id,
 			Golden = isGolden,
+			Rainbow = isRainbow,
 			Slot = i,
 			Model = model,
 			Offset = offset,
@@ -290,15 +300,22 @@ local function refresh(player: Player)
 		if not localUsesAttribute then
 			local ids: { string } = {}
 			local golden: { [number]: boolean } = {}
+			local rainbow: { [number]: boolean } = {}
 			for i, pet in Stats.SortEquipped(State.Data.Pets or {}) do
 				ids[i] = pet.Id
 				golden[i] = pet.Golden == true
+				rainbow[i] = pet.Rainbow == true
 			end
-			setPets(player, ids, golden)
+			setPets(player, ids, golden, rainbow)
 			return
 		end
 	end
-	setPets(player, parse(value), parseGolden(player:GetAttribute(GOLDEN_ATTRIBUTE)))
+	setPets(
+		player,
+		parse(value),
+		parseGolden(player:GetAttribute(GOLDEN_ATTRIBUTE)),
+		parseGolden(player:GetAttribute(RAINBOW_ATTRIBUTE))
+	)
 end
 
 local function track(player: Player)
@@ -306,6 +323,9 @@ local function track(player: Player)
 		refresh(player)
 	end)
 	player:GetAttributeChangedSignal(GOLDEN_ATTRIBUTE):Connect(function()
+		refresh(player)
+	end)
+	player:GetAttributeChangedSignal(RAINBOW_ATTRIBUTE):Connect(function()
 		refresh(player)
 	end)
 	refresh(player)
@@ -653,6 +673,7 @@ end
 export type VisualInfo = {
 	Id: string,
 	Golden: boolean,
+	Rainbow: boolean,
 	Slot: number,
 	Model: Model,
 	Vehicle: boolean,
@@ -668,6 +689,7 @@ function PetFollowController.GetVisuals(player: Player): { VisualInfo }
 			table.insert(list, {
 				Id = pet.Id,
 				Golden = pet.Golden,
+				Rainbow = pet.Rainbow,
 				Slot = pet.Slot,
 				Model = pet.Model,
 				Vehicle = pet.Vehicle,

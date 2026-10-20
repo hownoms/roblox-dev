@@ -46,7 +46,7 @@ local Net = require(script.Parent.Net)
 local PetService = require(script.Parent.PetService)
 local World = require(script.Parent.Parent.World)
 
-export type ActiveDigger = { Slot: number, Id: string, Golden: boolean? }
+export type ActiveDigger = { Slot: number, Id: string, Golden: boolean?, Rainbow: boolean? }
 
 local TICK = 0.1
 local VOXEL = 4 -- DigService carves whole 4-stud voxels
@@ -117,7 +117,7 @@ function PetDigService.GetDiggers(player: Player): { ActiveDigger }
 			break -- more equipped than slots (pass refund pending): only the first `slots` dig
 		end
 		if Config.GetPetDig(pet.Id) then
-			table.insert(list, { Slot = i, Id = pet.Id, Golden = pet.Golden == true })
+			table.insert(list, { Slot = i, Id = pet.Id, Golden = pet.Golden == true, Rainbow = pet.Rainbow == true })
 		end
 	end
 	return list
@@ -328,8 +328,8 @@ function PetDigService.Step(player: Player)
 		end
 		assert(def) -- refine for the type checker (guarded above)
 		assert(dig) -- refine for the type checker (guarded above)
-		-- v2.2: Golden pets dig Config.GOLDEN_DIG_SPEED x as often
-		local interval = Config.GetPetDigInterval(a.Id, a.Golden) or dig.Interval
+		-- v2.2: Golden pets dig Config.GOLDEN_DIG_SPEED x as often (Rainbow: Endgame.RAINBOW_DIG_SPEED)
+		local interval = Config.GetPetDigInterval(a.Id, a.Golden, a.Rainbow) or dig.Interval
 		local key = a.Slot .. ":" .. a.Id
 		local pet = state.Pets[key]
 		if not pet then

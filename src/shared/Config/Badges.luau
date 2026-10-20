@@ -9,6 +9,7 @@ export type BadgeKind =
 	| "FindRarity"
 	| "CompleteLayer"
 	| "DailyStreak"
+	| "MasterLayer"
 
 export type BadgeDef = {
 	Key: string,
@@ -61,6 +62,9 @@ local Badges: { BadgeDef } = {
 	{ Key = "AncientRuins", Id = 0, Name = "Lost Civilization", Kind = "ReachLayer", Layer = "Ancient Ruins" },
 	{ Key = "BeachRegular", Id = 0, Name = "Beach Regular", Kind = "DailyStreak", Count = 7 },
 	{ Key = "CoreBreaker", Id = 0, Name = "Core Breaker", Kind = "Rebirth", Count = 10 },
+	-- Endgame C3 (six-month plan C4): TODO(owner) create "Index Master" in Creator Hub (no art yet)
+	-- and paste its id. Awarded for the first mastered layer (PlayerData.IndexMastered).
+	{ Key = "IndexMaster", Id = 0, Name = "Index Master", Kind = "MasterLayer" },
 }
 
 return Badges
