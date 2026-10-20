@@ -169,7 +169,9 @@ unlocked (the pass gave the same speed-up before). Rebirth 5+ costs are unchange
 Old pacing (pre-v2.2, same model): R2 ~43 min later, R3–R5 ~35–40 min each, R6–R8 ~40–50 min, R9+
 1–2 h each; Core Breaker (10 rebirths) ≈ 9–11 h of idealised play, realistically 12–20 h —
 two to three weeks for a 45-min/day player. Beyond R11 the cost curve (x3.3) outruns income on
-purpose: that is the wall each content update pushes back.
+purpose: that is the wall each content update pushes back. (Endgame, 20 Oct 2026: rebirths 13–16
+grow x1.5 instead, so the rebirth 16–18 milestones are reachable; x3.3 resumes from rebirth 17.
+See docs/design/Rebirth.md.)
 
 Tuning knobs, in order of preference: `Rebirths.BaseCost / CostGrowth`, shovel/backpack `Price`,
 `Layer.SandValue`. Do not change `Hardness`/`Power` pairs without keeping the 1:1 ladder.

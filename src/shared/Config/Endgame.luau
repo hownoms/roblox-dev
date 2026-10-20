@@ -80,8 +80,9 @@ local Skins: { SkinDef } = {
 	},
 }
 
--- 12 / 15 / 16 / 17 / 18: past ~12 each rebirth costs x3.3 while the multiplier grows +0.5, so
--- the economy sim puts 15 at ~46 h and 18 at ~1,300 h of play (owner moved 20/25/30 down, 20 Oct).
+-- 12 / 15 / 16 / 17 / 18 (owner moved 20/25/30 down, 20 Oct). Rebirths 13-16 grow x1.5 instead of
+-- x3.3 (Config/Rebirths), so tools/sim/economy.luau (typical perk plan) puts them at ~5 h (12),
+-- ~11 h (15), ~15 h (16), ~27 h (17) and ~64 h (18) of play.
 local Milestones: { MilestoneDef } = {
 	{
 		Id = "r12",

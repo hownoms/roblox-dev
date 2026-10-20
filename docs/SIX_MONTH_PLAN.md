@@ -82,10 +82,14 @@ published). Numbers in `src/shared/Config/Endgame.luau`; each has a pause switch
   (Mythic, x16, exclusive), 16 shovel skin "Starforged" (recolours any shovel, on/off in the Rebirth
   panel's new Milestones tab), 17 title "Eternal Digger", 18 pet Eternal Wyrm (Mythic, x20,
   exclusive). Titles replace the layer title on the nameplate. Switch: `pause_milestones`.
-  The plan said 20 / 25 / 30, but on today's cost curve (x3.3 per rebirth, linear multiplier) those
-  were out of reach, so the owner lowered them to 16 / 17 / 18 (20 Oct). Economy sim (typical perk
-  plan, real-time estimate): rebirth 12 ~5 h of play, 15 ~46 h, 16 ~136 h, 17 ~414 h, 18 ~1,280 h,
-  so 17 and 18 stay a long-haul chase for the most dedicated players; the cost curve is unchanged.
+  The plan said 20 / 25 / 30, but on the x3.3-per-rebirth cost curve those were out of reach, so the
+  owner lowered them to 16 / 17 / 18 and made rebirths past 12 cheaper (20 Oct): rebirths 1–12 cost
+  exactly what they did (live players unaffected), rebirths 13–16 grow x1.5 instead of x3.3
+  (3.0T, 4.5T, 6.8T, 10T), and from rebirth 17 the x3.3 growth resumes (34T, 110T, ...).
+  Economy sim (typical perk plan, real-time estimate), hours of play to reach each rebirth:
+  12 ~4.9 h, 13 ~6.4 h, 14 ~8.3 h, 15 ~11.1 h, 16 ~14.9 h, 17 ~26.9 h, 18 ~63.6 h
+  (before: 15 ~46 h, 16 ~136 h, 18 ~1,280 h). Rebirth costs are never saved (always computed from
+  `PlayerData.Rebirths`), so no save migration was needed.
 - [x] C2. Rainbow pets: 5 Golden copies of a pet fuse into 1 Rainbow (FusePets on a Golden pet; same
   rules as Golden: equipped copies are used last and the result stays equipped if one was).
   Rainbow: sand bonus x2.25 (Golden x1.5), digs 1.5x as often (Golden 1.25x), multi-hue sparkling
