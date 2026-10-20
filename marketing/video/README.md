@@ -2,7 +2,7 @@
 
 | File | Use | Notes |
 |---|---|---|
-| `gameplay-preview-v3.mp4` | Roblox game page video slot (Creator Dashboard → Places → Videos) | 53.5 s, 1080p60, silent, gameplay only; no promotional text, voiceover or music, per Roblox's guidance |
+| `gameplay-preview-v3.mp4` | Roblox game page video slot (Creator Dashboard → Places → Videos) | 53.5 s, 1080p60, silent, gameplay only; no promotional text, voiceover or music, per Roblox's guidance. **Uploaded 20 Oct 2026** as asset 99299562386530, under review (up to 24 h); 2 of 3 monthly uploads left until 19 Nov |
 | `dig-to-the-core-trailer.mp4` | YouTube, Roblox video ads | 30 s, 1080p60, music "A Game" (Mixkit, see MUSIC_LICENSE.md) |
 | `dig-to-the-core-vertical.mp4` | TikTok / YouTube Shorts / Reels | 30 s, 1080×1920, same edit |
 
