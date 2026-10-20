@@ -15,6 +15,10 @@ as `[LiveConfig] ignored ...`.
 4. To undo: **Configs → History → Restore** on the old value, then publish again. Deleting the key also
    puts the game back to normal.
 
+**Already created (20 Oct 2026):** `pause_hatching`, `pause_autodig` and `pause_leaderboards` exist,
+set to `False`. To pause something, click the key, change it to `True`, then **Publish now** and confirm the dialog.
+The string keys aren't created yet, because Roblox won't save a blank value. Create them the first time you use one.
+
 Times are always **UTC**. 8 pm US Eastern on a Friday in winter is `Sat 01:00 UTC`.
 
 ## The switches
